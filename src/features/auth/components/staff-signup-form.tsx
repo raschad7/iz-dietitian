@@ -1,14 +1,23 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useActionState, useState, type ChangeEvent, type FormEvent } from 'react';
+import {
+  useActionState,
+  useId,
+  useState,
+  type ChangeEvent,
+  type FocusEvent,
+  type FormEvent,
+} from 'react';
 
 import { signUpStaff } from '@/features/auth/actions';
 import { AuthFormMessage, AuthSubmitButton } from '@/features/auth/components/form-parts';
 import { GoogleButton } from '@/features/auth/components/google-button';
 import { PasswordInput } from '@/features/auth/components/password-input';
+import { PasswordRules } from '@/features/auth/components/password-rules';
 import { VerifyEmailNotice } from '@/features/auth/components/verify-email-notice';
 import { initialAuthState } from '@/features/auth/form-state';
+import { clientPasswordChecks } from '@/features/auth/password-policy';
 import {
   readSignUpForm,
   signUpFieldErrors,
@@ -16,9 +25,9 @@ import {
 } from '@/features/auth/signup-validation';
 import { MAX_NAME_PART_LENGTH } from '@/features/auth/schema';
 import { FieldError } from '@/components/ui/field';
+import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { MIN_PASSWORD_LENGTH } from '@/lib/auth-constants';
 import { type Locale } from '@/i18n/routing';
 
 type StaffSignUpFormProps = {
@@ -32,6 +41,56 @@ export function StaffSignUpForm({ locale, showGoogle }: StaffSignUpFormProps) {
   const tCommon = useTranslations('common');
   const [state, formAction] = useActionState(signUpStaff, initialAuthState);
   const [fieldErrors, setFieldErrors] = useState<SignUpFieldErrors>({});
+
+  /*
+    The two password values, mirrored into state purely so the rule track and
+    the match line have something to read. Straight from `SetPasswordForm`,
+    which is the screen this behaviour was asked to match — read that file for
+    the reasoning behind each piece; only what differs is noted here.
+
+    The inputs stay uncontrolled — `Input` runs its own text layer for the
+    Arabic glyph repair — so this is a copy kept in step by the form's own
+    `onChange`, not the source of truth. The DOM is, which is also what
+    `new FormData(form)` reads on submit, so the two cannot disagree about what
+    is being sent.
+  */
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  const rulesId = useId();
+
+  /*
+    Whether the password box has satisfied all three rules — and therefore
+    whether the confirm box and the button are open for business.
+
+    ⚠ **This reads the same three stops the track draws, and nothing else.** Not
+    the schema, which also refuses the handful of common passwords — that check
+    has no stop on the track, so gating on it would let a value light all three
+    bars and leave the button dead with nothing on screen explaining why. A
+    common password that clears the three rules therefore submits, and
+    `passwordTooCommon` comes back and says so in words.
+
+    The invariant worth keeping: **three lit stops always means a live button.**
+  */
+  const checks = clientPasswordChecks(password);
+  const passwordReady = checks.length && checks.letter && checks.digit;
+
+  const matches = password !== '' && password === confirmPassword;
+
+  /*
+    ⚠ **Only safe because a mismatch is visible before the press.**
+    `reportMismatchOnBlur` puts the red line under the confirm box the moment
+    the reader leaves it holding something different, so a dead button always
+    has its reason stated next to it. If that handler ever goes, this condition
+    has to go with it.
+
+    The four fields above the passwords are deliberately *not* part of this. A
+    button that stays dead until a five-field form is perfect is a button that
+    spends most of its life dead, and an empty name has no live cue of its own
+    the way the rule track and the mismatch line are — `validateBeforeSubmit`
+    answers those on the press, which is where §Fields and forms puts them.
+  */
+  const canSubmit = passwordReady && matches;
 
   /**
    * Checks the form in Arabic before the browser can check it in English.
@@ -56,18 +115,59 @@ export function StaffSignUpForm({ locale, showGoogle }: StaffSignUpFormProps) {
     }, 0);
   }
 
-  /** A field stops being wrong the moment it is edited. */
+  /**
+   * Says the two do not match, once the reader has finished with the box.
+   *
+   * On blur rather than per keystroke, which is what §Fields and forms asks for
+   * and is also the only sensible reading: half of a password is not a
+   * mismatch, it is someone still typing.
+   *
+   * ⚠ **Both boxes are watched, not just the second one.** Going back to change
+   * the first password after the two already agreed breaks the match just as
+   * surely as mistyping the second — and in that direction the only cue would
+   * otherwise be the green line quietly disappearing, which is an absence
+   * rather than a message.
+   *
+   * `onBlur` goes on the form rather than the field because React's version of
+   * it bubbles, so one handler covers both boxes.
+   */
+  function reportMismatchOnBlur(event: FocusEvent<HTMLFormElement>): void {
+    if (!(event.target instanceof HTMLInputElement)) return;
+
+    const { name, value } = event.target;
+    if (name !== 'password' && name !== 'confirmPassword') return;
+
+    /*
+      The box being left holds the newer value — `onChange` has already run for
+      it, but reading it directly is what makes this correct whatever order the
+      two events arrive in. Its sibling comes from state.
+    */
+    const first = name === 'password' ? value : password;
+    const second = name === 'confirmPassword' ? value : confirmPassword;
+
+    // An empty second box is not a mismatch. Someone who tabbed past it has not
+    // made a mistake yet, and the submit path already answers a blank one.
+    if (second === '' || second === first) return;
+
+    setFieldErrors((current) => ({ ...current, confirmPassword: 'passwordMismatch' }));
+  }
+
+  /** A field stops being wrong the moment it is edited — and the rules re-read. */
   function clearCorrectedField(event: ChangeEvent<HTMLFormElement>): void {
     if (!(event.target instanceof HTMLInputElement)) return;
-    const name = event.target.name as keyof SignUpFieldErrors;
+    const { name, value } = event.target;
+
+    if (name === 'password') setPassword(value);
+    if (name === 'confirmPassword') setConfirmPassword(value);
 
     setFieldErrors((current) => {
-      if (!current[name]) return current;
+      const field = name as keyof SignUpFieldErrors;
+      if (!current[field]) return current;
       const next = { ...current };
-      delete next[name];
+      delete next[field];
       // Retyping either password answers a mismatch, whichever box it was
       // reported on.
-      if (name === 'password') delete next.confirmPassword;
+      if (field === 'password') delete next.confirmPassword;
       return next;
     });
   }
@@ -102,6 +202,7 @@ export function StaffSignUpForm({ locale, showGoogle }: StaffSignUpFormProps) {
         noValidate
         onSubmit={validateBeforeSubmit}
         onChange={clearCorrectedField}
+        onBlur={reportMismatchOnBlur}
         className="space-y-4 short:space-y-3"
       >
         <input type="hidden" name="locale" value={locale} />
@@ -176,22 +277,67 @@ export function StaffSignUpForm({ locale, showGoogle }: StaffSignUpFormProps) {
           autoComplete="new-password"
           nativeRequired={false}
           placeholder={t('passwordPlaceholder')}
-          hint={t('passwordStrengthHint', { count: MIN_PASSWORD_LENGTH })}
           error={fieldErrors.password ? t(fieldErrors.password) : undefined}
+          describedBy={rulesId}
+          /*
+            The rule track replaces the hint sentence that stood here.
+
+            That sentence carried three rules at once and could not say which of
+            them you had already satisfied, so someone seven characters in read
+            exactly what someone who had typed nothing read. It also stated the
+            *old* staff rule — ten characters, letters with numbers or symbols —
+            which is no longer what the server enforces.
+
+            `footer`, not `hint`: a hint is displaced by the error, and these
+            are at their most useful in the one moment an error is on screen.
+          */
+          footer={<PasswordRules id={rulesId} value={password} className="mt-2" />}
         />
 
+        {/*
+          Shut until the box above is right. There is nothing to confirm before
+          then, and a second copy of a password that is about to be rejected is
+          work the reader will have to redo.
+
+          It carries no hint of its own. A control that refuses input without
+          saying why is how this pattern usually goes wrong, and what keeps this
+          one honest is the rule track directly above it: the grey bar is
+          already naming the requirement that has not been met, immediately next
+          to the box waiting on it.
+        */}
         <PasswordInput
           name="confirmPassword"
           label={t('confirmPassword')}
           autoComplete="new-password"
           nativeRequired={false}
           placeholder={t('confirmPasswordPlaceholder')}
+          disabled={!passwordReady}
           error={fieldErrors.confirmPassword ? t(fieldErrors.confirmPassword) : undefined}
+          /*
+            Confirming out loud, rather than only ever complaining. Both boxes
+            are masked, so without this the only way to be sure the two agree is
+            to reveal them both and compare by eye.
+          */
+          footer={
+            matches ? (
+              <p className="mt-2 flex items-center gap-1.5 text-caption text-primary motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200">
+                <Icon name="check" className="size-3.5" />
+                <span>{t('passwordsMatch')}</span>
+              </p>
+            ) : null
+          }
         />
 
         <AuthFormMessage state={state} />
 
-        <AuthSubmitButton label={t('signUpSubmit')} />
+        {/*
+          Live only once both password boxes are right — see `canSubmit`, and
+          the warning there about what has to stay on screen for this to be
+          fair. Every state that holds it shut names itself somewhere the reader
+          is already looking: the rule track's grey bar for a rule not yet met,
+          the red line under the second box for a mismatch.
+        */}
+        <AuthSubmitButton label={t('signUpSubmit')} disabled={!canSubmit} />
       </form>
 
       {/*

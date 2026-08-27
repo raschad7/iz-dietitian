@@ -5,6 +5,8 @@ import type { ReactNode } from 'react';
 
 import { DesktopScrollbars } from '@/components/layout/desktop-scrollbars';
 import { AppShell, type NavItem } from '@/components/layout/sidebar';
+import { AppShell } from '@/components/layout/sidebar';
+import { ZoomLock } from '@/components/layout/zoom-lock';
 import { type IconName } from '@/components/ui/icon';
 import { APP_THEME_COLOR_DARK, APP_THEME_COLOR_LIGHT } from '@/features/app-pwa/brand';
 import { ServiceWorkerRegister } from '@/features/app-pwa/service-worker-register';
@@ -130,13 +132,22 @@ export async function generateMetadata({ params }: Omit<AppLayoutProps, 'childre
  * attribute attached, which is the only way to express "follow the device" in a
  * tag that is read before any stylesheet loads.
  *
- * Only `themeColor` is declared here. Next merges a nested viewport export over
- * its parent field by field, so naming any other field would silently replace
- * the app-wide one from `[locale]/layout.tsx` — `viewportFit: 'cover'` and
- * `interactiveWidget` in particular.
+ * Next merges a nested viewport export over its parent field by field, so the
+ * app-wide fields from `[locale]/layout.tsx` — `viewportFit: 'cover'` and
+ * `interactiveWidget` in particular — survive as long as nothing here restates
+ * them, and nothing here may restate them.
+ *
+ * The three scale fields are the meta-tag half of the zoom lock, and hold the
+ * dashboard at scale 1 on every mobile browser that honours them. Safari is the
+ * one that does not, so `ZoomLock` below is the other half; it carries the
+ * reasoning for the pair. Desktop browsers ignore the viewport meta tag
+ * outright, so nothing in this export reaches one.
  */
 export function generateViewport(): Viewport {
   return {
+    minimumScale: 1,
+    maximumScale: 1,
+    userScalable: false,
     themeColor: [
       { media: '(prefers-color-scheme: light)', color: APP_THEME_COLOR_LIGHT },
       { media: '(prefers-color-scheme: dark)', color: APP_THEME_COLOR_DARK },
@@ -230,6 +241,20 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
         query decides whether it applies.
       */}
       <DesktopScrollbars />
+
+      {/*
+        Pins the scale on phones and tablets: no pinch and no double-tap zoom
+        on any page of the dashboard. Mounted here for the whole staff app; the
+        portal mounts its own from `portal/layout.tsx`, and
+        the routes outside both — the marketing page, sign-in, onboarding — keep
+        ordinary browser zoom.
+
+        Like `DesktopScrollbars` it marks `<html>` from an effect and releases it
+        on unmount, which is what keeps the lock from following a staff user out
+        of the app. The component explains why a viewport meta tag alone does not
+        do this on iOS, and why nothing here reaches a desktop browser.
+      */}
+      <ZoomLock />
 
       <AppShell
         items={NAV_ITEMS}

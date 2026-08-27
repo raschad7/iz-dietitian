@@ -407,9 +407,13 @@ export const auth = betterAuth({
       maxUsernameLength: 60,
       /**
        * The plugin's own default (`/^[a-zA-Z0-9_.]+$/`) rejects hyphens — but
-       * `suggestUsername` (`src/features/clients/transliterate.ts`) joins
-       * transliterated name parts with hyphens, and that suggestion is exactly
-       * what a dietitian issues unedited most of the time. Without this override
+       * `suggestPortalUsername` (`src/features/clients/portal-credentials.ts`)
+       * separates a base from what distinguishes it with one: the second person
+       * on a shared phone is `0599123456-2`, and a client with no phone at
+       * all falls back to a name and a code (`ahmd-h7kp`), which also keeps the
+       * hyphen inside a name that already carries one (`o-brien`).
+       * That suggestion is exactly what a dietitian issues unedited most of the
+       * time. Without this override
        * every hyphenated username fails at `signInUsername`, which is checked
        * against the same validator, locking the client out of an account that
        * was just created for them. Matches `clients.errors.usernameInvalid`.

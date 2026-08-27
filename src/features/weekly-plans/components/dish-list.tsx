@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useFormatter, useTranslations } from 'next-intl';
 
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { Spinner } from '@/components/ui/spinner';
@@ -52,6 +51,29 @@ export type DishCardData = {
 
 /** How many qualities a row prints before it folds the rest into a `+n`. */
 const PROPERTY_LIMIT = 2;
+
+/**
+ * The empty optimistic set, hoisted so the reset below is a no-op re-render
+ * rather than a new object every time the page re-fetches.
+ */
+const NONE_LEAVING: ReadonlySet<string> = new Set();
+
+/**
+ * The nutrition block, measured rather than left to `table-fixed`'s even split.
+ *
+ * Six equal columns gave three two-to-five-character numbers the same 220px a
+ * dish name gets, so energy, carbs and protein sat a third of the table apart
+ * and had to be read one at a time — the exact comparison the columns exist to
+ * make. Sized to their own content instead, the three read as one block the eye
+ * takes in at once, and the ~350px that frees goes back to the name, the meal
+ * category and the qualities, which are the columns that were being truncated.
+ *
+ * The floor is the *column head*, not the figure: `TableHead` is `nowrap`, and
+ * Arabic's "الكربوهيدرات" is wider than any carbs value will ever be. Anything
+ * narrower than this and the head overflows its track into its neighbour.
+ */
+const KCAL_COL = 'w-24 px-2';
+const MACRO_COL = 'w-[6.5rem] px-2';
 
 /**
  * One predictable scan line per dish.
@@ -125,6 +147,59 @@ export function DishList({
   const [editData, setEditData] = useState<DishEditData | undefined>(undefined);
   const [loadingEditId, setLoadingEditId] = useState<string | null>(null);
 
+  /*
+    Rows the reader has hidden (or brought back) and the server has not yet
+    confirmed. See `left` below for why this belongs to the table rather than to
+    the row that raised it.
+  */
+  const [leaving, setLeaving] = useState<ReadonlySet<string>>(NONE_LEAVING);
+
+  /*
+    New server data is the end of every optimistic guess in the set — it is the
+    real answer to all of them, whether it agrees or not.
+
+    Adjusted **during render** rather than in an effect. React documents this as
+    the way to reset state when a prop changes, and it is the pattern
+    `DishFilters` already uses to mirror the URL back into its search field: the
+    re-render happens before anything paints, so no frame is drawn showing rows
+    that the server has just spoken about. An effect would run after the paint,
+    which is a visible flash of the stale list, and it is what the
+    `react-hooks/set-state-in-effect` rule is pointing at.
+
+    Keyed on `items`, which is a fresh array on each render of the *page* but not
+    of this component: a state change here re-renders with the same prop identity
+    and leaves the set alone. A `router.refresh()` landing is what produces a new
+    one.
+  */
+  const [lastItems, setLastItems] = useState(items);
+  if (items !== lastItems) {
+    setLastItems(items);
+    setLeaving(NONE_LEAVING);
+  }
+
+  function markLeaving(dishId: string) {
+    setLeaving((current) => new Set(current).add(dishId));
+  }
+
+  function unmarkLeaving(dishId: string) {
+    setLeaving((current) => {
+      const next = new Set(current);
+      next.delete(dishId);
+      return next;
+    });
+  }
+
+  /*
+    What the table shows: the server's rows, less the ones on their way out.
+
+    Removal rather than a dimmed row, because both lists this table renders hold
+    exactly one kind of dish — the catalog holds what is visible, the hidden
+    shelf holds what is not — so a dish that has just been hidden does not belong
+    in either view it could have been hidden from. Leaving it behind greyed out
+    would be showing a row that the next refresh is about to take away anyway.
+  */
+  const shown = leaving.size ? items.filter((dish) => !leaving.has(dish.id)) : items;
+
   function openAdd() {
     setEditData(undefined);
     setEditorOpen(true);
@@ -154,7 +229,7 @@ export function DishList({
     router.refresh();
   }
 
-  if (!items.length) {
+  if (!shown.length) {
     return (
       <>
         <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border px-6 py-14 text-center">
@@ -196,11 +271,16 @@ export function DishList({
       */}
       <TableRoot data-guide="dishes-list" className="md:min-h-0 md:flex-1 md:overflow-y-auto">
         {/*
-          Fixed layout is the distribution rule: the six information columns
-          share the available width evenly and the action well keeps only the
-          48px it needs. The old auto-layout name track claimed every spare
-          pixel (`w-full`), leaving the other five facts compressed together at
-          the opposite edge of a wide screen.
+          Fixed layout is the distribution rule: a column is as wide as it is
+          declared to be, and whatever is left over is shared by the columns
+          that declare nothing. The old auto-layout name track claimed every
+          spare pixel (`w-full`), leaving the other five facts compressed
+          together at the opposite edge of a wide screen.
+
+          What declares a width: the action well (48px) and the three nutrient
+          columns (`KCAL_COL` / `MACRO_COL`, sized to their own content). What
+          does not: the name, the meal category and the qualities — the three
+          columns that hold prose and therefore absorb the remainder.
 
           The responsive `hidden … table-cell` pairs below still remove their
           tracks at smaller widths, so the remaining columns redistribute that
@@ -229,13 +309,13 @@ export function DishList({
               <TableHead>{t('columns.name')}</TableHead>
               <TableHead className="hidden md:table-cell">{t('columns.mealTypes')}</TableHead>
               <TableHead className="hidden md:table-cell">{t('columns.tags')}</TableHead>
-              <TableHead numeric className="text-end">
+              <TableHead numeric className={cn('text-end', KCAL_COL)}>
                 {t('columns.kcal')}
               </TableHead>
-              <TableHead numeric className="hidden text-end sm:table-cell">
+              <TableHead numeric className={cn('hidden text-end sm:table-cell', MACRO_COL)}>
                 {t('columns.carbs')}
               </TableHead>
-              <TableHead numeric className="hidden text-end sm:table-cell">
+              <TableHead numeric className={cn('hidden text-end sm:table-cell', MACRO_COL)}>
                 {t('columns.protein')}
               </TableHead>
               {/* The actions column is named for a screen reader only — a visible
@@ -247,7 +327,7 @@ export function DishList({
           </TableHeader>
 
           <TableBody>
-            {items.map((dish) => (
+            {shown.map((dish) => (
               <DishRow
                 key={dish.id}
                 dish={dish}
@@ -255,6 +335,8 @@ export function DishList({
                 editing={loadingEditId === dish.id}
                 onOpen={() => setDetailId(dish.id)}
                 onEdit={() => startEdit(dish.id)}
+                onLeave={() => markLeaving(dish.id)}
+                onLeaveFailed={() => unmarkLeaving(dish.id)}
               />
             ))}
           </TableBody>
@@ -280,12 +362,18 @@ function DishRow({
   editing,
   onOpen,
   onEdit,
+  onLeave,
+  onLeaveFailed,
 }: {
   dish: DishCardData;
   locale: string;
   editing: boolean;
   onOpen: () => void;
   onEdit: () => void;
+  /** Hidden, or brought back — either way this row leaves the list it is in. */
+  onLeave: () => void;
+  /** The write failed; the row belongs back where it was. */
+  onLeaveFailed: () => void;
 }) {
   const t = useTranslations('dishes');
   // `format.list` and not a hardcoded '، ': that separator is an Arabic comma,
@@ -316,7 +404,19 @@ function DishRow({
   const hiddenPropertyLabels = format.list(hiddenProperties.map((property) => property.label));
 
   return (
-    <TableRow linked className={cn(ROW_HEIGHT, dish.hidden && '[&>td]:opacity-60')}>
+    /*
+      No dimming, and no badge under the name.
+
+      Both existed to pick the hidden dishes out of a list that also held visible
+      ones, and that list is gone: `hiddenOnly` made the hidden shelf a view of
+      its own, so every row here is hidden or none of them is. Dimming all of
+      them is a table nobody can read to say something the toolbar's own chip
+      already says, and a badge repeated on every row is furniture.
+
+      `dish.hidden` still matters — it is what tells the row's action well to
+      offer Unhide rather than Hide.
+    */
+    <TableRow linked className={ROW_HEIGHT}>
       <TableCell>
         <div className="flex min-w-0 flex-col">
           <div className="flex items-center gap-2">
@@ -345,11 +445,6 @@ function DishRow({
               {localizedName(dish, locale)}
             </button>
 
-            {dish.hidden && (
-              <Badge variant="outline" size="sm" className="shrink-0 text-muted-foreground">
-                {t('hiddenBadge')}
-              </Badge>
-            )}
           </div>
 
           {/* Who owns the dish is a property of the dish, so it hangs under the
@@ -456,12 +551,16 @@ function DishRow({
       {/* One nutrient per column, so a column can be compared down its length.
           The unit rides with the value rather than only in the head: a figure
           scrolled away from its header still has to say what it is. */}
-      <NutrientCell value={dish.kcal} unit={NUTRIENT_UNITS.kcal} lead />
-      <NutrientCell value={dish.carbs} unit={NUTRIENT_UNITS.carbs} className="hidden sm:table-cell" />
+      <NutrientCell value={dish.kcal} unit={NUTRIENT_UNITS.kcal} lead className={KCAL_COL} />
+      <NutrientCell
+        value={dish.carbs}
+        unit={NUTRIENT_UNITS.carbs}
+        className={cn('hidden sm:table-cell', MACRO_COL)}
+      />
       <NutrientCell
         value={dish.protein}
         unit={NUTRIENT_UNITS.protein}
-        className="hidden sm:table-cell"
+        className={cn('hidden sm:table-cell', MACRO_COL)}
       />
 
       {/* `relative` lifts the menu above the stretched button in the first cell,
@@ -476,6 +575,8 @@ function DishRow({
             locale={locale}
             dish={{ id: dish.id, name: localizedName(dish, locale), isSystem: dish.isSystem, hidden: dish.hidden }}
             onEdit={onEdit}
+            onLeave={onLeave}
+            onLeaveFailed={onLeaveFailed}
           />
         )}
       </TableCell>
@@ -535,7 +636,7 @@ function NutrientCell({
   value: number;
   unit: string;
   lead?: boolean;
-  /** The width this figure stands down at, if it stands down at all. */
+  /** The column's measured width, plus the width it stands down at (if any). */
   className?: string;
 }) {
   return (

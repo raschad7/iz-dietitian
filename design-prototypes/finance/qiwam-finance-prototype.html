@@ -1,0 +1,2531 @@
+<!doctype html>
+<!--
+  ══════════════════════════════════════════════════════════════════════
+  إنزيم / Qiwam — نموذج الأمور المالية · Finance prototype
+  ══════════════════════════════════════════════════════════════════════
+
+  ملف واحد قائم بذاته. لا يحتاج خادماً ولا اتصالاً (عدا الخطوط).
+  A single self-contained file. No server, no build step.
+
+  **No production code is touched by this prototype.**
+
+  الشاشات الأربع تتبدّل من الشريط الجانبي:
+    لوحة الأمور المالية · الملف المالي لمشترك · الباقات والرسائل ·
+    بطاقة الملخص المالي داخل صفحة العميل
+
+  ع / EN يقلب اللغة والاتجاه · زر القمر يقلب الوضع الداكن
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>إنزيم — نموذج الأمور المالية</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Readex+Pro:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+/*
+  Qiwam — Finance & subscriptions prototype.
+  Standalone. Colours, radii, shadows and the type scale are lifted from
+  src/app/globals.css so production can map this composition straight onto the
+  shared shadcn primitives (Card, Table, Badge, Button, Progress, StatTile...).
+  Nothing here is meant to ship as CSS.
+*/
+
+/* ── Primitives (from globals.css) ───────────────────────────────────── */
+:root {
+  --green-50: #F1FBEA;  --green-100: #DFF6D1; --green-200: #C2EDA9;
+  --green-300: #9BE076; --green-400: #75CF48; --green-500: #58B52D;
+  --green-600: #419020; --green-700: #346E1D; --green-800: #2C581C;
+  --green-900: #284B1C; --green-950: #11290A;
+
+  --n-0: #FFFFFF;   --n-25: #FCFBF7;  --n-50: #F7F5EF;  --n-100: #EFEDE4;
+  --n-200: #E2DFD3; --n-300: #CDC9B9; --n-400: #A8A493; --n-500: #837F6E;
+  --n-600: #605D50; --n-700: #46443B; --n-800: #2F2E28; --n-900: #1C1B17;
+
+  --c-50: #F9FAFB; --c-100: #F3F4F6; --c-200: #E5E7EB;
+  --c-300: #D1D5DB; --c-600: #4B5563;
+
+  --amber-100: #FBF0D8; --amber-300: #E8C46A; --amber-600: #9B6A0C; --amber-700: #7A5209;
+  --clay-100: #FAE9E4;  --clay-300: #E8A08F;  --clay-600: #A33422;  --clay-700: #82291B;
+  --flame-100: #FBEBD9; --flame-300: #F2A03D; --flame-700: #93490D;
+
+  /* ── Semantic ── */
+  --background: var(--n-0);
+  --foreground: var(--n-900);
+  --card: var(--n-0);
+  --muted: var(--c-50);
+  --muted-strong: var(--c-100);
+  --muted-foreground: var(--c-600);
+  --border: var(--c-200);
+  --input: var(--n-500);
+  --primary: var(--green-400);
+  --primary-hover: var(--green-600);
+  --primary-foreground: var(--n-900);
+  --primary-foreground-white: #FFFFFF;
+  --accent-green: var(--green-300);
+  --on-accent: var(--green-950);
+  --ring: var(--green-600);
+  --destructive: var(--clay-600);
+
+  --status-ontrack-fg: var(--green-800);   --status-ontrack-bg: var(--green-100);
+  --status-attention-fg: var(--amber-700); --status-attention-bg: var(--amber-100);
+  --status-medical-fg: var(--clay-700);    --status-medical-bg: var(--clay-100);
+  --status-complete-fg: var(--flame-700);  --status-complete-bg: var(--flame-100);
+
+  --sidebar: var(--c-50);
+  --sidebar-foreground: var(--green-800);
+  --sidebar-icon: var(--n-700);
+  --sidebar-accent: var(--green-100);
+  --sidebar-accent-foreground: var(--green-900);
+  --sidebar-hover: var(--green-50);
+  --sidebar-border: var(--c-300);
+  --sidebar-ring: var(--green-950);
+
+  --radius-control: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --shadow-card: 0 1px 2px rgba(34,52,20,.06), 0 1px 3px rgba(34,52,20,.05);
+  --shadow-elevated: 0 2px 6px rgba(34,52,20,.07), 0 8px 20px rgba(34,52,20,.06);
+  --shadow-overlay: 0 12px 40px rgba(34,52,20,.16);
+  --overlay: rgba(17,41,10,.42);
+
+  --ease-sweep: cubic-bezier(.32,.72,0,1);
+  --duration-sweep: 320ms;
+  --duration-label: 160ms;
+
+  --font-ui: 'IBM Plex Sans Arabic', 'IBM Plex Sans', system-ui, sans-serif;
+  --font-display: 'Almarai', 'IBM Plex Sans Arabic', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+html[lang='en'] {
+  --font-ui: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-display: 'Readex Pro', 'IBM Plex Sans', system-ui, sans-serif;
+}
+
+.dark {
+  --background: var(--green-950);
+  --foreground: var(--n-25);
+  --card: var(--green-900);
+  --muted: #1B3A14;
+  --muted-strong: #21451A;
+  --muted-foreground: var(--green-200);
+  --border: var(--green-700);
+  --input: var(--n-400);
+  --primary: var(--green-400);
+  --primary-hover: var(--green-300);
+  --primary-foreground: var(--green-950);
+  --ring: var(--green-300);
+  --destructive: var(--clay-300);
+  --status-ontrack-fg: var(--green-100); --status-ontrack-bg: #24521A;
+  --sidebar: var(--green-900);
+  --sidebar-foreground: var(--green-100);
+  --sidebar-icon: var(--green-200);
+  --sidebar-accent: #2C581C;
+  --sidebar-accent-foreground: var(--n-25);
+  --sidebar-hover: #23481A;
+  --sidebar-border: var(--green-700);
+  --sidebar-ring: var(--green-300);
+  --overlay: rgba(4,14,2,.62);
+  --shadow-card: 0 1px 2px rgba(0,0,0,.3);
+  --shadow-elevated: 0 8px 24px rgba(0,0,0,.36);
+}
+
+/* ── Reset ───────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: var(--font-ui);
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: none; }
+a { color: inherit; text-decoration: none; }
+svg { display: block; }
+table { border-collapse: separate; border-spacing: 0; width: 100%; }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: 6px; }
+::-webkit-scrollbar { width: 0; height: 0; }
+* { scrollbar-width: none; }
+
+/* ── Type scale ──────────────────────────────────────────────────────── */
+.t-display  { font-family: var(--font-display); font-size: 32px; font-weight: 500; line-height: 1.28; letter-spacing: -.01em; }
+.t-h-lg     { font-family: var(--font-display); font-size: 24px; font-weight: 600; line-height: 1.35; }
+.t-h-sm     { font-family: var(--font-display); font-size: 20px; font-weight: 600; line-height: 1.4; }
+.t-body-lg  { font-size: 18px; }
+.t-body     { font-size: 16px; }
+.t-body-sm  { font-size: 14px; }
+.t-label    { font-size: 13px; font-weight: 600; line-height: 1.5; }
+.t-caption  { font-size: 12px; color: var(--muted-foreground); }
+.muted      { color: var(--muted-foreground); }
+.num        { font-variant-numeric: tabular-nums; }
+.mono       { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* ── Shell ───────────────────────────────────────────────────────────── */
+.shell { display: flex; min-height: 100dvh; }
+
+.rail {
+  inline-size: 248px; flex: 0 0 248px;
+  background: var(--sidebar);
+  border-inline-end: 1px solid var(--sidebar-border);
+  display: flex; flex-direction: column;
+  position: sticky; inset-block-start: 0; block-size: 100dvh;
+}
+.rail-head { display: flex; align-items: center; gap: 8px; block-size: 60px; padding-inline: 14px; }
+.rail-mark { inline-size: 30px; block-size: 30px; flex: 0 0 30px; }
+.rail-word { font-family: var(--font-display); font-size: 19px; font-weight: 700; color: var(--sidebar-accent-foreground); }
+.dark .rail-word { color: var(--green-100); }
+.rail-nav { padding: 6px 10px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+.rail-section { font-size: 11px; font-weight: 700; color: var(--muted-foreground); padding: 14px 10px 6px; letter-spacing: .04em; }
+.rail-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 10px; block-size: 42px; border-radius: var(--radius-control);
+  color: var(--sidebar-foreground); font-size: 14.5px; font-weight: 500;
+  transition: background var(--duration-label) var(--ease-sweep);
+}
+.rail-item svg { inline-size: 20px; block-size: 20px; flex: 0 0 20px; color: var(--sidebar-icon); }
+.rail-item:hover { background: var(--sidebar-hover); }
+.rail-item[aria-current='page'] {
+  background: var(--sidebar-accent); color: var(--sidebar-accent-foreground); font-weight: 600;
+}
+.rail-item[aria-current='page'] svg { color: var(--sidebar-accent-foreground); }
+.rail-item:focus-visible { outline-color: var(--sidebar-ring); }
+.rail-count {
+  margin-inline-start: auto; font-size: 12px; font-weight: 700;
+  background: var(--status-medical-bg); color: var(--status-medical-fg);
+  min-inline-size: 20px; text-align: center; border-radius: 999px; padding: 1px 6px;
+}
+.rail-foot { margin-block-start: auto; border-block-start: 1px solid var(--sidebar-border); padding: 10px; }
+.rail-user { display: flex; align-items: center; gap: 10px; padding: 6px; border-radius: var(--radius-control); }
+.rail-user:hover { background: var(--sidebar-hover); }
+
+.main { flex: 1 1 auto; min-inline-size: 0; display: flex; flex-direction: column; }
+.topbar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 28px; border-block-end: 1px solid var(--border);
+  position: sticky; inset-block-start: 0; background: var(--background); z-index: 20;
+}
+.page { padding: 24px 28px 64px; max-inline-size: 1180px; margin-inline-end: auto; width: 100%; }
+.page-head { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-block-end: 22px; }
+.page-head .grow { flex: 1 1 320px; min-inline-size: 0; }
+.page-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.section { margin-block-start: 28px; }
+.section-head { display: flex; align-items: baseline; gap: 12px; margin-block-end: 12px; flex-wrap: wrap; }
+.section-head .grow { flex: 1 1 auto; }
+
+/* ── Buttons ─────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  block-size: 48px; padding-inline: 18px; border-radius: var(--radius-control);
+  font-size: 15px; font-weight: 600; white-space: nowrap;
+  border: 1px solid transparent;
+  transition: background var(--duration-label) var(--ease-sweep),
+              border-color var(--duration-label) var(--ease-sweep),
+              color var(--duration-label) var(--ease-sweep);
+}
+.btn svg { inline-size: 18px; block-size: 18px; flex: 0 0 18px; }
+.btn--sm { block-size: 40px; padding-inline: 14px; font-size: 14px; }
+.btn--icon { inline-size: 48px; padding-inline: 0; }
+.btn--icon.btn--sm { inline-size: 40px; }
+
+.btn--default { background: var(--primary); color: var(--primary-foreground-white); }
+.btn--default:hover { background: var(--primary-hover); }
+.dark .btn--default { color: var(--primary-foreground); }
+.btn--soft { background: var(--green-100); color: var(--green-800); }
+.btn--soft:hover { background: var(--green-200); }
+.dark .btn--soft { background: #24521A; color: var(--green-100); }
+.btn--outline { border-color: var(--primary); color: var(--green-700); }
+.btn--outline:hover { background: var(--green-50); }
+.dark .btn--outline { color: var(--green-200); }
+.dark .btn--outline:hover { background: #1F4416; }
+.btn--neutral { border-color: var(--border); background: var(--card); color: var(--foreground); }
+.btn--neutral:hover { background: var(--muted); }
+.btn--ghost { color: var(--green-700); }
+.btn--ghost:hover { background: var(--green-50); }
+.dark .btn--ghost { color: var(--green-200); }
+.dark .btn--ghost:hover { background: #1F4416; }
+.btn--neutral-ghost { color: var(--muted-foreground); }
+.btn--neutral-ghost:hover { background: var(--muted-strong); color: var(--foreground); }
+.btn--destructive-ghost { color: var(--destructive); }
+.btn--destructive-ghost:hover { background: var(--clay-100); }
+.dark .btn--destructive-ghost:hover { background: #4A1A12; }
+.btn[disabled] { opacity: .5; pointer-events: none; }
+
+/* ── Badges & dots ───────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 11px; border-radius: 999px;
+  font-size: 13px; font-weight: 600; white-space: nowrap;
+}
+.badge--onTrack    { background: var(--status-ontrack-bg);   color: var(--status-ontrack-fg); }
+.badge--attention  { background: var(--status-attention-bg); color: var(--status-attention-fg); }
+.badge--medical    { background: var(--status-medical-bg);   color: var(--status-medical-fg); }
+.badge--complete   { background: var(--status-complete-bg);  color: var(--status-complete-fg); }
+.badge--rest       { background: var(--muted-strong); color: var(--muted-foreground); }
+.badge--incomplete { border: 1px dashed var(--n-300); color: var(--muted-foreground); }
+.badge--free       { background: var(--green-50); color: var(--green-700); border: 1px solid var(--green-200); }
+.dark .badge--free, .dark .badge--incomplete { background: transparent; color: var(--green-200); border-color: var(--green-700); }
+.dot { inline-size: 8px; block-size: 8px; border-radius: 999px; flex: 0 0 8px; }
+
+/* ── Cards ───────────────────────────────────────────────────────────── */
+.card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius-xl); box-shadow: var(--shadow-card);
+}
+.card-head {
+  display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap;
+  padding: 18px 20px 0;
+}
+.card-head .grow { flex: 1 1 auto; min-inline-size: 0; }
+.card-body { padding: 16px 20px 20px; }
+.card-foot { padding: 14px 20px; border-block-start: 1px solid var(--border); display: flex; gap: 8px; flex-wrap: wrap; }
+.card--tinted { background: var(--muted); box-shadow: none; }
+.card--tile { border-radius: var(--radius-lg); box-shadow: none; background: var(--muted); border-color: transparent; }
+.card--flagged { border-color: var(--clay-300); }
+
+/* ── Stat tiles ──────────────────────────────────────────────────────── */
+.stat-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+.stat {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius-xl); padding: 16px 18px; box-shadow: var(--shadow-card);
+  display: flex; flex-direction: column; gap: 2px; min-inline-size: 0;
+}
+.stat-label { font-size: 13px; font-weight: 600; color: var(--muted-foreground); display: flex; align-items: center; gap: 7px; }
+.stat-label svg { inline-size: 16px; block-size: 16px; }
+.stat-value { font-family: var(--font-display); font-size: 30px; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.stat-value .unit { font-size: 17px; font-weight: 500; color: var(--muted-foreground); margin-inline-start: 3px; }
+.stat-note { font-size: 12.5px; color: var(--muted-foreground); }
+.stat--accent { background: linear-gradient(160deg, var(--green-50), var(--card) 62%); border-color: var(--green-200); }
+.dark .stat--accent { background: linear-gradient(160deg, #1F4416, var(--card) 62%); border-color: var(--green-700); }
+.stat--alarm .stat-value { color: var(--status-medical-fg); }
+
+/* ── Progress ────────────────────────────────────────────────────────── */
+.progress { block-size: 8px; border-radius: 999px; background: var(--muted-strong); overflow: hidden; }
+.progress > i { display: block; block-size: 100%; border-radius: 999px; background: var(--primary); transition: inline-size var(--duration-sweep) var(--ease-sweep); }
+.progress--attention > i { background: var(--amber-300); }
+.progress--medical > i { background: var(--clay-300); }
+.progress-row { display: flex; align-items: center; gap: 10px; }
+.progress-row .progress { flex: 1 1 auto; }
+
+/* pips — one per visit in the package */
+.pips { display: flex; gap: 5px; }
+.pip { inline-size: 22px; block-size: 6px; border-radius: 999px; background: var(--muted-strong); }
+.pip.used { background: var(--primary); }
+.pip.next { background: var(--accent-green); }
+
+/* ── Table ───────────────────────────────────────────────────────────── */
+.table-root { overflow-x: auto; padding: 2px; }
+.table th, .table td { text-align: start; padding: 12px 14px; font-size: 14.5px; vertical-align: middle; }
+.table thead th {
+  background: var(--muted); color: var(--muted-foreground);
+  font-size: 13px; font-weight: 700; white-space: nowrap; border-block: 1px solid var(--border);
+}
+.table thead th:first-child { border-inline-start: 1px solid var(--border); border-start-start-radius: var(--radius-lg); border-end-start-radius: var(--radius-lg); }
+.table thead th:last-child  { border-inline-end: 1px solid var(--border); border-start-end-radius: var(--radius-lg); border-end-end-radius: var(--radius-lg); }
+.table tbody td { border-block-end: 1px solid var(--border); }
+.table tbody tr:hover td { background: var(--muted); }
+.table td.num, .table th.num { font-variant-numeric: tabular-nums; }
+.table .row-actions { display: flex; gap: 4px; justify-content: flex-end; }
+.person { display: flex; align-items: center; gap: 10px; min-inline-size: 0; }
+.avatar {
+  inline-size: 36px; block-size: 36px; flex: 0 0 36px; border-radius: 999px;
+  display: grid; place-items: center; font-size: 13px; font-weight: 700;
+  background: var(--green-100); color: var(--green-800);
+}
+.avatar--lg { inline-size: 56px; block-size: 56px; flex-basis: 56px; font-size: 19px; }
+.person-name { font-weight: 600; font-size: 14.5px; }
+
+/* ── Fields ──────────────────────────────────────────────────────────── */
+.field { display: flex; flex-direction: column; gap: 6px; min-inline-size: 0; }
+.field > label { font-size: 13px; font-weight: 600; }
+.input, .select, .textarea {
+  block-size: 48px; padding-inline: 16px; inline-size: 100%;
+  border: 1px solid var(--input); border-radius: var(--radius-control);
+  background: var(--card); color: var(--foreground); font-size: 15px;
+}
+.textarea { block-size: auto; padding-block: 12px; resize: vertical; line-height: 1.7; }
+.input:focus, .select:focus, .textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--green-100); }
+.dark .input:focus, .dark .select:focus, .dark .textarea:focus { box-shadow: 0 0 0 3px rgba(117,207,72,.24); }
+.hint { font-size: 12.5px; color: var(--muted-foreground); }
+.field-row { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 14px; border: 1px solid var(--border); border-radius: var(--radius-control);
+  font-size: 14px; font-weight: 500; background: var(--card);
+}
+.chip:hover { background: var(--muted); }
+.chip[aria-pressed='true'] { border-color: var(--primary); background: var(--green-50); color: var(--green-800); font-weight: 600; }
+.dark .chip[aria-pressed='true'] { background: #1F4416; color: var(--green-100); }
+
+/* ── Segmented / filters ─────────────────────────────────────────────── */
+.segmented { display: inline-flex; background: var(--muted-strong); border-radius: var(--radius-control); padding: 3px; gap: 2px; }
+.segmented > button {
+  padding: 7px 14px; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--muted-foreground);
+}
+.segmented > button[aria-selected='true'] { background: var(--card); color: var(--foreground); box-shadow: var(--shadow-card); }
+
+/* ── Callout ─────────────────────────────────────────────────────────── */
+.callout {
+  display: flex; gap: 12px; padding: 14px 16px; border-radius: var(--radius-lg);
+  border: 1px solid var(--border); background: var(--muted); font-size: 14.5px;
+}
+.callout svg { inline-size: 20px; block-size: 20px; flex: 0 0 20px; margin-block-start: 2px; }
+.callout--attention { background: var(--status-attention-bg); border-color: var(--amber-300); color: var(--status-attention-fg); }
+.callout--medical { background: var(--status-medical-bg); border-color: var(--clay-300); color: var(--status-medical-fg); }
+
+/* ── Timeline ────────────────────────────────────────────────────────── */
+.timeline { display: flex; flex-direction: column; }
+.tl-item { display: flex; gap: 14px; padding-block: 4px; }
+.tl-rail { display: flex; flex-direction: column; align-items: center; flex: 0 0 32px; }
+.tl-mark {
+  inline-size: 32px; block-size: 32px; border-radius: 999px; display: grid; place-items: center;
+  background: var(--muted-strong); color: var(--muted-foreground); flex: 0 0 32px;
+}
+.tl-mark svg { inline-size: 16px; block-size: 16px; }
+.tl-mark--pay { background: var(--status-ontrack-bg); color: var(--status-ontrack-fg); }
+.tl-mark--wa { background: var(--green-50); color: var(--green-700); }
+.dark .tl-mark--wa { background: #1F4416; color: var(--green-200); }
+.tl-mark--visit { background: var(--muted-strong); color: var(--foreground); }
+.tl-line { inline-size: 2px; flex: 1 1 auto; background: var(--border); min-block-size: 12px; }
+.tl-body { padding-block: 3px 18px; flex: 1 1 auto; min-inline-size: 0; }
+.tl-item:last-child .tl-line { display: none; }
+.tl-item:last-child .tl-body { padding-block-end: 0; }
+
+/* ── Chart ───────────────────────────────────────────────────────────── */
+.chart { display: flex; align-items: flex-end; gap: 10px; block-size: 190px; padding-block-start: 12px; }
+.chart-col { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 8px; min-inline-size: 0; }
+.chart-stack { inline-size: 100%; display: flex; flex-direction: column; justify-content: flex-end; flex: 1 1 auto; gap: 3px; }
+.chart-bar { inline-size: 100%; border-radius: 6px 6px 0 0; background: var(--primary); }
+.chart-bar--due { background: var(--amber-300); border-radius: 6px 6px 0 0; }
+.chart-val { font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.chart-x { font-size: 12px; color: var(--muted-foreground); }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted-foreground); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { inline-size: 12px; block-size: 12px; border-radius: 4px; display: block; }
+
+/* ── Dialog ──────────────────────────────────────────────────────────── */
+dialog {
+  border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 0;
+  background: var(--card); color: var(--foreground);
+  inline-size: min(560px, calc(100vw - 32px)); max-block-size: min(88dvh, 720px);
+  box-shadow: var(--shadow-overlay);
+}
+dialog::backdrop { background: var(--overlay); }
+dialog[open] { animation: seam var(--duration-sweep) var(--ease-sweep); }
+@keyframes seam { from { opacity: 0; transform: scaleX(.86) translateY(6px); } }
+.dlg { display: flex; flex-direction: column; max-block-size: inherit; }
+.dlg-head { padding: 20px 22px 4px; display: flex; align-items: flex-start; gap: 12px; }
+.dlg-head .grow { flex: 1 1 auto; }
+.dlg-body { padding: 14px 22px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+.dlg-foot { padding: 14px 22px; border-block-start: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+
+/* WhatsApp message preview bubble */
+.wa-preview {
+  background: var(--green-50); border: 1px solid var(--green-200);
+  border-radius: 14px; border-start-start-radius: 4px;
+  padding: 14px 16px; font-size: 14.5px; line-height: 1.85; white-space: pre-wrap;
+}
+.dark .wa-preview { background: #1F4416; border-color: var(--green-700); }
+
+/* ── Utilities ───────────────────────────────────────────────────────── */
+.row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.row-between { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.stack { display: flex; flex-direction: column; }
+.gap-2 { gap: 8px; } .gap-3 { gap: 12px; } .gap-4 { gap: 16px; } .gap-6 { gap: 24px; }
+.grow { flex: 1 1 auto; }
+.mt-1 { margin-block-start: 4px; } .mt-2 { margin-block-start: 8px; }
+.mt-3 { margin-block-start: 12px; } .mt-4 { margin-block-start: 16px; } .mt-6 { margin-block-start: 24px; }
+.divider { block-size: 1px; background: var(--border); margin-block: 16px; }
+.cols-2 { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); align-items: start; }
+.split { display: grid; gap: 18px; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); align-items: start; }
+.text-end { text-align: end; }
+.sr-only {
+  position: absolute; inline-size: 1px; block-size: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+.kv { display: flex; justify-content: space-between; gap: 12px; padding-block: 7px; font-size: 14.5px; }
+.kv + .kv { border-block-start: 1px solid var(--border); }
+.kv dt { color: var(--muted-foreground); }
+.kv dd { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* ── Toast ───────────────────────────────────────────────────────────── */
+.toast-host { position: fixed; inset-block-end: 20px; inset-inline-start: 20px; z-index: 90; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-elevated); padding: 12px 16px; font-size: 14.5px; font-weight: 500;
+  animation: toast-in var(--duration-sweep) var(--ease-sweep);
+}
+.toast svg { inline-size: 18px; block-size: 18px; color: var(--green-600); }
+@keyframes toast-in { from { opacity: 0; transform: translateY(10px); } }
+
+/* ── Responsive ──────────────────────────────────────────────────────── */
+@media (max-width: 1080px) { .split { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 860px) {
+  .rail { inline-size: 56px; flex-basis: 56px; }
+  .rail-word, .rail-item span, .rail-section, .rail-user .stack, .rail-count { display: none; }
+  .rail-item { justify-content: center; padding-inline: 0; }
+  .rail-head { justify-content: center; padding-inline: 0; }
+  .page, .topbar { padding-inline: 16px; }
+  .t-display { font-size: 26px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   Additions for the agreed finance design
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Panel tabs (mirrors PanelTabs) ──────────────────────────────────── */
+.ptabs { display: flex; gap: 4px; border-block-end: 1px solid var(--border); overflow-x: auto; }
+.ptabs > button {
+  padding: 10px 14px; font-size: 14.5px; font-weight: 600; color: var(--muted-foreground);
+  border-block-end: 2px solid transparent; margin-block-end: -1px; white-space: nowrap;
+}
+.ptabs > button:hover { color: var(--foreground); }
+.ptabs > button[aria-selected='true'] { color: var(--green-700); border-block-end-color: var(--primary); }
+.dark .ptabs > button[aria-selected='true'] { color: var(--green-200); }
+[role='tabpanel'][hidden] { display: none; }
+
+/* ── Money presentation ──────────────────────────────────────────────── */
+.money { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+.money--due  { color: var(--status-attention-fg); }
+.money--late { color: var(--status-medical-fg); }
+.money--zero { color: var(--muted-foreground); font-weight: 500; }
+.money-was {
+  color: var(--muted-foreground); font-weight: 500; text-decoration: line-through;
+  text-decoration-thickness: 1px; margin-inline-end: 6px;
+}
+.big-money { font-family: var(--font-display); font-size: 40px; font-weight: 600; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.big-money .unit { font-size: 20px; font-weight: 500; color: var(--muted-foreground); margin-inline-start: 4px; }
+
+/* ── Empty state ─────────────────────────────────────────────────────── */
+.empty { text-align: center; padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.empty svg { inline-size: 40px; block-size: 40px; color: var(--n-300); }
+.dark .empty svg { color: var(--green-700); }
+
+/* ── Package editor rows ─────────────────────────────────────────────── */
+.pkg { display: grid; gap: 12px; grid-template-columns: minmax(150px, 1.4fr) repeat(4, minmax(72px, .7fr)) auto; align-items: end; }
+.pkg .field > label { font-size: 12px; color: var(--muted-foreground); }
+.pkg .input { block-size: 44px; padding-inline: 12px; font-size: 14.5px; }
+.pkg-card { border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; background: var(--card); }
+.pkg-card + .pkg-card { margin-block-start: 12px; }
+.pkg-card[data-active='false'] { background: var(--muted); opacity: .78; }
+.pkg-head { display: flex; align-items: center; gap: 10px; margin-block-end: 14px; flex-wrap: wrap; }
+.pkg-derived { font-size: 12.5px; color: var(--muted-foreground); margin-block-start: 10px; }
+.pkg-derived b { color: var(--foreground); font-variant-numeric: tabular-nums; }
+@media (max-width: 900px) { .pkg { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ── Switch ──────────────────────────────────────────────────────────── */
+.switch {
+  inline-size: 42px; block-size: 24px; border-radius: 999px; background: var(--muted-strong);
+  border: 1px solid var(--border); position: relative; flex: 0 0 42px;
+  transition: background var(--duration-label) var(--ease-sweep);
+}
+.switch::after {
+  content: ''; position: absolute; inset-block-start: 2px; inset-inline-start: 2px;
+  inline-size: 18px; block-size: 18px; border-radius: 999px; background: var(--n-0);
+  box-shadow: 0 1px 2px rgba(0,0,0,.25);
+  transition: inset-inline-start var(--duration-label) var(--ease-sweep);
+}
+.switch[aria-checked='true'] { background: var(--primary); border-color: var(--primary); }
+.switch[aria-checked='true']::after { inset-inline-start: 20px; }
+
+/* ── Template variable tokens ────────────────────────────────────────── */
+.vars { display: flex; gap: 6px; flex-wrap: wrap; }
+.var-token {
+  font-family: var(--font-mono); font-size: 12.5px; padding: 3px 9px; border-radius: 999px;
+  background: var(--muted-strong); color: var(--foreground); border: 1px solid var(--border);
+}
+.var-token:hover { background: var(--green-100); border-color: var(--green-300); }
+
+/* ── The finance summary card that sits on the client page ───────────── */
+.fin-summary { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+@media (max-width: 620px) { .fin-summary { grid-template-columns: minmax(0, 1fr); } }
+
+/* ── Search field with a leading icon ────────────────────────────────── */
+.search { position: relative; flex: 1 1 240px; max-inline-size: 340px; }
+.search svg {
+  position: absolute; inset-inline-start: 14px; inset-block-start: 50%; translate: 0 -50%;
+  inline-size: 18px; block-size: 18px; color: var(--muted-foreground); pointer-events: none;
+}
+.search .input { padding-inline-start: 42px; block-size: 44px; }
+
+/* Rows hidden by search/filter */
+tr[hidden], .pkg-card[hidden] { display: none; }
+
+/* ── Overdue emphasis on a register row ──────────────────────────────── */
+tr[data-status='late'] td:first-child { box-shadow: inset 3px 0 0 var(--clay-300); }
+[dir='rtl'] tr[data-status='late'] td:first-child { box-shadow: inset -3px 0 0 var(--clay-300); }
+
+/* The bundle stacks four screens; only one is shown at a time. */
+.screen[hidden] { display: none; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <g id="i-dash" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></g>
+  <g id="i-users" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></g>
+  <g id="i-calendar" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></g>
+  <g id="i-plans" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H9a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1Z"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M8 12h8M8 16h5"/></g>
+  <g id="i-dish" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h1a2 2 0 0 0 2-2V2M6 2v20"/><path d="M18 2v20M18 12c2 0 3-1.5 3-4V2"/></g>
+  <g id="i-wallet" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5"/><path d="M17 13h.01"/></g>
+  <g id="i-settings" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.35.4.65.73.85"/></g>
+  <g id="i-trend" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m22 7-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/></g>
+  <g id="i-clock" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></g>
+  <g id="i-alert" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></g>
+  <g id="i-wa" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.5 8.5 0 0 1-3.9-.9L3 20.5l1.5-4.5A8.4 8.4 0 0 1 3.6 11.5a8.4 8.4 0 0 1 8.4-8.4 8.4 8.4 0 0 1 9 8.4Z"/></g>
+  <g id="i-plus" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></g>
+  <g id="i-check" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></g>
+  <g id="i-search" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></g>
+  <g id="i-moon" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></g>
+  <g id="i-receipt" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2.5-1.5L9 22l2.5-1.5L14 22l2.5-1.5L19 22V2l-2.5 1.5L14 2l-2.5 1.5L9 2 6.5 3.5 4 2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></g>
+  <g id="i-cash" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></g>
+  <g id="i-chev" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></g>
+  <g id="i-back" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></g>
+  <g id="i-info" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></g>
+  <g id="i-package" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></g>
+  <g id="i-trash" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></g>
+  <g id="i-refresh" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></g>
+  <g id="i-inbox" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/></g>
+</defs></svg>
+
+<div class="screen" data-screen="dashboard">
+<div class="shell">
+
+  <!-- ── Sidebar rail ─────────────────────────────────────────────── -->
+  <nav class="rail" aria-label="التنقل الرئيسي">
+    <div class="rail-head">
+      <svg class="rail-mark" viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M16 3c7 0 13 5.6 13 12.5S23 28 16 28 3 22.4 3 15.5 9 3 16 3Z" fill="#75CF48"/>
+        <circle cx="12" cy="14" r="2.1" fill="#266805"/><circle cx="19" cy="18" r="2.1" fill="#266805"/>
+      </svg>
+      <span class="rail-word">إنزيم</span>
+    </div>
+
+    <div class="rail-nav">
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-dash"/></svg><span data-en="Dashboard">لوحة التحكم</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-users"/></svg><span data-en="Clients">العملاء</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-calendar"/></svg><span data-en="Calendar">التقويم</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-plans"/></svg><span data-en="Weekly plans">الخطط الأسبوعية</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-dish"/></svg><span data-en="Dish catalog">كتالوج الأطباق</span></a>
+
+      <!-- ⬇ the new destination the design adds -->
+      <a class="rail-item" href="#dashboard" data-goto="dashboard" aria-current="page">
+        <svg viewBox="0 0 24 24"><use href="#i-wallet"/></svg>
+        <span data-en="Finance">الأمور المالية</span>
+        <em class="rail-count" title="مشتركان متأخران" style="font-style:normal">2</em>
+      </a>
+
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-inbox"/></svg><span data-en="Requests">الطلبات</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-settings"/></svg><span data-en="Settings">الإعدادات</span></a>
+    </div>
+
+    <div class="rail-foot">
+      <div class="rail-user">
+        <span class="avatar">د</span>
+        <span class="stack">
+          <span class="t-label" data-en="Dr. Duaa">د. دعاء</span>
+          <span class="t-caption" data-en="Dietitian">أخصائية تغذية</span>
+        </span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── Main ─────────────────────────────────────────────────────── -->
+  <div class="main">
+
+    <div class="topbar">
+      <span class="t-label muted" data-en="Finance">الأمور المالية</span>
+      <span class="grow"></span>
+      <div class="segmented" role="tablist" aria-label="اللغة">
+        <button data-locale-btn="ar" role="tab" aria-selected="true">ع</button>
+        <button data-locale-btn="en" role="tab" aria-selected="false">EN</button>
+      </div>
+      <button class="btn btn--neutral btn--icon btn--sm" data-theme-toggle
+              aria-label="الوضع الداكن" data-en-label="Dark mode">
+        <svg viewBox="0 0 24 24"><use href="#i-moon"/></svg>
+      </button>
+    </div>
+
+    <main class="page">
+
+      <div class="page-head">
+        <div class="grow">
+          <h1 class="t-display" data-en="Finance">الأمور المالية</h1>
+          <p class="muted mt-1" data-en="Subscriptions, payments, and payment reminders for the clinic.">
+            الاشتراكات والدفعات وتذكيرات السداد للعيادة.
+          </p>
+        </div>
+        <div class="page-actions">
+          <a class="btn btn--neutral" href="#packages" data-goto="packages">
+            <svg viewBox="0 0 24 24"><use href="#i-package"/></svg>
+            <span data-en="Packages &amp; messages">الباقات والرسائل</span>
+          </a>
+          <button class="btn btn--default" data-open="dlg-subscribe">
+            <svg viewBox="0 0 24 24"><use href="#i-plus"/></svg>
+            <span data-en="New subscription">اشتراك جديد</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ── The four figures ───────────────────────────────────────── -->
+      <div class="stat-grid">
+        <div class="stat stat--accent">
+          <span class="stat-label"><svg viewBox="0 0 24 24"><use href="#i-trend"/></svg>
+            <span data-en="Collected in August">محصّل في آب</span></span>
+          <span class="stat-value">1,160<span class="unit">₪</span></span>
+          <span class="stat-note" data-en="6 payments · 340 ₪ more than July">٦ دفعات · أعلى من تموز بـ 340 ₪</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg>
+            <span data-en="Due, not yet late">مستحق ولم يتأخر</span></span>
+          <span class="stat-value">200<span class="unit">₪</span></span>
+          <span class="stat-note" data-en="1 subscriber · due 28 Aug">مشترك واحد · يستحق 28 آب</span>
+        </div>
+        <div class="stat stat--alarm">
+          <span class="stat-label"><svg viewBox="0 0 24 24"><use href="#i-alert"/></svg>
+            <span data-en="Overdue">متأخر</span></span>
+          <span class="stat-value">240<span class="unit">₪</span></span>
+          <span class="stat-note" data-en="2 subscribers · oldest 18 days">مشتركان · أقدمها 18 يوماً</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label"><svg viewBox="0 0 24 24"><use href="#i-users"/></svg>
+            <span data-en="Active subscriptions">اشتراكات فعّالة</span></span>
+          <span class="stat-value">6</span>
+          <span class="stat-note" data-en="4 monthly · 2 quarterly">٤ شهري · ٢ ثلاثة أشهر</span>
+        </div>
+      </div>
+
+      <!-- ── Overdue callout ────────────────────────────────────────── -->
+      <div class="callout callout--medical mt-4">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><use href="#i-alert"/></svg>
+        <div class="grow">
+          <b data-en="240 ₪ is past its due date across 2 subscribers.">240 ₪ تجاوزت تاريخ استحقاقها لدى مشتركَين.</b>
+          <div class="t-caption mt-1" style="color:inherit;opacity:.85"
+               data-en="Reminders are never sent automatically — you preview each message before it goes.">
+            التذكيرات لا تُرسل تلقائياً أبداً — تعاينين كل رسالة قبل إرسالها.
+          </div>
+        </div>
+        <button class="btn btn--sm btn--neutral" data-open="dlg-remind-bulk">
+          <svg viewBox="0 0 24 24"><use href="#i-wa"/></svg>
+          <span data-en="Review reminders">مراجعة التذكيرات</span>
+        </button>
+      </div>
+
+      <!-- ── The register ───────────────────────────────────────────── -->
+      <section class="section">
+        <div class="section-head">
+          <h2 class="t-h-lg grow" data-en="Subscriber register">سجل المشتركين</h2>
+          <span class="t-caption"><span data-row-count>8</span>
+            <span data-en="shown">معروض</span></span>
+        </div>
+
+        <div class="row mt-1" style="margin-block-end:14px">
+          <label class="search">
+            <svg viewBox="0 0 24 24"><use href="#i-search"/></svg>
+            <input class="input" type="search" data-search placeholder="ابحثي باسم المشترك"
+                   aria-label="بحث" data-en-label="Search" />
+          </label>
+          <div class="segmented" data-filter-group role="tablist" aria-label="تصفية بالحالة">
+            <button data-filter="all" aria-selected="true" role="tab" data-en="All">الكل</button>
+            <button data-filter="late" aria-selected="false" role="tab" data-en="Overdue">متأخر</button>
+            <button data-filter="due" aria-selected="false" role="tab" data-en="Due">مستحق</button>
+            <button data-filter="paid" aria-selected="false" role="tab" data-en="Settled">مسدَّد</button>
+            <button data-filter="none" aria-selected="false" role="tab" data-en="No subscription">بدون اشتراك</button>
+          </div>
+        </div>
+
+        <div class="table-root">
+          <table class="table">
+            <thead>
+              <tr>
+                <th data-en="Subscriber">المشترك</th>
+                <th data-en="Package">الباقة</th>
+                <th class="num" data-en="Agreed price">السعر المتفق</th>
+                <th class="num" data-en="Paid">المدفوع</th>
+                <th class="num" data-en="Balance">المتبقي</th>
+                <th data-en="Due date">الاستحقاق</th>
+                <th data-en="Visits">الزيارات</th>
+                <th data-en="Status">الحالة</th>
+                <th><span class="sr-only" data-en="Actions">إجراءات</span></th>
+              </tr>
+            </thead>
+            <tbody>
+
+              <!-- Overdue, discounted, no payment yet -->
+              <tr data-status="late" data-name="سُهى النجار" data-name-en="Suha Najjar"
+                  data-subscriber='{"name":"سُهى النجار","package":"اشتراك شهري","price":150,"paid":0,"due":150,"dueDate":"5 آب","lateDays":18}'>
+                <td>
+                  <a class="person" href="#subscriber" data-goto="subscriber">
+                    <span class="avatar">س</span>
+                    <span class="stack">
+                      <span class="person-name" data-en="Suha Najjar">سُهى النجار</span>
+                      <span class="t-caption" data-en="Started 5 Aug">بدأ 5 آب</span>
+                    </span>
+                  </a>
+                </td>
+                <td data-en="Monthly">شهري</td>
+                <td class="num"><span class="money-was">180</span><span class="money">150</span></td>
+                <td class="num"><span class="money money--zero">0</span></td>
+                <td class="num"><span class="money money--late">150</span></td>
+                <td>
+                  <span class="t-body-sm">5 آب</span>
+                  <div class="t-caption" style="color:var(--status-medical-fg)" data-en="18 days late">متأخر 18 يوماً</div>
+                </td>
+                <td><span class="pips" title="3 من 4"><i class="pip used"></i><i class="pip used"></i><i class="pip used"></i><i class="pip next"></i></span></td>
+                <td><span class="badge badge--medical" data-en="Overdue">متأخر</span></td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn btn--sm btn--soft" data-open="dlg-payment" data-en="Record payment">تسجيل دفعة</button>
+                    <button class="btn btn--sm btn--neutral-ghost btn--icon" data-open="dlg-remind"
+                            aria-label="تذكير عبر واتساب" data-en-label="Remind on WhatsApp">
+                      <svg viewBox="0 0 24 24"><use href="#i-wa"/></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Overdue, partly paid, visits exhausted -->
+              <tr data-status="late" data-name="عبير قاسم" data-name-en="Abeer Qasem"
+                  data-subscriber='{"name":"عبير قاسم","package":"اشتراك شهري","price":180,"paid":90,"due":90,"dueDate":"20 آب","lateDays":3}'>
+                <td>
+                  <a class="person" href="#subscriber" data-goto="subscriber">
+                    <span class="avatar">ع</span>
+                    <span class="stack">
+                      <span class="person-name" data-en="Abeer Qasem">عبير قاسم</span>
+                      <span class="t-caption" data-en="Started 20 Jul">بدأ 20 تموز</span>
+                    </span>
+                  </a>
+                </td>
+                <td data-en="Monthly">شهري</td>
+                <td class="num"><span class="money">180</span></td>
+                <td class="num"><span class="money">90</span></td>
+                <td class="num"><span class="money money--late">90</span></td>
+                <td>
+                  <span class="t-body-sm">20 آب</span>
+                  <div class="t-caption" style="color:var(--status-medical-fg)" data-en="3 days late">متأخر 3 أيام</div>
+                </td>
+                <td><span class="pips" title="4 من 4"><i class="pip used"></i><i class="pip used"></i><i class="pip used"></i><i class="pip used"></i></span></td>
+                <td><span class="badge badge--medical" data-en="Overdue">متأخر</span></td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn btn--sm btn--soft" data-open="dlg-payment" data-en="Record payment">تسجيل دفعة</button>
+                    <button class="btn btn--sm btn--neutral-ghost btn--icon" data-open="dlg-remind"
+                            aria-label="تذكير عبر واتساب" data-en-label="Remind on WhatsApp">
+                      <svg viewBox="0 0 24 24"><use href="#i-wa"/></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Due but not late -->
+              <tr data-status="due" data-name="مها الخطيب" data-name-en="Maha Khatib"
+                  data-subscriber='{"name":"مها الخطيب","package":"ثلاثة أشهر","price":500,"paid":300,"due":200,"dueDate":"28 آب","lateDays":0}'>
+                <td>
+                  <a class="person" href="#subscriber" data-goto="subscriber">
+                    <span class="avatar">م</span>
+                    <span class="stack">
+                      <span class="person-name" data-en="Maha Khatib">مها الخطيب</span>
+                      <span class="t-caption" data-en="Started 2 Jul">بدأ 2 تموز</span>
+                    </span>
+                  </a>
+                </td>
+                <td data-en="Quarterly">ثلاثة أشهر</td>
+                <td class="num"><span class="money">500</span></td>
+                <td class="num"><span class="money">300</span></td>
+                <td class="num"><span class="money money--due">200</span></td>
+                <td>
+                  <span class="t-body-sm">28 آب</span>
+                  <div class="t-caption" data-en="in 5 days">بعد 5 أيام</div>
+                </td>
+                <td><span class="pips" title="5 من 12">
+                  <i class="pip used"></i><i class="pip used"></i><i class="pip used"></i><i class="pip used"></i><i class="pip used"></i><i class="pip next"></i>
+                </span><span class="t-caption"> 5/12</span></td>
+                <td><span class="badge badge--attention" data-en="Payment due">دفعة مستحقة</span></td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn btn--sm btn--soft" data-open="dlg-payment" data-en="Record payment">تسجيل دفعة</button>
+                    <button class="btn btn--sm btn--neutral-ghost btn--icon" data-open="dlg-remind"
+                            aria-label="تذكير عبر واتساب" data-en-label="Remind on WhatsApp">
+                      <svg viewBox="0 0 24 24"><use href="#i-wa"/></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Settled -->
+              <tr data-status="paid" data-name="رنا عبد الهادي" data-name-en="Rana Abdulhadi"
+                  data-subscriber='{"name":"رنا عبد الهادي","package":"اشتراك شهري","price":180,"paid":180,"due":0,"dueDate":"3 آب","lateDays":0}'>
+                <td>
+                  <a class="person" href="#subscriber" data-goto="subscriber">
+                    <span class="avatar">ر</span>
+                    <span class="stack">
+                      <span class="person-name" data-en="Rana Abdulhadi">رنا عبد الهادي</span>
+                      <span class="t-caption" data-en="Started 3 Aug">بدأ 3 آب</span>
+                    </span>
+                  </a>
+                </td>
+                <td data-en="Monthly">شهري</td>
+                <td class="num"><span class="money">180</span></td>
+                <td class="num"><span class="money">180</span></td>
+                <td class="num"><span class="money money--zero">0</span></td>
+                <td><span class="t-body-sm muted">—</span></td>
+                <td><span class="pips" title="2 من 4"><i class="pip used"></i><i class="pip used"></i><i class="pip next"></i><i class="pip"></i></span></td>
+                <td><span class="badge badge--onTrack" data-en="Settled">مسدَّد</span></td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn btn--sm btn--neutral-ghost" data-en="Details">تفاصيل</button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Settled, with a discount recorded -->
+              <tr data-status="paid" data-name="نور حمدان" data-name-en="Nour Hamdan"
+                  data-subscriber='{"name":"نور حمدان","package":"اشتراك شهري","price":160,"paid":160,"due":0,"dueDate":"12 آب","lateDays":0}'>
+                <td>
+                  <a class="person" href="#subscriber" data-goto="subscriber">
+                    <span class="avatar">ن</span>
+                    <span class="stack">
+                      <span class="person-name" data-en="Nour Hamdan">نور حمدان</span>
+                      <span class="t-caption" data-en="Started 12 Aug">بدأ 12 آب</span>
+                    </span>
+                  </a>
+                </td>
+                <td data-en="Monthly">شهري</td>
+                <td class="num"><span class="money-was">180</span><span class="money">160</span></td>
+                <td class="num"><span class="money">160</span></td>
+                <td class="num"><span class="money money--zero">0</span></td>
+                <td><span class="t-body-sm muted">—</span></td>
+                <td><span class="pips" title="3 من 4"><i class="pip used"></i><i class="pip used"></i><i class="pip used"></i><i class="pip next"></i></span></td>
+                <td><span class="badge badge--onTrack" data-en="Settled">مسدَّد</span></td>
+                <td><div class="row-actions"><button class="btn btn--sm btn--neutral-ghost" data-en="Details">تفاصيل</button></div></td>
+              </tr>
+
+              <!-- Settled -->
+              <tr data-status="paid" data-name="آية زيدان" data-name-en="Aya Zeidan"
+                  data-subscriber='{"name":"آية زيدان","package":"اشتراك شهري","price":180,"paid":180,"due":0,"dueDate":"18 آب","lateDays":0}'>
+                <td>
+                  <a class="person" href="#subscriber" data-goto="subscriber">
+                    <span class="avatar">آ</span>
+                    <span class="stack">
+                      <span class="person-name" data-en="Aya Zeidan">آية زيدان</span>
+                      <span class="t-caption" data-en="Started 18 Aug">بدأ 18 آب</span>
+                    </span>
+                  </a>
+                </td>
+                <td data-en="Monthly">شهري</td>
+                <td class="num"><span class="money">180</span></td>
+                <td class="num"><span class="money">180</span></td>
+                <td class="num"><span class="money money--zero">0</span></td>
+                <td><span class="t-body-sm muted">—</span></td>
+                <td><span class="pips" title="1 من 4"><i class="pip used"></i><i class="pip next"></i><i class="pip"></i><i class="pip"></i></span></td>
+                <td><span class="badge badge--onTrack" data-en="Settled">مسدَّد</span></td>
+                <td><div class="row-actions"><button class="btn btn--sm btn--neutral-ghost" data-en="Details">تفاصيل</button></div></td>
+              </tr>
+
+              <!-- No subscription — the free first consultation lives here -->
+              <tr data-status="none" data-name="لينا مرعي" data-name-en="Lina Marei"
+                  data-subscriber='{"name":"لينا مرعي","package":"—","price":0,"paid":0,"due":0,"dueDate":"—","lateDays":0}'>
+                <td>
+                  <a class="person" href="#subscriber" data-goto="subscriber">
+                    <span class="avatar">ل</span>
+                    <span class="stack">
+                      <span class="person-name" data-en="Lina Marei">لينا مرعي</span>
+                      <span class="t-caption" data-en="First consultation 20 Aug">استشارة أولى 20 آب</span>
+                    </span>
+                  </a>
+                </td>
+                <td class="muted">—</td>
+                <td class="num muted">—</td>
+                <td class="num muted">—</td>
+                <td class="num muted">—</td>
+                <td class="muted">—</td>
+                <td class="muted">—</td>
+                <td><span class="badge badge--free" data-en="No subscription">بدون اشتراك</span></td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn btn--sm btn--outline" data-open="dlg-subscribe" data-en="Subscribe">اشتراك</button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Finished -->
+              <tr data-status="paid" data-name="دعاء سلامة" data-name-en="Duaa Salama"
+                  data-subscriber='{"name":"دعاء سلامة","package":"ثلاثة أشهر","price":500,"paid":500,"due":0,"dueDate":"—","lateDays":0}'>
+                <td>
+                  <a class="person" href="#subscriber" data-goto="subscriber">
+                    <span class="avatar">د</span>
+                    <span class="stack">
+                      <span class="person-name" data-en="Duaa Salama">دعاء سلامة</span>
+                      <span class="t-caption" data-en="Ended 15 Aug">انتهى 15 آب</span>
+                    </span>
+                  </a>
+                </td>
+                <td data-en="Quarterly">ثلاثة أشهر</td>
+                <td class="num"><span class="money">500</span></td>
+                <td class="num"><span class="money">500</span></td>
+                <td class="num"><span class="money money--zero">0</span></td>
+                <td><span class="t-body-sm muted">—</span></td>
+                <td><span class="t-caption">12/12</span></td>
+                <td><span class="badge badge--rest" data-en="Finished">منتهٍ</span></td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn btn--sm btn--outline" data-open="dlg-subscribe" data-en="Renew">تجديد</button>
+                  </div>
+                </td>
+              </tr>
+
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ── Six months, and the reminder queue ─────────────────────── -->
+      <div class="split section">
+
+        <div class="card">
+          <div class="card-head">
+            <div class="grow">
+              <h2 class="t-h-sm" data-en="Collected vs outstanding">المحصّل مقابل المتبقي</h2>
+              <p class="t-caption mt-1" data-en="Last six months, in shekels.">آخر ستة أشهر، بالشيكل.</p>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="chart" role="img"
+                 aria-label="رسم أعمدة: المحصّل والمتبقي لكل شهر من آذار حتى آب"
+                 data-en-label="Bar chart: collected and outstanding per month, March to August">
+              <div class="chart-col"><span class="chart-val">720</span>
+                <div class="chart-stack"><div class="chart-bar--due" style="block-size:14%"></div><div class="chart-bar" style="block-size:46%"></div></div>
+                <span class="chart-x" data-en="Mar">آذار</span></div>
+              <div class="chart-col"><span class="chart-val">860</span>
+                <div class="chart-stack"><div class="chart-bar--due" style="block-size:8%"></div><div class="chart-bar" style="block-size:56%"></div></div>
+                <span class="chart-x" data-en="Apr">نيسان</span></div>
+              <div class="chart-col"><span class="chart-val">640</span>
+                <div class="chart-stack"><div class="chart-bar--due" style="block-size:18%"></div><div class="chart-bar" style="block-size:41%"></div></div>
+                <span class="chart-x" data-en="May">أيار</span></div>
+              <div class="chart-col"><span class="chart-val">980</span>
+                <div class="chart-stack"><div class="chart-bar--due" style="block-size:6%"></div><div class="chart-bar" style="block-size:64%"></div></div>
+                <span class="chart-x" data-en="Jun">حزيران</span></div>
+              <div class="chart-col"><span class="chart-val">820</span>
+                <div class="chart-stack"><div class="chart-bar--due" style="block-size:22%"></div><div class="chart-bar" style="block-size:53%"></div></div>
+                <span class="chart-x" data-en="Jul">تموز</span></div>
+              <div class="chart-col"><span class="chart-val">1,160</span>
+                <div class="chart-stack"><div class="chart-bar--due" style="block-size:26%"></div><div class="chart-bar" style="block-size:74%"></div></div>
+                <span class="chart-x" data-en="Aug">آب</span></div>
+            </div>
+            <div class="legend mt-3">
+              <span><i style="background:var(--primary)"></i><span data-en="Collected">محصّل</span></span>
+              <span><i style="background:var(--amber-300)"></i><span data-en="Outstanding">متبقٍ</span></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stack gap-4">
+
+          <div class="card">
+            <div class="card-head">
+              <h2 class="t-h-sm grow" data-en="Reminder queue">طابور التذكير</h2>
+            </div>
+            <div class="card-body stack gap-3">
+
+              <div class="row-between" data-subscriber='{"name":"سُهى النجار","package":"اشتراك شهري","price":150,"paid":0,"due":150,"dueDate":"5 آب","lateDays":18}'>
+                <div class="stack" style="min-inline-size:0">
+                  <span class="t-label" data-en="Suha Najjar">سُهى النجار</span>
+                  <span class="t-caption" data-en="150 ₪ · 18 days late · last reminded 14 Aug">150 ₪ · متأخر 18 يوماً · آخر تذكير 14 آب</span>
+                </div>
+                <button class="btn btn--sm btn--soft" data-open="dlg-remind">
+                  <svg viewBox="0 0 24 24"><use href="#i-wa"/></svg><span data-en="Remind">تذكير</span>
+                </button>
+              </div>
+
+              <div class="divider" style="margin-block:0"></div>
+
+              <div class="row-between" data-subscriber='{"name":"عبير قاسم","package":"اشتراك شهري","price":180,"paid":90,"due":90,"dueDate":"20 آب","lateDays":3}'>
+                <div class="stack" style="min-inline-size:0">
+                  <span class="t-label" data-en="Abeer Qasem">عبير قاسم</span>
+                  <span class="t-caption" data-en="90 ₪ · 3 days late · never reminded">90 ₪ · متأخر 3 أيام · لم تُذكَّر بعد</span>
+                </div>
+                <button class="btn btn--sm btn--soft" data-open="dlg-remind">
+                  <svg viewBox="0 0 24 24"><use href="#i-wa"/></svg><span data-en="Remind">تذكير</span>
+                </button>
+              </div>
+
+              <div class="divider" style="margin-block:0"></div>
+
+              <div class="row-between" data-subscriber='{"name":"مها الخطيب","package":"ثلاثة أشهر","price":500,"paid":300,"due":200,"dueDate":"28 آب","lateDays":0}'>
+                <div class="stack" style="min-inline-size:0">
+                  <span class="t-label" data-en="Maha Khatib">مها الخطيب</span>
+                  <span class="t-caption" data-en="200 ₪ · due in 5 days">200 ₪ · يستحق بعد 5 أيام</span>
+                </div>
+                <button class="btn btn--sm btn--neutral-ghost" data-open="dlg-remind">
+                  <svg viewBox="0 0 24 24"><use href="#i-wa"/></svg><span data-en="Remind">تذكير</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <h2 class="t-h-sm grow" data-en="Recent payments">آخر الدفعات</h2>
+            </div>
+            <div class="card-body">
+              <div class="timeline">
+                <div class="tl-item">
+                  <div class="tl-rail"><span class="tl-mark tl-mark--pay"><svg viewBox="0 0 24 24"><use href="#i-cash"/></svg></span><span class="tl-line"></span></div>
+                  <div class="tl-body">
+                    <div class="row-between"><span class="t-label" data-en="Aya Zeidan">آية زيدان</span><span class="money">180 ₪</span></div>
+                    <span class="t-caption" data-en="18 Aug · cash · settles the subscription">18 آب · نقداً · أُغلق بها الاشتراك</span>
+                  </div>
+                </div>
+                <div class="tl-item">
+                  <div class="tl-rail"><span class="tl-mark tl-mark--pay"><svg viewBox="0 0 24 24"><use href="#i-cash"/></svg></span><span class="tl-line"></span></div>
+                  <div class="tl-body">
+                    <div class="row-between"><span class="t-label" data-en="Nour Hamdan">نور حمدان</span><span class="money">160 ₪</span></div>
+                    <span class="t-caption" data-en="12 Aug · bank transfer · ref 4471">12 آب · تحويل بنكي · مرجع 4471</span>
+                  </div>
+                </div>
+                <div class="tl-item">
+                  <div class="tl-rail"><span class="tl-mark tl-mark--pay"><svg viewBox="0 0 24 24"><use href="#i-cash"/></svg></span><span class="tl-line"></span></div>
+                  <div class="tl-body">
+                    <div class="row-between"><span class="t-label" data-en="Abeer Qasem">عبير قاسم</span><span class="money">90 ₪</span></div>
+                    <span class="t-caption" data-en="5 Aug · cash · partial">5 آب · نقداً · دفعة جزئية</span>
+                  </div>
+                </div>
+                <div class="tl-item">
+                  <div class="tl-rail"><span class="tl-mark tl-mark--pay"><svg viewBox="0 0 24 24"><use href="#i-cash"/></svg></span><span class="tl-line"></span></div>
+                  <div class="tl-body">
+                    <div class="row-between"><span class="t-label" data-en="Rana Abdulhadi">رنا عبد الهادي</span><span class="money">180 ₪</span></div>
+                    <span class="t-caption" data-en="3 Aug · cash">3 آب · نقداً</span>
+                  </div>
+                </div>
+                <div class="tl-item">
+                  <div class="tl-rail"><span class="tl-mark tl-mark--pay"><svg viewBox="0 0 24 24"><use href="#i-cash"/></svg></span></div>
+                  <div class="tl-body">
+                    <div class="row-between"><span class="t-label" data-en="Maha Khatib">مها الخطيب</span><span class="money">300 ₪</span></div>
+                    <span class="t-caption" data-en="2 Aug · wallet · partial">2 آب · محفظة · دفعة جزئية</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+</div>
+
+<div class="screen" data-screen="subscriber" data-subscriber='{"name":"سُهى النجار","package":"اشتراك شهري","price":150,"paid":0,"due":150,"dueDate":"5 آب","lateDays":18}' hidden>
+<div class="shell">
+
+  <nav class="rail" aria-label="التنقل الرئيسي">
+    <div class="rail-head">
+      <svg class="rail-mark" viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M16 3c7 0 13 5.6 13 12.5S23 28 16 28 3 22.4 3 15.5 9 3 16 3Z" fill="#75CF48"/>
+        <circle cx="12" cy="14" r="2.1" fill="#266805"/><circle cx="19" cy="18" r="2.1" fill="#266805"/>
+      </svg>
+      <span class="rail-word">إنزيم</span>
+    </div>
+    <div class="rail-nav">
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-dash"/></svg><span data-en="Dashboard">لوحة التحكم</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-users"/></svg><span data-en="Clients">العملاء</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-calendar"/></svg><span data-en="Calendar">التقويم</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-plans"/></svg><span data-en="Weekly plans">الخطط الأسبوعية</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-dish"/></svg><span data-en="Dish catalog">كتالوج الأطباق</span></a>
+      <a class="rail-item" href="#dashboard" data-goto="dashboard" aria-current="page">
+        <svg viewBox="0 0 24 24"><use href="#i-wallet"/></svg>
+        <span data-en="Finance">الأمور المالية</span>
+        <em class="rail-count" style="font-style:normal">2</em>
+      </a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-inbox"/></svg><span data-en="Requests">الطلبات</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-settings"/></svg><span data-en="Settings">الإعدادات</span></a>
+    </div>
+    <div class="rail-foot">
+      <div class="rail-user">
+        <span class="avatar">د</span>
+        <span class="stack">
+          <span class="t-label" data-en="Dr. Duaa">د. دعاء</span>
+          <span class="t-caption" data-en="Dietitian">أخصائية تغذية</span>
+        </span>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main">
+
+    <div class="topbar">
+      <a class="btn btn--neutral-ghost btn--sm btn--icon" href="#dashboard" data-goto="dashboard"
+         aria-label="رجوع إلى الأمور المالية" data-en-label="Back to finance">
+        <svg viewBox="0 0 24 24"><use href="#i-back"/></svg>
+      </a>
+      <span class="t-label muted">
+        <a href="#dashboard" data-goto="dashboard" data-en="Finance">الأمور المالية</a>
+        <span aria-hidden="true"> / </span>
+        <span data-en="Suha Najjar">سُهى النجار</span>
+      </span>
+      <span class="grow"></span>
+      <div class="segmented" role="tablist" aria-label="اللغة">
+        <button data-locale-btn="ar" role="tab" aria-selected="true">ع</button>
+        <button data-locale-btn="en" role="tab" aria-selected="false">EN</button>
+      </div>
+      <button class="btn btn--neutral btn--icon btn--sm" data-theme-toggle
+              aria-label="الوضع الداكن" data-en-label="Dark mode">
+        <svg viewBox="0 0 24 24"><use href="#i-moon"/></svg>
+      </button>
+    </div>
+
+    <main class="page">
+
+      <div class="page-head">
+        <div class="row grow" style="flex-wrap:nowrap;align-items:flex-start">
+          <span class="avatar avatar--lg">س</span>
+          <div class="stack" style="min-inline-size:0">
+            <h1 class="t-h-lg" data-en="Suha Najjar">سُهى النجار</h1>
+            <div class="row gap-2 mt-1">
+              <span class="badge badge--medical" data-en="Overdue">متأخر</span>
+              <span class="t-caption" dir="ltr">+970 59 812 4470</span>
+            </div>
+          </div>
+        </div>
+        <div class="page-actions">
+          <a class="btn btn--neutral" href="#"
+             data-en="Clinical profile">الملف السريري</a>
+          <button class="btn btn--neutral" data-open="dlg-remind">
+            <svg viewBox="0 0 24 24"><use href="#i-wa"/></svg>
+            <span data-en="Remind">تذكير</span>
+          </button>
+          <button class="btn btn--default" data-open="dlg-payment">
+            <svg viewBox="0 0 24 24"><use href="#i-cash"/></svg>
+            <span data-en="Record payment">تسجيل دفعة</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="callout callout--medical">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><use href="#i-alert"/></svg>
+        <div data-en="150 ₪ has been outstanding since 5 August — 18 days. One reminder was sent on 14 August.">
+          150 ₪ متبقية منذ 5 آب — 18 يوماً. أُرسل تذكير واحد في 14 آب.
+        </div>
+      </div>
+
+      <div class="split section" style="margin-block-start:18px">
+
+        <!-- ── The subscription itself ──────────────────────────────── -->
+        <div class="stack gap-4">
+
+          <div class="card card--flagged">
+            <div class="card-head">
+              <div class="grow">
+                <h2 class="t-h-sm" data-en="Current subscription">الاشتراك الحالي</h2>
+                <p class="t-caption mt-1" data-en="Monthly · 5 Aug – 4 Sep 2026">شهري · 5 آب – 4 أيلول 2026</p>
+              </div>
+              <span class="badge badge--medical" data-en="Overdue">متأخر</span>
+            </div>
+
+            <div class="card-body">
+
+              <div class="row-between" style="align-items:flex-end">
+                <div class="stack">
+                  <span class="t-caption" data-en="Outstanding balance">المبلغ المتبقي</span>
+                  <span class="big-money" style="color:var(--status-medical-fg)">150<span class="unit">₪</span></span>
+                </div>
+                <div class="stack text-end">
+                  <span class="t-caption" data-en="Agreed price">السعر المتفق</span>
+                  <span class="t-body-lg">
+                    <span class="money-was">180</span><b class="money">150 ₪</b>
+                  </span>
+                  <span class="t-caption" data-en="30 ₪ student discount">خصم طالبة 30 ₪</span>
+                </div>
+              </div>
+
+              <div class="progress progress--medical mt-4" role="img"
+                   aria-label="مدفوع 0 من 150 شيكل" data-en-label="0 of 150 ₪ paid">
+                <i style="inline-size:0%"></i>
+              </div>
+              <div class="row-between mt-1">
+                <span class="t-caption" data-en="Paid 0 ₪">مدفوع 0 ₪</span>
+                <span class="t-caption" data-en="of 150 ₪">من 150 ₪</span>
+              </div>
+
+              <div class="divider"></div>
+
+              <dl style="margin:0">
+                <div class="kv">
+                  <dt data-en="Payment due">استحقاق الدفع</dt>
+                  <dd style="color:var(--status-medical-fg)">5 آب <span class="t-caption" style="color:inherit" data-en="· 18 days ago">· قبل 18 يوماً</span></dd>
+                </div>
+                <div class="kv">
+                  <dt data-en="Visits used">الزيارات المستهلكة</dt>
+                  <dd>
+                    <span class="row gap-2" style="justify-content:flex-end">
+                      <span class="pips"><i class="pip used"></i><i class="pip used"></i><i class="pip used"></i><i class="pip next"></i></span>
+                      3 / 4
+                    </span>
+                  </dd>
+                </div>
+                <div class="kv">
+                  <dt data-en="Plans published">الخطط المنشورة</dt>
+                  <dd>3 / 4</dd>
+                </div>
+                <div class="kv">
+                  <dt data-en="Subscription ends">ينتهي الاشتراك</dt>
+                  <dd>4 أيلول <span class="t-caption" data-en="· in 12 days">· بعد 12 يوماً</span></dd>
+                </div>
+              </dl>
+
+              <p class="hint mt-3" data-en="The visit counter follows completed appointments in the calendar — it is not typed in here.">
+                عدّاد الزيارات يتبع المواعيد المكتملة في التقويم — لا يُكتب هنا يدوياً.
+              </p>
+            </div>
+
+            <div class="card-foot">
+              <button class="btn btn--sm btn--default" data-open="dlg-payment" data-en="Record payment">تسجيل دفعة</button>
+              <button class="btn btn--sm btn--neutral" data-open="dlg-remind">
+                <svg viewBox="0 0 24 24"><use href="#i-wa"/></svg><span data-en="Remind">تذكير</span>
+              </button>
+              <button class="btn btn--sm btn--neutral-ghost" data-en="Edit subscription">تعديل الاشتراك</button>
+            </div>
+          </div>
+
+          <!-- ── Ledger tabs ────────────────────────────────────────── -->
+          <div class="card">
+            <div class="ptabs" data-tabs role="tablist" aria-label="سجلات المشترك" style="padding-inline:20px">
+              <button data-tab="tab-payments" role="tab" aria-selected="true" data-en="Payments">الدفعات</button>
+              <button data-tab="tab-reminders" role="tab" aria-selected="false" data-en="Reminders">التذكيرات</button>
+              <button data-tab="tab-history" role="tab" aria-selected="false" data-en="Past subscriptions">اشتراكات سابقة</button>
+            </div>
+
+            <!-- Payments -->
+            <div class="card-body" id="tab-payments" role="tabpanel">
+              <div class="empty">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><use href="#i-receipt"/></svg>
+                <p class="t-body" data-en="No payment on this subscription yet.">لا توجد دفعة على هذا الاشتراك بعد.</p>
+                <p class="t-caption" data-en="The full 150 ₪ is still outstanding.">كامل الـ 150 ₪ ما زالت متبقية.</p>
+                <button class="btn btn--sm btn--soft mt-2" data-open="dlg-payment" data-en="Record the first payment">تسجيل أول دفعة</button>
+              </div>
+            </div>
+
+            <!-- Reminders -->
+            <div class="card-body" id="tab-reminders" role="tabpanel" hidden>
+              <div class="timeline">
+                <div class="tl-item">
+                  <div class="tl-rail"><span class="tl-mark tl-mark--wa"><svg viewBox="0 0 24 24"><use href="#i-wa"/></svg></span></div>
+                  <div class="tl-body">
+                    <div class="row-between">
+                      <span class="t-label" data-en="Reminder sent">أُرسل تذكير</span>
+                      <span class="t-caption">14 آب · 10:24</span>
+                    </div>
+                    <span class="t-caption" data-en="By Dr. Duaa · delivered">بواسطة د. دعاء · وصلت</span>
+                    <div class="wa-preview mt-2" dir="rtl">مرحباً سُهى 🌿
+تذكير ودّي من عيادة إنزيم للتغذية.
+
+الاشتراك: اشتراك شهري
+المتبقي: 150 ₪
+تاريخ الاستحقاق: 5 آب
+مرّ على تاريخ الاستحقاق 9 أيام.
+
+يسعدنا استلام الدفعة في زيارتك القادمة، أو عبر التحويل البنكي.
+شكراً لكِ 💚</div>
+                  </div>
+                </div>
+              </div>
+              <p class="hint mt-3" data-en="The exact wording of every reminder is kept, so a later dispute can be read rather than remembered.">
+                يُحفظ نص كل تذكير كما أُرسل، فيمكن قراءته لاحقاً بدل تذكّره.
+              </p>
+            </div>
+
+            <!-- Past subscriptions -->
+            <div class="card-body" id="tab-history" role="tabpanel" hidden>
+              <div class="table-root">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th data-en="Period">الفترة</th>
+                      <th data-en="Package">الباقة</th>
+                      <th class="num" data-en="Price">السعر</th>
+                      <th class="num" data-en="Paid">المدفوع</th>
+                      <th data-en="Visits">الزيارات</th>
+                      <th data-en="Status">الحالة</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>4 تموز – 3 آب</td>
+                      <td data-en="Monthly">شهري</td>
+                      <td class="num"><span class="money">180</span></td>
+                      <td class="num"><span class="money">180</span></td>
+                      <td>4 / 4</td>
+                      <td><span class="badge badge--onTrack" data-en="Settled">مسدَّد</span></td>
+                    </tr>
+                    <tr>
+                      <td>2 حزيران – 1 تموز</td>
+                      <td data-en="Monthly">شهري</td>
+                      <td class="num"><span class="money">180</span></td>
+                      <td class="num"><span class="money">180</span></td>
+                      <td>4 / 4</td>
+                      <td><span class="badge badge--onTrack" data-en="Settled">مسدَّد</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p class="hint mt-3" data-en="Each row keeps the price it was sold at. Changing the package price today does not reach them.">
+                كل صف يحتفظ بالسعر الذي بيع به. تغيير سعر الباقة اليوم لا يصل إليها.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Side rail ────────────────────────────────────────────── -->
+        <div class="stack gap-4">
+
+          <div class="card">
+            <div class="card-head"><h2 class="t-h-sm grow" data-en="Lifetime">الإجمالي التراكمي</h2></div>
+            <div class="card-body">
+              <dl style="margin:0">
+                <div class="kv"><dt data-en="Subscriptions">اشتراكات</dt><dd>3</dd></div>
+                <div class="kv"><dt data-en="Paid to date">مدفوع حتى اليوم</dt><dd>360 ₪</dd></div>
+                <div class="kv"><dt data-en="Outstanding">متبقٍ</dt><dd class="money money--late">150 ₪</dd></div>
+                <div class="kv"><dt data-en="Visits attended">زيارات حضرتها</dt><dd>11</dd></div>
+                <div class="kv"><dt data-en="Client since">عميلة منذ</dt><dd>2 حزيران 2026</dd></div>
+              </dl>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h2 class="t-h-sm grow" data-en="Activity">النشاط</h2></div>
+            <div class="card-body">
+              <div class="timeline">
+                <div class="tl-item">
+                  <div class="tl-rail"><span class="tl-mark tl-mark--visit"><svg viewBox="0 0 24 24"><use href="#i-calendar"/></svg></span><span class="tl-line"></span></div>
+                  <div class="tl-body">
+                    <span class="t-label" data-en="Visit 3 of 4">الزيارة 3 من 4</span>
+                    <div class="t-caption" data-en="19 Aug · completed in the calendar">19 آب · اكتملت في التقويم</div>
+                  </div>
+                </div>
+                <div class="tl-item">
+                  <div class="tl-rail"><span class="tl-mark tl-mark--wa"><svg viewBox="0 0 24 24"><use href="#i-wa"/></svg></span><span class="tl-line"></span></div>
+                  <div class="tl-body">
+                    <span class="t-label" data-en="Payment reminder">تذكير بالدفع</span>
+                    <div class="t-caption" data-en="14 Aug · sent by Dr. Duaa">14 آب · أرسلتها د. دعاء</div>
+                  </div>
+                </div>
+                <div class="tl-item">
+                  <div class="tl-rail"><span class="tl-mark tl-mark--visit"><svg viewBox="0 0 24 24"><use href="#i-calendar"/></svg></span><span class="tl-line"></span></div>
+                  <div class="tl-body">
+                    <span class="t-label" data-en="Visit 2 of 4">الزيارة 2 من 4</span>
+                    <div class="t-caption" data-en="12 Aug · completed">12 آب · اكتملت</div>
+                  </div>
+                </div>
+                <div class="tl-item">
+                  <div class="tl-rail"><span class="tl-mark tl-mark--visit"><svg viewBox="0 0 24 24"><use href="#i-calendar"/></svg></span><span class="tl-line"></span></div>
+                  <div class="tl-body">
+                    <span class="t-label" data-en="Visit 1 of 4">الزيارة 1 من 4</span>
+                    <div class="t-caption" data-en="5 Aug · completed">5 آب · اكتملت</div>
+                  </div>
+                </div>
+                <div class="tl-item">
+                  <div class="tl-rail"><span class="tl-mark"><svg viewBox="0 0 24 24"><use href="#i-package"/></svg></span></div>
+                  <div class="tl-body">
+                    <span class="t-label" data-en="Subscription created">أُنشئ الاشتراك</span>
+                    <div class="t-caption" data-en="5 Aug · Monthly at 150 ₪ (30 ₪ discount)">5 آب · شهري بـ 150 ₪ (خصم 30 ₪)</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</div>
+
+<div class="screen" data-screen="packages" hidden>
+<div class="shell">
+
+  <nav class="rail" aria-label="التنقل الرئيسي">
+    <div class="rail-head">
+      <svg class="rail-mark" viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M16 3c7 0 13 5.6 13 12.5S23 28 16 28 3 22.4 3 15.5 9 3 16 3Z" fill="#75CF48"/>
+        <circle cx="12" cy="14" r="2.1" fill="#266805"/><circle cx="19" cy="18" r="2.1" fill="#266805"/>
+      </svg>
+      <span class="rail-word">إنزيم</span>
+    </div>
+    <div class="rail-nav">
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-dash"/></svg><span data-en="Dashboard">لوحة التحكم</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-users"/></svg><span data-en="Clients">العملاء</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-calendar"/></svg><span data-en="Calendar">التقويم</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-plans"/></svg><span data-en="Weekly plans">الخطط الأسبوعية</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-dish"/></svg><span data-en="Dish catalog">كتالوج الأطباق</span></a>
+      <a class="rail-item" href="#dashboard" data-goto="dashboard" aria-current="page">
+        <svg viewBox="0 0 24 24"><use href="#i-wallet"/></svg>
+        <span data-en="Finance">الأمور المالية</span>
+        <em class="rail-count" style="font-style:normal">2</em>
+      </a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-inbox"/></svg><span data-en="Requests">الطلبات</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-settings"/></svg><span data-en="Settings">الإعدادات</span></a>
+    </div>
+    <div class="rail-foot">
+      <div class="rail-user">
+        <span class="avatar">د</span>
+        <span class="stack">
+          <span class="t-label" data-en="Dr. Duaa">د. دعاء</span>
+          <span class="t-caption" data-en="Dietitian">أخصائية تغذية</span>
+        </span>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main">
+
+    <div class="topbar">
+      <a class="btn btn--neutral-ghost btn--sm btn--icon" href="#dashboard" data-goto="dashboard"
+         aria-label="رجوع إلى الأمور المالية" data-en-label="Back to finance">
+        <svg viewBox="0 0 24 24"><use href="#i-back"/></svg>
+      </a>
+      <span class="t-label muted">
+        <a href="#dashboard" data-goto="dashboard" data-en="Finance">الأمور المالية</a>
+        <span aria-hidden="true"> / </span>
+        <span data-en="Packages &amp; messages">الباقات والرسائل</span>
+      </span>
+      <span class="grow"></span>
+      <div class="segmented" role="tablist" aria-label="اللغة">
+        <button data-locale-btn="ar" role="tab" aria-selected="true">ع</button>
+        <button data-locale-btn="en" role="tab" aria-selected="false">EN</button>
+      </div>
+      <button class="btn btn--neutral btn--icon btn--sm" data-theme-toggle
+              aria-label="الوضع الداكن" data-en-label="Dark mode">
+        <svg viewBox="0 0 24 24"><use href="#i-moon"/></svg>
+      </button>
+    </div>
+
+    <main class="page">
+
+      <div class="page-head">
+        <div class="grow">
+          <h1 class="t-display" data-en="Packages &amp; messages">الباقات والرسائل</h1>
+          <p class="muted mt-1" data-en="Your clinic's own price list, and the wording of the WhatsApp reminders.">
+            قائمة أسعار عيادتك، وصيغة رسائل التذكير على واتساب.
+          </p>
+        </div>
+      </div>
+
+      <div class="ptabs" data-tabs role="tablist" aria-label="أقسام الصفحة">
+        <button data-tab="tab-pkgs" role="tab" aria-selected="true" data-en="Packages">الباقات</button>
+        <button data-tab="tab-msgs" role="tab" aria-selected="false" data-en="WhatsApp messages">رسائل واتساب</button>
+      </div>
+</div>
+
+<div class="screen" data-screen="client" data-subscriber='{"name":"سُهى النجار","package":"اشتراك شهري","price":150,"paid":0,"due":150,"dueDate":"5 آب","lateDays":18}' hidden>
+<div class="shell">
+
+  <nav class="rail" aria-label="التنقل الرئيسي">
+    <div class="rail-head">
+      <svg class="rail-mark" viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M16 3c7 0 13 5.6 13 12.5S23 28 16 28 3 22.4 3 15.5 9 3 16 3Z" fill="#75CF48"/>
+        <circle cx="12" cy="14" r="2.1" fill="#266805"/><circle cx="19" cy="18" r="2.1" fill="#266805"/>
+      </svg>
+      <span class="rail-word">إنزيم</span>
+    </div>
+    <div class="rail-nav">
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-dash"/></svg><span data-en="Dashboard">لوحة التحكم</span></a>
+      <a class="rail-item" href="#" aria-current="page"><svg viewBox="0 0 24 24"><use href="#i-users"/></svg><span data-en="Clients">العملاء</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-calendar"/></svg><span data-en="Calendar">التقويم</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-plans"/></svg><span data-en="Weekly plans">الخطط الأسبوعية</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-dish"/></svg><span data-en="Dish catalog">كتالوج الأطباق</span></a>
+      <a class="rail-item" href="#dashboard" data-goto="dashboard">
+        <svg viewBox="0 0 24 24"><use href="#i-wallet"/></svg>
+        <span data-en="Finance">الأمور المالية</span>
+        <em class="rail-count" style="font-style:normal">2</em>
+      </a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-inbox"/></svg><span data-en="Requests">الطلبات</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-settings"/></svg><span data-en="Settings">الإعدادات</span></a>
+    </div>
+    <div class="rail-foot">
+      <div class="rail-user">
+        <span class="avatar">د</span>
+        <span class="stack">
+          <span class="t-label" data-en="Dr. Duaa">د. دعاء</span>
+          <span class="t-caption" data-en="Dietitian">أخصائية تغذية</span>
+        </span>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main">
+
+    <div class="topbar">
+      <span class="t-label muted">
+        <span data-en="Clients">العملاء</span>
+        <span aria-hidden="true"> / </span>
+        <span data-en="Suha Najjar">سُهى النجار</span>
+      </span>
+      <span class="grow"></span>
+      <div class="segmented" role="tablist" aria-label="اللغة">
+        <button data-locale-btn="ar" role="tab" aria-selected="true">ع</button>
+        <button data-locale-btn="en" role="tab" aria-selected="false">EN</button>
+      </div>
+      <button class="btn btn--neutral btn--icon btn--sm" data-theme-toggle
+              aria-label="الوضع الداكن" data-en-label="Dark mode">
+        <svg viewBox="0 0 24 24"><use href="#i-moon"/></svg>
+      </button>
+    </div>
+
+    <main class="page">
+
+      <div class="callout callout--attention">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><use href="#i-info"/></svg>
+        <div>
+          <b data-en="This page is context only.">هذه الصفحة سياق فقط.</b>
+          <span data-en="The one thing being proposed is the “Financial summary” card below — everything else stands in for the existing client screen.">
+            المقترح الوحيد هو بطاقة «الملخص المالي» أدناه — وكل ما عداها نائب عن شاشة العميل الحالية.
+          </span>
+        </div>
+      </div>
+
+      <div class="page-head mt-6">
+        <div class="row grow" style="flex-wrap:nowrap;align-items:flex-start">
+          <span class="avatar avatar--lg">س</span>
+          <div class="stack" style="min-inline-size:0">
+            <h1 class="t-h-lg" data-en="Suha Najjar">سُهى النجار</h1>
+            <span class="t-caption" data-en="28 years · client since 2 June 2026">28 سنة · عميلة منذ 2 حزيران 2026</span>
+          </div>
+        </div>
+      </div>
+</div>
+
+<!-- ══ Shared dialogs — one set for all four screens ═══════════════════ -->
+<!-- ══ Dialog: record a payment ══════════════════════════════════════ -->
+<dialog id="dlg-payment" aria-labelledby="dlg-payment-title" data-due="0">
+  <form class="dlg" id="payment-form" method="dialog">
+    <div class="dlg-head">
+      <span class="avatar" data-bind-initials>س</span>
+      <div class="grow">
+        <h2 class="t-h-sm" id="dlg-payment-title" data-en="Record a payment">تسجيل دفعة</h2>
+        <p class="t-caption" data-bind="name">سُهى النجار</p>
+      </div>
+    </div>
+
+    <div class="dlg-body">
+      <div class="card card--tile">
+        <div class="card-body" style="padding:14px 16px">
+          <dl style="margin:0">
+            <div class="kv"><dt data-en="Agreed price">السعر المتفق</dt><dd><span data-bind="price">150</span> ₪</dd></div>
+            <div class="kv"><dt data-en="Paid so far">المدفوع حتى الآن</dt><dd><span data-bind="paid">0</span> ₪</dd></div>
+            <div class="kv"><dt data-en="Balance now">المتبقي الآن</dt><dd class="money money--due"><span data-bind="due">150</span> ₪</dd></div>
+          </dl>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="pay-amount" data-en="Amount (₪)">المبلغ (₪)</label>
+        <div class="row gap-2" style="flex-wrap:nowrap">
+          <input class="input num grow" id="pay-amount" type="number" min="1" step="1"
+                 inputmode="numeric" placeholder="0" required />
+          <button class="btn btn--neutral" type="button" data-pay-all data-en="Full balance">كامل المتبقي</button>
+        </div>
+        <p class="hint" data-en="Partial payments are fine — the balance is recalculated, never overwritten.">
+          الدفعة الجزئية مقبولة — المتبقي يُعاد حسابه ولا يُكتب فوقه.
+        </p>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="pay-date" data-en="Payment date">تاريخ الدفع</label>
+          <input class="input" id="pay-date" type="date" value="2026-08-23" />
+        </div>
+        <div class="field">
+          <label for="pay-method" data-en="Method">الطريقة</label>
+          <select class="select" id="pay-method">
+            <option data-en="Cash">نقداً</option>
+            <option data-en="Bank transfer">تحويل بنكي</option>
+            <option data-en="Wallet">محفظة إلكترونية</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="pay-ref" data-en="Reference (optional)">المرجع (اختياري)</label>
+        <input class="input mono" id="pay-ref" placeholder="4471" />
+      </div>
+
+      <div class="field">
+        <label for="pay-note" data-en="Note (optional)">ملاحظة (اختياري)</label>
+        <textarea class="textarea" id="pay-note" rows="2"
+                  placeholder="استلمتها في الزيارة"></textarea>
+      </div>
+
+      <div class="callout">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><use href="#i-info"/></svg>
+        <div>
+          <span data-en="Balance after this payment:">المتبقي بعد هذه الدفعة:</span>
+          <b class="money money--due" data-bind-after>150 ₪</b>
+          <div class="t-caption mt-1" data-bind-settles hidden
+               data-en="This settles the subscription — its status becomes Settled.">
+            بهذه الدفعة يُسدَّد الاشتراك بالكامل وتتحوّل حالته إلى «مسدَّد».
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dlg-foot">
+      <button class="btn btn--neutral" type="button" data-close data-en="Cancel">إلغاء</button>
+      <button class="btn btn--default" type="submit" id="pay-save" data-en="Save payment">حفظ الدفعة</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ══ Dialog: WhatsApp reminder ═════════════════════════════════════ -->
+<dialog id="dlg-remind" aria-labelledby="dlg-remind-title">
+  <div class="dlg">
+    <div class="dlg-head">
+      <span class="avatar" data-bind-initials>س</span>
+      <div class="grow">
+        <h2 class="t-h-sm" id="dlg-remind-title" data-en="Payment reminder">تذكير بالدفع</h2>
+        <p class="t-caption"><span data-bind="name">سُهى النجار</span> · WhatsApp</p>
+      </div>
+    </div>
+
+    <div class="dlg-body">
+      <div class="callout">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><use href="#i-info"/></svg>
+        <div data-en="Nothing is sent until you press Send. The message is filled from the subscription and written to the subscriber's log.">
+          لا شيء يُرسل قبل ضغط «إرسال». الرسالة معبّأة من بيانات الاشتراك وتُسجَّل في سجل المشترك.
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="t-label" data-en="Message preview">معاينة الرسالة</span>
+        <div class="wa-preview" data-wa-template dir="rtl">مرحباً سُهى 🌿
+تذكير ودّي من عيادة إنزيم للتغذية.
+
+الاشتراك: اشتراك شهري
+المتبقي: 150 ₪
+تاريخ الاستحقاق: 5 آب
+مرّ على تاريخ الاستحقاق 18 يوماً.
+
+يسعدنا استلام الدفعة في زيارتك القادمة، أو عبر التحويل البنكي.
+شكراً لكِ 💚</div>
+        <p class="hint">
+          <span data-en="Edit the default wording in">لتعديل الصيغة الافتراضية:</span>
+          <a href="#packages" data-goto="packages" style="color:var(--green-700);font-weight:600"
+             data-en="Packages &amp; messages">الباقات والرسائل</a>
+        </p>
+      </div>
+    </div>
+
+    <div class="dlg-foot">
+      <button class="btn btn--neutral" data-close data-en="Cancel">إلغاء</button>
+      <button class="btn btn--default" data-send-reminder>
+        <svg viewBox="0 0 24 24"><use href="#i-wa"/></svg>
+        <span data-en="Send on WhatsApp">إرسال عبر واتساب</span>
+      </button>
+    </div>
+  </div>
+</dialog>
+
+<!-- ══ Dialog: bulk reminders ════════════════════════════════════════ -->
+<dialog id="dlg-remind-bulk" aria-labelledby="dlg-bulk-title">
+  <form class="dlg" id="bulk-form" method="dialog">
+    <div class="dlg-head">
+      <div class="grow">
+        <h2 class="t-h-sm" id="dlg-bulk-title" data-en="Review reminders">مراجعة التذكيرات</h2>
+        <p class="t-caption" data-en="Untick anyone you would rather not message.">أزيلي التحديد عمّن لا تريدين مراسلته.</p>
+      </div>
+    </div>
+    <div class="dlg-body">
+      <label class="card card--tile row" style="padding:14px 16px;cursor:pointer">
+        <input type="checkbox" checked style="inline-size:18px;block-size:18px;accent-color:var(--primary)" />
+        <span class="stack grow">
+          <span class="t-label" data-en="Suha Najjar">سُهى النجار</span>
+          <span class="t-caption" data-en="150 ₪ · 18 days late">150 ₪ · متأخر 18 يوماً</span>
+        </span>
+        <span class="badge badge--medical" data-en="Overdue">متأخر</span>
+      </label>
+      <label class="card card--tile row" style="padding:14px 16px;cursor:pointer">
+        <input type="checkbox" checked style="inline-size:18px;block-size:18px;accent-color:var(--primary)" />
+        <span class="stack grow">
+          <span class="t-label" data-en="Abeer Qasem">عبير قاسم</span>
+          <span class="t-caption" data-en="90 ₪ · 3 days late">90 ₪ · متأخر 3 أيام</span>
+        </span>
+        <span class="badge badge--medical" data-en="Overdue">متأخر</span>
+      </label>
+      <label class="card card--tile row" style="padding:14px 16px;cursor:pointer">
+        <input type="checkbox" style="inline-size:18px;block-size:18px;accent-color:var(--primary)" />
+        <span class="stack grow">
+          <span class="t-label" data-en="Maha Khatib">مها الخطيب</span>
+          <span class="t-caption" data-en="200 ₪ · due in 5 days">200 ₪ · يستحق بعد 5 أيام</span>
+        </span>
+        <span class="badge badge--attention" data-en="Due">مستحق</span>
+      </label>
+      <p class="hint" data-en="Each message is the same template, filled per subscriber. Every send is logged.">
+        كل رسالة هي القالب نفسه معبّأً لكل مشترك. وكل إرسال يُسجَّل.
+      </p>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn btn--neutral" type="button" data-close data-en="Cancel">إلغاء</button>
+      <button class="btn btn--default" type="submit" id="bulk-send">
+        <svg viewBox="0 0 24 24"><use href="#i-wa"/></svg>
+        <span data-en="Send selected">إرسال المحدَّد</span>
+      </button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ══ Dialog: new subscription / renew ══════════════════════════════ -->
+<dialog id="dlg-subscribe" aria-labelledby="dlg-sub-title">
+  <form class="dlg" method="dialog">
+    <div class="dlg-head">
+      <div class="grow">
+        <h2 class="t-h-sm" id="dlg-sub-title" data-en="New subscription">اشتراك جديد</h2>
+        <p class="t-caption" data-en="The package price is copied onto the subscription — later price changes will not reach it.">
+          سعر الباقة يُنسخ على الاشتراك — تغييرات السعر لاحقاً لن تصله.
+        </p>
+      </div>
+    </div>
+
+    <div class="dlg-body">
+      <div class="field">
+        <label for="sub-client" data-en="Subscriber">المشترك</label>
+        <select class="select" id="sub-client">
+          <option data-en="Lina Marei — no subscription">لينا مرعي — بدون اشتراك</option>
+          <option data-en="Duaa Salama — finished 15 Aug">دعاء سلامة — منتهٍ 15 آب</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="sub-package" data-en="Package">الباقة</label>
+        <select class="select" id="sub-package">
+          <option data-price="180" data-visits="4" data-en="Monthly — 180 ₪ · 30 days · 4 visits">شهري — 180 ₪ · 30 يوماً · 4 زيارات</option>
+          <option data-price="500" data-visits="12" data-en="Quarterly — 500 ₪ · 90 days · 12 visits">ثلاثة أشهر — 500 ₪ · 90 يوماً · 12 زيارة</option>
+        </select>
+        <p class="hint">
+          <span data-en="List price">سعر القائمة</span>: <b data-bind-list>180 ₪</b> ·
+          <span data-en="visits">زيارات</span>: <b data-bind-visits>4</b>
+        </p>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="sub-price" data-en="Agreed price (₪)">السعر المتفق عليه (₪)</label>
+          <input class="input num" id="sub-price" type="number" min="0" step="1" value="180" />
+          <p class="hint" style="color:var(--status-attention-fg);font-weight:600"
+             data-bind-discount hidden></p>
+        </div>
+        <div class="field">
+          <label for="sub-start" data-en="Start date">تاريخ البدء</label>
+          <input class="input" id="sub-start" type="date" value="2026-08-23" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="sub-due" data-en="Payment due date">تاريخ استحقاق الدفع</label>
+        <input class="input" id="sub-due" type="date" value="2026-08-23" />
+        <p class="hint" data-en="Defaults to the start date. Move it later to agree an instalment; after it passes with a balance, the subscription reads Overdue.">
+          الافتراضي هو تاريخ البدء. أخّريه للاتفاق على تقسيط؛ وبعد مروره مع وجود متبقٍ تصبح حالة الاشتراك «متأخر».
+        </p>
+      </div>
+
+      <div class="field">
+        <label for="sub-note" data-en="Discount reason (optional)">سبب الخصم (اختياري)</label>
+        <input class="input" id="sub-note" placeholder="طالبة" />
+      </div>
+    </div>
+
+    <div class="dlg-foot">
+      <button class="btn btn--neutral" type="button" data-close data-en="Cancel">إلغاء</button>
+      <button class="btn btn--default" type="submit" data-en="Create subscription">إنشاء الاشتراك</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ══ Packages ═════════════════════════════════════════════════ -->
+      <section id="tab-pkgs" role="tabpanel" class="section" style="margin-block-start:20px">
+
+        <div class="callout mt-1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><use href="#i-info"/></svg>
+          <div>
+            <b data-en="A price change applies to new subscriptions only.">تغيير السعر يسري على الاشتراكات الجديدة فقط.</b>
+            <div class="t-caption mt-1" data-en="Every existing subscription keeps the price it was sold at, so last month's figures never move under you.">
+              كل اشتراك قائم يحتفظ بالسعر الذي بيع به، فأرقام الشهر الماضي لا تتحرّك من تحتك.
+            </div>
+          </div>
+        </div>
+
+        <div class="section-head mt-6">
+          <h2 class="t-h-lg grow" data-en="Your packages">باقاتك</h2>
+          <button class="btn btn--sm btn--outline" data-open="dlg-newpkg">
+            <svg viewBox="0 0 24 24"><use href="#i-plus"/></svg>
+            <span data-en="Add package">إضافة باقة</span>
+          </button>
+        </div>
+
+        <!-- Monthly -->
+        <div class="pkg-card" data-pkg-card data-active="true">
+          <div class="pkg-head">
+            <span class="badge badge--onTrack" data-en="Active">مفعّلة</span>
+            <span class="t-caption grow" data-en="4 subscriptions currently on this package">4 اشتراكات قائمة على هذه الباقة</span>
+            <button class="switch" role="switch" aria-checked="true"
+                    aria-label="تفعيل الباقة" data-en-label="Package active"></button>
+            <button class="btn btn--sm btn--destructive-ghost btn--icon"
+                    aria-label="حذف الباقة" data-en-label="Delete package">
+              <svg viewBox="0 0 24 24"><use href="#i-trash"/></svg>
+            </button>
+          </div>
+
+          <div class="pkg">
+            <div class="field">
+              <label for="p1-ar" data-en="Name (Arabic)">الاسم (عربي)</label>
+              <input class="input" id="p1-ar" value="اشتراك شهري" />
+            </div>
+            <div class="field">
+              <label for="p1-price" data-en="Price (₪)">السعر (₪)</label>
+              <input class="input num" id="p1-price" type="number" data-pkg="price" value="180" min="0" step="5" />
+            </div>
+            <div class="field">
+              <label for="p1-days" data-en="Days">الأيام</label>
+              <input class="input num" id="p1-days" type="number" data-pkg="days" value="30" min="1" />
+            </div>
+            <div class="field">
+              <label for="p1-visits" data-en="Visits">الزيارات</label>
+              <input class="input num" id="p1-visits" type="number" data-pkg="visits" value="4" min="1" />
+            </div>
+            <div class="field">
+              <label for="p1-plans" data-en="Plans">الخطط</label>
+              <input class="input num" id="p1-plans" type="number" data-pkg="plans" value="4" min="0" />
+            </div>
+            <button class="btn btn--sm btn--soft" data-en="Save">حفظ</button>
+          </div>
+          <p class="pkg-derived" data-pkg-derived></p>
+        </div>
+
+        <!-- Quarterly -->
+        <div class="pkg-card" data-pkg-card data-active="true">
+          <div class="pkg-head">
+            <span class="badge badge--onTrack" data-en="Active">مفعّلة</span>
+            <span class="t-caption grow" data-en="2 subscriptions currently on this package">اشتراكان قائمان على هذه الباقة</span>
+            <button class="switch" role="switch" aria-checked="true"
+                    aria-label="تفعيل الباقة" data-en-label="Package active"></button>
+            <button class="btn btn--sm btn--destructive-ghost btn--icon"
+                    aria-label="حذف الباقة" data-en-label="Delete package">
+              <svg viewBox="0 0 24 24"><use href="#i-trash"/></svg>
+            </button>
+          </div>
+
+          <div class="pkg">
+            <div class="field">
+              <label for="p2-ar" data-en="Name (Arabic)">الاسم (عربي)</label>
+              <input class="input" id="p2-ar" value="اشتراك ثلاثة أشهر" />
+            </div>
+            <div class="field">
+              <label for="p2-price" data-en="Price (₪)">السعر (₪)</label>
+              <input class="input num" id="p2-price" type="number" data-pkg="price" value="500" min="0" step="5" />
+            </div>
+            <div class="field">
+              <label for="p2-days" data-en="Days">الأيام</label>
+              <input class="input num" id="p2-days" type="number" data-pkg="days" value="90" min="1" />
+            </div>
+            <div class="field">
+              <label for="p2-visits" data-en="Visits">الزيارات</label>
+              <input class="input num" id="p2-visits" type="number" data-pkg="visits" value="12" min="1" />
+            </div>
+            <div class="field">
+              <label for="p2-plans" data-en="Plans">الخطط</label>
+              <input class="input num" id="p2-plans" type="number" data-pkg="plans" value="12" min="0" />
+            </div>
+            <button class="btn btn--sm btn--soft" data-en="Save">حفظ</button>
+          </div>
+          <p class="pkg-derived" data-pkg-derived></p>
+        </div>
+
+        <!-- Retired -->
+        <div class="pkg-card" data-pkg-card data-active="false">
+          <div class="pkg-head">
+            <span class="badge badge--rest" data-en="Retired">موقوفة</span>
+            <span class="t-caption grow" data-en="Hidden from new subscriptions. The 3 old subscriptions on it are untouched.">
+              مخفيّة عن الاشتراكات الجديدة. الاشتراكات الثلاثة القديمة عليها لم تُمس.
+            </span>
+            <button class="switch" role="switch" aria-checked="false"
+                    aria-label="تفعيل الباقة" data-en-label="Package active"></button>
+            <button class="btn btn--sm btn--destructive-ghost btn--icon"
+                    aria-label="حذف الباقة" data-en-label="Delete package">
+              <svg viewBox="0 0 24 24"><use href="#i-trash"/></svg>
+            </button>
+          </div>
+
+          <div class="pkg">
+            <div class="field">
+              <label for="p3-ar" data-en="Name (Arabic)">الاسم (عربي)</label>
+              <input class="input" id="p3-ar" value="باقة نصف شهرية" />
+            </div>
+            <div class="field">
+              <label for="p3-price" data-en="Price (₪)">السعر (₪)</label>
+              <input class="input num" id="p3-price" type="number" data-pkg="price" value="100" min="0" step="5" />
+            </div>
+            <div class="field">
+              <label for="p3-days" data-en="Days">الأيام</label>
+              <input class="input num" id="p3-days" type="number" data-pkg="days" value="15" min="1" />
+            </div>
+            <div class="field">
+              <label for="p3-visits" data-en="Visits">الزيارات</label>
+              <input class="input num" id="p3-visits" type="number" data-pkg="visits" value="2" min="1" />
+            </div>
+            <div class="field">
+              <label for="p3-plans" data-en="Plans">الخطط</label>
+              <input class="input num" id="p3-plans" type="number" data-pkg="plans" value="2" min="0" />
+            </div>
+            <button class="btn btn--sm btn--soft" data-en="Save">حفظ</button>
+          </div>
+          <p class="pkg-derived" data-pkg-derived></p>
+        </div>
+
+        <!-- The free consultation, deliberately not a package -->
+        <div class="card card--tinted mt-6">
+          <div class="card-body">
+            <div class="row" style="align-items:flex-start;flex-wrap:nowrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                   style="inline-size:20px;block-size:20px;flex:0 0 20px;margin-block-start:3px;color:var(--muted-foreground)">
+                <use href="#i-info"/>
+              </svg>
+              <div>
+                <b data-en="The free first consultation is not a package.">الاستشارة الأولى المجانية ليست باقة.</b>
+                <p class="t-caption mt-1" data-en="A new client simply has no subscription until they buy one, and their first appointment costs nothing. There is no zero-price row to maintain and no free visit to deduct.">
+                  العميل الجديد ببساطة بلا اشتراك حتى يشتري واحداً، وموعده الأول بلا مقابل. لا يوجد صف بسعر صفر يُصان، ولا زيارة مجانية تُخصم.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ WhatsApp messages ════════════════════════════════════════ -->
+      <section id="tab-msgs" role="tabpanel" class="section" style="margin-block-start:20px" hidden>
+
+        <div class="callout mt-1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><use href="#i-wa"/></svg>
+          <div>
+            <b data-en="Reminders are never automatic.">التذكيرات ليست تلقائية أبداً.</b>
+            <div class="t-caption mt-1" data-en="This is the wording that gets filled in and shown to you for approval before anything is sent.">
+              هذه هي الصيغة التي تُعبَّأ وتُعرض عليك للموافقة قبل إرسال أي شيء.
+            </div>
+          </div>
+        </div>
+
+        <div class="cols-2 mt-6" style="align-items:stretch">
+
+          <div class="card">
+            <div class="card-head">
+              <div class="grow">
+                <h2 class="t-h-sm" data-en="Payment reminder">قالب التذكير بالدفع</h2>
+                <p class="t-caption mt-1" data-en="Click a variable to insert it at the cursor.">اضغطي متغيّراً لإدراجه عند المؤشر.</p>
+              </div>
+            </div>
+            <div class="card-body stack gap-3">
+              <div class="vars">
+                <button class="var-token" type="button">{الاسم}</button>
+                <button class="var-token" type="button">{الباقة}</button>
+                <button class="var-token" type="button">{المتبقي}</button>
+                <button class="var-token" type="button">{الاستحقاق}</button>
+                <button class="var-token" type="button">{العيادة}</button>
+              </div>
+              <div class="field">
+                <label for="tmpl-body" class="sr-only" data-en="Message body">نص الرسالة</label>
+                <textarea class="textarea" id="tmpl-body" rows="12" dir="rtl">مرحباً {الاسم} 🌿
+تذكير ودّي من {العيادة}.
+
+الاشتراك: {الباقة}
+المتبقي: {المتبقي} ₪
+تاريخ الاستحقاق: {الاستحقاق}
+
+يسعدنا استلام الدفعة في زيارتك القادمة، أو عبر التحويل البنكي.
+شكراً لكِ 💚</textarea>
+              </div>
+            </div>
+            <div class="card-foot">
+              <button class="btn btn--sm btn--default" data-en="Save template">حفظ القالب</button>
+              <button class="btn btn--sm btn--neutral-ghost">
+                <svg viewBox="0 0 24 24"><use href="#i-refresh"/></svg>
+                <span data-en="Reset to default">إعادة للافتراضي</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <div class="grow">
+                <h2 class="t-h-sm" data-en="Preview">المعاينة</h2>
+                <p class="t-caption mt-1" data-en="Filled with Suha Najjar's real subscription.">معبّأة ببيانات اشتراك سُهى النجار الحقيقية.</p>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="wa-preview" id="tmpl-preview" dir="rtl"></div>
+              <p class="hint mt-3" data-en="An overdue subscription adds one line saying how many days have passed. That line is generated, not part of the template.">
+                الاشتراك المتأخر يضيف سطراً واحداً يذكر عدد الأيام التي مرّت. هذا السطر يُولَّد ولا يُكتب في القالب.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2 class="t-h-lg" data-en="Where this connects">أين يتصل هذا</h2>
+          <div class="card mt-3">
+            <div class="card-body">
+              <dl style="margin:0">
+                <div class="kv">
+                  <dt data-en="Gateway">البوابة</dt>
+                  <dd class="row gap-2"><span class="dot" style="background:var(--primary)"></span>
+                    <span data-en="OpenWA — connected">OpenWA — متصلة</span></dd>
+                </div>
+                <div class="kv">
+                  <dt data-en="Sending number">رقم الإرسال</dt>
+                  <dd dir="ltr">+970 59 000 1122</dd>
+                </div>
+                <div class="kv">
+                  <dt data-en="Reminders sent this month">تذكيرات أُرسلت هذا الشهر</dt>
+                  <dd>7</dd>
+                </div>
+              </dl>
+              <p class="hint mt-3" data-en="This reuses the clinic's existing WhatsApp gateway — the same one that already sends appointment reminders. No second integration.">
+                هذا يعيد استخدام بوابة واتساب الموجودة أصلاً في العيادة — نفسها التي ترسل تذكيرات المواعيد. لا تكامل ثانٍ.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- ══ Dialog: add a package ═════════════════════════════════════════ -->
+<dialog id="dlg-newpkg" aria-labelledby="dlg-newpkg-title">
+  <form class="dlg" method="dialog">
+    <div class="dlg-head">
+      <div class="grow">
+        <h2 class="t-h-sm" id="dlg-newpkg-title" data-en="Add a package">إضافة باقة</h2>
+        <p class="t-caption" data-en="Nothing here is fixed — name it, price it, and set how much it contains.">
+          لا شيء هنا ثابت — سمّيها، وسعّرها، وحدّدي ما تحتويه.
+        </p>
+      </div>
+    </div>
+    <div class="dlg-body">
+      <div class="field-row">
+        <div class="field">
+          <label for="np-ar" data-en="Name (Arabic)">الاسم (عربي)</label>
+          <input class="input" id="np-ar" placeholder="اشتراك ستة أشهر" />
+        </div>
+        <div class="field">
+          <label for="np-en" data-en="Name (English)">الاسم (إنجليزي)</label>
+          <input class="input" id="np-en" dir="ltr" placeholder="Six months" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="np-price" data-en="Price (₪)">السعر (₪)</label>
+          <input class="input num" id="np-price" type="number" min="0" step="5" placeholder="900" />
+        </div>
+        <div class="field">
+          <label for="np-days" data-en="Duration (days)">المدة (أيام)</label>
+          <input class="input num" id="np-days" type="number" min="1" placeholder="180" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="np-visits" data-en="Visits included">الزيارات المشمولة</label>
+          <input class="input num" id="np-visits" type="number" min="1" placeholder="24" />
+        </div>
+        <div class="field">
+          <label for="np-plans" data-en="Plans included">الخطط المشمولة</label>
+          <input class="input num" id="np-plans" type="number" min="0" placeholder="24" />
+        </div>
+      </div>
+      <p class="hint" data-en="You can still agree a different price with an individual subscriber when you create their subscription.">
+        يظل بإمكانك الاتفاق على سعر مختلف مع مشترك بعينه عند إنشاء اشتراكه.
+      </p>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn btn--neutral" type="button" data-close data-en="Cancel">إلغاء</button>
+      <button class="btn btn--default" type="submit" data-en="Add package">إضافة الباقة</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+/*
+  Prototype behaviour only: language flip, theme flip, dialogs, and the payment
+  arithmetic the mockup demonstrates (a payment is subtracted from the balance
+  and appended to the ledger). Production does all of this server-side through
+  a feature action; nothing here is a suggested implementation.
+*/
+
+/* ── Language ────────────────────────────────────────────────────────── */
+function applyLocale(locale) {
+  const html = document.documentElement;
+  html.lang = locale;
+  html.dir = locale === 'ar' ? 'rtl' : 'ltr';
+
+  document.querySelectorAll('[data-en]').forEach((el) => {
+    if (el.dataset.ar === undefined) el.dataset.ar = el.textContent;
+    el.textContent = locale === 'ar' ? el.dataset.ar : el.dataset.en;
+  });
+  document.querySelectorAll('[data-en-label]').forEach((el) => {
+    if (el.dataset.arLabel === undefined) el.dataset.arLabel = el.getAttribute('aria-label') || '';
+    el.setAttribute('aria-label', locale === 'ar' ? el.dataset.arLabel : el.dataset.enLabel);
+  });
+
+  document.querySelectorAll('[data-locale-btn]').forEach((btn) => {
+    btn.setAttribute('aria-selected', String(btn.dataset.localeBtn === locale));
+  });
+  try { localStorage.setItem('qiwam-proto-locale', locale); } catch { /* file:// */ }
+}
+
+/* ── Theme ───────────────────────────────────────────────────────────── */
+function applyTheme(theme) {
+  document.documentElement.classList.toggle('dark', theme === 'dark');
+  try { localStorage.setItem('qiwam-proto-theme', theme); } catch { /* file:// */ }
+}
+
+/* ── Toast ───────────────────────────────────────────────────────────── */
+function toast(ar, en) {
+  let host = document.querySelector('.toast-host');
+  if (!host) {
+    host = document.createElement('div');
+    host.className = 'toast-host';
+    document.body.append(host);
+  }
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.setAttribute('role', 'status');
+  el.innerHTML =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  const span = document.createElement('span');
+  span.dataset.en = en;
+  span.dataset.ar = ar;
+  span.textContent = document.documentElement.lang === 'ar' ? ar : en;
+  el.append(span);
+  host.append(el);
+  setTimeout(() => el.remove(), 4200);
+}
+
+/* ── Money ───────────────────────────────────────────────────────────── */
+const money = (n) => new Intl.NumberFormat('en-US').format(Math.round(n));
+
+/* ── Boot ────────────────────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  let locale = 'ar';
+  let theme = 'light';
+  try {
+    locale = localStorage.getItem('qiwam-proto-locale') || 'ar';
+    theme = localStorage.getItem('qiwam-proto-theme') || 'light';
+  } catch { /* file:// */ }
+  applyLocale(locale);
+  applyTheme(theme);
+
+  document.querySelectorAll('[data-locale-btn]').forEach((btn) => {
+    btn.addEventListener('click', () => applyLocale(btn.dataset.localeBtn));
+  });
+  document.querySelectorAll('[data-theme-toggle]').forEach((btn) => {
+    btn.addEventListener('click', () =>
+      applyTheme(document.documentElement.classList.contains('dark') ? 'light' : 'dark'),
+    );
+  });
+
+  /* Dialogs: [data-open="id"] opens, [data-close] closes the nearest one. */
+  document.querySelectorAll('[data-open]').forEach((trigger) => {
+    trigger.addEventListener('click', () => {
+      const dlg = document.getElementById(trigger.dataset.open);
+      if (!dlg) return;
+      // Row triggers can seed the dialog with their own subscriber.
+      const row = trigger.closest('[data-subscriber]');
+      if (row) seedDialog(dlg, JSON.parse(row.dataset.subscriber));
+      dlg.showModal();
+    });
+  });
+  document.querySelectorAll('[data-close]').forEach((btn) => {
+    btn.addEventListener('click', () => btn.closest('dialog')?.close());
+  });
+
+  /* Toggle chips inside a group behave like a radio set. */
+  document.querySelectorAll('[data-chipgroup]').forEach((group) => {
+    group.addEventListener('click', (event) => {
+      const chip = event.target.closest('.chip');
+      if (!chip || !group.contains(chip)) return;
+      group.querySelectorAll('.chip').forEach((c) => c.setAttribute('aria-pressed', String(c === chip)));
+      group.dispatchEvent(new CustomEvent('chipchange', { detail: chip.dataset.value }));
+    });
+  });
+
+  /* Filter segments on the register. */
+  document.querySelectorAll('[data-filter-group]').forEach((group) => {
+    group.addEventListener('click', (event) => {
+      const btn = event.target.closest('button');
+      if (!btn) return;
+      group.querySelectorAll('button').forEach((b) => b.setAttribute('aria-selected', String(b === btn)));
+      const want = btn.dataset.filter;
+      document.querySelectorAll('[data-status]').forEach((row) => {
+        row.hidden = want !== 'all' && row.dataset.status !== want;
+      });
+    });
+  });
+});
+
+/* Fill the payment / reminder dialogs from a row's subscriber payload. */
+function seedDialog(dlg, s) {
+  // The payment dialog's arithmetic reads the balance from the dialog itself,
+  // so the row that opened it has to hand the figure over.
+  dlg.dataset.due = String(s.due ?? 0);
+  const amount = dlg.querySelector('#pay-amount');
+  if (amount) {
+    amount.value = '';
+    amount.max = String(s.due ?? 0);
+    const after = dlg.querySelector('[data-bind-after]');
+    if (after) {
+      after.textContent = `${money(s.due ?? 0)} ₪`;
+      after.className = 'money money--due';
+    }
+    const settles = dlg.querySelector('[data-bind-settles]');
+    if (settles) settles.hidden = true;
+  }
+  dlg.querySelectorAll('[data-bind]').forEach((el) => {
+    const key = el.dataset.bind;
+    const value = key === 'due' || key === 'price' || key === 'paid' ? money(s[key]) : s[key];
+    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.value = value;
+    else el.textContent = value;
+  });
+  const initials = dlg.querySelector('[data-bind-initials]');
+  if (initials) initials.textContent = s.name.trim().charAt(0);
+  const msg = dlg.querySelector('[data-wa-template]');
+  if (msg) msg.textContent = renderReminder(s);
+}
+
+function renderReminder(s) {
+  // Mirrors the default template on packages.html. The clinic can rewrite it
+  // there; this is only what the mockup ships with.
+  const late = s.lateDays > 0
+    ? `\nمرّ على تاريخ الاستحقاق ${s.lateDays} يوماً.`
+    : '';
+  return (
+    `مرحباً ${s.name} 🌿\n` +
+    `تذكير ودّي من عيادة إنزيم للتغذية.\n\n` +
+    `الاشتراك: ${s.package}\n` +
+    `المتبقي: ${money(s.due)} ₪\n` +
+    `تاريخ الاستحقاق: ${s.dueDate}${late}\n\n` +
+    `يسعدنا استلام الدفعة في زيارتك القادمة، أو عبر التحويل البنكي.\n` +
+    `شكراً لكِ 💚`
+  );
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   Behaviour for the agreed design.
+
+   Everything below is presentation arithmetic for the mockup. In production
+   the balance is never stored — it is `agreed_price - SUM(payments)` computed
+   on read — and every mutation goes through a server action in
+   `src/features/<feature>/`. Nothing here is a suggested implementation.
+   ═══════════════════════════════════════════════════════════════════ */
+
+const isAr = () => document.documentElement.lang === 'ar';
+const say = (ar, en) => (isAr() ? ar : en);
+const shekel = (n) => `${money(n)} ₪`;
+
+document.addEventListener('DOMContentLoaded', () => {
+  /* ── Panel tabs ──────────────────────────────────────────────────── */
+  document.querySelectorAll('[data-tabs]').forEach((bar) => {
+    bar.addEventListener('click', (event) => {
+      const btn = event.target.closest('button[data-tab]');
+      if (!btn) return;
+      bar.querySelectorAll('button[data-tab]').forEach((b) => {
+        const on = b === btn;
+        b.setAttribute('aria-selected', String(on));
+        const panel = document.getElementById(b.dataset.tab);
+        if (panel) panel.hidden = !on;
+      });
+    });
+  });
+
+  /* ── Switches ────────────────────────────────────────────────────── */
+  document.querySelectorAll('.switch').forEach((sw) => {
+    sw.addEventListener('click', () => {
+      const on = sw.getAttribute('aria-checked') !== 'true';
+      sw.setAttribute('aria-checked', String(on));
+      const card = sw.closest('[data-active]');
+      if (card) card.dataset.active = String(on);
+    });
+  });
+
+  /* ── Register search ─────────────────────────────────────────────── */
+  const search = document.querySelector('[data-search]');
+  if (search) {
+    search.addEventListener('input', () => {
+      const q = search.value.trim().toLowerCase();
+      document.querySelectorAll('[data-status]').forEach((row) => {
+        const hay = `${row.dataset.name || ''} ${row.dataset.nameEn || ''}`.toLowerCase();
+        row.hidden = q !== '' && !hay.includes(q);
+      });
+      updateRegisterCount();
+    });
+  }
+
+  /* ── Payment dialog: live remaining balance ──────────────────────── */
+  const payAmount = document.getElementById('pay-amount');
+  if (payAmount) {
+    const recompute = () => {
+      const dlg = payAmount.closest('dialog');
+      const due = Number(dlg.dataset.due || 0);
+      const paying = Math.min(Math.max(Number(payAmount.value) || 0, 0), due);
+      const after = due - paying;
+      const el = dlg.querySelector('[data-bind-after]');
+      if (el) {
+        el.textContent = shekel(after);
+        el.className = `money ${after === 0 ? 'money--zero' : 'money--due'}`;
+      }
+      const note = dlg.querySelector('[data-bind-settles]');
+      if (note) note.hidden = after !== 0 || paying === 0;
+    };
+    payAmount.addEventListener('input', recompute);
+    document.querySelectorAll('[data-pay-all]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        payAmount.value = payAmount.closest('dialog').dataset.due || '';
+        recompute();
+      });
+    });
+    document.getElementById('payment-form')?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      payAmount.closest('dialog').close();
+      toast('تم تسجيل الدفعة وخُصمت من المتبقي', 'Payment recorded and deducted from the balance');
+    });
+  }
+
+  /* ── Reminder: nothing sends until Send is pressed ───────────────── */
+  document.querySelectorAll('[data-send-reminder]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      btn.closest('dialog')?.close();
+      toast('أُرسل التذكير وسُجّل في سجل المشترك', 'Reminder sent and written to the subscriber log');
+    });
+  });
+  document.getElementById('bulk-form')?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const n = document.querySelectorAll('#dlg-remind-bulk input[type=checkbox]:checked').length;
+    event.target.closest('dialog').close();
+    toast(`أُرسل ${n} تذكيرات`, `${n} reminders sent`);
+  });
+
+  /* ── Subscribe / renew: agreed price vs list price ───────────────── */
+  const subPkg = document.getElementById('sub-package');
+  const subPrice = document.getElementById('sub-price');
+  if (subPkg && subPrice) {
+    const reflectDiscount = () => {
+      const list = Number(subPkg.selectedOptions[0]?.dataset.price || 0);
+      const agreed = Number(subPrice.value) || 0;
+      const out = document.querySelector('[data-bind-discount]');
+      if (!out) return;
+      const off = list - agreed;
+      out.hidden = off <= 0;
+      out.textContent = say(`خصم ${money(off)} ₪ عن سعر القائمة`, `${money(off)} ₪ off the list price`);
+    };
+    const sync = () => {
+      const opt = subPkg.selectedOptions[0];
+      const list = Number(opt.dataset.price || 0);
+      subPrice.value = list;
+      const listOut = document.querySelector('[data-bind-list]');
+      if (listOut) listOut.textContent = shekel(list);
+      const visits = document.querySelector('[data-bind-visits]');
+      if (visits) visits.textContent = opt.dataset.visits || '—';
+      reflectDiscount();
+    };
+    subPkg.addEventListener('change', sync);
+    subPrice.addEventListener('input', reflectDiscount);
+    sync();
+  }
+
+  /* ── Package editor: derived per-visit figure ────────────────────── */
+  document.querySelectorAll('[data-pkg-card]').forEach((card) => {
+    const read = (n) => Number(card.querySelector(`[data-pkg="${n}"]`)?.value) || 0;
+    const refresh = () => {
+      const out = card.querySelector('[data-pkg-derived]');
+      if (!out) return;
+      const price = read('price');
+      const visits = read('visits');
+      const per = visits > 0 ? Math.round(price / visits) : 0;
+      out.innerHTML = say(
+        `الزيارة الواحدة تكلّف <b>${money(per)} ₪</b> · المدة <b>${read('days')}</b> يوماً · <b>${read('plans')}</b> خطط`,
+        `<b>${money(per)} ₪</b> per visit · <b>${read('days')}</b> days · <b>${read('plans')}</b> plans`,
+      );
+    };
+    card.querySelectorAll('[data-pkg]').forEach((i) => i.addEventListener('input', refresh));
+    refresh();
+  });
+
+  /* ── WhatsApp template preview ───────────────────────────────────── */
+  const tmpl = document.getElementById('tmpl-body');
+  if (tmpl) {
+    const sample = {
+      '{الاسم}': 'سُهى', '{الباقة}': 'اشتراك شهري', '{المتبقي}': '150',
+      '{الاستحقاق}': '5 آب', '{العيادة}': 'عيادة إنزيم للتغذية',
+    };
+    const render = () => {
+      let out = tmpl.value;
+      for (const [k, v] of Object.entries(sample)) out = out.split(k).join(v);
+      document.getElementById('tmpl-preview').textContent = out;
+    };
+    tmpl.addEventListener('input', render);
+    document.querySelectorAll('.var-token').forEach((token) => {
+      token.addEventListener('click', () => {
+        const at = tmpl.selectionStart ?? tmpl.value.length;
+        const text = token.textContent;
+        tmpl.value = tmpl.value.slice(0, at) + text + tmpl.value.slice(at);
+        tmpl.focus();
+        tmpl.selectionStart = tmpl.selectionEnd = at + text.length;
+        render();
+      });
+    });
+    render();
+  }
+
+  updateRegisterCount();
+});
+
+/* How many rows the register is currently showing. */
+function updateRegisterCount() {
+  const out = document.querySelector('[data-row-count]');
+  if (!out) return;
+  out.textContent = String([...document.querySelectorAll('[data-status]')].filter((r) => !r.hidden).length);
+}
+
+
+/* ── Screen switching, for the single-file bundle only ─────────────── */
+function showScreen(id) {
+  document.querySelectorAll('[data-screen]').forEach((s) => {
+    s.hidden = s.dataset.screen !== id;
+  });
+  window.scrollTo(0, 0);
+  if (location.hash !== '#' + id) history.replaceState(null, '', '#' + id);
+}
+document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('click', (event) => {
+    const a = event.target.closest('[data-goto]');
+    if (!a) return;
+    event.preventDefault();
+    showScreen(a.dataset.goto);
+  });
+  const wanted = location.hash.replace('#', '');
+  if (document.querySelector(`[data-screen="${wanted}"]`)) showScreen(wanted);
+});
+
+</script>
+</body>
+</html>

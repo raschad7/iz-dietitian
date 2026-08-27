@@ -68,6 +68,25 @@ export type PhoneFieldProps = {
    */
   maxDigits?: number;
   /**
+   * Draw the two halves left-to-right whatever the page direction, so the dial
+   * code sits at the **left** of the digits in Arabic as well as in English.
+   *
+   * Off by default, which lays the row out along the page: in Arabic the code
+   * takes the inline-start and therefore the right, which is where the client
+   * dialog has always had it.
+   *
+   * On, the pair reads the way a written phone number does — `+970` then the
+   * rest, left to right — which is the international convention and the order
+   * the digits themselves are already pinned to. The clinic's own number is
+   * entered this way; see `ClinicInformationFields`.
+   *
+   * It sets `dir` on the row and nothing else. The digits box keeps deciding
+   * its own direction (the placeholder is a sentence and follows the locale;
+   * a typed number is always `ltr`), and the country popup is portalled out of
+   * this subtree, so neither is disturbed.
+   */
+  codeOnLeft?: boolean;
+  /**
    * Applied to both halves — a compound field has to carry any styling across
    * the whole row or it reads as two fields that happen to be adjacent.
    */
@@ -87,6 +106,7 @@ export function PhoneField({
   disabled,
   required,
   maxDigits,
+  codeOnLeft = false,
   className,
   'aria-invalid': ariaInvalid,
 }: PhoneFieldProps) {
@@ -152,7 +172,7 @@ export function PhoneField({
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2" dir={codeOnLeft ? 'ltr' : undefined}>
       {/*
         The field the form actually submits. The two visible controls carry no
         `name`, so a server action goes on reading one `phone` value and needs

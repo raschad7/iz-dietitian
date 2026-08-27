@@ -53,10 +53,10 @@ import { cn } from '@/lib/utils';
  * that writes all of it. Nothing about it is optional reading.
  *
  * **Everything under it is one column of six identical disclosure rows**, in a
- * fixed order that does not change from client to client: الحساسية, جدول
- * الوجبات, ما تلتزم به الخطة, بيانات ومعلومات عامة, نمط الحياة والعادات,
- * ملاحظات خاصة بالعيادة. Each row names its section and opens in place. See the
- * note above the spine for why that order and which rows open on arrival.
+ * fixed order that does not change from client to client: بيانات ومعلومات عامة,
+ * نمط الحياة والعادات, الحساسية, جدول الوجبات, ما تلتزم به الخطة, ملاحظات خاصة
+ * بالعيادة. Each row names its section, starts closed, and opens in place. See
+ * the note above the spine for why that order.
  *
  * ## What was wrong with rendering it all
  *
@@ -245,22 +245,27 @@ export function ClientNutrition({
    * rule goes.
    */
   const lifestyleFacts = [
-    { label: t('fields.activityNotes'), value: intake.activityNotes },
-    { label: t('fields.activityBarriers'), value: intake.activityBarriers },
-    {
-      label: t('fields.sleepHours'),
-      value: intake.sleepHours !== null ? t('intake.hoursValue', { value: intake.sleepHours }) : null,
-    },
-    {
-      label: t('fields.smoking'),
-      value: isMember(SMOKING_HABITS, intake.smoking) ? t(`smoking.${intake.smoking}`) : null,
-    },
+    habitFact('habitActivity', t('fields.activityNotes'), intake.activityNotes),
+    habitFact('habitBarrier', t('fields.activityBarriers'), intake.activityBarriers),
+    habitFact(
+      'habitSleep',
+      t('fields.sleepHours'),
+      intake.sleepHours !== null ? t('intake.hoursValue', { value: intake.sleepHours }) : null,
+    ),
+    habitFact(
+      'habitSmoking',
+      t('fields.smoking'),
+      isMember(SMOKING_HABITS, intake.smoking) ? t(`smoking.${intake.smoking}`) : null,
+    ),
   ];
 
-  const frequencyFacts = FREQUENCY_DISPLAY_FIELDS.map((field) => ({
-    label: t(`fields.${field}`),
-    value: isMember(INTAKE_FREQUENCIES, intake[field]) ? t(`frequency.${intake[field]}`) : null,
-  }));
+  const frequencyFacts = FREQUENCY_DISPLAY_FIELDS.map((field) =>
+    habitFact(
+      FREQUENCY_ICONS[field],
+      t(`fields.${field}`),
+      isMember(INTAKE_FREQUENCIES, intake[field]) ? t(`frequency.${intake[field]}`) : null,
+    ),
+  );
 
   /*
    * One flag per *block*, not per card. A rule between two halves of a card is
@@ -277,7 +282,7 @@ export function ClientNutrition({
     missing. That was the right trade when a section cost a headed, ringed card
     a third of a screen tall — seven of those saying "nothing here" is most of a
     screen spent on absence. It stops being the right trade now that a section
-    costs **one 56px row**.
+    costs **one 72px row**.
 
     What the old arrangement cost was the thing that made this record hard to
     read: its *shape changed from client to client*. Cards appeared and
@@ -330,7 +335,7 @@ export function ClientNutrition({
 
   return (
     /*
-      `gap-3` rather than `gap-4`. A stack of six closed 56px rows wants less air
+      `gap-3` rather than `gap-4`. A stack of six closed 72px rows wants less air
       between them than a stack of tall cards did: at 16px the gaps were reading
       as loudly as the rows, and a spine you are meant to scan down should look
       like a list rather than like six unrelated objects that happen to be
@@ -595,97 +600,38 @@ export function ClientNutrition({
         ⚠ **The spine: six rows, the same six for every client, in this order.**
 
         The order is the argument, and it is not the order the intake dialog
-        writes them in. It is roughly "what would change what I do next":
+        writes them in. It reads the record the way the clinic does — who this
+        person is, then how they live, then what constrains the plan:
 
-        1. **الحساسية والبيانات الطبية** — what must not be prescribed. It was in
+        1. **بيانات ومعلومات عامة** and 2. **نمط الحياة والعادات** — the
+           assessment sheet. Who the client is and how they live, which is what
+           the rest of the record is read against.
+        3. **الحساسية والبيانات الطبية** — what must not be prescribed. It was in
            a one-third column beside the schedule, which put the only
            safety-critical section on the record in the narrowest box on it.
-        2. **جدول الوجبات** — the shape of the day being prescribed.
-        3. **ما تلتزم به الخطة** — the standing instructions that shape it.
-        4. **بيانات ومعلومات عامة** and 5. **نمط الحياة والعادات** — the
-           assessment sheet. Twenty-one answers between them, and the two
-           sections a dietitian opens least often, which is exactly why they
-           start closed.
+        4. **جدول الوجبات** — the shape of the day being prescribed.
+        5. **ما تلتزم به الخطة** — the standing instructions that shape it.
         6. **ملاحظات خاصة بالعيادة** — the clinic's own note.
 
-        **Which ones open on arrival is an editorial judgement**, and it is the
-        whole point of the change. A record that renders all forty answers at
-        once is not organised by rendering them in tidier boxes — it is still
-        forty answers. The first four rows open when they hold something,
-        because they are what a dietitian came for; the assessment sheet stays
-        shut and says how much is in it, because it is reference material.
+        ⚠ **Every row starts closed** — no `defaultOpen` anywhere on this spine.
+        The tab opens on six named rows and nothing else, and the reader picks
+        the one they came for.
+
+        Rows used to open themselves when they held something, on the reasoning
+        that a dietitian arriving at a record wants the clinical facts in front
+        of them. What that produced in practice was the thing the spine exists
+        to fix: a record whose height and shape changed with how much happened
+        to be filled in — four sections of answers unrolled on one client, two
+        on the next — so the six rows were not a spine you could learn, only a
+        stack you had to re-read. Six closed rows are the same six rows for
+        every client, and an empty one still says so on its own row without
+        being opened.
 
         One column, not the three-column grid this replaced. That grid put a
         section's *width* at the mercy of whether its neighbour happened to be
         filled in, so no two clients' records looked alike. A row is a row.
       */}
 
-      <Disclosure
-        icon="medical"
-        title={t('intake.sections.allergies')}
-        defaultOpen={allergyCount > 0}
-        /*
-          ⚠ **The allergens themselves used to be printed on this row**, in clay,
-          so the record read as a warning from across the screen without being
-          opened. That was the strongest argument any summary had, and it is
-          gone with the rest of them: every row on this spine now carries its
-          name and nothing else, and one row breaking that pattern is the row a
-          reader stops trusting the pattern over.
-
-          The safety net is that this section is the first on the spine and
-          `defaultOpen` whenever it holds anything — so the allergens are on
-          screen when the tab opens, which is what actually mattered. They are
-          one line down instead of on the header.
-        */
-        summary={emptySummary(allergyCount)}
-      >
-        {allergyCount > 0 ? (
-          /*
-            The allergens are a labelled line in the same list as the rest of the
-            clinical record, not a row of pills above it. They read in clay,
-            which is what marks a medical fact — a pill added a filled shape
-            around information that was already the loudest thing on the card.
-            The catalog/free-text distinction the filled and outlined pills used
-            to draw is the intake dialog's job; on a read-only card it was a
-            legend nobody had.
-          */
-          <Notes items={allergyItems} />
-        ) : (
-          <SectionEmpty locale={locale} clientId={intake.clientId} section="allergies" label={t('intake.fillSection')} />
-        )}
-      </Disclosure>
-
-      <Disclosure
-        icon="clock"
-        title={t('intake.sections.schedule')}
-        defaultOpen={hasScheduleRecord}
-        summary={hasScheduleRecord ? undefined : t('intake.sectionEmpty')}
-      >
-        {hasScheduleRecord ? (
-          <MealSchedule slots={intake.mealSchedule} />
-        ) : (
-          <SectionEmpty locale={locale} clientId={intake.clientId} section="schedule" label={t('intake.fillSection')} />
-        )}
-      </Disclosure>
-
-      <Disclosure
-        icon="weeklyPlans"
-        title={t('intake.sections.planning')}
-        defaultOpen={planningCount > 0}
-        summary={emptySummary(planningCount)}
-      >
-        {planningCount > 0 ? (
-          <Notes items={planningItems} />
-        ) : (
-          <SectionEmpty locale={locale} clientId={intake.clientId} section="planning" label={t('intake.fillSection')} />
-        )}
-      </Disclosure>
-
-      {/*
-        Closed on arrival even when full — see the spine note above. Twelve
-        answers about somebody's household and their reason for coming are worth
-        keeping and are not worth opening a record to.
-      */}
       <Disclosure
         icon="personOutline"
         title={t('intake.sections.background')}
@@ -740,9 +686,67 @@ export function ClientNutrition({
       </Disclosure>
 
       <Disclosure
+        icon="medical"
+        title={t('intake.sections.allergies')}
+        /*
+          ⚠ **The allergens themselves used to be printed on this row**, in clay,
+          so the record read as a warning from across the screen without being
+          opened. That was the strongest argument any summary had, and it is
+          gone with the rest of them: every row on this spine now carries its
+          name and nothing else, and one row breaking that pattern is the row a
+          reader stops trusting the pattern over.
+
+          The allergens are one click away rather than on screen on arrival:
+          this row opens like every other one, and the row itself says whether
+          there is anything behind it. A reader who came for the allergies opens
+          the row named الحساسية; nothing else on this record is ever going to
+          be mistaken for it.
+        */
+        summary={emptySummary(allergyCount)}
+      >
+        {allergyCount > 0 ? (
+          /*
+            The allergens are a labelled line in the same list as the rest of the
+            clinical record, not a row of pills above it. They read in clay,
+            which is what marks a medical fact — a pill added a filled shape
+            around information that was already the loudest thing on the card.
+            The catalog/free-text distinction the filled and outlined pills used
+            to draw is the intake dialog's job; on a read-only card it was a
+            legend nobody had.
+          */
+          <Notes items={allergyItems} />
+        ) : (
+          <SectionEmpty locale={locale} clientId={intake.clientId} section="allergies" label={t('intake.fillSection')} />
+        )}
+      </Disclosure>
+
+      <Disclosure
+        icon="clock"
+        title={t('intake.sections.schedule')}
+        summary={hasScheduleRecord ? undefined : t('intake.sectionEmpty')}
+      >
+        {hasScheduleRecord ? (
+          <MealSchedule slots={intake.mealSchedule} />
+        ) : (
+          <SectionEmpty locale={locale} clientId={intake.clientId} section="schedule" label={t('intake.fillSection')} />
+        )}
+      </Disclosure>
+
+      <Disclosure
+        icon="weeklyPlans"
+        title={t('intake.sections.planning')}
+        summary={emptySummary(planningCount)}
+      >
+        {planningCount > 0 ? (
+          <Notes items={planningItems} />
+        ) : (
+          <SectionEmpty locale={locale} clientId={intake.clientId} section="planning" label={t('intake.fillSection')} />
+        )}
+      </Disclosure>
+
+      <Disclosure
         icon="notes"
         title={t('sections.privateNotes')}
-        defaultOpen={privateCount > 0}
         summary={emptySummary(privateCount)}
       >
         {privateCount > 0 ? (
@@ -1054,6 +1058,78 @@ const FREQUENCY_DISPLAY_FIELDS = [
 ] as const satisfies readonly (keyof ClientIntakeValues)[];
 
 /**
+ * One glyph per frequency answer, so the ten of them read as ten questions
+ * rather than as one list of the word "أسبوعيًا".
+ *
+ * A `Record` keyed by the field rather than an icon on each entry of
+ * `FREQUENCY_DISPLAY_FIELDS`: that list is the order the assessment asks in and
+ * is kept in step with the dialog's copy of it by hand, so it stays a bare list
+ * of keys and everything else about a field hangs off the key.
+ */
+const FREQUENCY_ICONS = {
+  caffeineFrequency: 'foodCaffeine',
+  sweetDrinksFrequency: 'foodSweetDrinks',
+  fastFoodFrequency: 'foodFastFood',
+  vegetablesFrequency: 'foodVegetables',
+  fruitFrequency: 'foodFruit',
+  dairyFrequency: 'foodDairy',
+  redMeatFrequency: 'foodRedMeat',
+  chickenFrequency: 'foodChicken',
+  fishFrequency: 'foodFish',
+  sweetsFrequency: 'foodSweets',
+} as const satisfies Record<(typeof FREQUENCY_DISPLAY_FIELDS)[number], IconName>;
+
+/**
+ * The hue each of those glyphs is drawn in.
+ *
+ * ⚠ **The only icons in the app that carry a colour of their own**, and the
+ * reasoning for the exception is at `--intake-icon-*` in `globals.css`: this is
+ * a 4×4 lattice of thirteen-pixel labels, and the tint is what a reader lands
+ * on when they are looking for one answer out of fourteen.
+ *
+ * **It marks the subject, never the answer.** الأسماك is teal whether the
+ * client eats fish daily or never. Nothing on this card is a judgement — a
+ * green vegetable glyph over "نادرًا" would read as approval of a frequency the
+ * dietitian has not yet had a word about.
+ *
+ * Written as whole class names, not composed from the key, because Tailwind
+ * finds classes by scanning this file's text: `text-intake-icon-${x}` produces
+ * fourteen utilities that are never generated and fourteen icons drawn in the
+ * inherited grey.
+ */
+const HABIT_ICON_TONE = {
+  habitActivity: 'text-intake-icon-activity',
+  habitBarrier: 'text-intake-icon-barrier',
+  habitSleep: 'text-intake-icon-sleep',
+  habitSmoking: 'text-intake-icon-smoking',
+  foodCaffeine: 'text-intake-icon-caffeine',
+  foodSweetDrinks: 'text-intake-icon-sweet-drinks',
+  foodFastFood: 'text-intake-icon-fast-food',
+  foodVegetables: 'text-intake-icon-vegetables',
+  foodFruit: 'text-intake-icon-fruit',
+  foodDairy: 'text-intake-icon-dairy',
+  foodRedMeat: 'text-intake-icon-red-meat',
+  foodChicken: 'text-intake-icon-chicken',
+  foodFish: 'text-intake-icon-fish',
+  foodSweets: 'text-intake-icon-sweets',
+} as const satisfies Partial<Record<IconName, string>>;
+
+/**
+ * One answer on نمط الحياة والعادات: a glyph, its tint, a label and a value.
+ *
+ * The tint is looked up rather than passed, so a fact cannot be written with a
+ * colour that belongs to a different question — the glyph and its hue are one
+ * decision, made once, in the map above.
+ */
+function habitFact(
+  icon: keyof typeof HABIT_ICON_TONE,
+  label: string,
+  value: string | null,
+) {
+  return { icon, tone: HABIT_ICON_TONE[icon], label, value };
+}
+
+/**
  * Short label-over-value pairs, two or three across.
  *
  * `Notes` beneath it does the same job for prose and gives every entry a line
@@ -1169,7 +1245,16 @@ function FactList({
   items,
   columns = 3,
 }: {
-  items: { label: string; value: string | null }[];
+  /**
+   * `icon` is optional and is drawn at the head of the label.
+   *
+   * Only نمط الحياة والعادات passes them. Fourteen labels four across is the
+   * one lattice on this record long enough that a reader scans it looking for
+   * *one* answer — "how often fish?" — and a picture is what the eye lands on
+   * before it has read a word. The four-answer lattices elsewhere are read
+   * whole, and a glyph on each of those is decoration.
+   */
+  items: { label: string; value: string | null; icon?: IconName; tone?: string }[];
   columns?: LatticeColumns;
 }) {
   const present = items.filter((item) => item.value !== null && item.value !== '');
@@ -1179,7 +1264,18 @@ function FactList({
     <dl className={cn('grid grid-cols-1 gap-x-6 gap-y-3', LATTICE_COLUMNS[columns])}>
       {present.map((item) => (
         <div key={item.label}>
-          <dt className="text-label text-muted-foreground">{item.label}</dt>
+          <dt className="flex items-center gap-1.5 text-label text-muted-foreground">
+            {/*
+              `size-3.5` and not the `size-4` default: the glyph marks a label
+              set in the smallest type on the card, and at 16px it outweighed
+              the words it belongs to. `shrink-0` comes from `Icon` itself, so a
+              long label wraps under itself rather than squeezing the picture.
+            */}
+            {item.icon ? (
+              <Icon name={item.icon} className={cn('size-3.5', item.tone)} />
+            ) : null}
+            {item.label}
+          </dt>
           <dd className="mt-1 text-body-md text-foreground [overflow-wrap:anywhere]">
             <bdi>{item.value}</bdi>
           </dd>

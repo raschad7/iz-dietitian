@@ -4,6 +4,7 @@ import * as React from 'react';
 import { useMemo, useRef, useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 
+import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Icon } from '@/components/ui/icon';
@@ -17,6 +18,7 @@ import {
 import { TooltipHint } from '@/components/ui/tooltip-hint';
 
 import type { Locale } from '@/i18n/routing';
+import { isMember } from '@/lib/enum';
 import { cn } from '@/lib/utils';
 
 import { deletePlanAction } from '../actions';
@@ -28,13 +30,16 @@ import type {
   SwapCandidate,
 } from '../queries';
 import { boardRows } from '../board-rows';
-import { dayKey } from '../schema';
+import { printPlan } from '../plan-print';
+import { dayKey, PLAN_STATUSES } from '../schema';
 import { slotFillKey } from '../skeleton';
 import type { RecentUse } from '../usage';
 import { dayOfWeekForDate, orderedWeekdays, planColumnDates } from '../week';
 
 import { BoardEditor, useEditor } from './board-dnd';
 import { DayColumn } from './day-column';
+import { PlanExportMenu } from './plan-export';
+import { PlanPrintDocument } from './plan-print-document';
 import { SlotRail } from './slot-rail';
 import { DishCatalogDrawer } from './dish-catalog-drawer';
 import type { GhostMeal } from './meal-card';
@@ -52,6 +57,8 @@ type BoardProps = {
   /** The plan immediately before this one, for the compare overlay. */
   previous: ComparisonPlan | null;
   locale: Locale;
+  /** The clinic this plan belongs to, printed at the head of the PDF. Null when it has no name. */
+  clinicName: string | null;
   /** The client's earlier weeks, rendered on the server. */
   history: React.ReactNode;
   newWeek: NewWeekProps;
@@ -112,6 +119,7 @@ function BoardBody({
   usage,
   previous,
   locale,
+  clinicName,
   history,
   newWeek,
   children,
@@ -161,6 +169,17 @@ function BoardBody({
   const mealsById = useMemo(
     () => new Map(board.days.flatMap((day) => day.meals).map((meal) => [meal.id, meal])),
     [board.days],
+  );
+
+  /* The same week in the shape paper reads it. Derived from the *optimistic*
+     board, so a plan printed a second after an edit carries the edit — see
+     `PlanPrintDocument` for why this is not a page of its own.
+
+     `candidates` rides along so a meal the AI gave no alternatives for can still
+     offer the deterministic swaps, exactly as the meal panel does on screen. */
+  const printable = useMemo(
+    () => printPlan(board, locale, candidates),
+    [board, locale, candidates],
   );
   const selectedMeal = selectedMealId ? mealsById.get(selectedMealId) : undefined;
   const catalogContextMeal = catalogContextMealId
@@ -336,6 +355,16 @@ function BoardBody({
             compactTrigger
           />
 
+          {/* Handing the week over is its own control now, between "new week"
+              and the overflow. It used to be the first block inside the
+              three-dot menu — the week's most-repeated act, behind the glyph
+              that promises nothing. See `PlanExportMenu`. */}
+          <PlanExportMenu
+            clinicName={clinicName}
+            clientName={board.clientName}
+            weekStartDate={board.weekStartDate}
+          />
+
           <Popover>
             <TooltipHint label={t('moreActions')}>
               <PopoverTrigger
@@ -349,87 +378,148 @@ function BoardBody({
                 <span className="sr-only">{t('moreActions')}</span>
               </PopoverTrigger>
             </TooltipHint>
+            {/*
+              ── A panel with a spine, not a stack of ruled blocks ──
+
+              What was in here was a menu that had stopped being one. Design
+              guidance on overflow menus is consistent about this — a menu holds
+              discrete actions, and anything that is *read* rather than pressed
+              (a legend, a list of records) belongs in a panel — and this popup
+              held both, in one 12px-padded column, with a border drawn between
+              every pair and three different inline edges: the title's, the
+              ghost rows' 8px inset, and the history cards' own outline.
+
+              So it is built the way the notification inbox is built, which is
+              this app's own answer to the same shape. Three bands, full bleed,
+              one rule between them, all sharing a single inline edge:
+
+                • a header naming *which week this is* and what state it is in —
+                  the old title said "more plan actions", which is the trigger's
+                  own tooltip repeated inside the surface it opened;
+                • the actions, as edge-to-edge rows whose hover fill reaches the
+                  panel's sides instead of floating in a gutter, delete last and
+                  under its own rule the way a destructive entry is meant to sit;
+                • a recessed body, tinted a step down from the popup, holding the
+                  two things that are only ever read. The tint is the whole
+                  argument: it says "this half is reference" once, in one move,
+                  where five borders were saying it badly.
+
+              The panel is clipped and that body scrolls inside it, so a client
+              with twenty earlier weeks scrolls the list under a header and a set
+              of actions that stay put — rather than scrolling delete off the top
+              of the popup.
+            */}
             <PopoverContent
               align="end"
               side="bottom"
-              className="max-h-[min(36rem,75dvh)] w-80 overflow-y-auto p-3"
+              className="max-h-[min(36rem,75dvh)] w-80 gap-0 overflow-hidden p-0"
             >
-              <PopoverTitle className="pb-2 text-label font-semibold">
-                {t('moreActions')}
-              </PopoverTitle>
+              <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-2.5">
+                {/* The week, as the panel's name. `PopoverTitle` is what Base UI
+                    reads the popup's accessible name from, and the trigger keeps
+                    `aria-label`, so the two announce "more plan actions …
+                    2026-08-30" — more than either said alone. */}
+                <PopoverTitle className="min-w-0 truncate text-label font-semibold">
+                  {board.weekStartDate}
+                </PopoverTitle>
+                {/* `isMember` for the same reason `PlanHistory` needs it: the
+                    board's status is a database string, and `t` wants one of the
+                    four keys that exist. */}
+                {isMember(PLAN_STATUSES, board.status) && (
+                  <Badge variant={board.status === 'published' ? 'default' : 'muted'}>
+                    {t(`status.${board.status}`)}
+                  </Badge>
+                )}
+              </div>
 
-              <div className="space-y-1">
+              <div className="shrink-0">
                 {previous && (
                   <Button
                     type="button"
                     size="sm"
                     variant="ghost"
                     aria-pressed={comparing}
-                    className="w-full max-w-none justify-start"
+                    // Full bleed: `rounded-none` with the panel's inline padding
+                    // on the row itself, so the hover fill is a band across the
+                    // panel rather than a pill inset from both edges.
+                    className="h-10 w-full max-w-none justify-start rounded-none px-3"
                     onClick={() => setComparing((value) => !value)}
                   >
-                    <Icon name="history" />
+                    <Icon name="history" className="text-muted-foreground" />
                     {/* Which week it compares against, said in the row rather
                         than hidden in a `title` nobody hovers a menu item long
                         enough to see. */}
                     <span className="min-w-0 flex-1 truncate text-start">
                       {t('compareWith', { date: previous.weekStartDate })}
                     </span>
+                    {/* Whether the overlay is on, on the row that turns it on. A
+                        toggle inside a panel you reopen later looks exactly like
+                        a row you never pressed without it. */}
+                    {comparing && <Icon name="check" className="text-primary" />}
                   </Button>
                 )}
 
                 {/*
-                  Deleting the week, at the bottom of the menu and coloured for
-                  what it is.
+                  Deleting the week, last and under its own rule.
 
-                  Last in the list and under a rule, because it is the one entry
-                  here that destroys something: the other rows change what is on
-                  screen, and a mis-click on this one takes the plan, its meals
-                  and the client's copy of it. `ConfirmDialog` with the
-                  destructive tone is the same guard the dish catalog puts on the
-                  same kind of act.
+                  It is the one entry here that destroys something: the row above
+                  changes what is on screen, and a mis-click on this one takes
+                  the plan, its meals and the client's copy of it. A rule above a
+                  destructive entry is the standing convention for exactly that,
+                  and `ConfirmDialog` with the destructive tone is the same guard
+                  the dish catalog puts on the same kind of act.
 
-                  The rule sits on this wrapper rather than on the button,
-                  because `size="sm"` is a fixed 40px box — a border and its
-                  padding drawn on the button itself would come out of the
-                  label's own height rather than out of the space above it.
+                  `PopoverClose`, not a `setOpen(false)` of our own: the panel has
+                  done its job once this is pressed, and leaving it open behind
+                  the modal means cancelling drops you back into a popover you had
+                  already finished with. See `PopoverClose` for why the state
+                  route does not work here.
                 */}
-                <div className="mt-1 border-t border-border pt-1">
-                  {/* `PopoverClose`, not a `setOpen(false)` of our own: the menu
-                      has done its job once this is pressed, and leaving it open
-                      behind the modal means cancelling drops you back into a
-                      popover you had already finished with. See `PopoverClose`
-                      for why the state route does not work here. */}
-                  <PopoverClose
-                    render={
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        disabled={deleting}
-                        className="w-full max-w-none justify-start text-destructive hover:bg-destructive-subtle hover:text-destructive"
-                        onClick={() => setConfirmingDelete(true)}
-                      />
-                    }
-                  >
-                    <Icon name="trash" />
-                    {t('deletePlan')}
-                  </PopoverClose>
+                <PopoverClose
+                  render={
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      disabled={deleting}
+                      className={cn(
+                        'h-10 w-full max-w-none justify-start rounded-none px-3',
+                        'text-destructive hover:bg-destructive-subtle hover:text-destructive',
+                        previous && 'border-t border-border',
+                      )}
+                      onClick={() => setConfirmingDelete(true)}
+                    />
+                  }
+                >
+                  <Icon name="trash" />
+                  {t('deletePlan')}
+                </PopoverClose>
+              </div>
+
+              {/*
+                Everything under the rule is read, never pressed — the key to the
+                cards' coloured rules, and the weeks that came before this one.
+
+                Recessed rather than ruled apart: one tint carries "this is
+                reference" for both sections at once, and inside a popover the
+                whole band costs the board no space whether it is opened or not.
+                `min-h-0` is what lets it be the part that scrolls, in a flex
+                column whose other two bands are `shrink-0`.
+              */}
+              <div className="min-h-0 flex-1 overflow-y-auto border-t border-border bg-muted/40">
+                {/* `empty:hidden` on the wrapper, because an empty week draws no
+                    key, and a padded box with a rule under it is a section that
+                    says nothing. */}
+                <div className="p-3 empty:hidden">
+                  <TagColorKey days={board.days} />
                 </div>
-              </div>
 
-              {/* The key to the cards' coloured rules. Reference rather than an
-                  action, so it sits under the actions and above the history —
-                  and inside this popover it costs the board no space at all. */}
-              <div className="mt-2 border-t border-border pt-2 empty:hidden">
-                <TagColorKey days={board.days} />
-              </div>
-
-              <div className="mt-2 border-t border-border pt-2">
-                <p className="pb-1 text-caption font-semibold text-muted-foreground">
-                  {t('history')}
-                </p>
-                {history}
+                <div className="border-t border-border/70 py-2">
+                  <p className="px-3 pb-1.5 text-caption font-semibold text-muted-foreground">
+                    {t('history')}
+                  </p>
+                  {history}
+                </div>
               </div>
             </PopoverContent>
           </Popover>
@@ -649,6 +739,11 @@ function BoardBody({
         editable={editable}
         locale={locale}
       />
+
+      {/* Drawn only on paper. It portals itself to `<body>` and is `display:
+          none` until the print media query, so it costs the board nothing on
+          screen — see `PlanPrintDocument`. */}
+      <PlanPrintDocument plan={printable} clinicName={clinicName} locale={locale} />
 
       {confirmingDelete && (
         <ConfirmDialog

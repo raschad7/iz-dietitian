@@ -1,16 +1,18 @@
 'use client';
 
 import { useId, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Field, FieldError, FieldHint } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PhoneField } from '@/components/ui/phone-field';
 import { SelectField } from '@/components/ui/select-field';
 import { Switch } from '@/components/ui/switch';
 import { TimeInput } from '@/components/ui/time-input';
+import { type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
 import {
@@ -20,7 +22,7 @@ import {
   splitStoredValue,
   type ProfessionalOption,
 } from '../professional-options';
-import { FIELD_LIMITS } from '../schema';
+import { FIELD_LIMITS, MIN_CLINIC_PHONE_DIGITS } from '../schema';
 import type { ClinicProfileSnapshot } from '../types';
 import type { ClinicProfileFieldErrors, ValidationMessageKey } from '../validation';
 
@@ -65,9 +67,21 @@ type EditReporter = (fieldName: string) => void;
 export function ClinicInformationFields({
   profile,
   fieldErrors = {},
+  onEdit,
 }: {
   profile: ClinicProfileSnapshot;
   fieldErrors?: ClinicProfileFieldErrors;
+  /**
+   * ⚠ **The phone needs this; the other three do not.**
+   *
+   * `PhoneField` submits through a hidden input, so its visible controls carry
+   * no `name` — and both callers identify a field by exactly that. The wizard
+   * drops an error by the name of the control that was corrected, so without
+   * this the phone's message would sit there while the reader fixed it; the
+   * profile editor listens for `input` events, which the *country* half never
+   * fires at all, being a button.
+   */
+  onEdit?: EditReporter;
 }) {
   const t = useTranslations('clinicProfile');
 
@@ -86,23 +100,23 @@ export function ClinicInformationFields({
         error={fieldErrors.clinicName}
         maxLength={FIELD_LIMITS.clinicName}
       />
-      <ProfileField
-        label={t('clinicPhone')}
-        name="clinicPhone"
-        type="tel"
-        dir="ltr"
-        // Ten digits and nothing else, so the phone keypad is the right
-        // keyboard on a handset and there is no punctuation to offer.
-        inputMode="numeric"
-        defaultValue={profile.clinic.phone}
+      <ClinicPhoneField
+        phone={profile.clinic.phone}
         error={fieldErrors.clinicPhone}
-        maxLength={FIELD_LIMITS.clinicPhone}
+        onEdit={onEdit}
       />
       <ProfileField
         label={t('email')}
         name="contactEmail"
         type="email"
-        dir="ltr"
+        /*
+          No `dir="ltr"`, matching every other email box in the app — see the
+          note on the same field in `StaffLoginForm`. An address is one
+          uninterrupted Latin run, so the bidi algorithm keeps its characters in
+          order without being told to; what the override *did* do was pin the
+          value and the placeholder to the left of a right-to-left card while
+          every label above them sat on the right.
+        */
         defaultValue={profile.clinic.contactEmail}
         error={fieldErrors.contactEmail}
         maxLength={FIELD_LIMITS.contactEmail}
@@ -115,6 +129,96 @@ export function ClinicInformationFields({
         maxLength={FIELD_LIMITS.address}
       />
     </div>
+  );
+}
+
+/**
+ * The clinic's own number, entered exactly the way a client's is.
+ *
+ * ## Why it is the shared control now
+ *
+ * It was a plain `type="tel"` box that took ten digits and nothing else, with a
+ * character counter reading "10 of 10" — which quietly hard-coded Palestine
+ * into the one field on the screen that names a country. A clinic outside
+ * `+970` had no way to say so, and the number it stored was ambiguous: the
+ * portal's `clinicContactLinks` had to guess a calling code from the
+ * environment before it could build a `tel:` link.
+ *
+ * `PhoneField` is the app's answer to that and was already on the client
+ * dialog, so this is one control for the one question rather than two answers
+ * to it. It stores `+<code><digits>`, which is what the link builder wanted all
+ * along — `normalizePhone` reads it without guessing.
+ *
+ * **Numbers already stored as `0599…` are not stranded.** `splitPhone` reads a
+ * leading trunk zero as "this country, no code given", so an existing row opens
+ * with Palestine selected and the digits in place; saving rewrites it into the
+ * international form. No migration, and nothing to do for a clinic that never
+ * touches the field again — `clinicContactLinks` still handles both shapes.
+ *
+ * ## The dial code sits on the left
+ *
+ * `codeOnLeft`, unlike the client dialog, which leaves the pair to follow the
+ * page. Asked for, and it is the order a phone number is written in: the code
+ * first, then the rest, the same direction the digits themselves are already
+ * locked to.
+ *
+ * ## Nine or ten digits, enforced at two different moments
+ *
+ * The ceiling is `maxDigits`, so the eleventh digit never lands — there is
+ * nothing to warn about, which is why the "10 of 10" counter that used to sit
+ * here is gone. The floor cannot work that way: a number is short on its way to
+ * being long, so refusing the eighth keystroke would refuse every number as it
+ * was being typed. It is checked on submit, and `validation.phoneDigitCount`
+ * answers with the whole range rather than only the end that was missed.
+ */
+function ClinicPhoneField({
+  phone,
+  error,
+  onEdit,
+}: {
+  phone: string;
+  error?: ValidationMessageKey;
+  onEdit?: EditReporter;
+}) {
+  const t = useTranslations('clinicProfile');
+  const locale = useLocale() as Locale;
+
+  return (
+    <Field>
+      <Label htmlFor="clinicPhone">{t('clinicPhone')}</Label>
+
+      {/*
+        No `required`, for the reason spelled out on `ProfileField`: both forms
+        rendering this are `noValidate`, so the attribute validates nothing and
+        only invites Firefox to paint its own red glow on a box this app has no
+        rule to clear. An empty field is caught by `validateClinic`, which
+        answers it with `required` like every other box here.
+      */}
+      <PhoneField
+        id="clinicPhone"
+        name="clinicPhone"
+        locale={locale}
+        codeOnLeft
+        defaultValue={phone}
+        maxDigits={FIELD_LIMITS.clinicPhone}
+        countryLabel={t('phoneCountry')}
+        placeholder={t('phonePlaceholder')}
+        aria-invalid={Boolean(error)}
+        // Both halves report through here — see `onEdit` on the group above.
+        onChange={() => onEdit?.('clinicPhone')}
+      />
+
+      {/* Both ends of the range, because `phoneDigitCount` names both. The
+          other fields here take `max` alone — they only have a ceiling. */}
+      {error ? (
+        <FieldError>
+          {t(`validation.${error}`, {
+            min: MIN_CLINIC_PHONE_DIGITS,
+            max: FIELD_LIMITS.clinicPhone,
+          })}
+        </FieldError>
+      ) : null}
+    </Field>
   );
 }
 

@@ -16,7 +16,7 @@ type SetPasswordLayoutProps = {
  *
  * `showNav` is false, so the bell is not rendered at all — its feed is a set
  * of links to screens that would bounce straight back here — and the header's
- * trailing slot is sign-out instead of the settings link it is everywhere else,
+ * one control is sign-out instead of the settings link it is everywhere else,
  * settings being one more of those screens. Without this header the only way
  * off this screen would be closing the tab.
  *

@@ -321,6 +321,7 @@ function Dialog({
  */
 function DialogHeader({
   title,
+  titleClassName,
   description,
   onClose,
   closeLabel,
@@ -328,6 +329,18 @@ function DialogHeader({
   children,
 }: {
   title: React.ReactNode;
+  /**
+   * Overrides the title's own type, for a dialog whose header is the whole of
+   * its chrome.
+   *
+   * `text-heading-sm font-semibold` is right for a dialog that asks one short
+   * question above a paragraph of its own. It is not right for a workspace —
+   * the dish builder is a header, a step rail and 500px of work, and there the
+   * title is the name of the room rather than the question in it: larger, and
+   * lighter, so it reads as a place and does not compete with the rail beside
+   * it.
+   */
+  titleClassName?: string;
   description?: React.ReactNode;
   onClose?: () => void;
   /** Required with `onClose` — the button is icon-only and carries no other name. */
@@ -338,7 +351,7 @@ function DialogHeader({
   return (
     <header data-slot="dialog-header" className={cn('flex items-start gap-2 px-4 pt-4', className)}>
       <div className="min-w-0 flex-1">
-        <h2 className="truncate text-heading-sm font-semibold" dir="auto">
+        <h2 className={cn('truncate text-heading-sm font-semibold', titleClassName)} dir="auto">
           {title}
         </h2>
         {description ? (

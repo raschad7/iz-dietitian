@@ -55,6 +55,27 @@ import { cn } from '@/lib/utils';
  * two figures at the table in frame when a 16:9 illustration is shown in a tall
  * panel.
  *
+ * ## It has an entrance
+ *
+ * The screen opens in two beats: the picture widens out of a strip standing
+ * against the outer edge of the window, and once it is ~85% open the form
+ * column walks up beside it a row at a time — brand bar, heading, role switch,
+ * fields, footer. Four classes — `q-auth-stage`, `q-auth-reveal`,
+ * `q-auth-hero`, `q-auth-enter` (plus `-2` … `-5` for the stagger's positions)
+ * — and every number, curve and direction behind them is at the foot of
+ * `globals.css`, under "The sign-in screen's entrance".
+ *
+ * ⚠ **Two of the five parts are not in this file.** The heading and the role
+ * switch are written in `AuthScreen` and arrive here as one opaque `header`
+ * node, so their position classes live there. Renumbering the stagger means
+ * editing both files.
+ *
+ * Two things there are worth knowing before touching any of it: the entrance
+ * holds itself at its first frame while the launch screen is in the document,
+ * because otherwise it plays underneath a full-screen tile and is never seen;
+ * and the picture's offset and its scale are a single decision, not two
+ * numbers. Both are written up beside the rules.
+ *
  * ## Layout behavior
  *
  * - **Mobile and Tablet** (below `lg`): the picture is not rendered (`hidden lg:flex`).
@@ -271,7 +292,14 @@ export function AuthSplitCard({ header, contentVisible, children, switcher }: Au
      * ground in dark. v5.html hardcodes #ffffff on three nested elements; one
      * token on the outermost is the same picture and themes itself.
      */
-    <div className="flex min-h-dvh w-full bg-background">
+    /*
+     * `q-auth-stage` carries no style of its own — only the entrance's
+     * durations and curves, as custom properties, so the picture opening and
+     * the form rising are timed against one source. See the section at the foot
+     * of `globals.css`; the hand-off between the two is a derived number and
+     * cannot be nudged in one place alone.
+     */
+    <div className="q-auth-stage flex min-h-dvh w-full bg-background">
       {/*
         The form column. v5.html's `.invisible-form-box`: it takes whatever the
         picture leaves, and spaces its three rows apart — the top bar, the form,
@@ -307,6 +335,22 @@ export function AuthSplitCard({ header, contentVisible, children, switcher }: Au
         whose winner depends on which media query Tailwind emits last, which is
         not something to leave to chance in a layout whose whole job is to fit.
       */}
+      {/*
+        ⚠ **The entrance is not on this element.** The second beat — the column
+        rising once the picture beside it is most of the way open — is carried by
+        the five parts *inside* the column, each with its own position in the
+        stagger: the brand bar here, the heading and the role switch over in
+        `AuthScreen`'s `header`, then the fields and the footer below. See
+        `q-auth-enter` in `globals.css`.
+
+        It sat on this box for one revision and moved the whole column as a
+        slab. Putting it on the rows is what gives the column an order to be read
+        in; putting it back here would flatten it again.
+
+        The rows may be animated independently because none of them is measured
+        against another: `translate` and `opacity` are both off the layout, so
+        `mt-auto` still resolves against a column whose boxes never moved.
+      */}
       <div className="flex min-w-0 flex-1 flex-col px-4 py-6 sm:px-6 lg:px-12 short:py-3 shorter:py-2">
         {/*
           The top bar: the brand at the inline-start, the language control at the
@@ -326,7 +370,9 @@ export function AuthSplitCard({ header, contentVisible, children, switcher }: Au
           which means sharing the form's width rather than merely being centred
           in the same column.
         */}
-        <div className="mx-auto mb-2 flex w-full max-w-110 short:mb-0 items-center justify-between gap-3">
+        {/* First of the five, and no position class: it is the top of the
+            column and the top of the stagger. */}
+        <div className="q-auth-enter mx-auto mb-2 flex w-full max-w-110 short:mb-0 items-center justify-between gap-3">
           <BrandMark aria-hidden={false} role="img" aria-label={tApp('shortName')} className="size-9 shorter:size-8" />
           <LocaleSwitcher variant="dropdown" />
         </div>
@@ -379,8 +425,19 @@ export function AuthSplitCard({ header, contentVisible, children, switcher }: Au
             measure. Collapsing them would make the observer read back the
             animated height it had just written, one frame at a time.
           */}
+          {/*
+            Fourth of the five. The entrance goes on the *sizer* and not on the
+            `q-auth-fields` box inside it, which is already carrying the swap
+            crossfade — two things writing `opacity` and `translate` on one
+            element, one a transition and one an animation, is a handover with
+            nothing to gain from it. Here they are simply on different boxes.
+
+            Nothing is disturbed by animating this element: the ResizeObserver
+            watches the child, and `translate` does not change a border box.
+          */}
           <div
             className={cn(
+              'q-auth-enter q-auth-enter-4',
               'transition-[block-size] duration-(--duration-arc) ease-(--ease-sweep)',
               'motion-reduce:transition-none',
               clipped && 'overflow-hidden',
@@ -408,8 +465,18 @@ export function AuthSplitCard({ header, contentVisible, children, switcher }: Au
         */}
         {/* `mt-auto` is what pins it now that the column is no longer
             `justify-between` — see the note on the form row above. */}
-        <div className={cn('mx-auto mt-auto min-h-6 w-full max-w-110 pt-4 text-center short:pt-2', fade)}>
-          {switcher ? <SwitchLink switcher={switcher} /> : null}
+        {/*
+          Last of the five, which is also where it belongs in the reading.
+
+          Two boxes for the same reason the fields row has two: the entrance and
+          the swap crossfade both write `opacity` and `translate`, so they are
+          kept on separate elements rather than handed between an animation and a
+          transition on one. The outer box keeps every layout class — `mt-auto`
+          has to stay on the flex child — and the inner one does nothing but
+          fade.
+        */}
+        <div className="q-auth-enter q-auth-enter-5 mx-auto mt-auto min-h-6 w-full max-w-110 pt-4 text-center short:pt-2">
+          <div className={fade}>{switcher ? <SwitchLink switcher={switcher} /> : null}</div>
         </div>
       </div>
 
@@ -425,7 +492,21 @@ export function AuthSplitCard({ header, contentVisible, children, switcher }: Au
           'lg:sticky lg:top-0 lg:h-dvh',
         )}
       >
-        <div className="relative w-full overflow-hidden rounded-xl bg-muted">
+        {/*
+          `q-auth-reveal` is the first beat: this surface is clipped to a strip
+          against the outer edge of the window on first paint and opens inward
+          toward the form.
+
+          The clip goes here, on the surface, and the counter-motion goes on the
+          image inside it — they cannot share an element, because a `translate`
+          on this box would carry the window along with the picture instead of
+          the picture moving through it.
+
+          `rounded-xl` and the animation's radius are the same value stated
+          twice; the note beside the class says which token, and they have to
+          agree or the corners pop when the clip is dropped at the end.
+        */}
+        <div className="q-auth-reveal relative w-full overflow-hidden rounded-xl bg-muted">
           {/*
             ⚠ **No `unoptimized`.** It was here to cure a soft, pixelated
             illustration, and it did — by switching the whole image pipeline off
@@ -453,7 +534,18 @@ export function AuthSplitCard({ header, contentVisible, children, switcher }: Au
             sizes={HERO_SIZES}
             placeholder="blur"
             blurDataURL={HERO_BLUR_DATA_URL}
-            className="object-cover object-center"
+            /*
+              `q-auth-hero` is the picture's own travel during the reveal —
+              toward the closing edge, so it slides right-to-left in Arabic and
+              left-to-right in English, and settles as the panel finishes
+              opening.
+
+              ⚠ It starts oversized as well as offset, and the two figures are
+              one decision: the scale is exactly what keeps the leading edge
+              flush against the panel while the offset unwinds. Read the note
+              beside the class before touching either.
+            */
+            className="q-auth-hero object-cover object-center"
           />
         </div>
       </div>

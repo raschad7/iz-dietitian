@@ -234,7 +234,19 @@ export function AuthScreen({
               docs/design-system.md forbids letter spacing on Arabic, and Arabic
               is this app's default locale.
             */}
-            <div className="mb-5 text-center short:mb-3">
+            {/*
+              Second of the entrance's five parts — see `q-auth-enter` in
+              `globals.css`. The heading and its tagline rise together, because
+              they are one thing to read and splitting them would put a beat
+              between a sentence and its own second line.
+
+              The two position classes in this file are the only reason
+              `AuthScreen` knows the entrance exists at all. They are here rather
+              than in `AuthSplitCard` because this is where these two rows are
+              written: the card receives them as one opaque `header` node and has
+              nothing to hang a per-row delay on.
+            */}
+            <div className="q-auth-enter q-auth-enter-2 mb-5 text-center short:mb-3">
               {/*
                 `min-h-[2lh]` — two lines of this heading's own line box, held
                 open whether the words fill them or not.
@@ -320,7 +332,8 @@ export function AuthScreen({
               label={t('roleQuestion')}
               value={view.role}
               onChange={(role) => goTo({ role })}
-              className="mb-5 short:mb-3"
+              /* Third of the five. */
+              className="q-auth-enter q-auth-enter-3 mb-5 short:mb-3"
               options={ROLES.map((option) => ({
                 value: option.value,
                 label: t(option.labelKey),

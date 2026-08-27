@@ -244,6 +244,18 @@
   --indigo-500: #2F5FA8;
 
   /*
+   * The same three identities, one step light.
+   *
+   * The 500 stops above are *marks*: an 8px dot, a 3px rule — small things that
+   * have to survive being small, so they are mid-dark. A macro arc is the
+   * opposite kind of shape: a 16px band and a filled bar, areas rather than
+   * marks, and an area painted at mark strength turns a nutrition label into
+   * three shouting blocks. These are for areas only (see `--macro-*` below).
+   */
+  --indigo-300: #8FB2E0;
+  --plum-300: #BE9BD8;
+
+  /*
    * ── Gold: the adherence meter's fill ──
    *
    * Not amber, and for the same reason flame is not amber: amber means "needs
@@ -526,6 +538,26 @@
   --color-chart-4: var(--red);
   --color-chart-5: var(--n-600);
 
+  /*
+   * ── The three macros ──
+   *
+   * Protein blue, carbohydrate gold, fat lavender — one token each, so the ring
+   * on the dish editor, the bars beneath it and anything that charts a macro
+   * later all say the same colour without a second table to keep in step.
+   *
+   * **They are light on purpose, and they avoid every hue at mark strength.**
+   * A dish's own properties are already a row of dots — economical amber,
+   * quick flame, local clay, vegetarian green, `no_cook` teal — all of them
+   * mid-dark 500/600 stops, and macro arcs drawn in that same register read as
+   * more of those properties rather than as a different kind of fact. Sitting
+   * the macros a full lightness step above the whole tag palette separates the
+   * two without asking for a hue nothing else uses, which this system has run
+   * out of.
+   */
+  --color-macro-protein: var(--indigo-300);
+  --color-macro-carbs: var(--amber-300);
+  --color-macro-fat: var(--plum-300);
+
   --color-viz-band-range: var(--viz-band-range);
   --color-viz-band-edge: var(--viz-band-edge);
   --color-viz-band-marker: var(--viz-band-marker);
@@ -642,6 +674,20 @@
   --color-planner-tag-easy-prep: var(--planner-tag-easy-prep);
   --color-planner-tag-no-cook: var(--planner-tag-no-cook);
   --color-planner-tag-high-protein: var(--planner-tag-high-protein);
+  --color-intake-icon-activity: var(--intake-icon-activity);
+  --color-intake-icon-barrier: var(--intake-icon-barrier);
+  --color-intake-icon-sleep: var(--intake-icon-sleep);
+  --color-intake-icon-smoking: var(--intake-icon-smoking);
+  --color-intake-icon-caffeine: var(--intake-icon-caffeine);
+  --color-intake-icon-sweet-drinks: var(--intake-icon-sweet-drinks);
+  --color-intake-icon-fast-food: var(--intake-icon-fast-food);
+  --color-intake-icon-vegetables: var(--intake-icon-vegetables);
+  --color-intake-icon-fruit: var(--intake-icon-fruit);
+  --color-intake-icon-dairy: var(--intake-icon-dairy);
+  --color-intake-icon-red-meat: var(--intake-icon-red-meat);
+  --color-intake-icon-chicken: var(--intake-icon-chicken);
+  --color-intake-icon-fish: var(--intake-icon-fish);
+  --color-intake-icon-sweets: var(--intake-icon-sweets);
   --color-progress-track: var(--progress-track);
   --color-progress-card-border: var(--progress-card-border);
 
@@ -1063,6 +1109,48 @@
   --planner-tag-easy-prep: var(--plum-500);
   --planner-tag-no-cook: var(--teal-500);
   --planner-tag-high-protein: var(--indigo-500);
+
+  /*
+   * ── The lifestyle record's icon tints ──
+   *
+   * Fourteen glyphs on one card — نمط الحياة والعادات in the client record —
+   * and the only place in the app where an icon carries a hue of its own.
+   *
+   * ⚠ **This is a documented exception to "an icon inherits its colour."** The
+   * card is a 4×4 lattice of thirteen-pixel labels; drawn in one muted grey it
+   * is a wall of text a dietitian re-reads top to bottom to find the one answer
+   * they came for. Colour is what lets the eye land on الأسماك without reading
+   * الدجاج first. It is **recognition, not status**: the tint says what the
+   * question is about, never how the answer scores, so nothing here changes
+   * when the client's answer does.
+   *
+   * **No new primitives.** Every stop below is one the palette already carries,
+   * and the mid-dark identity stops (teal/plum/indigo) are the same three the
+   * dish tags use — matched in lightness so no single glyph shouts.
+   *
+   * **Repeats are deliberate.** Fresh produce is one green, sugar is one plum:
+   * fourteen unique hues would be a legend nobody can hold, and the groupings
+   * are the part that is actually readable at a glance.
+   *
+   * Declared once at `:root` with no dark counterpart, exactly as the
+   * `--planner-tag-*` stops above are. The staff app has no dark mode — `.dark`
+   * is set by nothing, and `[data-theme]` is the client portal's, which never
+   * draws this card. A dark assignment here would be an untested promise.
+   */
+  --intake-icon-activity: var(--green-600);
+  --intake-icon-barrier: var(--amber-600);
+  --intake-icon-sleep: var(--indigo-500);
+  --intake-icon-smoking: var(--clay-600);
+  --intake-icon-caffeine: var(--flame-700);
+  --intake-icon-sweet-drinks: var(--plum-500);
+  --intake-icon-fast-food: var(--flame-300);
+  --intake-icon-vegetables: var(--green-600);
+  --intake-icon-fruit: var(--green-500);
+  --intake-icon-dairy: var(--indigo-500);
+  --intake-icon-red-meat: var(--clay-600);
+  --intake-icon-chicken: var(--amber-600);
+  --intake-icon-fish: var(--teal-500);
+  --intake-icon-sweets: var(--plum-500);
 
   /*
    * The Q-arc's unfilled track (§9.6) — the dots the week has not reached yet.
@@ -2038,6 +2126,34 @@
     touch-action: manipulation;
   }
 
+  /*
+   * ── The page is held at scale 1 on phones and tablets ──
+   *
+   * `ZoomLock` puts this class on `<html>` for as long as the staff app or
+   * the client portal is mounted, and only where `(pointer: coarse)` matches.
+   * It is the CSS third of the lock; the other two are that component's
+   * capture-phase `gesture*` handlers with the scale watchdog under them, and
+   * the `maximumScale` / `userScalable` fields in the two `generateViewport()`
+   * exports. See the component for why all three are needed and why none of
+   * them reach a desktop browser.
+   *
+   * `pan-x pan-y` is the block above narrowed and widened at once: narrowed
+   * from `manipulation`, which still permits pinch-zoom, to panning alone —
+   * and widened from the controls that rule names to every element in the
+   * document, including the empty space between cards and the body copy inside
+   * them, where a stray double tap used to leave a client staring at a
+   * magnified fragment of a meal plan with no obvious way back.
+   *
+   * What it does not touch is scrolling: panning on both axes is exactly what
+   * is kept, so every scroller in the product behaves as it did. Descendants
+   * that claim `touch-action: none` (the planner drag handle, the calendar
+   * grips) are unaffected too — the browser intersects an element's value with
+   * its ancestors', and `none` is the narrower of the two.
+   */
+  html.q-zoom-locked {
+    touch-action: pan-x pan-y;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-size: var(--text-body-md);
@@ -2554,6 +2670,48 @@
       2.5rem 100%,
       0.875rem 100%,
       0.875rem 100%;
+    background-attachment: local, local, scroll, scroll;
+  }
+
+  /*
+    The block-axis twin of `.q-scroll-cue`, for a panel that scrolls *down*.
+    Same trick, rotated: two surface-coloured wedges pinned to the scroller's
+    own content box (`local`) and two shadows pinned to its frame (`scroll`).
+    Where there is content past an edge the wedge has scrolled away and the
+    shadow is left showing; where there is not, the wedge covers it and the cue
+    paints nothing at all. So a panel that fits says nothing and a panel with
+    more below says so without a scrollbar — which matters here because bars are
+    off inside every popup positioner (see the `q-scrollbar` block).
+
+    `--scroll-cue-surface` has to be whatever the scroller is sitting on — a
+    popover sets it to `--popover`. Unlike its horizontal twin, the fallback is
+    written into the `var()` rather than declared as a property of its own: this
+    class lives in `@layer components`, an arbitrary `[--scroll-cue-surface:…]`
+    at a call site is a *utility*, and a caller should not have to know which of
+    the two layers happens to win. With the default inside the `var()` there is
+    only ever one declaration to win.
+  */
+  .q-scroll-cue-y {
+    background-image:
+      linear-gradient(
+        to bottom,
+        var(--scroll-cue-surface, var(--background)) 30%,
+        transparent
+      ),
+      linear-gradient(to top, var(--scroll-cue-surface, var(--background)) 30%, transparent),
+      radial-gradient(farthest-side at 50% 0, rgb(0 0 0 / 0.1), transparent),
+      radial-gradient(farthest-side at 50% 100%, rgb(0 0 0 / 0.1), transparent);
+    background-position:
+      0 0,
+      0 100%,
+      0 0,
+      0 100%;
+    background-repeat: no-repeat;
+    background-size:
+      100% 1.75rem,
+      100% 1.75rem,
+      100% 0.625rem,
+      100% 0.625rem;
     background-attachment: local, local, scroll, scroll;
   }
 
@@ -6144,8 +6302,19 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 /*
  * ══ The splash screen ══
  *
- * `src/features/brand/splash-screen.tsx`, mounted by both app shells and by
- * neither public screen. All of the motion is here; the component draws two
+ * `src/features/brand/splash-screen.tsx`, mounted once from `[locale]/
+ * layout.tsx` through `SplashLaunchGate`.
+ *
+ * ⚠ This used to say "by both app shells and by neither public screen", and it
+ * was wrong in the half that matters: the gate is in the *locale* layout, which
+ * wraps the public screens too, so the tile plays over `/login`, `/signup` and
+ * the landing page on any load that is not a quick reload. That sentence is why
+ * the sign-in screen's entrance was first built to start at first paint, where
+ * it ran to completion underneath this tile and was never seen. Anything given
+ * an entrance has to be checked against this one — see "The sign-in screen's
+ * entrance" at the foot of this file for the shape of the fix.
+ *
+ * All of the motion is here; the component draws two
  * SVGs, plays three blips, and takes the element out of the DOM once the exit
  * below has finished. That split is a safety property rather than a preference
  * — the tile clears itself with no script at all — and the note in the
@@ -6858,4 +7027,968 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   }
 }
 
+/*
+ * ==========================================================================
+ *  Printing a week
+ * ==========================================================================
+ *
+ * The one way a plan leaves this app on paper. `PlanPrintDocument` renders the
+ * open week into `<body>` as `.plan-print`, and everything below decides what a
+ * printer does with it. The Word export reads the same element and brings its
+ * own port of these rules, because Word is not a browser; see `plan-word.ts`.
+ *
+ * ## Who the page is for
+ *
+ * The client, not the dietitian — the dietitian has the board. This is read at
+ * a kitchen counter by someone deciding what to put on a plate, so it is set as
+ * a document: portrait, generous leading, a size that survives a fridge door.
+ *
+ * An earlier version compressed the week onto one landscape sheet as a grid. It
+ * fit, and it could carry neither the portions nor the alternatives, because a
+ * cell 30mm wide cannot hold a recipe. Those two are the whole value of the
+ * handout, so the page count gives way to them rather than the other way round.
+ *
+ * ## Why the app is hidden by a single rule
+ *
+ * `body > *:not(.plan-print)` is deliberately the whole of it. The alternative
+ * is a list of the things not to print — the rail, the header, the toolbar, the
+ * drawer, the toaster, the tooltip layer, the splash — and that list is wrong
+ * the first time a surface is added and nobody remembers this file exists. So
+ * the document is the allowlist and the app is the default, which is also why
+ * `PlanPrintDocument` portals itself out to `<body>`: the rule only holds for a
+ * direct child.
+ *
+ * ## Structure survives without the fills
+ *
+ * Every browser print dialog has a "background graphics" checkbox and it is off
+ * by default. So nothing here depends on a fill: the hierarchy is carried by
+ * size, weight and rules, all of which print from any dialog and cost a
+ * fraction of the ink. The two tinted surfaces are enhancements that the page
+ * reads correctly without.
+ *
+ * Colours are the raw `--n-*` and `--green-*` primitives rather than the
+ * semantic tokens. The semantic set flips with the theme, and a dietitian
+ * working in dark mode should not print a black page.
+ */
+.plan-print {
+  display: none;
+}
 
+@media print {
+  /*
+   * Portrait. This is prose with a table in it, not a timetable — and the
+   * margin is on the page rather than on the document so it repeats on every
+   * sheet, which padding on `.plan-print` would not.
+   */
+  @page {
+    size: A4 portrait;
+    margin: 16mm 14mm;
+  }
+
+  body > *:not(.plan-print) {
+    display: none !important;
+  }
+
+  /*
+   * The app shell pins itself to the viewport and hides its own overflow, and
+   * `html:has(dialog[open])` adds another `overflow: hidden` at the root. Either
+   * one clips the printed document to one screen worth of it.
+   */
+  html,
+  body {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+    background: var(--n-0);
+  }
+
+  .plan-print {
+    display: block;
+    color: var(--n-900);
+    background: var(--n-0);
+    /* Points, not rem: this box is measured against paper, and the root font
+       size a browser hands a print stylesheet is not the one on screen. */
+    font-size: 10.5pt;
+    line-height: 1.5;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* ── The masthead ── */
+
+  /*
+   * The client's name is the largest thing on the page, because the page is
+   * theirs. The clinic sits above it at letterhead size, and the week and the
+   * target close the band on the far edge.
+   */
+  .plan-print-masthead {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 6mm;
+    border-block-end: 0.7mm solid var(--n-900);
+    padding-block-end: 3mm;
+    margin-block-end: 6mm;
+  }
+
+  .plan-print-clinic {
+    font-size: 9.5pt;
+    color: var(--n-600);
+    margin-block-end: 0.5mm;
+  }
+
+  /* No `uppercase` and no tracking anywhere on this page — see
+     docs/design-system.md § Typography. Arabic has neither. */
+  .plan-print-client {
+    font-size: 24pt;
+    font-weight: 700;
+    line-height: 1.15;
+  }
+
+  .plan-print-facts {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: end;
+    font-size: 10pt;
+    color: var(--n-700);
+    /* The name is 24pt and these two lines are 10pt; without this they sit on
+       the name's baseline and the band looks like it slipped. */
+    padding-block-end: 1mm;
+  }
+
+  .plan-print-target {
+    font-weight: 600;
+    color: var(--n-900);
+  }
+
+  /*
+   * The two things that change what the sheet is — a draft, or a week with
+   * empty slots. Ruled rather than coloured: an amber warning on a monochrome
+   * office printer is a grey sentence indistinguishable from the rest.
+   */
+  .plan-print-caveat {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1mm 8mm;
+    border-block: 0.3mm solid var(--n-400);
+    padding-block: 2mm;
+    margin-block-end: 6mm;
+    font-size: 9.5pt;
+    color: var(--n-700);
+  }
+
+  /* ── One day ── */
+
+  .plan-print-day {
+    margin-block-end: 7mm;
+  }
+
+  /*
+   * The day heading, and the one place the brand green appears.
+   *
+   * A rule, not text and not an icon — which is the distinction
+   * docs/design-system.md draws when it says the accent green is a fill. A
+   * 0.8mm line at `green-700` gives seven identical sections an edge a reader
+   * can find at a glance, and it is dark enough to survive a grayscale printer
+   * as a legible dark line rather than a pale one.
+   */
+  .plan-print-day-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 3mm;
+    border-block-end: 0.8mm solid var(--green-700);
+    padding-block-end: 1.5mm;
+    margin-block-end: 2mm;
+    /* A heading stranded at the foot of a page is a heading for nothing. */
+    break-after: avoid;
+  }
+
+  .plan-print-day-name {
+    font-size: 14pt;
+    font-weight: 700;
+  }
+
+  .plan-print-day-date {
+    font-size: 10pt;
+    color: var(--n-600);
+  }
+
+  /* The day's own numbers, on the far edge whichever edge that is. */
+  .plan-print-day-total {
+    margin-inline-start: auto;
+    display: flex;
+    align-items: baseline;
+    gap: 0 3mm;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .plan-print-day-kcal {
+    font-size: 11pt;
+    font-weight: 700;
+  }
+
+  .plan-print-day-macro {
+    font-size: 9.5pt;
+    color: var(--n-600);
+  }
+
+  /* ── One meal ── */
+
+  /*
+   * A table for the two-column meal, and no gridlines anywhere it would read as
+   * one. `fixed` so the hour column and the calorie column keep their widths
+   * down the whole page rather than being sized by whichever meal has the
+   * longest name.
+   */
+  .plan-print-meals {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+  }
+
+  .plan-print-meal {
+    /* A meal split across a page break puts a dish on one sheet and its amounts
+       on the next, which is the one break this document must not make. */
+    break-inside: avoid;
+  }
+
+  .plan-print-meals th,
+  .plan-print-meals td {
+    /* A hairline between meals and nothing else. No verticals: three columns
+       boxed in would turn a handout into a spreadsheet. */
+    border-block-start: 0.2mm solid var(--n-200);
+    padding-block: 2.5mm;
+    vertical-align: top;
+    text-align: start;
+  }
+
+  .plan-print-meals tr:first-child th,
+  .plan-print-meals tr:first-child td {
+    border-block-start: 0;
+    padding-block-start: 1mm;
+  }
+
+  /* When. */
+  .plan-print-meal-when {
+    width: 26mm;
+    padding-inline-end: 4mm;
+  }
+
+  .plan-print-meal-slot {
+    display: block;
+    font-size: 10.5pt;
+    font-weight: 700;
+  }
+
+  .plan-print-meal-time {
+    display: block;
+    font-size: 9.5pt;
+    font-weight: 400;
+    color: var(--n-600);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* What. */
+  .plan-print-dish {
+    font-size: 12pt;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  /*
+   * The amounts — the reason this document exists.
+   *
+   * Set along the line rather than stacked: three to five short pairs read
+   * perfectly well in a sentence, and a list of them would triple the height of
+   * every meal on a page that also carries the alternatives.
+   */
+  .plan-print-portions {
+    margin-block-start: 1mm;
+    font-size: 10pt;
+    color: var(--n-700);
+    line-height: 1.55;
+  }
+
+  /* The emphasised half of each pair. It is what the reader is scanning for. */
+  .plan-print-amount {
+    font-weight: 700;
+    color: var(--n-900);
+    font-variant-numeric: tabular-nums;
+    /* A quantity must never be split from its unit across a line ending. */
+    white-space: nowrap;
+  }
+
+  .plan-print-sep {
+    color: var(--n-400);
+  }
+
+  /* What to eat instead. Quieter than the meal it replaces, and set off by a
+     rule on the reading edge so it does not read as more of the recipe. */
+  .plan-print-alts {
+    margin-block-start: 1.5mm;
+    border-inline-start: 0.6mm solid var(--n-300);
+    padding-inline-start: 2.5mm;
+    font-size: 9.5pt;
+    color: var(--n-600);
+    line-height: 1.5;
+  }
+
+  .plan-print-alts-label {
+    font-weight: 700;
+    color: var(--n-700);
+    /* The label and the first name are one line; this is the gap between them. */
+    margin-inline-end: 2mm;
+  }
+
+  .plan-print-alt-kcal {
+    font-variant-numeric: tabular-nums;
+    color: var(--n-500);
+  }
+
+  /* How much. */
+  .plan-print-meal-kcal {
+    width: 20mm;
+    text-align: end;
+    font-size: 10.5pt;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+}
+
+/*
+ * ══ The password rule track ══
+ *
+ * `src/features/auth/components/password-rules.tsx` — three rows under the
+ * set-password field, one per client password rule, each a short bar that goes
+ * from grey to green when its rule is met. Only the timings live here; the
+ * layout is Tailwind at the call site, because none of it is reused.
+ *
+ * ## Why the durations are tokens and not utilities
+ *
+ * §Shape names five motion tokens and this needs none of them. `--duration-arc`
+ * (220ms) is the right speed for a control answering a press — a switch knob, a
+ * field arc — and at that speed a bar filling across is a flicker rather than
+ * something you watch happen. `--duration-travel` is the other end and is
+ * reserved for a whole surface crossing the screen, which a 64px bar is not.
+ *
+ * So the track carries its own two, defined on the element rather than in
+ * :root: they are inherited by every row, they are visible in one place when
+ * the feel needs adjusting, and nothing outside this component can pick them up
+ * by accident.
+ */
+.q-rule-track {
+  /* A bar filling across as its rule is met. Deliberately unhurried — this is
+     the one moment the screen has something to say. */
+  --q-rule-sweep: 560ms;
+  /* The label catching up to it. Shorter, so the words settle while the bar is
+     still travelling rather than after it has stopped. */
+  --q-rule-fade: 420ms;
+}
+
+/*
+ * ══ The set-password medallion ══
+ *
+ * The lock in the circle at the top of `SetPasswordForm`. The disc keeps
+ * `bg-secondary`; only the glyph inside it is stated here.
+ *
+ * ## Why it is a hex and not a token
+ *
+ * It is not one. Nothing in the warm scale is this colour — `--n-400`
+ * (#A8A493) is the nearest step and reads distinctly more olive at this size,
+ * and `--muted-foreground` (`--n-500`) is two stops darker. The value was
+ * chosen for this one mark, so it is named for this one mark rather than
+ * pushed into the neutral ramp, where the next person to reach for a grey
+ * would find a step that belongs to nothing.
+ *
+ * The hex lives here because §Tokens allows hex in this file and forbids it in
+ * a component — `eslint-rules/no-raw-hex.mjs` enforces the second half.
+ *
+ * ⚠ **It is one fixed value in both themes**, which is deliberate but narrow:
+ * the glyph is `aria-hidden` decoration inside a tinted disc, and the heading
+ * beside it carries the meaning, so it is not doing contrast work. Anything
+ * that has to be *read* needs a token with a dark-mode assignment instead.
+ */
+.q-set-password-mark {
+  --q-set-password-mark: #ACABA5;
+  color: var(--q-set-password-mark);
+}
+
+/*
+ * ══ The plan generation stage bar ══
+ *
+ * `src/features/weekly-plans/components/generation-loading-screen.tsx` — the
+ * screen the dialog shows for the thirty to sixty seconds a week takes to
+ * generate. Four blocks across the block-end edge, one per stage, each eaten
+ * from its inline-start edge by the strong green as its stage runs.
+ *
+ * ## Why any of it is here rather than in the class list
+ *
+ * The bar is driven from `requestAnimationFrame`, not from React state: a
+ * percentage that re-rendered sixty times a second would re-render the dialog
+ * with it. So the running values are written straight onto the nodes —
+ * `transform` on the fill, `data-state` / `data-reached` on the rest — and a
+ * `data-*` attribute can only select a rule that exists in a stylesheet. The
+ * layout around them stays Tailwind at the call site, exactly as
+ * `.q-rule-track` splits the same way.
+ *
+ * ## The three states are three stops of the one ramp
+ *
+ * §Tokens: there is one green family and a call site does not pin a hex, it
+ * takes a step. Upcoming is the warm neutral the app already uses for a resting
+ * fill, live is green-300, complete is green-600.
+ *
+ * **green-600 and not green-500**, which is the nearer neighbour: the stage's
+ * own name sits inside the block and has to survive the fill passing under it.
+ * White clears 4.9:1 on green-600 and 2.6:1 on green-500 — under the 4.5:1
+ * floor, and this is body-weight text carrying meaning, not the `default`
+ * Button's documented exception.
+ *
+ * ## No dark assignment, deliberately
+ *
+ * Same reason `--planner-tag-*` and `--intake-icon-*` have none. This bar is
+ * drawn inside the practitioner app, where `.dark` is set by nothing and
+ * `[data-theme]` belongs to the client portal, which never opens this dialog.
+ * A dark block here would be an untested promise. The neutral and the two
+ * greens are all ramp steps, so whoever turns dark mode on has one place to
+ * add the counterpart.
+ */
+.q-plan-stages {
+  /* One rhythm for both rows. The checkpoint columns and the blocks under them
+     have to share a gap and an inset or the lists drift off their blocks. */
+  --q-plan-gap: 4px;
+  --q-plan-pad: 20px;
+
+  --q-plan-upcoming-bg: var(--n-100);
+  --q-plan-upcoming-ink: var(--n-600);
+  --q-plan-live-bg: var(--green-300);
+  --q-plan-live-ink: var(--green-900);
+  --q-plan-done-bg: var(--green-600);
+  --q-plan-done-ink: var(--n-0);
+
+  /* §Shape's five motion tokens are all shorter than this needs: they are the
+     speed of a control answering a press, and nothing here is answering one.
+     A block changing state over a fifth of a second reads as a jump on a
+     screen whose whole job is to look unhurried, so the two durations are the
+     bar's own — declared on the element, inherited by every part of it, and
+     invisible to anything outside. `--duration-label` *is* reused for the
+     stage name's colour flip, because that one is a label catching up. */
+  --q-plan-settle: 640ms;
+  --q-plan-reveal: 480ms;
+}
+
+@media (width < 40rem) {
+  .q-plan-stages {
+    --q-plan-pad: 12px;
+  }
+}
+
+/*
+ * The mark, pinned to the block-start inline-start corner.
+ *
+ * Logical rather than physical, so it sits at the reading-start corner in both
+ * scripts the way every other piece of chrome in this app does. It is the only
+ * absolutely positioned thing on the screen; the dialog's own header is hidden
+ * while this is mounted, so nothing shares the corner with it.
+ */
+.q-plan-mark {
+  position: absolute;
+  inset-block-start: 1rem;
+  inset-inline-start: 1rem;
+  inline-size: 3.625rem;
+  block-size: 3.625rem;
+  z-index: 4;
+}
+
+@media (width >= 40rem) {
+  .q-plan-mark {
+    inset-block-start: 1.375rem;
+    inset-inline-start: 1.625rem;
+    inline-size: 4.625rem;
+    block-size: 4.625rem;
+  }
+}
+
+/*
+ * Only the heading changes, never the drawing. The whole mark takes a few
+ * degrees of lean and the seed pair slides inside the leaf; both are written
+ * frame by frame from the component and both return to a true zero, so nothing
+ * here can leave the artwork somewhere it was not drawn.
+ */
+.q-plan-mark svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: visible;
+  transform-origin: center;
+}
+
+.q-plan-mark [data-slot='brand-seeds'] {
+  transform-box: fill-box;
+  transform-origin: center;
+  will-change: transform;
+}
+
+/* ── The checkpoints, standing on top of their blocks ── */
+
+.q-plan-column {
+  flex: 1 1 0;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  /* Bottom-aligned, so every list finishes level with the block it belongs to
+     however many checkpoints it holds. */
+  justify-content: flex-end;
+  gap: 2px;
+  padding-inline-start: var(--q-plan-pad);
+  padding-inline-end: 8px;
+}
+
+/*
+ * Every checkpoint is in its final position from the first frame, at low
+ * opacity. Reaching one raises the opacity and greens the dot — it does not
+ * rise, slide, pop or flash. There is no keyframe anywhere on this screen; the
+ * only things that move are the fill and the mark's heading.
+ */
+.q-plan-point {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  min-inline-size: 0;
+  color: var(--n-400);
+  opacity: 0.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition:
+    opacity var(--q-plan-reveal) var(--ease-sweep),
+    color var(--q-plan-reveal) ease-out;
+}
+
+.q-plan-point[data-reached='true'] {
+  color: var(--foreground);
+  opacity: 1;
+}
+
+/* After its stage has closed. Source order is the whole of the cascade here —
+   same specificity as the rule above, and a past checkpoint is always also a
+   reached one. */
+.q-plan-point[data-past='true'] {
+  color: var(--n-600);
+  opacity: 0.72;
+}
+
+.q-plan-dot {
+  flex: none;
+  inline-size: 5px;
+  block-size: 5px;
+  border-radius: 50%;
+  background: currentcolor;
+  /* Optical, not geometric: the row is baseline-aligned so the text sits on a
+     line the dot has no business sitting on. */
+  transform: translateY(-3px);
+  transition: background-color var(--q-plan-reveal) ease-out;
+}
+
+.q-plan-point[data-reached='true'] .q-plan-dot {
+  background: var(--green-400);
+}
+
+.q-plan-point[data-past='true'] .q-plan-dot {
+  background: var(--green-600);
+}
+
+/* ── The bar ── */
+
+.q-plan-block {
+  position: relative;
+  flex: 1 1 0;
+  min-inline-size: 0;
+  overflow: hidden;
+  background: var(--q-plan-upcoming-bg);
+  transition: background-color var(--q-plan-settle) var(--ease-sweep);
+}
+
+.q-plan-block[data-state='live'] {
+  background: var(--q-plan-live-bg);
+}
+
+.q-plan-block[data-state='done'] {
+  background: var(--q-plan-done-bg);
+}
+
+/*
+ * `scaleX` and not an inline size: this is the one thing on the screen written
+ * every frame, and a transform is the only way to do that without laying the
+ * block out sixty times a second. The origin is the inline-start edge, which is
+ * physically opposite in the two scripts — hence the `[dir='rtl']` pair rather
+ * than a keyword, since `transform-origin` has no logical one.
+ *
+ * No transition on the transform. The component owns the easing curve, and a
+ * CSS transition on top of a value that changes every frame would only lag it.
+ */
+.q-plan-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--q-plan-done-bg);
+  transform: scaleX(0);
+  transform-origin: left center;
+  will-change: transform;
+}
+
+[dir='rtl'] .q-plan-fill {
+  transform-origin: right center;
+}
+
+.q-plan-label {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline-start: 0;
+  max-inline-size: 100%;
+  z-index: 2;
+  display: flex;
+  align-items: baseline;
+  gap: 1px;
+  padding-inline: var(--q-plan-pad);
+  padding-block-end: 13px;
+  color: var(--q-plan-upcoming-ink);
+  transition: color var(--duration-label) ease-out;
+}
+
+.q-plan-block[data-state='live'] .q-plan-label {
+  color: var(--q-plan-live-ink);
+}
+
+/*
+ * The flip. The name starts dark on the light green and turns white the moment
+ * the fill actually passes its far edge — the component measures the label and
+ * compares, rather than guessing a fraction of the stage, so a long Arabic name
+ * and a short English one both flip at the right instant instead of one of them
+ * dissolving into the fill for a second on the way past.
+ */
+.q-plan-block[data-state='live'][data-covered='true'] .q-plan-label,
+.q-plan-block[data-state='done'] .q-plan-label {
+  color: var(--q-plan-done-ink);
+}
+
+/*
+ * On a phone there is not room for four columns of checkpoints side by side,
+ * nor for four stage names inside four ~94px blocks. Rather than a second
+ * markup path for the narrow case, the same four columns stay mounted and only
+ * the running one is shown — it is already `flex: 1` in a flex row, so it takes
+ * the full width on its own, and the nodes the frame loop writes to are the
+ * same ones at every size.
+ */
+@media (width < 40rem) {
+  .q-plan-column {
+    display: none;
+    padding-inline: 1rem;
+  }
+
+  .q-plan-column[data-live='true'] {
+    display: flex;
+  }
+}
+
+/*
+ * The row the four columns stand in. Its floor leaves headroom above the
+ * tallest of them, so the bar keeps one line as the stages change instead of
+ * rising and falling with the length of each list.
+ */
+.q-plan-lists {
+  display: flex;
+  align-items: stretch;
+  gap: var(--q-plan-gap);
+  min-block-size: 124px;
+  padding-block-end: 1.25rem;
+}
+
+/*
+ * A landscape phone is about 390px tall and the dialog is capped three rem
+ * under that. The checkpoints are what gives: the counter still names the
+ * running stage and the bar still shows how far it has gone, so what is lost
+ * is the detail of the work rather than the state of it — and losing it is
+ * better than a status screen the reader has to scroll to see the bottom of.
+ */
+@media (height < 34rem) {
+  .q-plan-lists {
+    display: none;
+  }
+}
+
+/*
+ * ══ The sign-in screen's entrance ══
+ *
+ * `src/features/auth/components/auth-split-card.tsx`. The screen opens in two
+ * beats and in one direction: the illustration widens out of a strip standing
+ * against the outer edge of the window, and once it is most of the way open the
+ * form column walks up beside it, a row at a time. It reads as the picture
+ * making room for the form rather than as two things arriving at once.
+ *
+ * Like the 404 page and the splash, this is the page introducing itself rather
+ * than answering anybody, so the numbers sit above the app's `--duration-*`
+ * scale — those measure reactions and are tens of milliseconds because somebody
+ * is waiting on the other end of them. Nothing here is waited on: the whole
+ * introduction is over inside 2s, and the form is legible and hittable well
+ * before that.
+ *
+ * The timeline, in milliseconds from first paint:
+ *
+ *     0    the strip starts to open                ⎫ q-auth-reveal on the panel,
+ *          the picture inside it slides toward     ⎬ q-auth-hero on the image,
+ *          the closing edge and settles            ⎭ both over 1500ms
+ *   820    the picture is ~85% open                  (0.5485 of the curve below)
+ *   820    the brand bar rises under it             ⎫ q-auth-enter, 720ms each,
+ *   930    the heading and its tagline follow      ⎬ one row every 110ms, so
+ *  1040    the role switch                         ⎪ they overlap and the column
+ *  1150    the fields                              ⎪ ripples rather than
+ *  1260    the footer, last                        ⎭ arriving five times
+ *  1500    the picture is whole
+ *  1980    the screen is settled
+ *
+ * ## Which way it opens, and why that is not a `:dir()` rule
+ *
+ * `AuthSplitCard` mirrors with the language: the picture is at the inline-end,
+ * which is the *left* of the screen in Arabic and the *right* in English. The
+ * strip stands at the picture's outer edge — the one against the window — and
+ * the panel opens inward, toward the form. So the opening edge travels right in
+ * Arabic and left in English, and the picture inside travels the other way,
+ * against it.
+ *
+ * `clip-path: inset()` and `translate` are both physical and have no logical
+ * form, so the direction has to be stated. It is keyed off `[dir='rtl']` /
+ * `[dir='ltr']`, set on `<html>` by the locale layout, and deliberately NOT off
+ * `:dir()`: Lightning CSS drops every `:dir()` rule from the production build,
+ * which is written up at greater length beside `.q-skeleton`. What is stated is
+ * a pair of custom properties rather than a second keyframe set — the keyframes
+ * read the properties, so there is one description of the gesture and only its
+ * sign changes.
+ *
+ * ## The picture is pinned by its outer edge while it opens
+ *
+ * `q-auth-hero` starts the image 6% along and 12% oversized. Those two numbers
+ * are one number: a 12% scale hangs exactly 6% of the panel's width off each
+ * side, so a 6% shift lands the leading edge flush against the panel's outer
+ * edge — and because both decay under the same curve they stay flush for every
+ * frame in between. That is what stops a wedge of `bg-muted` showing along the
+ * edge the reader is looking straight at, and it is why neither figure may be
+ * changed without the other.
+ *
+ * What it buys is that the strip shows the same crop it will end on rather than
+ * a slice of a picture that then jumps, while the body of the image still has
+ * somewhere to travel from.
+ *
+ * `backwards` on all three, never `both` — the rule the route stage, the
+ * dialogs and the 404 all follow: a forwards fill leaves the animated
+ * properties applied for as long as the element is mounted, which makes the
+ * element the containing block for any `position: fixed` descendant it has, and
+ * the form column has a dropdown in it.
+ */
+
+/*
+ * The stage. It holds nothing but the numbers, so the two halves are timed
+ * against one source and the 85% hand-off cannot drift.
+ *
+ * ⚠ `--q-auth-rise-delay` is **derived**, not chosen: it is the point at which
+ * `--q-auth-reveal-ease` has covered 85% of its distance, which for
+ * `cubic-bezier(0.4, 0, 0.15, 1)` is 0.5485 of the duration — 823ms of 1500ms,
+ * rounded to 820. Change the duration or the curve and this has to be
+ * recomputed, or the form starts rising against a picture that is not open yet.
+ *
+ * The whole thing was half this length in its first revision and read as hurried
+ * — the panel snapped rather than opened. These are the slowed numbers; the
+ * shape of the gesture did not change, only how long it is given.
+ */
+.q-auth-stage {
+  --q-auth-reveal-ms: 1500ms;
+  --q-auth-reveal-ease: cubic-bezier(0.4, 0, 0.15, 1);
+  --q-auth-rise-delay: 820ms;
+  --q-auth-rise-ms: 720ms;
+  --q-auth-rise-step: 110ms;
+  --q-auth-rise-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/*
+ * Below `lg` the picture is not rendered at all — the panel is `hidden lg:flex`
+ * — so there is nothing for the form to wait on, and holding it back the better
+ * part of a second would be dead time in front of a blank white screen. On a
+ * phone the column simply rises, promptly, and its five parts follow each other
+ * a little closer together: there is no picture beside them setting the pace,
+ * and the rows are stacked tighter on a narrow screen, so the same step reads as
+ * a longer wait.
+ */
+@media (width < 64rem) {
+  .q-auth-stage {
+    --q-auth-rise-delay: 80ms;
+    --q-auth-rise-ms: 620ms;
+    --q-auth-rise-step: 85ms;
+  }
+}
+
+/*
+ * The panel opening. Arabic is the default locale and is written into the class
+ * itself: the picture is on the left, so the strip stands at the left edge and
+ * it is the *right* inset that closes. English is the override.
+ *
+ * The radius is `--enzyme-radius-xl`, which is what `rounded-xl` on the same
+ * element resolves to — the strip has to be the same shape as the panel it
+ * grows into, or the corners pop at the end of the animation. On a narrow panel
+ * the strip is thinner than two radii and the browser scales them down to fit,
+ * which is the right answer: it reads as a rounded end rather than a clipped
+ * corner.
+ */
+.q-auth-reveal {
+  --q-auth-clip-l: 0%;
+  --q-auth-clip-r: 90%;
+  animation: q-auth-reveal var(--q-auth-reveal-ms) var(--q-auth-reveal-ease) backwards;
+}
+
+[dir='ltr'] .q-auth-reveal {
+  --q-auth-clip-l: 90%;
+  --q-auth-clip-r: 0%;
+}
+
+@keyframes q-auth-reveal {
+  from {
+    clip-path: inset(0 var(--q-auth-clip-r) 0 var(--q-auth-clip-l) round var(--enzyme-radius-xl));
+  }
+
+  to {
+    clip-path: inset(0 0 0 0 round var(--enzyme-radius-xl));
+  }
+}
+
+/*
+ * The picture's own travel, against the opening edge — right to left in Arabic,
+ * left to right in English. See the note above for why the 6% and the 12% are
+ * a single decision.
+ */
+.q-auth-hero {
+  --q-auth-hero-x: 6%;
+  animation: q-auth-hero var(--q-auth-reveal-ms) var(--q-auth-reveal-ease) backwards;
+}
+
+[dir='ltr'] .q-auth-hero {
+  --q-auth-hero-x: -6%;
+}
+
+@keyframes q-auth-hero {
+  from {
+    translate: var(--q-auth-hero-x) 0;
+    scale: 1.12;
+  }
+}
+
+/*
+ * The form column, rising a part at a time: the brand bar, then the heading and
+ * its tagline, the role switch, the fields, and the footer last.
+ *
+ * ⚠ **This was one block for exactly one revision and it was wrong.** Moving the
+ * column as a single slab makes the whole right-hand side read as one flat card
+ * sliding up, which is the least interesting thing five rows of content can do —
+ * and it wastes the picture's own hand-off, because there is nothing for the
+ * reveal to hand *to* except a rectangle. Walking the rows gives the column an
+ * order to be read in, and it is the order somebody actually reads it in.
+ *
+ * The step is small on purpose. `--q-auth-rise-step` is a fraction of a row's
+ * own duration, so consecutive rows overlap heavily and the column reads as one
+ * gesture rippling down rather than as five separate arrivals — a stagger wide
+ * enough to see each row land is a performance, and the reader came here to type
+ * a password.
+ *
+ * The delays are classes rather than a timeline, matching `.q-404-enter-2` /
+ * `-3` further up: five positions is few enough that naming them costs less than
+ * a keyframe each, and a call site reads as "this one is third" instead of as a
+ * number. They set `animation-delay` alone, after the shorthand in
+ * `.q-auth-enter` has already set one — same specificity, later in the file, so
+ * the step wins. **Both classes go on the element**; a position class on its own
+ * animates nothing.
+ *
+ * `translate` rather than `transform`, matching the 404 and the rest of the
+ * file. 1.25rem of travel and no more: these are the elements the page's height
+ * is measured from, and a taller rise would leave the document briefly
+ * scrollable past its own footer on a viewport the screen otherwise fits
+ * exactly.
+ */
+.q-auth-enter {
+  animation: q-auth-enter var(--q-auth-rise-ms) var(--q-auth-rise-ease) var(--q-auth-rise-delay)
+    backwards;
+}
+
+.q-auth-enter-2 {
+  animation-delay: calc(var(--q-auth-rise-delay) + var(--q-auth-rise-step));
+}
+
+.q-auth-enter-3 {
+  animation-delay: calc(var(--q-auth-rise-delay) + 2 * var(--q-auth-rise-step));
+}
+
+.q-auth-enter-4 {
+  animation-delay: calc(var(--q-auth-rise-delay) + 3 * var(--q-auth-rise-step));
+}
+
+.q-auth-enter-5 {
+  animation-delay: calc(var(--q-auth-rise-delay) + 4 * var(--q-auth-rise-step));
+}
+
+@keyframes q-auth-enter {
+  from {
+    opacity: 0;
+    translate: 0 1.25rem;
+  }
+}
+
+/*
+ * ── It waits for the launch screen ──
+ *
+ * ⚠ **`/login` is a route the splash plays over, and this was very nearly built
+ * without knowing that.** `SplashLaunchGate` is mounted from `[locale]/
+ * layout.tsx`, which wraps the public screens as well as the two shells, and it
+ * plays on any load that is not a quick reload — a typed URL, a link, a server
+ * redirect out of `proxy.ts`. That is most of the ways anybody arrives here.
+ *
+ * The tile is a full-screen `position: fixed` surface for its first 2.26s, so
+ * an entrance timed from first paint runs to completion *underneath* it and is
+ * simply never seen. Measured before this rule existed: the picture was already
+ * open and the form already settled by the time the white cleared.
+ *
+ * So the entrance is held at its first frame for as long as the tile is in the
+ * document, and released when the tile takes itself out — see the end of
+ * `SplashScreen`'s timeline above, 2260ms. `animation-play-state` and not a
+ * delay, and that is the whole point: a delay would have to be *changed* when
+ * the tile leaves, and changing `animation-delay` on a running animation moves
+ * it to a different point on its own timeline, which is a jump. Pausing freezes
+ * time; unpausing resumes it from where it stopped, so the gesture plays once,
+ * whole, from its beginning.
+ *
+ * What the reader sees is one introduction rather than two: the mark lands, the
+ * white floods and then thins, and what it thins onto is the strip standing at
+ * the edge of the window — which then opens, and the form rises. The splash's
+ * own fade-out (1980–2260ms) is what reveals the held frame, so the two are
+ * joined rather than merely adjacent.
+ *
+ * `:has()` on `body`, matching `body:has(dialog[open])` further up the file.
+ * `.q-splash` is mounted above the app tree, so this is the one place both are
+ * in scope.
+ */
+body:has(.q-splash) .q-auth-reveal,
+body:has(.q-splash) .q-auth-hero,
+body:has(.q-splash) .q-auth-enter {
+  animation-play-state: paused;
+}
+
+/*
+ * Reduced motion keeps the whole screen and drops all of it moving. There is
+ * nothing here that carries information — the picture is decorative and the
+ * form is the same form either way — so the entrance simply does not happen and
+ * the screen is drawn finished.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .q-auth-reveal,
+  .q-auth-hero,
+  .q-auth-enter {
+    animation: none;
+  }
+}

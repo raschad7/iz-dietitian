@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   ArrowUpDown,
   ArrowUpRight,
+  Ban,
   Beef,
   Banknote,
   BanknoteArrowUp,
@@ -19,13 +20,18 @@ import {
   CalendarRange,
   CalendarSync,
   CalendarX,
+  Candy,
+  Carrot,
   ChartLine,
   Check,
   ChefHat,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   ChevronUp,
+  Cigarette,
   Circle,
   CircleCheck,
   CircleUser,
@@ -41,12 +47,14 @@ import {
   DoorOpen,
   Download,
   Droplet,
+  Drumstick,
   Eraser,
   Eye,
   EyeOff,
   FileLock,
   FileText,
   FileType,
+  Fish,
   Flame,
   Footprints,
   GripHorizontal,
@@ -71,6 +79,7 @@ import {
   Menu,
   MessageCircle,
   MessageSquare,
+  Milk,
   Minus,
   Moon,
   MoreVertical,
@@ -78,6 +87,7 @@ import {
   Pencil,
   Phone,
   Pill,
+  Pizza,
   Plus,
   Printer,
   ReceiptText,
@@ -220,6 +230,18 @@ export const APP_ICONS = {
   chevronUp: ChevronUp,
   chevronStart: ChevronLeft,
   chevronEnd: ChevronRight,
+  /*
+    The doubled pair, for a control that moves a whole surface rather than
+    stepping through items. `SidebarTrigger` is the one caller: the rail folding
+    away is not the same gesture as a carousel advancing by one, and the second
+    chevron is what says so.
+
+    Named for the reading edge like their singular siblings, and on `DIRECTIONAL`
+    in `icon.tsx` with them — a chevron that keeps pointing left in Arabic points
+    away from the rail it belongs to.
+  */
+  chevronsStart: ChevronsLeft,
+  chevronsEnd: ChevronsRight,
   navigationMenu: Menu,
   signOut: LogOut,
   search: Search,
@@ -230,6 +252,28 @@ export const APP_ICONS = {
   copy: Copy,
   upload: Upload,
   install: Download,
+  /*
+    The two export formats, as a matched pair.
+
+    Both are pages, differing only in the mark on them — a laid-out sheet for
+    the PDF, a letterform for the editable Word file — because they sit side by
+    side as two answers to one question (see `PlanExport`). Giving one of them
+    a download arrow and the other a letter would make the arrowed one read as
+    "the download" and the other as something else.
+
+    Neither is the bare tray `install` uses: that glyph means "put this app on
+    your device" everywhere else in the product.
+  */
+  /*
+    The plain tray, for the control that opens the export menu.
+
+    Same glyph as `install`, and that is right: both mean "this hands you a
+    file". The pair below stay page marks because they answer *which* file,
+    inside a menu whose own trigger already carries the arrow.
+  */
+  download: Download,
+  downloadPdf: FileText,
+  downloadWord: FileType,
   share: Share2,
   refresh: RefreshCw,
   archive: Archive,
@@ -428,6 +472,29 @@ export const APP_ICONS = {
   /* The intake’s measurement and target fields */
   calories: Flame,
   protein: Beef,
+
+  /*
+   * نمط الحياة والعادات — one glyph per answer on the lifestyle card.
+   *
+   * Fourteen labels in a four-column lattice read as an undifferentiated wall
+   * of grey text; a picture at the head of each label is what lets the eye land
+   * on "الأسماك" without reading the three labels beside it. They are named for
+   * the *question* they mark, not the food, so re-pointing one is an edit here.
+   */
+  habitActivity: Footprints,
+  habitBarrier: Ban,
+  habitSleep: Moon,
+  habitSmoking: Cigarette,
+  foodCaffeine: Coffee,
+  foodSweetDrinks: CupSoda,
+  foodFastFood: Pizza,
+  foodVegetables: Carrot,
+  foodFruit: Apple,
+  foodDairy: Milk,
+  foodRedMeat: Beef,
+  foodChicken: Drumstick,
+  foodFish: Fish,
+  foodSweets: Candy,
 
   /* Settings groups */
   settingsAccount: CircleUser,

@@ -28,6 +28,16 @@
  *    installed app shows its own branded "you're offline" screen instead of the
  *    browser's error page inside a chrome-less window with no way back. That
  *    error page was the single biggest thing between this and a real app.
+ * 4. **Web Push** — `push` draws the notification, `notificationclick` opens the
+ *    screen it is about, and `pushsubscriptionchange` re-registers a device
+ *    whose subscription the browser rotated. See the block at the foot of this
+ *    file; the server half is `src/features/portal/push/`.
+ *
+ * ⚠ The push payload carries **no clinical data**, by rule — it is decrypted by
+ * the browser and painted on a lock screen, which is the one surface in this
+ * product a stranger holding the phone can read. The rule is stated and
+ * enforced where the copy is written (`push/templates.ts`); this file must
+ * never add a field to what it displays.
  *
  * ⚠ The offline page is a **static file** (`portal-offline-{ar,en}.html`), not
  * a Next route. A page that renders only when the network is gone cannot
@@ -65,7 +75,7 @@ const IS_DEV = new URL(self.location.href).searchParams.get('dev') === '1';
 const CACHE_PREFIX = 'portal-';
 
 const STATIC_CACHE = `${CACHE_PREFIX}static-v3`;
-const SHELL_CACHE = `${CACHE_PREFIX}shell-v3`;
+const SHELL_CACHE = `${CACHE_PREFIX}shell-v6`;
 
 const CURRENT_CACHES = [STATIC_CACHE, SHELL_CACHE];
 
@@ -234,3 +244,206 @@ async function cacheFirst(request, cacheName) {
 
   return response;
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Web Push
+   ────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * The five fields `PushPayload` carries — see `src/features/portal/push/types.ts`.
+ *
+ * ⚠ **The contract is duplicated, not imported, and it has to be.** A service
+ * worker is a static file with no build step, so it cannot share a type with the
+ * app. What it can do is read defensively, which is what `parsePayload` below
+ * does — and it is the reason every field it reads has a fallback: an installed
+ * worker keeps serving until it updates, so a payload sent by a newer server
+ * will, for a while, be handled by this exact code. Anything added to the
+ * payload has to be optional on arrival.
+ */
+
+/** Shown when a payload is missing, malformed, or from a version this cannot read. */
+const PUSH_FALLBACK = {
+  ar: { title: 'إنزيم', body: 'لديك تحديث جديد.' },
+  en: { title: 'Enzyme', body: 'You have an update.' },
+};
+
+function parsePayload(event) {
+  const locale = scopeLocale();
+  const fallback = PUSH_FALLBACK[locale] || PUSH_FALLBACK.ar;
+
+  let data = null;
+
+  try {
+    data = event.data ? event.data.json() : null;
+  } catch {
+    /*
+      Not JSON. This is the case that matters most, because it is the one a
+      developer hits first: DevTools' own "Push" button sends a plain string,
+      and a worker that threw here would look completely dead. It is also what
+      a payload-less push looks like — a service may strip the body under
+      pressure — and `userVisibleOnly: true` means the browser reports an app
+      that shows nothing at all. So this falls through to a generic
+      notification rather than returning.
+    */
+  }
+
+  const source = data && typeof data === 'object' ? data : {};
+
+  return {
+    title: typeof source.title === 'string' && source.title ? source.title : fallback.title,
+    body: typeof source.body === 'string' && source.body ? source.body : fallback.body,
+    // Same-origin paths only. The URL is server-written, but this is the one
+    // value here that becomes a navigation, and a worker that would follow an
+    // absolute one is a worker that opens whatever a payload names.
+    url: typeof source.url === 'string' && source.url.startsWith('/') ? source.url : `/${locale}/portal`,
+    tag: typeof source.tag === 'string' && source.tag ? source.tag : 'portal',
+    kind: typeof source.kind === 'string' ? source.kind : 'portal',
+  };
+}
+
+/**
+ * Draws the notification.
+ *
+ * `event.waitUntil` is not optional: without it the worker may be killed before
+ * `showNotification` resolves and nothing is ever drawn. It is also the promise
+ * the browser watches to decide whether this app kept its `userVisibleOnly`
+ * bargain — every push must produce something visible, so there is deliberately
+ * no branch that resolves without showing one.
+ *
+ * `tag` collapses repeats: the server sends the delivery's own dedupe key, so a
+ * client whose phone was off does not wake to four copies of one reminder, while
+ * two different reminders still stack. `renotify` is what makes a *replacement*
+ * alert again rather than swapping in silence — an updated reminder that buzzed
+ * nothing would be worse than not sending it.
+ *
+ * The icon is the app's own PWA artwork, already precached by this worker
+ * (`isCacheableStaticAsset`), so drawing it costs no network.
+ *
+ * **There is no `badge`.** Android's status-bar badge must be a monochrome
+ * silhouette on transparency, and `/api/pwa-icons/*` serves only the four
+ * full-colour tiles the manifest names — handing it one of those produces a
+ * white blob. A generated glyph is a better answer than a bad one, and until
+ * there is a route that serves it, Android's own default is better than both.
+ */
+self.addEventListener('push', (event) => {
+  const payload = parsePayload(event);
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      tag: payload.tag,
+      renotify: true,
+      icon: '/api/pwa-icons/192',
+      // Read back by `notificationclick`, which is a separate event with access
+      // to nothing else.
+      data: { url: payload.url, kind: payload.kind },
+      /*
+        `silent`, `vibrate` and `requireInteraction` are deliberately left to the
+        platform. They are ignored or actively penalised somewhere — iOS honours
+        the system's own alert settings and nothing else — and a clinic reminder
+        is not important enough to argue with a phone that has been put on
+        silent.
+      */
+    }),
+  );
+});
+
+/**
+ * Opens the screen the notification is about.
+ *
+ * **Focus an open window before opening a new one**, and match on the portal
+ * rather than on the exact URL: a client who already has the app open should
+ * have *that* window brought forward and navigated, not a second copy opened
+ * beside it. `navigate()` can reject on some platforms — an iOS standalone
+ * window, notably — so the fallback is to focus what is there and let the app
+ * be where it was. Being in the right app beats failing to be on the right
+ * screen.
+ *
+ * `notification.close()` first: on Android the notification otherwise stays in
+ * the shade after the tap.
+ */
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  const data = event.notification.data || {};
+  const absolute = new URL(data.url || `/${scopeLocale()}/portal`, self.location.origin).href;
+
+  event.waitUntil(
+    (async () => {
+      const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+
+      for (const client of windows) {
+        // Any window already on this origin's portal. `includeUncontrolled`
+        // covers a tab loaded before this worker took control.
+        if (client.url.indexOf('/portal') === -1) continue;
+
+        try {
+          await client.focus();
+          if ('navigate' in client) await client.navigate(absolute);
+        } catch {
+          // Focused but could not navigate — see the note above.
+        }
+
+        return;
+      }
+
+      await self.clients.openWindow(absolute);
+    })(),
+  );
+});
+
+/**
+ * The browser rotated this device's subscription.
+ *
+ * It happens on its own schedule — a push service expiring an endpoint, a
+ * browser update — and the app is not told twice: whatever is stored server-side
+ * is dead from this moment, and this event is the only chance to replace it.
+ *
+ * ⚠ **This cannot reach a server action.** Actions are invoked from a rendered
+ * page, and this fires with no page open, so it posts to a plain route instead —
+ * `/api/portal/push-subscription`, which authenticates with the session cookie
+ * the browser attaches (`credentials: 'include'`).
+ *
+ * Support is uneven — Chrome fires it, Safari does not — so it is a repair
+ * mechanism and never the primary path. The one that always works is the client
+ * opening the app, where `usePushSubscription` reads the live subscription and
+ * reconciles the server to it.
+ *
+ * `previousEndpoint` goes with it so the server can delete the row being
+ * replaced; without it, every rotation would leave a dead endpoint behind.
+ */
+self.addEventListener('pushsubscriptionchange', (event) => {
+  event.waitUntil(
+    (async () => {
+      let next = event.newSubscription || null;
+
+      if (!next && event.oldSubscription) {
+        try {
+          next = await self.registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: event.oldSubscription.options.applicationServerKey,
+          });
+        } catch {
+          return;
+        }
+      }
+
+      if (!next) return;
+
+      try {
+        await fetch('/api/portal/push-subscription', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            locale: scopeLocale(),
+            subscription: next.toJSON(),
+            previousEndpoint: event.oldSubscription ? event.oldSubscription.endpoint : null,
+          }),
+        });
+      } catch {
+        // Offline, or signed out. The next visit repairs it — see above.
+      }
+    })(),
+  );
+});

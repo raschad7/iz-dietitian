@@ -1,0 +1,241 @@
+<!doctype html>
+<!--
+  Standalone prototype — no production code is touched.
+
+  This page exists to show one small thing: the finance summary card as it
+  would sit on the EXISTING client page, so the financial state is visible
+  where the clinical work happens. Everything around the card is a rough
+  stand-in for the real client screen, drawn only for context.
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>إنزيم — بطاقة الملخص المالي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Readex+Pro:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="finance.css" />
+</head>
+<body>
+
+<!--
+  Shared icon sprite. Every page inlines this block verbatim — these are
+  standalone files with no build step, so there is nothing to include with.
+  Glyphs are the Lucide shapes the app already uses through `src/lib/icons.ts`.
+-->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <g id="i-dash" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></g>
+  <g id="i-users" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></g>
+  <g id="i-calendar" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></g>
+  <g id="i-plans" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H9a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1Z"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M8 12h8M8 16h5"/></g>
+  <g id="i-dish" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h1a2 2 0 0 0 2-2V2M6 2v20"/><path d="M18 2v20M18 12c2 0 3-1.5 3-4V2"/></g>
+  <g id="i-wallet" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5"/><path d="M17 13h.01"/></g>
+  <g id="i-settings" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.35.4.65.73.85"/></g>
+  <g id="i-trend" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m22 7-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/></g>
+  <g id="i-clock" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></g>
+  <g id="i-alert" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></g>
+  <g id="i-wa" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.5 8.5 0 0 1-3.9-.9L3 20.5l1.5-4.5A8.4 8.4 0 0 1 3.6 11.5a8.4 8.4 0 0 1 8.4-8.4 8.4 8.4 0 0 1 9 8.4Z"/></g>
+  <g id="i-plus" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></g>
+  <g id="i-check" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></g>
+  <g id="i-search" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></g>
+  <g id="i-moon" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></g>
+  <g id="i-receipt" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2.5-1.5L9 22l2.5-1.5L14 22l2.5-1.5L19 22V2l-2.5 1.5L14 2l-2.5 1.5L9 2 6.5 3.5 4 2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></g>
+  <g id="i-cash" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></g>
+  <g id="i-chev" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></g>
+  <g id="i-back" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></g>
+  <g id="i-info" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></g>
+  <g id="i-package" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></g>
+  <g id="i-trash" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></g>
+  <g id="i-refresh" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></g>
+  <g id="i-inbox" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/></g>
+</defs></svg>
+
+<div class="shell">
+
+  <nav class="rail" aria-label="التنقل الرئيسي">
+    <div class="rail-head">
+      <svg class="rail-mark" viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M16 3c7 0 13 5.6 13 12.5S23 28 16 28 3 22.4 3 15.5 9 3 16 3Z" fill="#75CF48"/>
+        <circle cx="12" cy="14" r="2.1" fill="#266805"/><circle cx="19" cy="18" r="2.1" fill="#266805"/>
+      </svg>
+      <span class="rail-word">إنزيم</span>
+    </div>
+    <div class="rail-nav">
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-dash"/></svg><span data-en="Dashboard">لوحة التحكم</span></a>
+      <a class="rail-item" href="#" aria-current="page"><svg viewBox="0 0 24 24"><use href="#i-users"/></svg><span data-en="Clients">العملاء</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-calendar"/></svg><span data-en="Calendar">التقويم</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-plans"/></svg><span data-en="Weekly plans">الخطط الأسبوعية</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-dish"/></svg><span data-en="Dish catalog">كتالوج الأطباق</span></a>
+      <a class="rail-item" href="index.html">
+        <svg viewBox="0 0 24 24"><use href="#i-wallet"/></svg>
+        <span data-en="Finance">الأمور المالية</span>
+        <em class="rail-count" style="font-style:normal">2</em>
+      </a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-inbox"/></svg><span data-en="Requests">الطلبات</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-settings"/></svg><span data-en="Settings">الإعدادات</span></a>
+    </div>
+    <div class="rail-foot">
+      <div class="rail-user">
+        <span class="avatar">د</span>
+        <span class="stack">
+          <span class="t-label" data-en="Dr. Duaa">د. دعاء</span>
+          <span class="t-caption" data-en="Dietitian">أخصائية تغذية</span>
+        </span>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main">
+
+    <div class="topbar">
+      <span class="t-label muted">
+        <span data-en="Clients">العملاء</span>
+        <span aria-hidden="true"> / </span>
+        <span data-en="Suha Najjar">سُهى النجار</span>
+      </span>
+      <span class="grow"></span>
+      <div class="segmented" role="tablist" aria-label="اللغة">
+        <button data-locale-btn="ar" role="tab" aria-selected="true">ع</button>
+        <button data-locale-btn="en" role="tab" aria-selected="false">EN</button>
+      </div>
+      <button class="btn btn--neutral btn--icon btn--sm" data-theme-toggle
+              aria-label="الوضع الداكن" data-en-label="Dark mode">
+        <svg viewBox="0 0 24 24"><use href="#i-moon"/></svg>
+      </button>
+    </div>
+
+    <main class="page">
+
+      <div class="callout callout--attention">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><use href="#i-info"/></svg>
+        <div>
+          <b data-en="This page is context only.">هذه الصفحة سياق فقط.</b>
+          <span data-en="The one thing being proposed is the “Financial summary” card below — everything else stands in for the existing client screen.">
+            المقترح الوحيد هو بطاقة «الملخص المالي» أدناه — وكل ما عداها نائب عن شاشة العميل الحالية.
+          </span>
+        </div>
+      </div>
+
+      <div class="page-head mt-6">
+        <div class="row grow" style="flex-wrap:nowrap;align-items:flex-start">
+          <span class="avatar avatar--lg">س</span>
+          <div class="stack" style="min-inline-size:0">
+            <h1 class="t-h-lg" data-en="Suha Najjar">سُهى النجار</h1>
+            <span class="t-caption" data-en="28 years · client since 2 June 2026">28 سنة · عميلة منذ 2 حزيران 2026</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ THE PROPOSED CARD ═══════════════════════════════════════ -->
+      <div class="card card--flagged">
+        <div class="card-head">
+          <div class="grow">
+            <h2 class="t-h-sm" data-en="Financial summary">الملخص المالي</h2>
+          </div>
+          <span class="badge badge--medical" data-en="Overdue">متأخر</span>
+        </div>
+        <div class="card-body">
+          <div class="fin-summary">
+            <div>
+              <div class="row gap-4" style="align-items:flex-end">
+                <div class="stack">
+                  <span class="t-caption" data-en="Outstanding">المتبقي</span>
+                  <span class="big-money" style="color:var(--status-medical-fg)">150<span class="unit">₪</span></span>
+                </div>
+                <div class="stack" style="padding-block-end:6px">
+                  <span class="t-caption" data-en="Monthly · 150 ₪ agreed">شهري · 150 ₪ متفق عليها</span>
+                  <span class="t-body-sm" style="color:var(--status-medical-fg)"
+                        data-en="Due 5 Aug — 18 days ago">استحقت 5 آب — قبل 18 يوماً</span>
+                </div>
+              </div>
+              <div class="row gap-3 mt-3">
+                <span class="pips" title="3 من 4"><i class="pip used"></i><i class="pip used"></i><i class="pip used"></i><i class="pip next"></i></span>
+                <span class="t-caption" data-en="3 of 4 visits used">3 من 4 زيارات مستهلكة</span>
+              </div>
+            </div>
+            <div class="row gap-2">
+              <button class="btn btn--sm btn--neutral" data-open="dlg-remind">
+                <svg viewBox="0 0 24 24"><use href="#i-wa"/></svg><span data-en="Remind">تذكير</span>
+              </button>
+              <a class="btn btn--sm btn--default" href="subscriber.html">
+                <span data-en="Financial file">الملف المالي</span>
+                <svg viewBox="0 0 24 24" style="scale:-1 1"><use href="#i-chev"/></svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="hint mt-3" data-en="Deliberately shallow: the amount, the state, and a way out. Recording a payment or reading the ledger happens in the financial file, not here — the client page is already dense.">
+        سطحية عن قصد: المبلغ، والحالة، ومَخرج. تسجيل الدفعة وقراءة السجل يحدثان في الملف المالي لا هنا — صفحة العميل مزدحمة أصلاً.
+      </p>
+
+      <!-- ── Context: the rest of the client page, roughly ──────────── -->
+      <div class="divider" style="margin-block:28px"></div>
+      <p class="t-caption" data-en="— below: the existing client page, drawn roughly —">— أدناه: صفحة العميل الحالية، مرسومة تقريبياً —</p>
+
+      <div class="cols-2 mt-3" aria-hidden="true" style="opacity:.5">
+        <div class="card">
+          <div class="card-head"><h3 class="t-h-sm grow" data-en="Nutrition profile">الملف الغذائي</h3></div>
+          <div class="card-body">
+            <dl style="margin:0">
+              <div class="kv"><dt data-en="Goal">الهدف</dt><dd data-en="Weight loss">إنقاص وزن</dd></div>
+              <div class="kv"><dt data-en="Height">الطول</dt><dd>163 سم</dd></div>
+              <div class="kv"><dt data-en="Weight">الوزن</dt><dd>74 كغم</dd></div>
+              <div class="kv"><dt data-en="Allergies">الحساسيات</dt><dd data-en="Nuts">مكسرات</dd></div>
+            </dl>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3 class="t-h-sm grow" data-en="Upcoming appointments">المواعيد القادمة</h3></div>
+          <div class="card-body">
+            <div class="kv"><dt data-en="Follow-up">متابعة</dt><dd>26 آب · 11:00</dd></div>
+            <div class="kv"><dt data-en="Follow-up">متابعة</dt><dd>2 أيلول · 11:00</dd></div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ══ Dialog: WhatsApp reminder ═════════════════════════════════════ -->
+<dialog id="dlg-remind" aria-labelledby="dlg-remind-title">
+  <div class="dlg">
+    <div class="dlg-head">
+      <span class="avatar">س</span>
+      <div class="grow">
+        <h2 class="t-h-sm" id="dlg-remind-title" data-en="Payment reminder">تذكير بالدفع</h2>
+        <p class="t-caption">سُهى النجار · WhatsApp</p>
+      </div>
+    </div>
+    <div class="dlg-body">
+      <div class="callout">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><use href="#i-info"/></svg>
+        <div data-en="Nothing is sent until you press Send.">لا شيء يُرسل قبل ضغط «إرسال».</div>
+      </div>
+      <div class="wa-preview" dir="rtl">مرحباً سُهى 🌿
+تذكير ودّي من عيادة إنزيم للتغذية.
+
+الاشتراك: اشتراك شهري
+المتبقي: 150 ₪
+تاريخ الاستحقاق: 5 آب
+مرّ على تاريخ الاستحقاق 18 يوماً.
+
+يسعدنا استلام الدفعة في زيارتك القادمة، أو عبر التحويل البنكي.
+شكراً لكِ 💚</div>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn btn--neutral" data-close data-en="Cancel">إلغاء</button>
+      <button class="btn btn--default" data-send-reminder>
+        <svg viewBox="0 0 24 24"><use href="#i-wa"/></svg>
+        <span data-en="Send on WhatsApp">إرسال عبر واتساب</span>
+      </button>
+    </div>
+  </div>
+</dialog>
+
+<script src="finance.js"></script>
+</body>
+</html>

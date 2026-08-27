@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 
-import { FIELD_LIMITS } from './schema';
+import { FIELD_LIMITS, MIN_CLINIC_PHONE_DIGITS } from './schema';
 import { validateClinicProfile, validateEverySection } from './validation';
 
 const valid = {
   clinic: {
     name: 'Enzyme Clinic',
-    phone: '0599123456',
+    phone: '+970599123456',
     contactEmail: 'clinic@enzyme.test',
     address: 'Ramallah',
   },
@@ -51,6 +51,36 @@ describe('validateClinicProfile', () => {
       success: false,
       section: 'clinic',
       fieldErrors: { clinicPhone: 'invalidPhone', contactEmail: 'invalidEmail' },
+    });
+  });
+
+  test('a phone of the right shape but the wrong length says how many digits', () => {
+    // `invalidPhone` ("enter a valid phone number") is no help to someone who
+    // typed eight digits — the number they typed looks perfectly valid. The
+    // range is the whole of what is wrong, so the message names it.
+    const short = validateClinicProfile({
+      ...valid,
+      clinic: { ...valid.clinic, phone: `+970${'9'.repeat(MIN_CLINIC_PHONE_DIGITS - 1)}` },
+    });
+
+    expect(short).toEqual({
+      success: false,
+      section: 'clinic',
+      fieldErrors: { clinicPhone: 'phoneDigitCount' },
+    });
+
+    // The far end reports the same thing, because it is the same fact. Typing
+    // cannot reach it — `PhoneField` caps at `FIELD_LIMITS.clinicPhone` — so
+    // this only ever answers a request that did not come from the form.
+    const long = validateClinicProfile({
+      ...valid,
+      clinic: { ...valid.clinic, phone: `+970${'9'.repeat(FIELD_LIMITS.clinicPhone + 1)}` },
+    });
+
+    expect(long).toEqual({
+      success: false,
+      section: 'clinic',
+      fieldErrors: { clinicPhone: 'phoneDigitCount' },
     });
   });
 

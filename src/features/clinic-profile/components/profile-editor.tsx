@@ -145,7 +145,13 @@ export function ProfileEditor({
       >
         {(errors) =>
           section === 'clinic' ? (
-            <ClinicInformationFields profile={profile} fieldErrors={errors} />
+            /* `onEdit` catches the one control here the form's own `onInput`
+               cannot: the phone's country picker is a button, not an input. */
+            <ClinicInformationFields
+              profile={profile}
+              fieldErrors={errors}
+              onEdit={() => setDirty(true)}
+            />
           ) : section === 'schedule' ? (
             /*
              * The only section that has to report its own edits: a switch and
