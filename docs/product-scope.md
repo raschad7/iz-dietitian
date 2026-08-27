@@ -13,7 +13,9 @@ The current repository includes:
 - Appointment booking and calendar views
 - A staff dashboard
 - Nutrition profiles and AI-assisted weekly plans built from a canonical food
-  catalog and an editable dish catalog
+  catalog and an editable dish catalog, downloadable from the plan board as a
+  client handout in PDF or Word, carrying each meal's portions and its
+  alternatives
 - A client portal for appointments, profile details, and published plans,
   installable as a PWA
 - Clinic onboarding, clinic and account settings, and in-app notifications

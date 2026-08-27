@@ -41,6 +41,17 @@ export function AddDishButton({
     router.refresh();
   }
 
+  /**
+   * "Save and add another": the same refresh, without the close.
+   *
+   * Building a catalog is dish after dish, and the old flow charged a trip back
+   * to this button for each one. The dialog remounts the editor empty; the
+   * catalog behind it updates in place.
+   */
+  function handleSavedAndContinue() {
+    router.refresh();
+  }
+
   return (
     <>
       {/* Lives in the catalog toolbar beside Filters, so it sits `shrink-0` in
@@ -64,6 +75,7 @@ export function AddDishButton({
         open={open}
         onOpenChange={setOpen}
         onSaved={handleSaved}
+        onSavedAndContinue={handleSavedAndContinue}
         search={search}
         searchDishNames={searchDishNames}
       />
