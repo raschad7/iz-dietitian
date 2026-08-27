@@ -24,3 +24,4 @@ export * from './client-plan-adherence';
 export * from './weekly-plans';
 export * from './weekly-plan-meal-completions';
 export * from './whatsapp';
+export * from './push-subscriptions';

@@ -1925,3 +1925,32 @@ export async function previousPlanSlugs(
 
   return rows.map((row) => row.slug);
 }
+
+/**
+ * Who a plan belongs to, and which week it covers — the two facts a
+ * notification about it needs, and nothing else.
+ *
+ * `getBoard` above answers the same question, but it assembles a fully costed
+ * seven-day board to do it. This is read by `publishPlanAction` in an
+ * `after()` continuation whose entire job is to send one notification, so it
+ * reads two columns.
+ *
+ * Scoped to the clinic like every other read here: the caller has proved which
+ * clinic it is acting for, and a plan id from a form must not reach across
+ * that boundary even for something as small as this.
+ */
+export async function getPlanNotificationTarget(
+  clinicId: string,
+  planId: string,
+): Promise<{ clientId: string; weekStartDate: string } | null> {
+  const parsed = planIdSchema.safeParse(planId);
+  if (!parsed.success) return null;
+
+  const [row] = await db
+    .select({ clientId: weeklyPlans.clientId, weekStartDate: weeklyPlans.weekStartDate })
+    .from(weeklyPlans)
+    .where(and(eq(weeklyPlans.id, parsed.data), eq(weeklyPlans.clinicId, clinicId)))
+    .limit(1);
+
+  return row ?? null;
+}
