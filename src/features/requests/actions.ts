@@ -5,6 +5,7 @@ import { after } from 'next/server';
 
 import { type BookingContext } from '@/features/booking/mutations';
 import { localeSchema } from '@/features/booking/schema';
+import { notifyRecordRequestAnswered, notifyRequestAnswered } from '@/features/portal/push/notify';
 import {
   notifyAppointmentBooked,
   notifyAppointmentCancelled,
@@ -107,6 +108,33 @@ function notifyClient(clinicId: string, approved: ApprovedRequest): void {
 }
 
 /**
+ * Tells the client on their own device that the request was answered, **after**
+ * the response has been sent.
+ *
+ * The push twin of {@link notifyClient} above, and deliberately a second call
+ * rather than a branch inside it: the two channels answer to different things.
+ * WhatsApp is sent from the clinic's paired number and only for an *approval*,
+ * because what it carries is the appointment's new details. This is sent by the
+ * app to a device the client registered, and it goes out for a decline too —
+ * "your request was answered" is news either way, and it is exactly the
+ * `clinicMessage` item the in-app feed derives from the same row.
+ *
+ * `after()` for {@link notifyClient}'s reason: answering a request must not
+ * wait on a push service. Nothing here can fail the response.
+ */
+function notifyClientDevices(
+  send: () => Promise<unknown>,
+): void {
+  after(async () => {
+    try {
+      await send();
+    } catch (error) {
+      console.error('[requests] push notice failed', error);
+    }
+  });
+}
+
+/**
  * Approves a request, booking it at the time the dietitian confirmed.
  *
  * A booking rejection comes back carrying `namespace: 'booking'` so the dialog
@@ -128,8 +156,11 @@ export async function approveAppointmentRequestAction(
 
   revalidateRequests(locale, true);
   notifyClient(context.clinicId, result.data);
+  notifyClientDevices(() =>
+    notifyRequestAnswered(result.data.clientId, parsed.data.requestId, 'approved'),
+  );
 
-  // The approval's details serve the notification above and nothing else, so
+  // The approval's details serve the notifications above and nothing else, so
   // the browser goes on seeing a plain ok.
   return { ok: true, data: undefined };
 }
@@ -147,9 +178,15 @@ export async function declineAppointmentRequestAction(
 
   const result = await declineAppointmentRequest(clinicId, parsed.data);
 
-  if (result.ok) revalidateRequests(locale, false);
+  if (!result.ok) return result;
 
-  return result;
+  revalidateRequests(locale, false);
+  notifyClientDevices(() =>
+    notifyRequestAnswered(result.data.clientId, parsed.data.requestId, 'declined'),
+  );
+
+  // The client id served the notification and nothing else — see the approval.
+  return { ok: true, data: undefined };
 }
 
 /**
@@ -171,10 +208,16 @@ export async function answerClientRequestAction(
 
   const result = await answerClientRequest(clinicId, parsed.data);
 
-  if (result.ok) {
-    revalidateRequests(locale, false);
-    revalidatePath(`/${locale}/portal`, 'layout');
-  }
+  if (!result.ok) return result;
 
-  return result;
+  revalidateRequests(locale, false);
+  revalidatePath(`/${locale}/portal`, 'layout');
+
+  // Lands on the client's profile screen rather than the notifications feed,
+  // which lists appointment requests only — see `notifyRecordRequestAnswered`.
+  notifyClientDevices(() =>
+    notifyRecordRequestAnswered(result.data.clientId, parsed.data.requestId, parsed.data.status),
+  );
+
+  return { ok: true, data: undefined };
 }

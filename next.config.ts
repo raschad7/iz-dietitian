@@ -12,6 +12,22 @@ const nextConfig: NextConfig = {
     root: __dirname,
   },
   /*
+   * Hosts allowed to reach the dev server from an origin other than the one it
+   * is listening on.
+   *
+   * **Development only, and it exists for one job: testing the portal on a real
+   * phone.** Web Push needs a secure context, and a laptop's LAN address over
+   * plain HTTP is not one — so a phone reaches `next dev` through an HTTPS
+   * tunnel instead, and Next then sees a request whose `Host` is a
+   * `trycloudflare.com` name rather than `localhost` and blocks it. Without
+   * this, the tunnel serves the page but every `/_next/*` asset is refused.
+   *
+   * It has no effect on `next build` or `next start`, so nothing here reaches
+   * production. Add whatever tunnel you use; the entry is a hostname pattern,
+   * never a full URL.
+   */
+  allowedDevOrigins: ['*.trycloudflare.com'],
+  /*
    * The client router cache. By default a dynamic page — and every staff screen
    * is one, they all read the session cookie — is dropped the moment you leave
    * it, so stepping away from the calendar and back re-fetched and re-rendered

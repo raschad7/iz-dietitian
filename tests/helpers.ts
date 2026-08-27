@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { eq, sql } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { catalogFoodAliases, catalogFoodPortions, catalogFoods, clients, clinics, clinicWorkingHours, practitioners, whatsappSettings, type WhatsappSettings } from '@/db/schema';
+import { catalogFoodAliases, catalogFoodPortions, catalogFoods, clients, clinics, clinicWorkingHours, practitioners, pushSubscriptions, whatsappSettings, type WhatsappSettings } from '@/db/schema';
 import { normalizeArabic } from '@/features/weekly-plans/arabic-normalize';
 import { defaultClinicScheduleRows } from '@/features/clinic-profile/default-schedule';
 import { normalizeForSearch } from '@/features/clients/search';
@@ -148,6 +148,57 @@ export function enableWhatsappForTests(): void {
 
 export function disableWhatsappForTests(): void {
   delete process.env.WHATSAPP_ENABLED;
+}
+
+/**
+ * A VAPID keypair, so the push feature considers itself configured.
+ *
+ * A real, matched pair rather than two arbitrary strings: `web-push` validates
+ * the key's shape before it signs anything, so a placeholder would make every
+ * test fail for a reason that has nothing to do with what it was testing. No
+ * push service is ever contacted — every test passes a fake transport, and the
+ * real one is only reached through `sendWebPush`'s injectable seam.
+ *
+ * ⚠ This pair is **for tests and is published in the repository**. It must
+ * never appear in a deployment's `.env`; generate one with
+ * `bunx web-push generate-vapid-keys`.
+ */
+export function enableWebPushForTests(): void {
+  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY =
+    'BJTSq0irnDi0YL6foOPC9WZq5PGv83irRfytHgzwYIe_XK2ofUgbcFvwOzVBWBPR2T4VF6x3smKvlW3DiMrooR0';
+  process.env.VAPID_PRIVATE_KEY = 'MfgBxTae__fzipy0Gc38MMan-qdgJA2nlf-P500jFzM';
+  process.env.VAPID_SUBJECT = 'mailto:test@example.com';
+}
+
+export function disableWebPushForTests(): void {
+  delete process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  delete process.env.VAPID_PRIVATE_KEY;
+  delete process.env.VAPID_SUBJECT;
+}
+
+/** One registered device for a client, as `savePushSubscription` would write it. */
+export async function createTestPushSubscription(
+  clientId: string,
+  overrides: Partial<{ endpoint: string; locale: 'ar' | 'en' }> = {},
+): Promise<{ id: string; endpoint: string }> {
+  const endpoint = overrides.endpoint ?? `https://push.example.com/${randomUUID()}`;
+
+  const [row] = await db
+    .insert(pushSubscriptions)
+    .values({
+      clientId,
+      endpoint,
+      // Shaped like the real thing — 65 and 16 bytes base64url — though nothing
+      // in a test ever encrypts against them.
+      p256dh: 'BJTSq0irnDi0YL6foOPC9WZq5PGv83irRfytHgzwYIe_XK2ofUgbcFvwOzVBWBPR2T4VF6x3smKvlW3DiMrooR0',
+      auth: 'k8JV6sjdzhhFsmZTMlwsyg',
+      locale: overrides.locale ?? 'ar',
+    })
+    .returning({ id: pushSubscriptions.id, endpoint: pushSubscriptions.endpoint });
+
+  if (!row) throw new Error('insert into push_subscriptions returned no row');
+
+  return row;
 }
 
 /**

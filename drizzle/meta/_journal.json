@@ -218,6 +218,13 @@
       "when": 1787041949196,
       "tag": "0030_mute_vermin",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1787812554627,
+      "tag": "0031_confused_kate_bishop",
+      "breakpoints": true
     }
   ]
 }

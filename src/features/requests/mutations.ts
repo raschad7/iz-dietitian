@@ -210,18 +210,26 @@ function bookingFailure(result: Extract<ActionResult<never>, { ok: false }>): Re
 export async function declineAppointmentRequest(
   clinicId: string,
   input: DeclineAppointmentRequestInput,
-): Promise<RequestsResult> {
-  const answered = await markAnswered(clinicId, input.requestId, 'declined');
+): Promise<RequestsResult<{ clientId: string }>> {
+  const clientId = await markAnswered(clinicId, input.requestId, 'declined');
 
-  return answered ? { ok: true, data: undefined } : { ok: false, error: 'errors.alreadyAnswered' };
+  return clientId ? { ok: true, data: { clientId } } : { ok: false, error: 'errors.alreadyAnswered' };
 }
 
-/** Flips one pending request to its answered status. Returns whether it was still pending. */
+/**
+ * Flips one pending request to its answered status.
+ *
+ * Returns the client it belonged to, or `null` if it was not still pending —
+ * so the caller learns both whether the write landed and who to tell. It
+ * returned a bare boolean until the portal gained push notifications, which
+ * need the client id and cannot re-read the row afterwards without racing the
+ * next update.
+ */
 async function markAnswered(
   clinicId: string,
   requestId: string,
   status: 'approved' | 'declined',
-): Promise<boolean> {
+): Promise<string | null> {
   try {
     const updated = await db
       .update(appointmentRequests)
@@ -233,15 +241,15 @@ async function markAnswered(
           eq(appointmentRequests.status, 'pending'),
         ),
       )
-      .returning({ id: appointmentRequests.id });
+      .returning({ clientId: appointmentRequests.clientId });
 
-    return updated.length > 0;
+    return updated[0]?.clientId ?? null;
   } catch (error) {
     // Only reached if the database itself is unhappy. An approval has already
     // written the calendar by this point, so this is logged rather than thrown:
     // the booking is real, and the item simply stays in the inbox.
     console.error('[requests] marking a request answered failed', error);
-    return false;
+    return null;
   }
 }
 
@@ -260,7 +268,7 @@ async function markAnswered(
 export async function answerClientRequest(
   clinicId: string,
   input: AnswerClientRequestInput,
-): Promise<RequestsResult> {
+): Promise<RequestsResult<{ clientId: string }>> {
   try {
     const updated = await db
       .update(clientRequests)
@@ -272,10 +280,13 @@ export async function answerClientRequest(
           eq(clientRequests.status, 'pending'),
         ),
       )
-      .returning({ id: clientRequests.id });
+      // The client, not the id: the caller has to tell them it was answered,
+      // and reading the row back afterwards would race the next update. Same
+      // reasoning as `markAnswered` above.
+      .returning({ clientId: clientRequests.clientId });
 
-    return updated.length > 0
-      ? { ok: true, data: undefined }
+    return updated[0]
+      ? { ok: true, data: { clientId: updated[0].clientId } }
       : { ok: false, error: 'errors.alreadyAnswered' };
   } catch (error) {
     console.error('[requests] answering a client request failed', error);

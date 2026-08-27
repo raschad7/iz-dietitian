@@ -1358,6 +1358,13 @@
       "notifications": {
         "title": "Notifications",
         "description": "Choose what you would like to hear about.",
+        "device": {
+          "label": "Notifications on this device",
+          "description": "Get alerts on this device, even when the app is closed.",
+          "blocked": "Notifications are blocked in your browser settings. Allow them for this site, then try again.",
+          "needsInstall": "Add the app to your Home Screen first to receive notifications. Tap here for the steps.",
+          "unsupported": "This browser does not support notifications."
+        },
         "appointmentReminder": {
           "label": "Appointment reminder",
           "description": "A message before your appointment at the clinic."

@@ -4,6 +4,10 @@ import { revalidatePath } from 'next/cache';
 import { after } from 'next/server';
 
 import {
+  notifyAppointmentCancelled as pushAppointmentCancelled,
+  notifyAppointmentRescheduled as pushAppointmentRescheduled,
+} from '@/features/portal/push/notify';
+import {
   notifyAppointmentBooked,
   notifyAppointmentCancelled,
   notifyAppointmentRescheduled,
@@ -137,6 +141,33 @@ function notifyRescheduled(
   });
 }
 
+/**
+ * The same two facts on the client's own phone, over Web Push.
+ *
+ * A second `after()` rather than a branch inside the WhatsApp helpers above,
+ * and separate on purpose: the two channels fail independently, and a clinic
+ * whose WhatsApp session has dropped must still be able to tell a client their
+ * appointment moved. Neither can fail the write that triggered it.
+ *
+ * ⚠ **Only the staff-initiated paths are wired here.** When a *client* asks for
+ * a change and the dietitian approves it, `requests/actions.ts` already pushes
+ * "your request was approved" — adding these there too would buzz the same
+ * phone twice about one decision.
+ *
+ * `clientId` is passed in rather than read back: for a cancellation the row is
+ * already gone, and for a move it is what the request named. See
+ * `push/notify.ts`.
+ */
+function pushScheduleChange(send: () => Promise<unknown>): void {
+  after(async () => {
+    try {
+      await send();
+    } catch (error) {
+      console.error('[booking] push schedule notice failed', error);
+    }
+  });
+}
+
 /** Tells the client their appointment is cancelled, after the row is gone. */
 function notifyCancelled(clinicId: string, cancelled: DeletedAppointment): void {
   after(async () => {
@@ -206,8 +237,20 @@ export async function updateAppointmentAction(rawLocale: string, input: unknown)
   // beside the send in `src/features/whatsapp/notify.ts`, where it covers all of
   // them and the next caller too; both branches below are refused there if this
   // slot has already started.
-  if (moved) notifyRescheduled(context.clinicId, parsed.data.id, previous);
-  else notifyBooked(context.clinicId, parsed.data.id);
+  if (moved) {
+    notifyRescheduled(context.clinicId, parsed.data.id, previous);
+    pushScheduleChange(() =>
+      pushAppointmentRescheduled(parsed.data.clientId, {
+        id: parsed.data.id,
+        date: parsed.data.date,
+        startMinute: parsed.data.startMinute,
+      }),
+    );
+  } else {
+    // An edit that left the slot alone. The client is told nothing new on
+    // either channel beyond the confirmation's own dedupe rules.
+    notifyBooked(context.clinicId, parsed.data.id);
+  }
 
   return { ok: true, data: undefined };
 }
@@ -227,6 +270,13 @@ export async function deleteAppointmentAction(rawLocale: string, input: unknown)
 
   revalidateCalendar(locale);
   notifyCancelled(context.clinicId, result.data);
+  pushScheduleChange(() =>
+    pushAppointmentCancelled(result.data.clientId, {
+      id: result.data.id,
+      date: result.data.date,
+      startMinute: result.data.startMinute,
+    }),
+  );
 
   return { ok: true, data: undefined };
 }
