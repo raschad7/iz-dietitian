@@ -816,18 +816,22 @@ function SidebarMenuItem({ className, ...props }: React.ComponentProps<"li">) {
   rail flicker between "states" on the way to a click.
 
   **The active row is `--sidebar-accent` (c-200) under
-  `--sidebar-accent-foreground` (c-600), with `font-semibold` and
-  `aria-current="page"`.** ΔL* 6.6 from the rail and 6.10:1 for the ink on it.
-  The fill is the whole of the state here — it was a green-50 tint that measured
-  ΔL* 0.74 and was carried entirely by green ink — which is why the gap between
-  this step and the hover step is not negotiable. Narrow it and the current row
-  and a hovered one become the same thing.
+  `--sidebar-accent-foreground` (green-700), with `font-medium` and
+  `aria-current="page"`.** ΔL* 6.6 from the rail and 5.00:1 for the ink on it.
+  Three marks, none of them loud: the fill separates the row from the column,
+  the colour says which row it is, and the weight is a step rather than a shove.
 
-  **No green on the rail at all.** Selection was the one olive surface in the
-  shell, and "where am I" is not a brand statement; the green is spent on
-  actions now, which is where it means something. The rail is one neutral family
-  top to bottom — the cool one, which is what the palette already assigned to
-  sidebars and hover fills.
+  The fill is doing more work than it used to — it was a green-50 tint measuring
+  ΔL* 0.74, which was no fill at all — so the gap between it and the hover step
+  is not negotiable. Narrow it and the current row and a hovered one become the
+  same thing.
+
+  **The ink is the rail's only brand colour, and the only colour on it.** Every
+  surface here is a step of one grey ramp, which is what lets a single hue mean
+  exactly one thing: this is the page you are on. `font-medium` rather than
+  `semibold` because at 600 the row thickens instead of darkening — Arabic's UI
+  face has no true bold and the browser synthesises one — and the colour is
+  already carrying the state.
 
   **The active row is exempt from hover.** `data-active:hover:` re-asserts its
   own fill, so passing over the page you are already on changes nothing. Hover
@@ -852,7 +856,7 @@ function SidebarMenuItem({ className, ...props }: React.ComponentProps<"li">) {
   pointer.
 */
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button group/menu-button flex w-full items-center gap-3 overflow-hidden rounded-md px-3 py-2 text-start text-sm text-sidebar-icon ring-sidebar-ring outline-hidden transition-[width,height,padding,background-color,color] duration-(--duration-label) ease-(--ease-sweep) group-has-data-[sidebar=menu-action]/menu-item:pe-8 group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:px-2.5! group-data-[collapsible=icon]:py-0! hover:bg-sidebar-hover focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-active:bg-sidebar-accent data-active:hover:bg-sidebar-accent data-active:font-semibold data-active:text-sidebar-accent-foreground [&_svg]:shrink-0 [&_svg]:text-current [&_svg:not([class*='size-'])]:size-5 [&>span:last-child]:truncate",
+  "peer/menu-button group/menu-button flex w-full items-center gap-3 overflow-hidden rounded-md px-3 py-2 text-start text-sm text-sidebar-icon ring-sidebar-ring outline-hidden transition-[width,height,padding,background-color,color] duration-(--duration-label) ease-(--ease-sweep) group-has-data-[sidebar=menu-action]/menu-item:pe-8 group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:px-2.5! group-data-[collapsible=icon]:py-0! hover:bg-sidebar-hover focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-active:bg-sidebar-accent data-active:hover:bg-sidebar-accent data-active:font-medium data-active:text-sidebar-accent-foreground [&_svg]:shrink-0 [&_svg]:text-current [&_svg:not([class*='size-'])]:size-5 [&>span:last-child]:truncate",
   {
     variants: {
       variant: {

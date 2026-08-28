@@ -336,18 +336,17 @@ function activeLevelsOf(sections: readonly NavSection[], at: Location): Record<s
 type FlatItem = NavItem & { id: string };
 
 /**
- * The rail, flattened to the destinations the 56px strip draws.
+ * The destinations a branch of the rail stands for once it is folded.
  *
- * The staff rail folds to exactly the six glyphs it has always had — dashboard,
- * clients, bills, calendar, weekly plans, dishes — because at 56px there is no
- * room for a heading to name anything and nothing to open a category into.
- * Sections are walked straight through; a category contributes one row if it
- * names a `collapsedHref` and is otherwise transparent.
+ * A category contributes one row if it names a `collapsedHref` and is otherwise
+ * transparent — its children take its place. That is what makes the folded
+ * staff rail exactly the six glyphs it has always had: dashboard, clients,
+ * bills, calendar, weekly plans, dishes.
  *
  * ⚠ This is not a nicety. On a phone the staff rail is **locked** to its icon
- * column: no drawer, no way to expand it (see `railOnly` on `AppShell`). If the
- * folded rail drew sections, every screen but the dashboard would be
- * unreachable on a phone.
+ * column: no drawer, no way to expand it (see `railOnly` on `AppShell`). A
+ * category that folded to nothing would put every screen it holds out of reach
+ * on a phone entirely.
  */
 function flattenNodes(nodes: readonly NavNode[]): FlatItem[] {
   return nodes.flatMap((node) => {
@@ -359,6 +358,13 @@ function flattenNodes(nodes: readonly NavNode[]): FlatItem[] {
   });
 }
 
+/**
+ * The whole rail as a flat list of addresses.
+ *
+ * One caller: finding the section's own index for the logo's link. It walks
+ * everything so that the answer does not depend on the dashboard happening to
+ * be a top-level row in a section that happens to come first.
+ */
 function flatten(sections: readonly NavSection[]): FlatItem[] {
   return sections.flatMap((section) => flattenNodes(section.children));
 }
@@ -804,18 +810,26 @@ function RailMark() {
  * toggle at this width — is `useSidebar()`, and `AppShell` is the thing that
  * *creates* that context and so cannot read it.
  *
- * The strip is in the flow, not floating over the page. A trigger positioned
- * absolutely in the corner would sit on top of whatever each screen happens to
- * put there, which across this app is a page title, a toolbar, or a table
- * header; 44px of dedicated row costs a little height and cannot collide with
- * anything. The staff shell is a fixed frame with its own scroller in `main`
- * (see `className` on `ShellProps`), so this row stays put while the page moves
- * under it.
+ * ## It costs no row
+ *
+ * It had one for a release — a 44px strip above the page — and 44px of every
+ * screen in the app spent on a single 32px control is not a trade worth making
+ * twice. It is out of the flow now, in the page's top inline-start corner, and
+ * the page's own first row is inset far enough to sit beside it rather than
+ * under it. That inset is one rule in `globals.css` keyed on
+ * `[data-slot='shell-scroll']`, so it reaches every staff screen — including
+ * the several that draw their own first line instead of `PageHeader` — without
+ * any of them knowing this control exists.
+ *
+ * The trigger is a sibling of `main` rather than a child, so it does not
+ * scroll: the way to reach the navigation stays on screen wherever the reader
+ * has got to on a long page. It carries the page's own background for the same
+ * reason, because content does travel underneath it.
  *
  * It renders nothing on a phone. `SidebarTrigger` takes itself out of the page
  * when the rail is locked — a control that cannot do anything is worse than no
- * control — and an empty 44px strip above every screen on the narrowest device
- * in the product is exactly the height that device has least of.
+ * control — and the inset above is withheld in the same breath, keyed on the
+ * `data-locked` the provider puts on the shell.
  */
 function ShellTrigger() {
   const t = useTranslations('nav');
@@ -824,7 +838,7 @@ function ShellTrigger() {
   if (locked) return null;
 
   return (
-    <div className="flex h-11 shrink-0 items-center px-2">
+    <div className="absolute top-3 z-20 flex bg-background start-3 md:top-5 md:start-5">
       <SidebarTrigger
         standing
         expandLabel={t('expandSidebar')}
@@ -855,21 +869,42 @@ function RoutedNavTree(props: TreeProps) {
 }
 
 /**
- * The rail's navigation, in both of its shapes.
+ * The rail's navigation — **one list, in both shapes of the rail.**
  *
- * **Two lists are rendered, and CSS picks between them.** The sections are what
- * the 16rem column shows; the flat list is what the 56px strip shows (and why
- * it has to exist at all is on `flatten`). Swapping them in JavaScript on
- * `useSidebar().state` would remount one list into the other in the middle of
- * the rail's own 200ms width transition, which reads as a flicker at exactly
- * the moment the eye is following the movement. Two lists and a
- * `group-data-[collapsible=icon]` toggle cost a few dozen hidden nodes and
- * nothing else.
+ * ## Why one
+ *
+ * This used to render the whole tree twice and let CSS pick: the sections for
+ * the 16rem column, a flattened copy for the 56px strip. Two lists cannot
+ * *animate* into each other. `display` does not interpolate, and the swap fires
+ * on `data-collapsible` the instant the state flips — so for the whole 200ms
+ * the rail spent narrowing, the glyphs had already teleported to the positions
+ * they would hold at the end. Every row that sat at a different height in the
+ * two lists — which, once sections added headings, was every row below the
+ * first — jumped. The width slid and the contents did not follow it.
+ *
+ * One list has nothing to swap, so every part of the fold is a transition on a
+ * property that interpolates, and they all run on the same 200ms:
+ *
+ * - the **rail's width**, from `Sidebar`;
+ * - each **row's width and padding**, from `sidebarMenuButtonVariants` — the
+ *   button is `overflow-hidden`, so its label is clipped away rather than
+ *   removed, and the glyph stays put in the gutter it already occupied;
+ * - each **section heading**, from `SidebarGroupLabel` — `-mt-8` and `opacity-0`
+ *   on the same duration, so the heading fades as it slides up and the rows
+ *   under it glide into the space it vacates instead of snapping up into it.
+ *
+ * ## The one thing that still has two forms
+ *
+ * A category. It is a disclosure at 16rem and there is nothing to disclose into
+ * at 56px, so its row is a *destination* while folded — see `collapsedHref`.
+ * Both forms are rendered and CSS picks, which is the trick this file used to
+ * apply to the entire tree and now applies to a single row: the two draw the
+ * same glyph in the same place, so nothing about the swap is visible, and it
+ * costs one hidden `<li>` rather than a hidden copy of the rail.
  *
  * The mobile *drawer* — which the portal keeps and the staff app does not —
- * renders inside a `Sheet` that has no `group` ancestor, so neither variant
- * matches there and the sections are what show. That is right: the drawer is
- * 18rem wide with labels.
+ * renders inside a `Sheet` that has no `group` ancestor, so the folded variants
+ * never match there and the rail draws its full 18rem self with labels.
  */
 function NavTree({
   items,
@@ -986,56 +1021,40 @@ function NavTree({
     [trail],
   );
 
-  const flat = useMemo(() => flatten(items), [items]);
-
   return (
     <>
       {/*
-        The sections. Hidden at 56px, where the flat list below stands in for
-        them — see `flatten`.
-
         Each band is its own `SidebarGroup`, which is what puts space between
-        one heading's territory and the next. The first band carries no heading,
-        so its group is pulled flush with the header above it: otherwise the
-        dashboard sits a line lower than the logo leads you to expect, and the
-        gap reads as a missing row rather than as the top of the column.
-      */}
-      <div className="group-data-[collapsible=icon]:hidden">
-        {items.map((section, index) => (
-          <SidebarGroup key={section.id} className={cn('py-1', index === 0 && 'pt-0')}>
-            {section.labelKey ? <NavSectionLabel labelKey={section.labelKey} /> : null}
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {section.children.map((node) => (
-                  <NavRow
-                    key={isGroup(node) ? node.id : node.href}
-                    node={node}
-                    depth={0}
-                    levelKey={section.id}
-                    icons={icons}
-                    at={at}
-                    openIdAt={openIdAt}
-                    onToggle={toggle}
-                  />
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
-      </div>
+        one heading's territory and the next — and keeps putting it once the
+        headings have folded away, so the icon strip is grouped too rather than
+        being one undifferentiated column of six.
 
-      {/* The folded rail. Hidden at every width but 56px — see `flatten`. One
-          flat column with no headings and no bands: the strip has no room to
-          name a section and nothing to indent under one. */}
-      <SidebarGroup className="hidden pt-0 group-data-[collapsible=icon]:block">
-        <SidebarGroupContent>
-          <SidebarMenu>
-            {flat.map((item) => (
-              <NavLeafRow key={item.id} item={item} icons={icons} at={at} />
-            ))}
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
+        The first band carries no heading, so its group is pulled flush with the
+        header above it: otherwise the dashboard sits a line lower than the logo
+        leads you to expect, and the gap reads as a missing row rather than as
+        the top of the column.
+      */}
+      {items.map((section, index) => (
+        <SidebarGroup key={section.id} className={cn('py-1', index === 0 && 'pt-0')}>
+          {section.labelKey ? <NavSectionLabel labelKey={section.labelKey} /> : null}
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {section.children.map((node) => (
+                <NavRow
+                  key={isGroup(node) ? node.id : node.href}
+                  node={node}
+                  depth={0}
+                  levelKey={section.id}
+                  icons={icons}
+                  at={at}
+                  openIdAt={openIdAt}
+                  onToggle={toggle}
+                />
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      ))}
     </>
   );
 }
@@ -1142,18 +1161,15 @@ function NavRow({ node, depth, levelKey, icons, at, openIdAt, onToggle }: RowPro
   );
 
   /*
-    A category that is *shut* while the current screen is inside it is set in
-    the weight the current row would carry, and no fill. Open, the lit row
-    below already says where you are and a second mark above it would be saying
-    it twice; shut, this is the only trace of your position left on the rail.
+    A category that is *shut* while the current screen is inside it takes the
+    current row's ink and weight, and no fill. Open, the lit row below already
+    says where you are and a second mark above it would be saying it twice;
+    shut, this is the only trace of your position left on the rail.
 
-    Weight rather than colour. It used to take `--sidebar-accent-foreground`,
-    which was green-700 against a green-free rail and read at a glance; that
-    token is c-600 now — the same ink every idle row already carries — so a
-    recolour would have been no mark at all. `font-semibold` is the one signal
-    the selected row itself uses that a fill is not carrying.
+    Ink and weight but no fill, which is what keeps the two distinguishable: the
+    row you are *on* is filled, the category that *holds* it is only coloured.
   */
-  const trace = holdsActive && !open ? 'font-semibold text-sidebar-accent-foreground' : undefined;
+  const trace = holdsActive && !open ? 'font-medium text-sidebar-accent-foreground' : undefined;
 
   const chevron = (
     <Icon
@@ -1183,16 +1199,39 @@ function NavRow({ node, depth, levelKey, icons, at, openIdAt, onToggle }: RowPro
   } as const;
 
   return top ? (
-    <SidebarMenuItem>
-      <SidebarMenuButton {...trigger} className={trace}>
-        {icon ? <Icon name={icon} className="size-5" /> : null}
-        {/* The button’s own [&>span:last-child]:truncate does not reach this one:
-            the chevron is the last child on a category row, not the label. */}
-        <span className="truncate">{label}</span>
-        {chevron}
-      </SidebarMenuButton>
-      {panel}
-    </SidebarMenuItem>
+    <>
+      <SidebarMenuItem className="group-data-[collapsible=icon]:hidden">
+        <SidebarMenuButton {...trigger} className={trace}>
+          {icon ? <Icon name={icon} className="size-5" /> : null}
+          {/* The button’s own [&>span:last-child]:truncate does not reach this one:
+              the chevron is the last child on a category row, not the label. */}
+          <span className="truncate">{label}</span>
+          {chevron}
+        </SidebarMenuButton>
+        {panel}
+      </SidebarMenuItem>
+      {/*
+        The same row, folded: a destination rather than a disclosure.
+
+        At 56px there is nothing to open into, so the category stands for one
+        address — its `collapsedHref`, or, for a category that names none, its
+        children flattened in its place. See `flattenNodes`.
+
+        Rendered alongside rather than swapped in on `useSidebar().state`: both
+        forms draw the same glyph at the same x, so CSS picking between them is
+        invisible, while a JavaScript swap would remount the row in the middle
+        of the fold — the one moment the eye is following it.
+      */}
+      {flattenNodes([node]).map((item) => (
+        <NavLeafRow
+          key={item.id}
+          item={item}
+          icons={icons}
+          at={at}
+          className="hidden group-data-[collapsible=icon]:block"
+        />
+      ))}
+    </>
   ) : (
     <SidebarMenuSubItem>
       {/* `render` overrides the sub-button's default `<a>`: this one opens a
@@ -1219,17 +1258,20 @@ function NavLeafRow({
   item,
   icons,
   at,
+  className,
 }: {
   item: FlatItem;
   icons: Partial<Record<NavLabelKey, IconName>> | undefined;
   at: Location;
+  /** For the two forms of a category row — see `NavRow`. Destinations pass none. */
+  className?: string;
 }) {
   const t = useTranslations('nav');
   const icon = icons?.[item.labelKey];
   const label = t(item.labelKey);
 
   return (
-    <SidebarMenuItem>
+    <SidebarMenuItem className={className}>
       {/*
         `tooltip` only shows while the sidebar is collapsed — the registry hides
         it otherwise — so the label is never announced twice to a pointer that

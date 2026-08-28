@@ -1351,10 +1351,25 @@
    *   fill), because repainting the text made a pass of the pointer look like a
    *   navigation.
    * - **Selected — `--sidebar-accent`, c-200, under `--sidebar-accent-foreground`,
-   *   c-600 (6.10:1), with `font-semibold` and `aria-current="page"`.** ΔL* 6.6
-   *   from the rail, three times the hover step, so the current row is the
+   *   green-700 (5.00:1), with `font-medium` and `aria-current="page"`.** ΔL*
+   *   6.6 from the rail, three times the hover step, so the current row is the
    *   heaviest fill in the column at every moment including while the pointer
    *   is elsewhere on it.
+   *
+   *   **The one brand colour on the rail, and it is the ink.** Everything else
+   *   here is grey, so the current row is the only thing carrying the product's
+   *   own hue and it does not have to shout to be found. The weight is 500
+   *   rather than 600: at 600 the row thickened rather than darkened — the
+   *   Arabic UI face has no true bold and the browser synthesises one, which is
+   *   the same reason `PageHeader` sets its title at 400 — and with a fill and
+   *   a colour already marking the row, the weight only has to be *a* step, not
+   *   a heavy one.
+   *
+   *   ⚠ **green-700 is the lightest step of the ramp that may be used here.**
+   *   `--primary` itself (green-400) measures 1.57:1 on this fill and green-500
+   *   measures 2.10:1 — both are invisible as text. green-600 reaches 3.24:1,
+   *   which clears the 3:1 floor for a *graphic* and not the 4.5:1 this owes as
+   *   a label. Go darker if the fill ever does; do not go lighter.
    *
    * ⚠ The fill is now the *whole* of the selected state, where green-50 was
    * effectively invisible as a fill (ΔL* 0.74) and the green ink carried it. So
@@ -1405,7 +1420,7 @@
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--green-900); /* the wordmark, on a light rail */
   --sidebar-accent: var(--c-200);           /* the selected surface — ΔL* 6.6 from the rail */
-  --sidebar-accent-foreground: var(--c-600); /* on it — 6.10:1, see above */
+  --sidebar-accent-foreground: var(--green-700); /* the brand, on it — 5.00:1, see above */
   --sidebar-hover: var(--c-100);            /* hover is one step under the rail, never green */
   /*
    * The divider is the darkest of the rail's three greys, and it is the whole
@@ -3717,6 +3732,38 @@
 .q-app-shell [data-slot='sidebar-inset'] {
   min-block-size: 0;
   overflow: hidden;
+}
+
+/*
+ * ── Room for the rail's trigger, in the corner of every staff page ──
+ *
+ * The control that folds the rail stands on the page rather than in the rail
+ * (see `ShellTrigger` in `layout/sidebar.tsx`), pinned to the top inline-start
+ * corner and out of the flow. Out of the flow it takes no height from the page
+ * — which is the whole point, a 44px strip on every screen to hold one 32px
+ * button was not worth it — but it does occupy that corner, and the corner is
+ * where every staff screen starts its first line.
+ *
+ * So the first line moves over. `> :first-child` is the page's own opening row
+ * on every screen in the app: `PageHeader` on most of them, a breadcrumb on a
+ * client's record, a toolbar on the ones that have neither. Reaching them
+ * through the shell's scroller rather than through `PageHeader` is what makes
+ * this cover the screens that do not use `PageHeader` at all — there are six of
+ * them, and they were exactly the screens a fix applied to the shared header
+ * would have missed.
+ *
+ * 2.5rem is the 32px control plus 8px of gap. It applies at every width because
+ * the trigger is there at every width, and it is padding rather than a margin
+ * so a first child with a background of its own still reaches the page's edge.
+ *
+ * ⚠ Withheld while the rail is **locked**. On a phone there is no trigger — the
+ * rail cannot be folded, so `SidebarTrigger` removes itself — and an inset
+ * reserving space for a control that is not there is a paragraph indented for
+ * no reason on the narrowest screen in the product. `data-locked` is the
+ * provider's own answer to that question; see `SidebarProvider`.
+ */
+[data-slot='sidebar-wrapper']:not([data-locked]) [data-slot='shell-scroll'] > :first-child {
+  padding-inline-start: 2.5rem;
 }
 
 /*
