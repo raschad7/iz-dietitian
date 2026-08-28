@@ -38,11 +38,20 @@ export type WhatsappConfig = {
    * quick and is capped separately by the caller.
    */
   requestTimeoutMs: number;
+  /**
+   * Minimum gap between two messages leaving the same clinic's number. See
+   * `pacing.ts`: bursts are what get an unofficial WhatsApp client restricted.
+   */
+  sendSpacingMs: number;
+  /** Random extra delay on top of that gap, so the trail is not a metronome. */
+  sendJitterMs: number;
 };
 
 const DEFAULT_API_URL = 'http://localhost:2785';
 const DEFAULT_COUNTRY_CODE = '970';
 const DEFAULT_TIMEOUT_MS = 30_000;
+const DEFAULT_SPACING_MS = 1_200;
+const DEFAULT_JITTER_MS = 800;
 
 /** Path the webhook route is mounted at. One definition, used by both ends. */
 export const WEBHOOK_PATH = '/api/whatsapp/webhook';
@@ -137,7 +146,30 @@ function readConfig(): WhatsappConfig {
     webhookUrl: `${resolvePublicUrl()}${WEBHOOK_PATH}`,
     defaultCountryCode: countryCode,
     requestTimeoutMs: timeout,
+    sendSpacingMs: readDuration('WHATSAPP_SEND_SPACING_MS', DEFAULT_SPACING_MS),
+    sendJitterMs: readDuration('WHATSAPP_SEND_JITTER_MS', DEFAULT_JITTER_MS),
   };
+}
+
+/**
+ * A pacing duration in milliseconds.
+ *
+ * Zero is allowed and means "no delay" — the switch a data migration or a load
+ * test needs. A negative or unparseable value throws instead of falling back:
+ * a typo that silently sends at full speed is exactly the accident this
+ * setting exists to prevent.
+ */
+function readDuration(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (raw === undefined || raw === '') return fallback;
+
+  const value = Number(raw);
+
+  if (!Number.isFinite(value) || value < 0) {
+    throw new WhatsappConfigError(`${name} must be a number of milliseconds >= 0.`);
+  }
+
+  return value;
 }
 
 /**

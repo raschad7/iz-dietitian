@@ -8,6 +8,7 @@ import { type Locale } from '@/i18n/routing';
 import { getWhatsappConfig } from './config';
 import { createHttpGateway, GatewayError, type WhatsappGateway } from './gateway';
 import { claimOutboundMessage, markMessageFailed, markMessageSent, saveSessionLink } from './mutations';
+import { paceSend } from './pacing';
 import { toChatIdFromPhone } from './phone';
 import { getSettings } from './queries';
 import { clampMessageBody, renderWhatsappMessage, type WhatsappTemplateKind, type WhatsappTemplateVariables } from './templates';
@@ -16,7 +17,7 @@ import { type SendResult } from './types';
 /**
  * The single funnel every outgoing WhatsApp message passes through.
  *
- * One function, so the four rules that make this safe are written once:
+ * One function, so the five rules that make this safe are written once:
  *
  *  1. **It never throws.** WhatsApp is an unofficial, best-effort channel bolted
  *     onto a clinic that worked fine without it. Booking an appointment must not
@@ -29,7 +30,11 @@ import { type SendResult } from './types';
  *  3. **It checks the connection first.** Sending into a session that is not
  *     paired produces a gateway error per message; one status read prevents a
  *     whole reminder run of them.
- *  4. **The gateway is injectable.** `bun test` passes a fake and asserts on what
+ *  4. **Sends are paced.** Every message leaving a clinic's number waits for
+ *     the one before it, plus a gap — see `pacing.ts`. Here rather than in each
+ *     automation, because bursts restrict a number no matter which feature
+ *     produced them.
+ *  5. **The gateway is injectable.** `bun test` passes a fake and asserts on what
  *     would have been sent, exactly as `src/lib/mail/` does with its transports.
  */
 
@@ -68,6 +73,12 @@ export type SendDeps = {
   gateway?: WhatsappGateway;
   /** Saves a settings read when the caller already has the row (reminder runs). */
   settings?: WhatsappSettings | null;
+  /**
+   * Overrides the gap this clinic's number is held to — `WHATSAPP_SEND_SPACING_MS`
+   * otherwise. An explicit value is taken exactly, with no jitter on top, which
+   * is what a test asserting on timing needs; `0` sends immediately.
+   */
+  spacingMs?: number;
 };
 
 export async function sendWhatsappMessage(request: SendRequest, deps: SendDeps = {}): Promise<SendResult> {
@@ -85,6 +96,7 @@ export async function sendWhatsappMessage(request: SendRequest, deps: SendDeps =
   if (!body) return { status: 'skipped', reason: 'empty_body' };
 
   const gateway = deps.gateway ?? createHttpGateway(config);
+  const { sessionId } = settings;
 
   // OpenWA can accept an E.164-looking number that WhatsApp does not own, then
   // spend the whole send timeout trying to resolve its LID. Check first so an
@@ -126,14 +138,29 @@ export async function sendWhatsappMessage(request: SendRequest, deps: SendDeps =
   if (!claimed) return { status: 'skipped', reason: 'duplicate' };
 
   try {
-    /* The one line a document changes. Everything above — the claim, the
-       number check, the settings read — is the same either way. */
-    const sent = request.document
-      ? await gateway.sendFile(settings.sessionId, target.chatId, {
-          ...request.document,
-          caption: body,
-        })
-      : await gateway.sendText(settings.sessionId, target.chatId, body);
+    /*
+      Paced, so two messages never leave the same number back to back — see
+      `pacing.ts`. It wraps the gateway call and nothing above it: the settings
+      read, the recipient check and the claim are all local work that costs the
+      number nothing, and a message that turns out to be a duplicate should not
+      hold the queue while it waits for a gap it will never use.
+    */
+    const sent = await paceSend(
+      request.clinicId,
+      {
+        spacingMs: deps.spacingMs ?? config.sendSpacingMs,
+        jitterMs: deps.spacingMs === undefined ? config.sendJitterMs : 0,
+      },
+      () =>
+        /* The one line a document changes. Everything around it — the claim,
+           the number check, the settings read — is the same either way. */
+        request.document
+          ? gateway.sendFile(sessionId, target.chatId, {
+              ...request.document,
+              caption: body,
+            })
+          : gateway.sendText(sessionId, target.chatId, body),
+    );
 
     await markMessageSent(claimed.id, sent.messageId);
 
