@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 
 import { AppShell } from '@/components/layout/sidebar';
 import { PORTAL_COLUMN } from '@/features/portal/layout';
-import { PORTAL_NAV, PORTAL_NAV_ICONS } from '@/features/portal/nav';
+import { PORTAL_NAV_ICONS, PORTAL_NAV_SECTIONS } from '@/features/portal/nav';
 import { HomeGlow } from '@/features/portal/components/home-glow';
 import { PortalHeader } from '@/features/portal/components/portal-header';
 import { PortalTabBar } from '@/features/portal/components/portal-tab-bar';
@@ -101,7 +101,7 @@ export default async function PortalTabsLayout({ children, params }: PortalTabsL
         every portal tab rather than only the home route, which is why the page
         no longer marks its own root either.
       */}
-      <AppShell items={PORTAL_NAV} title={t('title')} showTitle={false} icons={PORTAL_NAV_ICONS}>
+      <AppShell items={PORTAL_NAV_SECTIONS} title={t('title')} showTitle={false} icons={PORTAL_NAV_ICONS}>
         {/*
           **Inside the shell, not beside it.** This used to be a sibling of
           `AppShell`, which put it in the portal wrapper's own flex column at

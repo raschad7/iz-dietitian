@@ -71,10 +71,13 @@ export default async function DevShellPage({ params }: DevShellPageProps) {
         <main data-slot="shell-scroll" className="min-w-0 p-5">
           <h1 className="text-heading-lg font-semibold">Shell</h1>
           <p className="mt-2 text-body-sm text-muted-foreground">
-            Collapse the sidebar with the trigger in its header, or the rail on its edge. Collapsed,
-            the tree flattens to one row per destination and each shows its label as a tooltip.
-            Expanded, open إدارة, المواعيد and التقويم inside it — the nested disclosure animates
-            independently of its parent. Check all of it against <code>/ar/dev/shell</code>.
+            Collapse the rail with the trigger above this text — it stands on the page, not in the
+            rail — or with the rail on its edge. Collapsed, the leaf mark stays and the sections
+            flatten to one row per destination, each showing its label as a tooltip. Expanded, إدارة,
+            المواعيد and الخطط الغذائية are printed headings with nothing to press; التقويم is the
+            one row that still opens. Narrow the window past <code>lg</code> and the rail should
+            arrive folded and still open on request. Check all of it against{' '}
+            <code>/ar/dev/shell</code>.
           </p>
         </main>
       </AppShell>

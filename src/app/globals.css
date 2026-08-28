@@ -142,6 +142,15 @@
   --c-100: #F3F4F6;
   --c-200: #E5E7EB;
   --c-300: #D1D5DB;
+  /*
+   * The muted-label step. It exists for one job — the rail's section headings,
+   * which have to read as *quieter* than the destinations under them without
+   * dropping below the 4.5:1 that 12px text owes a reader. `--sidebar-foreground`
+   * at 70% opacity, which is what the registry's `SidebarGroupLabel` ships,
+   * blends to #7F8691 and measures 3.51:1 on the rail; this measures 4.63:1 and
+   * is a step of the ramp rather than a value that only exists once composited.
+   */
+  --c-500: #6B7280;
   --c-600: #4B5563;
 
   /* ── Support: amber = attention, red = medical/destructive (the only alarm) ── */
@@ -515,6 +524,7 @@
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-icon: var(--sidebar-icon);
+  --color-sidebar-label: var(--sidebar-label);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
   --color-sidebar-hover: var(--sidebar-hover);
@@ -1313,51 +1323,55 @@
    * rail was the only tinted furniture on screen and it read as a coloured
    * band rather than as a wall.
    *
-   * **The active item is the only olive thing on the rail, and it is marked by
-   * tint rather than by weight.** green-50 surface, green-700 label and glyph.
-   * That inverts the pale-olive rail again, where the active item was the
-   * *darkest* thing on it; here the rail has no colour of its own, so a tint
-   * is enough to single an item out without a dark block interrupting a column
-   * of quiet rows.
+   * **The rail is one neutral family, top to bottom, and it is the cool one.**
+   * Surface, hover, selection, divider, label ink and glyph ink are all steps
+   * of `--c-*` — which is what `docs/design-system.md` already assigned to
+   * "muted surfaces, hover fills, sidebar", and what the rail's own surface and
+   * divider were already drawn in.
    *
-   * ── Hover and active are two different colours again, and two different
-   * *families* ──
+   * What changed is everything that was *not*. Hover was `--n-100` and the idle
+   * ink `--n-700`, both warm: a warm fill and warm lettering on a cool rail,
+   * which is the one mixture the palette rules forbid ("do not mix warm and
+   * cool neutral surfaces arbitrarily"). They were the last warm values left in
+   * the shell furniture, and they read as a faint cream cast across a grey
+   * column.
    *
-   * They were briefly the same tint (green-50 for both, with the active row
-   * pinned so it did not move under the pointer), which meant a hovered
-   * neighbour looked exactly like the current page for as long as the pointer
-   * sat on it. On a rail that now nests three levels deep, that was one
-   * ambiguity too many: with categories opening and closing under the pointer,
-   * "which row am I on" and "which page am I on" have to be answerable at the
-   * same glance.
+   * ── Hover and selection are two steps of one ramp ──
    *
-   * So the two states are split by hue, not by one step of the same ramp:
+   * They used to be two *families* — a warm neutral hover against an olive
+   * selection — which distinguished them by hue and spent the brand green on
+   * saying "you are here". The green is gone from the rail entirely now, and
+   * the two states separate by depth instead:
    *
-   * - **Hover — `--sidebar-hover`, n-100.** The warm neutral, no brand colour
-   *   at all. It says "this row is a target", and it says nothing about the
-   *   app's state. The ink does not move with it: a hovered row keeps its idle
-   *   n-700 label (8.08:1 on the fill), because the fill alone is the whole
-   *   affordance and repainting the text made a pass of the pointer look like
-   *   a navigation.
-   * - **Active — `--sidebar-accent`, green-50, under `--sidebar-accent-foreground`,
-   *   green-700.** A very light surface — lighter than the green-100 it used
-   *   to be, deliberately, because the rail's current-page marker should be the
-   *   quietest fill on screen and let the *ink* carry the state. green-700 on
-   *   green-50 measures **5.93:1**, comfortably over the 4.5:1 floor, and
-   *   `font-semibold` plus `aria-current` still carry it for anyone the colour
-   *   fails.
+   * - **Hover — `--sidebar-hover`, c-100.** One step under the rail (ΔL* 2.1).
+   *   Deliberately the fainter of the two: it is a transient answer to "this
+   *   row is a target", it appears under a 200ms fade rather than arriving, and
+   *   it must not be mistakable for the row you are standing on. The ink does
+   *   not move with it — a hovered row keeps its idle c-600 (6.87:1 on the
+   *   fill), because repainting the text made a pass of the pointer look like a
+   *   navigation.
+   * - **Selected — `--sidebar-accent`, c-200, under `--sidebar-accent-foreground`,
+   *   c-600 (6.10:1), with `font-semibold` and `aria-current="page"`.** ΔL* 6.6
+   *   from the rail, three times the hover step, so the current row is the
+   *   heaviest fill in the column at every moment including while the pointer
+   *   is elsewhere on it.
    *
-   * The hierarchy reads hover → neutral, active → brand, and neither can be
-   * mistaken for the other because they are not on the same ramp. The active
-   * row still overrides hover and does not respond to the pointer at all — see
-   * the note on `sidebarMenuButtonVariants` in `components/ui/sidebar.tsx`.
+   * ⚠ The fill is now the *whole* of the selected state, where green-50 was
+   * effectively invisible as a fill (ΔL* 0.74) and the green ink carried it. So
+   * the step from hover to selection may not be narrowed: take c-200 down to
+   * c-100 and the two states become the same thing.
    *
-   * `--sidebar-icon` is now the idle ink for the **label as well as the
-   * glyph** — n-700 warm grey, 9.35:1 on the rail. The label used to be
-   * green-800 beside it, which made each row read as two elements rather than
-   * one target, and spent brand colour on rows that are not the current page.
-   * `--sidebar-foreground` still dresses the rail's other text (group headings,
-   * counts), which is why it is unchanged.
+   * The active row still overrides hover and does not respond to the pointer at
+   * all — see the note on `sidebarMenuButtonVariants` in `components/ui/sidebar.tsx`.
+   *
+   * `--sidebar-icon` is the idle ink for the **label and the glyph** — c-600,
+   * 7.23:1 on the rail. One colour for the pair, so each row reads as one
+   * target rather than as two elements.
+   *
+   * `--sidebar-label` is the section headings, and it is the one thing on the
+   * rail that is *meant* to be quieter than everything else: c-500, 4.63:1.
+   * See the note on the token itself for why it is not `--sidebar-foreground`
+   * at 70%.
    */
   /*
    * ── The product logo ──
@@ -1385,13 +1399,14 @@
   --brand-wordmark: #266805;
 
   --sidebar: var(--c-50);
-  --sidebar-foreground: var(--green-800);   /* idle label — 10.02:1 on the rail */
-  --sidebar-icon: var(--n-700);             /* idle glyph — #46443B, 9.35:1 */
+  --sidebar-foreground: var(--c-600);       /* the rail's default ink — 7.23:1 */
+  --sidebar-icon: var(--c-600);             /* idle label and glyph — #4B5563 */
+  --sidebar-label: var(--c-500);            /* section headings — 4.63:1, see above */
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--green-900); /* the wordmark, on a light rail */
-  --sidebar-accent: var(--green-50);        /* the active surface — the lightest tint on the ramp */
-  --sidebar-accent-foreground: var(--green-700); /* on it — 5.93:1, see above */
-  --sidebar-hover: var(--n-100);            /* hover is warm neutral, never green */
+  --sidebar-accent: var(--c-200);           /* the selected surface — ΔL* 6.6 from the rail */
+  --sidebar-accent-foreground: var(--c-600); /* on it — 6.10:1, see above */
+  --sidebar-hover: var(--c-100);            /* hover is one step under the rail, never green */
   /*
    * The divider is the darkest of the rail's three greys, and it is the whole
    * separation: #F9FAFB against the white canvas measures 1.02:1, so the two
@@ -1649,6 +1664,10 @@
    * olive rail is not a mark, it is a smudge.
    */
   --sidebar-icon: var(--green-200);
+  /* The section headings, one step quieter than the rows they name — the dark
+     counterpart of `--c-500` on the light rail. green-300 on green-900 measures
+     6.30:1, so it stays legible while sitting clearly under the green-200 rows. */
+  --sidebar-label: var(--green-300);
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--n-25);
   /*
@@ -1785,6 +1804,7 @@
 
     --sidebar: var(--green-900);
     --sidebar-foreground: var(--green-200);
+    --sidebar-label: var(--green-300);
     --sidebar-primary: var(--primary);
     --sidebar-primary-foreground: var(--n-0);
     /* Mirrors the `.dark` rail above — see the note there. */
