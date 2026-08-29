@@ -10,7 +10,8 @@ import { ZoomLock } from '@/components/layout/zoom-lock';
 import { APP_THEME_COLOR_DARK, APP_THEME_COLOR_LIGHT } from '@/features/app-pwa/brand';
 import { ServiceWorkerRegister } from '@/features/app-pwa/service-worker-register';
 import { getClinicBrand, isClinicOnboardingComplete } from '@/features/clinic-profile/queries';
-import { NewClientRailButton } from '@/features/clients/components/new-client-rail-button';
+import { CommandPaletteProvider } from '@/features/command-palette/components/command-palette-provider';
+import { CommandPaletteTrigger } from '@/features/command-palette/components/command-palette-trigger';
 import { GuideLauncher } from '@/features/user-guide/guide-launcher';
 import { GuideProvider } from '@/features/user-guide/guide-provider';
 import { resolveLocale } from '@/i18n/params';
@@ -212,47 +213,58 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
       */}
       <ZoomLock />
 
-      <AppShell
-        items={STAFF_NAV}
-        title={t('shortName')}
-        brand={brand ?? undefined}
-        user={{ name: session.user.name, email: session.user.email, locale }}
-        icons={STAFF_NAV_ICONS}
-        /*
-          The rail's one action, under the logo. It is the register's own "New
-          client" trigger — the same component, the same card — so a dietitian
-          can start a record from any screen in the app instead of navigating to
-          the register first. See `NewClientRailButton` for what changes about
-          it and what does not.
-        */
-        primary={<NewClientRailButton locale={locale} />}
-        secondary={<GuideLauncher key="guide-launcher" />}
-      >
       {/*
-        `overflow-x-auto`, not the `overflow-x-hidden` this carried.
+        The command palette — ⌘K — and the client card it can open.
 
-        The clip was undocumented and it was the app's last line of defence
-        against a wide surface — but a clip plus `* { scrollbar-width: none }`
-        (globals.css) is content with neither a bar nor a gesture to reach it.
-        Anything that overflowed at a phone width was simply gone: the register
-        toolbar's "New client" was clipped exactly this way.
-
-        `auto` keeps the containment — the shell still refuses to be widened by a
-        child, which is what stops *page-level* horizontal scrolling — while
-        leaving wheel, trackpad, touch drag and keyboard able to reach anything
-        that still overflows. It also matters that nothing appears, and nothing does:
-        the global `* { scrollbar-width: none }` in globals.css takes the bars
-        off every scroller in the app, this one included.
-
-        This is a safety net, not a licence. Every real overflow is fixed at its
-        source with the Rearrange → Stack → Internal-scroll ladder — `TableRoot`,
-        `Tabs`, `PanelTabsList` and `.planner-week-scroll` are the precedents —
-        and `overflow-x-hidden` must not come back here or go anywhere else.
+        Inside `GuideProvider` because the palette offers the guided tour as one
+        of its commands and so has to be able to read that context; outside
+        `AppShell` because the rail's own trigger has to be able to read this
+        one. See `CommandPaletteProvider`.
       */}
-        <main data-slot="shell-scroll" className="min-w-0 p-3 md:p-5">
-          {children}
-        </main>
-      </AppShell>
+      <CommandPaletteProvider locale={locale}>
+        <AppShell
+          items={STAFF_NAV}
+          title={t('shortName')}
+          brand={brand ?? undefined}
+          user={{ name: session.user.name, email: session.user.email, locale }}
+          icons={STAFF_NAV_ICONS}
+          /*
+            The rail's one control, under the logo: the command palette's field.
+
+            It replaced the solid green "New client" button that stood here — see
+            `CommandPaletteTrigger` for why. Adding a subscriber is the palette's
+            first row, and behind it are every screen and every subscriber
+            besides.
+          */
+          primary={<CommandPaletteTrigger />}
+          secondary={<GuideLauncher key="guide-launcher" />}
+        >
+        {/*
+          `overflow-x-auto`, not the `overflow-x-hidden` this carried.
+
+          The clip was undocumented and it was the app's last line of defence
+          against a wide surface — but a clip plus `* { scrollbar-width: none }`
+          (globals.css) is content with neither a bar nor a gesture to reach it.
+          Anything that overflowed at a phone width was simply gone: the register
+          toolbar's "New client" was clipped exactly this way.
+
+          `auto` keeps the containment — the shell still refuses to be widened by a
+          child, which is what stops *page-level* horizontal scrolling — while
+          leaving wheel, trackpad, touch drag and keyboard able to reach anything
+          that still overflows. It also matters that nothing appears, and nothing does:
+          the global `* { scrollbar-width: none }` in globals.css takes the bars
+          off every scroller in the app, this one included.
+
+          This is a safety net, not a licence. Every real overflow is fixed at its
+          source with the Rearrange → Stack → Internal-scroll ladder — `TableRoot`,
+          `Tabs`, `PanelTabsList` and `.planner-week-scroll` are the precedents —
+          and `overflow-x-hidden` must not come back here or go anywhere else.
+        */}
+          <main data-slot="shell-scroll" className="min-w-0 p-3 md:p-5">
+            {children}
+          </main>
+        </AppShell>
+      </CommandPaletteProvider>
     </GuideProvider>
   );
 }

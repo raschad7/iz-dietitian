@@ -63,10 +63,32 @@
     "notifications": "Notifications",
     "openNavigation": "Open navigation",
     "closeNavigation": "Close navigation",
-
     "expandSidebar": "Expand sidebar",
-
     "collapseSidebar": "Collapse sidebar"
+  },
+  "commandPalette": {
+    "label": "Search and commands",
+    "trigger": "Search",
+    "placeholder": "Search subscribers, actions and screens…",
+    "pickClient": "Choose a subscriber…",
+    "searching": "Searching…",
+    "empty": "No matches for your search.",
+    "groupActions": "Quick actions",
+    "newWeeklyPlan": "New weekly plan",
+    "groupRecent": "Recently opened",
+    "groupClients": "Subscribers",
+    "groupSettings": "Settings and more",
+    "groupNavigation": "Go to",
+    "groupCommands": "Commands",
+    "switchLanguage": "Switch to {language}",
+    "language": {
+      "ar": "العربية",
+      "en": "English"
+    },
+    "hintNavigate": "navigate",
+    "hintOpen": "open",
+    "hintBack": "back",
+    "hintClose": "close"
   },
   "settingsWorkspace": {
     "title": "Settings",

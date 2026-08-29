@@ -2,7 +2,8 @@ import { notFound } from 'next/navigation';
 
 import { AppShell } from '@/components/layout/sidebar';
 import { STAFF_NAV, STAFF_NAV_ICONS } from '@/components/layout/staff-nav';
-import { NewClientRailButton } from '@/features/clients/components/new-client-rail-button';
+import { CommandPaletteProvider } from '@/features/command-palette/components/command-palette-provider';
+import { CommandPaletteTrigger } from '@/features/command-palette/components/command-palette-trigger';
 import { GuideLauncher } from '@/features/user-guide/guide-launcher';
 import { GuideProvider } from '@/features/user-guide/guide-provider';
 import { resolveLocale } from '@/i18n/params';
@@ -49,35 +50,40 @@ export default async function DevShellPage({ params }: DevShellPageProps) {
       clinic gets when a step points at something its data does not have.
     */
     <GuideProvider routed={false}>
-      <AppShell
-        /* The real navigation, not a copy of it. Both sides of the merge were
-           reaching for this: `dev` kept a hand-written list here and called it
-           "the staff rail's own list", which is a second list to keep in step
-           with the first — exactly the drift a harness exists to catch. */
-        items={STAFF_NAV}
-        title="Enzyme"
-        /* The staff configuration, which is the one that has a brand — without it
-           the head falls back to the plain title and the product logo never
-           renders, so the harness could not show the thing it exists to show. */
-        brand={{ logoUrl: null, name: 'عيادة مهيب' }}
-        user={{ name: 'Rani Shweiki', email: 'rani@example.com', locale }}
-        icons={STAFF_NAV_ICONS}
-        primary={<NewClientRailButton locale={locale} />}
-        secondary={<GuideLauncher />}
-      >
-        {/* `shell-scroll` for the same reason the staff layout carries it: the
-            shell is a bounded frame, so a child that does not claim the scroll
-            is clipped rather than scrolled. See `globals.css`. */}
-        <main data-slot="shell-scroll" className="min-w-0 p-5">
-          <h1 className="text-heading-lg font-semibold">Shell</h1>
-          <p className="mt-2 text-body-sm text-muted-foreground">
-            Collapse the sidebar with the trigger in its header, or the rail on its edge. Collapsed,
-            the tree flattens to one row per destination and each shows its label as a tooltip.
-            Expanded, open إدارة, المواعيد and التقويم inside it — the nested disclosure animates
-            independently of its parent. Check all of it against <code>/ar/dev/shell</code>.
-          </p>
-        </main>
-      </AppShell>
+      <CommandPaletteProvider locale={locale}>
+        <AppShell
+          /* The real navigation, not a copy of it. Both sides of the merge were
+             reaching for this: `dev` kept a hand-written list here and called it
+             "the staff rail's own list", which is a second list to keep in step
+             with the first — exactly the drift a harness exists to catch. */
+          items={STAFF_NAV}
+          title="Enzyme"
+          /* The staff configuration, which is the one that has a brand — without it
+             the head falls back to the plain title and the product logo never
+             renders, so the harness could not show the thing it exists to show. */
+          brand={{ logoUrl: null, name: 'عيادة مهيب' }}
+          user={{ name: 'Rani Shweiki', email: 'rani@example.com', locale }}
+          icons={STAFF_NAV_ICONS}
+          primary={<CommandPaletteTrigger />}
+          secondary={<GuideLauncher />}
+        >
+          {/* `shell-scroll` for the same reason the staff layout carries it: the
+              shell is a bounded frame, so a child that does not claim the scroll
+              is clipped rather than scrolled. See `globals.css`. */}
+          <main data-slot="shell-scroll" className="min-w-0 p-5">
+            <h1 className="text-heading-lg font-semibold">Shell</h1>
+            <p className="mt-2 text-body-sm text-muted-foreground">
+              Collapse the rail with the trigger above this text — it stands on the page, not in the
+              rail — or with the rail on its edge. Collapsed, the leaf mark stays and the sections
+              flatten to one row per destination, each showing its label as a tooltip. Expanded, إدارة,
+              المواعيد and الخطط الغذائية are printed headings with nothing to press; التقويم is the
+              one row that still opens. Narrow the window past <code>lg</code> and the rail should
+              arrive folded and still open on request. Check all of it against{' '}
+              <code>/ar/dev/shell</code>.
+            </p>
+          </main>
+        </AppShell>
+      </CommandPaletteProvider>
     </GuideProvider>
   );
 }

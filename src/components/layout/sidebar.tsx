@@ -12,6 +12,7 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
@@ -22,11 +23,12 @@ import {
   SidebarMenuSubItem,
   SidebarProvider,
   SidebarTrigger,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { Link, usePathname } from '@/i18n/navigation';
 import type { Locale } from '@/i18n/routing';
 
-import { BrandLogo } from './brand-logo';
+import { BrandMark, BrandWordmark } from './brand-logo';
 import { SidebarProfile } from './sidebar-profile';
 
 /**
@@ -96,10 +98,15 @@ export type NavItem = {
 /**
  * A category: a row that opens a list rather than going anywhere.
  *
- * Categories nest — `المواعيد` holds `التقويم`, which holds day, week and month
- * — so `children` takes `NavNode` and not just `NavItem`. There is no depth
- * limit in the type because there is none in the rendering either; the
- * indentation is one compounding step (see `SidebarMenuSub`).
+ * ⚠ **Rare, and meant to stay rare.** A rail's shape should not change as it is
+ * used. The one category left in the staff rail is التقويم, and it earns the
+ * disclosure by holding three *views of one screen* rather than three screens —
+ * everything that is genuinely a list of destinations is a `NavSection` with a
+ * printed heading and nothing to press. Reach for a section first.
+ *
+ * Categories nest — `children` takes `NavNode`, not just `NavItem` — and there
+ * is no depth limit in the type because there is none in the rendering either;
+ * the indentation is one compounding step (see `SidebarMenuSub`).
  */
 export type NavGroup = {
   /** Stable across renders — it keys the open/closed state and the panel's id. */
@@ -124,6 +131,32 @@ export type NavGroup = {
 };
 
 export type NavNode = NavItem | NavGroup;
+
+/**
+ * A band of the rail, under a printed heading.
+ *
+ * **A section is not a control.** It has no glyph, no chevron, no open state
+ * and nothing to press: the heading names what is under it and what is under it
+ * is always on screen. That is the whole difference between this and `NavGroup`,
+ * and it is the reason to prefer it — a reader who has learned where الفواتير
+ * sits finds it in the same place on every screen, in a column whose shape never
+ * moves.
+ *
+ * `labelKey` is optional, and an omitted one draws no heading at all: the
+ * dashboard leads the rail in a section of its own, separated by the space
+ * between sections rather than by a word naming a group of one.
+ *
+ * Sections are the **top level and only the top level**. `NavSection` is not
+ * part of `NavNode`, so nesting one is a compile error rather than a heading
+ * that appears three levels deep with nothing to align to.
+ */
+export type NavSection = {
+  /** Stable across renders — it keys this band's accordion level and its heading. */
+  id: string;
+  /** Omitted draws no heading. See above. */
+  labelKey?: NavLabelKey;
+  children: readonly NavNode[];
+};
 
 function isGroup(node: NavNode): node is NavGroup {
   return 'children' in node;
@@ -246,20 +279,36 @@ function isItemExact(href: NavHref, { pathname, view }: Location): boolean {
 }
 
 /**
- * The ids of the categories the active row sits inside, outermost first — or
- * `null` when nothing in the tree is active.
+ * Which category is open at each accordion level, for the screen on display —
+ * or `null` when nothing in this band is active.
  *
- * This is what decides which categories are open when a screen loads: you
+ * A **level** is a list whose members take turns being open, and it is named by
+ * whatever holds it: a section's own id for its top row of children, a
+ * category's id for the rows inside it. The answer is a map from level to the
+ * one open category there, which is what decides the rail's shape on load: you
  * should never arrive somewhere and have to find your own position in a
- * collapsed rail.
+ * collapsed category.
+ *
+ * A map rather than the outermost-first *array* this used to return. The array
+ * was read by position — `trail[depth]` was the open category at depth `depth` —
+ * which held only while every level was one step deeper than the last. Sections
+ * broke that: a section contributes a level without contributing any depth, so
+ * the index and the nesting drift apart by one and التقويم would read its
+ * section's id as its own open child. Naming levels instead of counting them
+ * has no such failure mode.
  */
-function activeTrail(nodes: readonly NavNode[], at: Location, above: string[] = []): string[] | null {
+function activeLevels(
+  nodes: readonly NavNode[],
+  levelKey: string,
+  at: Location,
+  above: Readonly<Record<string, string>> = {},
+): Record<string, string> | null {
   for (const node of nodes) {
     if (isGroup(node)) {
-      const found = activeTrail(node.children, at, [...above, node.id]);
+      const found = activeLevels(node.children, node.id, at, { ...above, [levelKey]: node.id });
       if (found) return found;
     } else if (isItemActive(node.href, at)) {
-      return above;
+      return { ...above };
     }
   }
 
@@ -267,62 +316,63 @@ function activeTrail(nodes: readonly NavNode[], at: Location, above: string[] = 
 }
 
 /**
- * The key for the top of the rail in the accordion's state.
+ * The same question asked of the whole rail: every section walked, the answers
+ * merged.
  *
- * Every other level is keyed by the id of the category that holds it. The root
- * has no such category, and the empty string is the one key no `NavGroup.id`
- * can collide with.
+ * At most one of them can answer — one screen is on display — so the merge is
+ * never a conflict, and an empty object is the honest answer for a screen the
+ * rail does not point at.
  */
-const ROOT_LEVEL = '';
+function activeLevelsOf(sections: readonly NavSection[], at: Location): Record<string, string> {
+  for (const section of sections) {
+    const found = activeLevels(section.children, section.id, at);
+    if (found) return found;
+  }
 
-/**
- * The levels a trail passes through, as accordion keys — outermost first.
- *
- * A trail of `['appointments', 'calendar']` runs through two levels: the root,
- * where `appointments` is the open category, and `appointments`, where
- * `calendar` is. So the keys are the root plus every id but the last: the last
- * id names a category that is *open*, not a level that has anything open
- * inside it.
- *
- * An empty trail yields no levels at all, which is what keeps navigating to a
- * top-level destination — the dashboard — from slamming every category shut.
- */
-function levelsAlong(trailKey: string): string[] {
-  if (!trailKey) return [];
-  const ids = trailKey.split('/');
-  return [ROOT_LEVEL, ...ids.slice(0, -1)];
+  return {};
 }
 
 /** A row of the folded icon rail. See `NavGroup.collapsedHref`. */
 type FlatItem = NavItem & { id: string };
 
 /**
- * The tree, flattened to the destinations the 56px rail draws.
+ * The destinations a branch of the rail stands for once it is folded.
  *
- * The staff rail folds to exactly the five glyphs it had before this file grew
- * a hierarchy — dashboard, clients, calendar, weekly plans, dishes — because a
- * category is a thing you *open*, and at 56px there is nothing to open into.
- * The portal passes a flat list already and comes through here unchanged.
+ * A category contributes one row if it names a `collapsedHref` and is otherwise
+ * transparent — its children take its place. That is what makes the folded
+ * staff rail exactly the six glyphs it has always had: dashboard, clients,
+ * bills, calendar, weekly plans, dishes.
  *
  * ⚠ This is not a nicety. On a phone the staff rail is **locked** to its icon
- * column: no drawer, no way to expand it (see `railOnly` on `AppShell`). If the
- * folded rail drew categories, every screen but the dashboard would be
- * unreachable on a phone.
+ * column: no drawer, no way to expand it (see `railOnly` on `AppShell`). A
+ * category that folded to nothing would put every screen it holds out of reach
+ * on a phone entirely.
  */
-function flatten(nodes: readonly NavNode[]): FlatItem[] {
+function flattenNodes(nodes: readonly NavNode[]): FlatItem[] {
   return nodes.flatMap((node) => {
     if (!isGroup(node)) return [{ ...node, id: node.href }];
     if (node.collapsedHref) {
       return [{ id: node.id, href: node.collapsedHref, labelKey: node.labelKey }];
     }
-    return flatten(node.children);
+    return flattenNodes(node.children);
   });
+}
+
+/**
+ * The whole rail as a flat list of addresses.
+ *
+ * One caller: finding the section's own index for the logo's link. It walks
+ * everything so that the answer does not depend on the dashboard happening to
+ * be a top-level row in a section that happens to come first.
+ */
+function flatten(sections: readonly NavSection[]): FlatItem[] {
+  return sections.flatMap((section) => flattenNodes(section.children));
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */
 
 type ShellProps = {
-  items: readonly NavNode[];
+  items: readonly NavSection[];
   title: string;
   /**
    * Whether the title is *drawn*. It stays the rail's accessible name either
@@ -482,21 +532,7 @@ export function AppShell({
         primary={primary}
         secondary={secondary}
       />
-      <SidebarInset>
-        {/*
-          The phone app bar is gone with the drawer it existed to open.
-
-          It carried a hamburger and the clinic's name, and the hamburger was the
-          only thing on screen that could reach navigation once the rail became a
-          sheet. With the rail permanently visible there is nothing left for the
-          trigger to do, and the bar would be 56px of height spent on a title
-          that `PageHeader` already prints on the page below it.
-
-          The portal never rendered it — it draws its own header and tab bar —
-          which is why this had a `user` test rather than a breakpoint.
-        */}
-        {children}
-      </SidebarInset>
+      <SidebarInset>{children}</SidebarInset>
     </SidebarProvider>
   );
 }
@@ -505,7 +541,7 @@ export function AppShell({
 /*
  * `BrandMark` — the clinic's own uploaded logo, drawn as a 28px rounded square
  * at the head of the rail — used to live here. The head now leads with the
- * product logo instead (see `BrandLogo` in the header below), so the component
+ * product logo instead (see `RailMark` below), so the component
  * had no caller and is gone rather than left to rot.
  *
  * `brand.logoUrl` still travels down from the staff layout and the settings
@@ -526,6 +562,18 @@ function AppSidebar({
 }: Omit<ShellProps, 'children'>) {
   const t = useTranslations('nav');
 
+  /*
+   * Which of the head's two triggers is the reachable one.
+   *
+   * Both are in the DOM at every width — they cross-fade, so neither can be
+   * `display: none` — and a button faded to nothing is still a tab stop and
+   * still announced. `inert` is the whole of what this drives; nothing about
+   * either control's *painting* is decided in JavaScript, which is why reading
+   * the state here does not reintroduce the remount the rail avoids everywhere
+   * else. See the two blocks in the header below.
+   */
+  const folded = useSidebar().state === 'collapsed';
+
 
   /*
    * Where the logo at the head of the rail goes: the section's own index — the
@@ -542,98 +590,159 @@ function AppSidebar({
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="gap-0 pb-1">
-        <div className="flex h-12 items-center justify-between gap-2 px-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+      <SidebarHeader className="gap-0 pb-3">
+        {/*
+          No padding and no `justify-*` of its own, and that is the fix for the
+          shaking logo.
+
+          `SidebarHeader` is `p-2`, so this row starts 8px from the rail's
+          inline-start edge — and the folded strip is 56px, which is 8px, a
+          40px mark, and 8px. The leaf therefore lands in the middle of the
+          folded rail *without being centred*: it is pinned to the one edge that
+          does not move, at the same offset in both states, and the width
+          animation happens entirely on the far side of it.
+
+          It was `px-2` plus `group-data-[collapsible=icon]:justify-center`
+          before, which is two instant jumps (the padding, and the switch to
+          centring) followed by 300ms of the mark being re-centred inside a box
+          that was still shrinking. Three movements on the one shape a reader
+          uses to orient, every time the rail closed.
+        */}
+        <div className="flex h-12 items-center">
           {/*
-            The whole identity hides when the rail collapses, mark included.
-            At 56px the head has room for exactly one control, and that has to
-            be the trigger — it is the only way back out of the collapsed
-            state, so nothing may compete with it for the row.
+            The mark stays at every width, at one size, and that is the change.
+
+            The whole identity used to hide when the rail folded, because the
+            trigger needed the row and a 56px strip fits one control. The
+            trigger takes the line *below* now (see the block after this one),
+            so the head is the mark's alone: the leaf at 36px in both states,
+            with the wordmark collapsing beside it. An app that drops its own
+            mark the moment its navigation narrows is an app the reader has to
+            re-identify every time they reclaim some width.
           */}
-          <div className="flex min-w-0 items-center gap-2 group-data-[collapsible=icon]:hidden">
-            {/*
-              The staff rail leads with the product logo — the leaf and the
-              wordmark as one mark — where it used to draw the clinic's own
-              square mark beside the clinic's name in text.
+          {brand ? (
+            homeHref ? (
+              /*
+                The mark is the way back to the dashboard — the one thing a
+                logo in the corner of an app is universally expected to do, and
+                the rail's own dashboard row is the only thing that did it
+                before.
 
-              ⚠ **The clinic's name is no longer visible here.** It is still the
-              rail's accessible name (the `sr-only` span below), and the account
-              row at the foot still says whose session this is, but the head now
-              identifies the *product* rather than the practice. That is the
-              trade: one logo reads as a brand where a lettered square plus a
-              name read as a row of two things. `brand.logoUrl` — a clinic's own
-              uploaded mark — is consequently unused by this rail; the settings
-              screen that captures it still works, it simply has nowhere here to
-              appear.
-            */}
-            {brand ? (
-              homeHref ? (
-                /*
-                  The mark is the way back to the dashboard — the one thing a
-                  logo in the corner of an app is universally expected to do,
-                  and the rail's own dashboard row is the only thing that did it
-                  before.
+                `aria-label` rather than the name beside it: both marks are
+                `aria-hidden` and the `sr-only` span stays *outside* the link,
+                because that span is the rail's accessible name and must not
+                become a link's label. Left unnamed, this would announce as a
+                bare link.
 
-                  `aria-label` rather than the name beside it: `BrandLogo` is
-                  `aria-hidden` and the `sr-only` span stays *outside* the link,
-                  because that span is the rail's accessible name and must not
-                  become a link's label. Left unnamed, this would announce as a
-                  bare link.
+                **No hover state.** The logo is the one mark on screen that has
+                to look the same wherever it appears, and dimming it under the
+                pointer made the brand flicker on the way past the head of the
+                rail. It would not be much of an affordance either: a touch
+                screen has no hover to give, so a fill only a mouse can see
+                teaches nothing to half the people using this.
 
-                  **No hover state.** The logo is the one mark on screen that
-                  has to look the same wherever it appears, and dimming it under
-                  the pointer made the brand flicker on the way past the head of
-                  the rail. It would not be much of an affordance either: a
-                  touch screen has no hover to give, so a fill only a mouse can
-                  see teaches nothing to half the people using this.
+                `focus-visible` stays, and is a different thing — keyboard
+                reachability, not decoration. Without the ring the mark is a tab
+                stop that never says it has focus.
 
-                  `focus-visible` stays, and is a different thing — keyboard
-                  reachability, not decoration. Without the ring the mark is a
-                  tab stop that never says it has focus.
-
-                  `-m-1`/`p-1` widen the target past the mark's own bounds
-                  without growing the row.
-                */
-                <Link
-                  href={homeHref}
-                  aria-label={t('dashboard')}
-                  className="-m-1 rounded-md p-1 ring-sidebar-ring outline-hidden focus-visible:ring-2"
-                >
-                  <BrandLogo className="h-9 shrink-0" />
-                </Link>
-              ) : (
-                <BrandLogo className="h-9 shrink-0" />
-              )
-            ) : null}
-            {/*
-              `sr-only` rather than absent when hidden: the string is the rail's
-              accessible name, and the mobile drawer needs one whether or not
-              anybody is meant to read it on screen. See `showTitle`.
-
-              Always `sr-only` once the logo is drawn — the logo carries the
-              wordmark, so a heading beside it would be the name twice, once as
-              a picture and once as text.
-            */}
-            <span
-              className={cn(
-                'truncate font-heading text-heading-sm font-semibold group-data-[collapsible=icon]:hidden',
-                (!showTitle || brand) && 'sr-only',
-              )}
-            >
-              {brand?.name ?? title}
-            </span>
-          </div>
+                `-m-1`/`p-1` widen the target past the mark's own bounds without
+                growing the row.
+              */
+              <Link
+                href={homeHref}
+                aria-label={t('dashboard')}
+                className="-m-1 rounded-md p-1 ring-sidebar-ring outline-hidden focus-visible:ring-2"
+              >
+                <RailMark />
+              </Link>
+            ) : (
+              <RailMark />
+            )
+          ) : null}
           {/*
-            The two labels the trigger names itself with, one per state. They
-            travel from here for the same reason the destination rows' tooltips
-            do: `ui/sidebar.tsx` is registry code with no locale of its own, and
+            `sr-only` rather than absent when hidden: the string is the rail's
+            accessible name, and the mobile drawer needs one whether or not
+            anybody is meant to read it on screen. See `showTitle`.
+
+            Always `sr-only` once the logo is drawn — the logo carries the
+            wordmark, so a heading beside it would be the name twice, once as a
+            picture and once as text.
+          */}
+          <span
+            className={cn(
+              'truncate font-heading text-heading-sm font-semibold group-data-[collapsible=icon]:hidden',
+              (!showTitle || brand) && 'sr-only',
+            )}
+          >
+            {brand?.name ?? title}
+          </span>
+          {/*
+            The trigger, expanded: at the end of the logo's own row, where it
+            costs no line of its own.
+
+            It stood on the *page* for a release — a floating square in the
+            corner of every screen, with one rule in `globals.css` indenting the
+            first row of every layout to clear it. Out there it belonged to
+            nothing: the reader saw a control beside a page heading that folded
+            a column somewhere else, and each screen paid 40px of its start
+            edge for it. The thing it acts on is the rail, so it lives in the
+            rail.
+
+            The two labels it names itself with, one per state, travel from here
+            for the same reason the destination rows' tooltips do:
+            `ui/sidebar.tsx` is registry code with no locale of its own, and
             this component already holds the `nav` namespace.
           */}
-          <SidebarTrigger
-            className="shrink-0"
-            expandLabel={t('expandSidebar')}
-            collapseLabel={t('collapseSidebar')}
-          />
+          <span className="q-rail-collapse ms-auto" inert={folded}>
+            <span>
+              <SidebarTrigger
+                expandLabel={t('expandSidebar')}
+                collapseLabel={t('collapseSidebar')}
+              />
+            </span>
+          </span>
+        </div>
+
+        {/*
+          The same control, folded: a row of its own directly under the mark.
+
+          At 56px the head has one column and two things that want it, and the
+          mark wins — an app that drops its own logo the moment its navigation
+          narrows is an app the reader has to re-identify every time. So the
+          trigger takes the line below instead of the space beside, which is the
+          only other place in the rail that is still about the rail rather than
+          about a destination.
+
+          **Rendered alongside rather than moved**, for the reason `NavRow`
+          renders both of its shapes: CSS picking between two identical buttons
+          is invisible, while re-parenting one across the fold would remount it
+          — a control blinking out at the exact moment it is being pressed. Only
+          one of the two is ever displayed, so neither the tab order nor the
+          accessibility tree sees a duplicate.
+
+          **They cross-fade rather than swap.** `hidden` / `block` on the two
+          was one blinking out and the other blinking in 40px lower, in a frame
+          where everything else was still moving. `.q-rail-drop` opens this row
+          from zero height on the fold's own clock while the one above narrows
+          away, so the action below slides down rather than jumping, and neither
+          control is ever the only thing on screen that moved instantly.
+
+          ⚠ **The space above the button belongs to the button.** On a phone the
+          rail is locked open at 56px and `SidebarTrigger` takes itself out of
+          the page — there is nothing to fold, and a control that cannot do
+          anything is worse than no control. Padding on the wrapper would then
+          be dead space at the top of the narrowest rail in the product, held by
+          an empty box. With the margin on the button, an empty wrapper is 0px
+          tall, and `SidebarHeader` is `gap-0` so it costs no gap either.
+        */}
+        <div className="q-rail-drop" inert={!folded}>
+          <div>
+            <SidebarTrigger
+              className="mt-2"
+              expandLabel={t('expandSidebar')}
+              collapseLabel={t('collapseSidebar')}
+            />
+          </div>
         </div>
 
         {/*
@@ -648,50 +757,62 @@ function AppSidebar({
           No horizontal padding of its own. `SidebarHeader` is `p-2` and
           `SidebarGroup` — which holds the destinations — is `p-2` as well, so
           the button already stands in the same 8px gutter as every row below
-          it, and its own `px-3` puts its glyph in the same column as theirs.
-          Adding `px-2` here indented it by 8px against the whole rail.
+          it, and its own inline padding puts its glyph in the same column as
+          theirs. Adding `px-2` here indented it by 8px against the whole rail.
+
+          ⚠ **The vertical space is the point, and 4px was not enough of it.**
+          This is the one thing in the head that is neither the identity above
+          it nor a destination below it, and at `pt-1` it had less air around it
+          than the destinations have between themselves — it read as a row that
+          had been given a border rather than as its own band. 8px here and
+          `pb-3` on the header make it 12px clear on both sides: 12 above,
+          because the 40px mark sits in a 48px row and keeps 4px of its own, and
+          12 below, because the first group starts at `pt-0` and takes the
+          header's padding as its whole gap. Even, and enough to separate.
         */}
-        {primary ? <div className="pt-1">{primary}</div> : null}
+        {primary ? <div className="pt-2">{primary}</div> : null}
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
+        {/*
+          The guided tour's first anchor: the navigation as a whole, not a row
+          of it — its opening step is about the rail as a thing, see
+          `features/user-guide/steps.ts`.
+
+          It has to be this wrapper rather than a menu inside, because `NavTree`
+          renders *two* lists and hides one of them: on a phone, where the rail
+          is locked to icons, the sections are `display: none` and an anchor on
+          them would measure to nothing. This div is the one box that is on
+          screen in both shapes.
+
+          A plain div rather than the `SidebarGroup` this used to be. The groups
+          moved inside `NavTree`, which now draws one per section, and a group
+          around them would have added a second 8px gutter to every row.
+        */}
+        <div data-guide="nav">
           {/*
-            The guided tour's first anchor: the navigation as a whole, not a row
-            of it — its opening step is about the rail as a thing, see
-            `features/user-guide/steps.ts`.
+            `useSearchParams` — which `NavTree` needs to tell day from week from
+            month — suspends during a static prerender, so it gets a boundary of
+            its own rather than making the whole document wait on it. The
+            fallback is the same rail with no view resolved: every row in place,
+            nothing under التقويم marked current.
 
-            It has to be this wrapper rather than the menu inside, because
-            `NavTree` renders *two* menus and hides one of them: on a phone,
-            where the rail is locked to icons, the expanded tree is
-            `display: none` and an anchor on it would measure to nothing. This
-            div is the one box that is on screen in both shapes.
+            In practice the fallback is never seen. Every screen behind this
+            rail reads the session, so it renders dynamically and the search
+            params are known at render time; this is the build-time valve, not a
+            loading state.
+
+            It is also what makes `useSearchParams` usable here at all. This
+            shell renders for every screen in both apps, so reading the query
+            *unboundaried* would put a `Suspense` requirement on all of them;
+            the boundary is local, and the two things the rail reads from the
+            query — the calendar's view and a record's `?from` — cost nothing
+            outside it.
           */}
-          <SidebarGroupContent data-guide="nav">
-            {/*
-              `useSearchParams` — which `NavTree` needs to tell day from week
-              from month — suspends during a static prerender, so it gets a
-              boundary of its own rather than making the whole document wait on
-              it. The fallback is the same tree with no view resolved: every row
-              in place, nothing under التقويم marked current.
-
-              In practice the fallback is never seen. Every screen behind this
-              rail reads the session, so it renders dynamically and the search
-              params are known at render time; this is the build-time valve, not
-              a loading state.
-
-              It is also what makes `useSearchParams` usable here at all. This
-              shell renders for every screen in both apps, so reading the query
-              *unboundaried* would put a `Suspense` requirement on all of them;
-              the boundary is local, and the two things the rail reads from the
-              query — the calendar's view and a record's `?from` — cost nothing
-              outside it.
-            */}
-            <Suspense fallback={<NavTree items={items} icons={icons} view={null} from={null} />}>
-              <RoutedNavTree items={items} icons={icons} />
-            </Suspense>
-          </SidebarGroupContent>
-        </SidebarGroup>
+          <Suspense fallback={<NavTree items={items} icons={icons} view={null} from={null} />}>
+            <RoutedNavTree items={items} icons={icons} />
+          </Suspense>
+        </div>
 
         {/* See `secondary` on `ShellProps`. The staff shell puts the user
             guide here; the portal passes nothing and this renders nothing. */}
@@ -723,10 +844,63 @@ function AppSidebar({
   );
 }
 
+/**
+ * The rail's mark: one leaf, at one size, in both states.
+ *
+ * ## Why this is two elements and not one lockup
+ *
+ * It was `BrandLogo` swapped for `BrandMark` on the fold — a 36px leaf becoming
+ * a 28px one, moving from the head's start edge to the middle of a 56px strip,
+ * in the same 200ms the whole column was already moving. Three changes at once
+ * to the one shape a reader orients by, and the mark appeared to jump.
+ *
+ * Drawn as the leaf **plus** the lettering, only the lettering has anything to
+ * do: `BrandMark` is `size-10` in both states and never resizes, and
+ * `.q-rail-collapse` collapses the word beside it from its own width to nothing
+ * over `--duration-arc` while fading over `--duration-label`. Nothing swaps,
+ * nothing remounts, and the leaf is the fixed point the fold turns around.
+ *
+ * ## `dir="rtl"`, in both locales
+ *
+ * The wordmark is Arabic, so the lockup reads right to left: the leaf leads
+ * from the right and the word sits to its left. `BrandLogo` got that for free —
+ * one SVG with both shapes at fixed coordinates, and `logo.ts` records that it
+ * is *never* mirrored for English. Split into two flex children the order is
+ * the page's, so an English page would compose the lockup backwards. The
+ * direction is pinned here instead, which also puts `ms-2` — the gap the lockup
+ * has between leaf and word — on the correct side of the word in both scripts.
+ *
+ * That margin lives *inside* the collapsing wrapper rather than being the row's
+ * `gap`, so it collapses with the word. A gap left outside would survive the
+ * fold as 8px of nothing and push the centred mark 4px off centre.
+ */
+function RailMark() {
+  return (
+    <span dir="rtl" className="flex items-center">
+      {/*
+        40px, which is the folded rail (56px) less the head's 8px gutter on each
+        side — so the leaf fills the strip's own module exactly and needs no
+        centring to sit in the middle of it. It is also the height of every row
+        and of the action below, so the head is on the same grid as the column.
+      */}
+      <BrandMark className="size-10 shrink-0" />
+      <span className="q-rail-collapse">
+        <span>
+          {/* 29px is the lettering's height inside a 40px lockup — the
+              proportion `BrandLogo` draws the two at, stated once here now that
+              they are two elements rather than one canvas. */}
+          <BrandWordmark className="ms-2 h-[29px]" />
+        </span>
+      </span>
+    </span>
+  );
+}
+
+
 /* ────────────────────────────────────────────────────────────────────────── */
 
 type TreeProps = {
-  items: readonly NavNode[];
+  items: readonly NavSection[];
   icons: Partial<Record<NavLabelKey, IconName>> | undefined;
 };
 
@@ -744,21 +918,42 @@ function RoutedNavTree(props: TreeProps) {
 }
 
 /**
- * The rail's navigation, in both of its shapes.
+ * The rail's navigation — **one list, in both shapes of the rail.**
  *
- * **Two lists are rendered, and CSS picks between them.** The tree is what the
- * 16rem column shows; the flat list is what the 56px strip shows (and why it
- * has to exist at all is on `flatten`). Swapping them in JavaScript on
- * `useSidebar().state` would remount one list into the other in the middle of
- * the rail's own 200ms width transition, which reads as a flicker at exactly
- * the moment the eye is following the movement. Two lists and a
- * `group-data-[collapsible=icon]` toggle cost a few dozen hidden nodes and
- * nothing else.
+ * ## Why one
+ *
+ * This used to render the whole tree twice and let CSS pick: the sections for
+ * the 16rem column, a flattened copy for the 56px strip. Two lists cannot
+ * *animate* into each other. `display` does not interpolate, and the swap fires
+ * on `data-collapsible` the instant the state flips — so for the whole 200ms
+ * the rail spent narrowing, the glyphs had already teleported to the positions
+ * they would hold at the end. Every row that sat at a different height in the
+ * two lists — which, once sections added headings, was every row below the
+ * first — jumped. The width slid and the contents did not follow it.
+ *
+ * One list has nothing to swap, so every part of the fold is a transition on a
+ * property that interpolates, and they all run on the same 200ms:
+ *
+ * - the **rail's width**, from `Sidebar`;
+ * - each **row's width and padding**, from `sidebarMenuButtonVariants` — the
+ *   button is `overflow-hidden`, so its label is clipped away rather than
+ *   removed, and the glyph stays put in the gutter it already occupied;
+ * - each **section heading**, from `SidebarGroupLabel` — `-mt-8` and `opacity-0`
+ *   on the same duration, so the heading fades as it slides up and the rows
+ *   under it glide into the space it vacates instead of snapping up into it.
+ *
+ * ## The one thing that still has two forms
+ *
+ * A category. It is a disclosure at 16rem and there is nothing to disclose into
+ * at 56px, so its row is a *destination* while folded — see `collapsedHref`.
+ * Both forms are rendered and CSS picks, which is the trick this file used to
+ * apply to the entire tree and now applies to a single row: the two draw the
+ * same glyph in the same place, so nothing about the swap is visible, and it
+ * costs one hidden `<li>` rather than a hidden copy of the rail.
  *
  * The mobile *drawer* — which the portal keeps and the staff app does not —
- * renders inside a `Sheet` that has no `group` ancestor, so neither variant
- * matches there and the tree is what shows. That is right: the drawer is
- * 18rem wide with labels.
+ * renders inside a `Sheet` that has no `group` ancestor, so the folded variants
+ * never match there and the rail draws its full 18rem self with labels.
  */
 function NavTree({
   items,
@@ -773,35 +968,42 @@ function NavTree({
   );
 
   /*
-   * The categories the current screen sits inside. Recomputed on every
-   * navigation, and joined into a string so the reset below can compare the
-   * *value* rather than a fresh array identity each render.
+   * The categories the current screen sits inside, one per accordion level.
+   * Recomputed on every navigation, and serialised so the reset below can
+   * compare the *value* rather than a fresh object identity each render.
    */
-  const trail = useMemo(() => activeTrail(items, at) ?? [], [items, at]);
-  const trailKey = trail.join('/');
+  const trail = useMemo(() => activeLevelsOf(items, at), [items, at]);
+  const trailKey = useMemo(
+    () =>
+      Object.entries(trail)
+        .map(([level, id]) => `${level}:${id}`)
+        .join('/'),
+    [trail],
+  );
 
   /**
    * **The accordion, and the whole of it: at most one category open per level.**
    *
-   * One entry per *level*, not per category — the key is the id of the parent
-   * category (`ROOT_LEVEL` for the top of the rail), and the value is the id of
-   * the one child of that parent that is open, or `null` for "the reader shut
-   * this level". A level with no entry at all has not been touched, and falls
-   * back to `trail`.
+   * One entry per *level*, not per category — the key is the id of whatever
+   * holds the level (a section's id at the top of a band, a category's id
+   * inside one), and the value is the id of the one child of that holder which
+   * is open, or `null` for "the reader shut this level". A level with no entry
+   * at all has not been touched, and falls back to `trail`.
    *
    * Keying by level rather than by category is what makes the accordion a
    * property of the *shape of the state* instead of a rule enforced on the way
-   * in. There is no "close the others" step to forget: opening المواعيد writes
-   * `{'': 'appointments'}`, and إدارة is shut for the same reason it was shut
-   * before — it is not the value at its level. A `Record<id, boolean>` would
-   * have needed a sweep on every press and would have had a representable
-   * illegal state (two `true`s) for a bug to live in.
+   * in. There is no "close the others" step to forget: opening a category
+   * writes it as the value at its level, and a sibling is shut for the same
+   * reason it was shut before — it is not the value there. A
+   * `Record<id, boolean>` would have needed a sweep on every press and would
+   * have had a representable illegal state (two `true`s) for a bug to live in.
    *
-   * Levels are independent, so التقويم inside المواعيد accordions among its own
-   * siblings — it happens to be an only child today — without knowing anything
-   * about the level above it. Its entry also survives its parent closing and
-   * reopening, which is deliberate: reopening المواعيد puts the reader back
-   * where they left it rather than making them find their place again.
+   * Levels are independent, so a category accordions among its own siblings
+   * without knowing anything about the band above it.
+   *
+   * ⚠ Only التقويم uses any of this today — sections are headings and do not
+   * open. It is kept because the machinery is what makes a *second* category
+   * safe to add, not because one category needs it.
    */
   const [openAt, setOpenAt] = useState<Record<string, string | null>>({});
   const [seenTrail, setSeenTrail] = useState(trailKey);
@@ -809,13 +1011,13 @@ function NavTree({
   /*
    * Navigating *into* a category re-opens it, even if it was closed by hand.
    *
-   * Without this, closing إدارة and then reaching a client record from the
-   * dashboard leaves the rail claiming you are nowhere: the row that would say
-   * where you are is inside a category that is shut. Only the *levels along the
-   * new trail* are dropped — every one of them falls back to the trail, which
-   * both opens the branch and, being one id per level, closes whatever else was
-   * open on the way. A level the reader touched somewhere off the trail keeps
-   * its entry, because they did not ask for it back.
+   * Without this, closing التقويم and then reaching the month view from
+   * somewhere else leaves the rail claiming you are nowhere: the row that would
+   * say where you are is inside a category that is shut. Only the *levels the
+   * new position runs through* are dropped — each of them falls back to the
+   * trail, which both opens the branch and, being one id per level, closes
+   * whatever else was open on the way. A level the reader touched off the trail
+   * keeps its entry, because they did not ask for it back.
    *
    * Adjusted **during render** rather than in an effect. This is state derived
    * from where the reader is, not a system outside React to synchronise with:
@@ -828,7 +1030,7 @@ function NavTree({
   if (seenTrail !== trailKey) {
     setSeenTrail(trailKey);
 
-    const levels = levelsAlong(trailKey);
+    const levels = Object.keys(trail);
     if (levels.some((key) => key in openAt)) {
       const next = { ...openAt };
       for (const key of levels) delete next[key];
@@ -839,15 +1041,10 @@ function NavTree({
   /**
    * Which category is open at one level: the reader's own answer if they have
    * given one, otherwise the trail's.
-   *
-   * `depth` is the level's own depth, which is also its index in the trail —
-   * `trail[0]` is the open top-level category, `trail[1]` the open one inside
-   * it. A group row is always at the same depth as the level it belongs to, so
-   * the two indices cannot drift.
    */
   const openIdAt = useCallback(
-    (levelKey: string, depth: number) =>
-      levelKey in openAt ? (openAt[levelKey] ?? null) : (trail[depth] ?? null),
+    (levelKey: string) =>
+      levelKey in openAt ? (openAt[levelKey] ?? null) : (trail[levelKey] ?? null),
     [openAt, trail],
   );
 
@@ -864,44 +1061,83 @@ function NavTree({
    * would have made the rail jump twice.
    */
   const toggle = useCallback(
-    (levelKey: string, depth: number, id: string) => {
+    (levelKey: string, id: string) => {
       setOpenAt((current) => {
-        const open = levelKey in current ? (current[levelKey] ?? null) : (trail[depth] ?? null);
+        const open = levelKey in current ? (current[levelKey] ?? null) : (trail[levelKey] ?? null);
         return { ...current, [levelKey]: open === id ? null : id };
       });
     },
     [trail],
   );
 
-  const flat = useMemo(() => flatten(items), [items]);
-
   return (
     <>
-      {/* The tree. Hidden at 56px, where the flat list below stands in for it —
-          see `flatten`. */}
-      <SidebarMenu className="group-data-[collapsible=icon]:hidden">
-        {items.map((node) => (
-          <NavRow
-            key={isGroup(node) ? node.id : node.href}
-            node={node}
-            depth={0}
-            levelKey={ROOT_LEVEL}
-            icons={icons}
-            at={at}
-            openIdAt={openIdAt}
-            onToggle={toggle}
-          />
-        ))}
-      </SidebarMenu>
+      {/*
+        Each band is its own `SidebarGroup`, which is what puts space between
+        one heading's territory and the next — and keeps putting it once the
+        headings have folded away, so the icon strip is grouped too rather than
+        being one undifferentiated column of six.
 
-      {/* The folded rail. Hidden at every width but 56px — see `flatten`. */}
-      <SidebarMenu className="hidden group-data-[collapsible=icon]:flex">
-        {flat.map((item) => (
-          <NavLeafRow key={item.id} item={item} icons={icons} at={at} />
-        ))}
-      </SidebarMenu>
+        The first band carries no heading, so its group is pulled flush with the
+        header above it: otherwise the dashboard sits a line lower than the logo
+        leads you to expect, and the gap reads as a missing row rather than as
+        the top of the column.
+
+        **A headed band takes three times the space above its heading that it
+        leaves below it** — `pt-3` over the `pb-1` every band carries, so 12px
+        plus the previous band's 4px sits above the word and the rows it names
+        start directly under it. That asymmetry is what makes the heading read
+        as a heading. The alternative every sidebar guide reaches for —
+        `uppercase` and letter-spacing — is unavailable here (see
+        `NavSectionLabel`), and with size and colour alone the word was one step
+        of grey away from the rows and could be read as a disabled one. Space is
+        the separator that works in both scripts.
+      */}
+      {items.map((section, index) => (
+        <SidebarGroup
+          key={section.id}
+          className={cn('py-1', section.labelKey && 'pt-3', index === 0 && 'pt-0')}
+        >
+          {section.labelKey ? <NavSectionLabel labelKey={section.labelKey} /> : null}
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {section.children.map((node) => (
+                <NavRow
+                  key={isGroup(node) ? node.id : node.href}
+                  node={node}
+                  depth={0}
+                  levelKey={section.id}
+                  icons={icons}
+                  at={at}
+                  openIdAt={openIdAt}
+                  onToggle={toggle}
+                />
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      ))}
     </>
   );
+}
+
+/**
+ * A section's printed heading.
+ *
+ * Its own component only because it needs `useTranslations`, which `NavTree`
+ * would otherwise be holding for the one string it does not render itself.
+ *
+ * **Not `uppercase`, and not `tracking-wider`** — the two things every
+ * sidebar-design guide reaches for on a category heading. Arabic has no
+ * uppercase, so the first is a rule that silently applies to half the product;
+ * the second is worse than inert there, because letter-spacing breaks the
+ * cursive joins that make an Arabic word legible at all. The heading is set
+ * apart by size, weight and `--sidebar-label` instead, which work identically
+ * in both scripts.
+ */
+function NavSectionLabel({ labelKey }: { labelKey: NavLabelKey }) {
+  const t = useTranslations('nav');
+  return <SidebarGroupLabel>{t(labelKey)}</SidebarGroupLabel>;
 }
 
 type RowProps = {
@@ -909,15 +1145,15 @@ type RowProps = {
   /** 0 is a top-level row; anything deeper is drawn as a submenu row. */
   depth: number;
   /**
-   * The accordion level this row is a sibling within — `ROOT_LEVEL` at the top
-   * of the rail, the holding category's id anywhere below. Rows at one level
+   * The accordion level this row is a sibling within — its section's id at the
+   * top of a band, the holding category's id anywhere below. Rows at one level
    * take turns being open; see `openAt` in `NavTree`.
    */
   levelKey: string;
   icons: Partial<Record<NavLabelKey, IconName>> | undefined;
   at: Location;
-  openIdAt: (levelKey: string, depth: number) => string | null;
-  onToggle: (levelKey: string, depth: number, id: string) => void;
+  openIdAt: (levelKey: string) => string | null;
+  onToggle: (levelKey: string, id: string) => void;
 };
 
 /** One row of the tree — a destination or a category — and whatever hangs off it. */
@@ -950,8 +1186,8 @@ function NavRow({ node, depth, levelKey, icons, at, openIdAt, onToggle }: RowPro
     *is* the accordion: a sibling opening makes this expression false here on
     the very same render, with no message passed between the two rows.
   */
-  const open = openIdAt(levelKey, depth) === node.id;
-  const holdsActive = activeTrail(node.children, at) !== null;
+  const open = openIdAt(levelKey) === node.id;
+  const holdsActive = activeLevels(node.children, node.id, at) !== null;
 
   /*
     The disclosure itself. `data-open` is the whole switch — `.q-nav-collapse`
@@ -988,11 +1224,14 @@ function NavRow({ node, depth, levelKey, icons, at, openIdAt, onToggle }: RowPro
 
   /*
     A category that is *shut* while the current screen is inside it takes the
-    brand ink and no fill. Open, the lit row below already says where you are
-    and a second green thing above it would be saying it twice; shut, this is
-    the only trace of your position left on the rail.
+    current row's ink and weight, and no fill. Open, the lit row below already
+    says where you are and a second mark above it would be saying it twice;
+    shut, this is the only trace of your position left on the rail.
+
+    Ink and weight but no fill, which is what keeps the two distinguishable: the
+    row you are *on* is filled, the category that *holds* it is only coloured.
   */
-  const trace = holdsActive && !open ? 'text-sidebar-accent-foreground' : undefined;
+  const trace = holdsActive && !open ? 'font-medium text-sidebar-accent-foreground' : undefined;
 
   const chevron = (
     <Icon
@@ -1002,6 +1241,13 @@ function NavRow({ node, depth, levelKey, icons, at, openIdAt, onToggle }: RowPro
         nothing to animate between, and this is the movement the whole
         disclosure is timed against.
 
+        **`ms-1`, not `ms-auto`.** Pushed to the row's far edge it ended up an
+        inch of empty rail away from the word it opens — and it is the only
+        chevron in the column, so that far edge held exactly one mark with
+        nothing above or below it to line up with. Beside the label it is part
+        of the thing it belongs to, and the row reads as one target rather than
+        as two marks at opposite ends of a wide box.
+
         Shut, it points along the reading direction: `-rotate-90` turns the "v"
         into a ">" for English, and the `rtl:` variant turns it into a "<" for
         Arabic. Open, it is upright in both. The rotation shares
@@ -1009,7 +1255,7 @@ function NavRow({ node, depth, levelKey, icons, at, openIdAt, onToggle }: RowPro
         are the same gesture rather than two that happen to overlap.
       */
       className={cn(
-        'ms-auto size-4 transition-transform duration-(--duration-arc) ease-(--ease-sweep)',
+        'ms-1 size-4 transition-transform duration-(--duration-arc) ease-(--ease-sweep)',
         open ? 'rotate-0' : '-rotate-90 rtl:rotate-90',
       )}
     />
@@ -1018,20 +1264,43 @@ function NavRow({ node, depth, levelKey, icons, at, openIdAt, onToggle }: RowPro
   const trigger = {
     'aria-expanded': open,
     'aria-controls': panelId,
-    onClick: () => onToggle(levelKey, depth, node.id),
+    onClick: () => onToggle(levelKey, node.id),
   } as const;
 
   return top ? (
-    <SidebarMenuItem>
-      <SidebarMenuButton {...trigger} className={trace}>
-        {icon ? <Icon name={icon} className="size-5" /> : null}
-        {/* The button’s own [&>span:last-child]:truncate does not reach this one:
-            the chevron is the last child on a category row, not the label. */}
-        <span className="truncate">{label}</span>
-        {chevron}
-      </SidebarMenuButton>
-      {panel}
-    </SidebarMenuItem>
+    <>
+      <SidebarMenuItem className="group-data-[collapsible=icon]:hidden">
+        <SidebarMenuButton {...trigger} className={trace}>
+          {icon ? <Icon name={icon} className="size-5" /> : null}
+          {/* The button’s own [&>span:last-child]:truncate does not reach this one:
+              the chevron is the last child on a category row, not the label. */}
+          <span className="truncate">{label}</span>
+          {chevron}
+        </SidebarMenuButton>
+        {panel}
+      </SidebarMenuItem>
+      {/*
+        The same row, folded: a destination rather than a disclosure.
+
+        At 56px there is nothing to open into, so the category stands for one
+        address — its `collapsedHref`, or, for a category that names none, its
+        children flattened in its place. See `flattenNodes`.
+
+        Rendered alongside rather than swapped in on `useSidebar().state`: both
+        forms draw the same glyph at the same x, so CSS picking between them is
+        invisible, while a JavaScript swap would remount the row in the middle
+        of the fold — the one moment the eye is following it.
+      */}
+      {flattenNodes([node]).map((item) => (
+        <NavLeafRow
+          key={item.id}
+          item={item}
+          icons={icons}
+          at={at}
+          className="hidden group-data-[collapsible=icon]:block"
+        />
+      ))}
+    </>
   ) : (
     <SidebarMenuSubItem>
       {/* `render` overrides the sub-button's default `<a>`: this one opens a
@@ -1058,17 +1327,20 @@ function NavLeafRow({
   item,
   icons,
   at,
+  className,
 }: {
   item: FlatItem;
   icons: Partial<Record<NavLabelKey, IconName>> | undefined;
   at: Location;
+  /** For the two forms of a category row — see `NavRow`. Destinations pass none. */
+  className?: string;
 }) {
   const t = useTranslations('nav');
   const icon = icons?.[item.labelKey];
   const label = t(item.labelKey);
 
   return (
-    <SidebarMenuItem>
+    <SidebarMenuItem className={className}>
       {/*
         `tooltip` only shows while the sidebar is collapsed — the registry hides
         it otherwise — so the label is never announced twice to a pointer that
@@ -1111,6 +1383,21 @@ function NavLink({ href, at, ...props }: { href: NavHref; at: Location } & React
   return (
     <Link
       href={href}
+      /*
+        The row's state, said in a way that is not a colour.
+
+        `isItemActive`, so it marks the same row the fill marks — including a
+        client's record, where المشتركون stays current. That is the honest
+        answer to "where am I": `page` is the standard's own word for the
+        current *location*, and a record reached from the register is a place
+        inside it.
+
+        Without this the selected row was a fill and a font weight and nothing
+        else, which is exactly the state a screen reader cannot see. The comment
+        on `sidebarMenuButtonVariants` has claimed this attribute was here since
+        the rail was rewritten; it was not.
+      */
+      aria-current={isItemActive(href, at) ? 'page' : undefined}
       /*
         Prefetch the shell on sight, the whole page on hover.
 

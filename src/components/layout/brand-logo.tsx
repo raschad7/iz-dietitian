@@ -10,6 +10,7 @@ import {
   SEED_ROTATION,
   SEED_RX,
   SEED_RY,
+  WORDMARK_VIEWBOX,
 } from '@/features/brand/logo';
 import { cn } from '@/lib/utils';
 
@@ -99,6 +100,44 @@ export function BrandMark({ className, ...props }: React.ComponentProps<'svg'>) 
     >
       <path d={MARK_LEAF_PATH} fill="var(--brand-leaf)" />
       <Seeds centres={MARK_SEED_CX} />
+    </svg>
+  );
+}
+
+/**
+ * The lettering alone, with no leaf beside it.
+ *
+ * The other half of `BrandLogo`, framed by itself — same path, drawn in
+ * `WORDMARK_VIEWBOX` (the ink's own bounding box) rather than in the lockup's
+ * canvas, so a caller controls it without carrying the leaf's share of the
+ * width. The splash screen already draws it this way; this is that shape as a
+ * component.
+ *
+ * ## Why the rail wants the two halves apart
+ *
+ * The rail's head used to swap the whole lockup for `BrandMark` the moment the
+ * column folded, which changed the leaf's size (36px to 28px) and its position
+ * in the same frame — the mark jumped at exactly the moment the eye was
+ * following the fold. Drawn as `BrandMark` **plus** this, the leaf is one
+ * element at one size in both states and never moves; only the lettering
+ * collapses, and it can be given the time to do it. See `RailMark` in
+ * `layout/sidebar.tsx`.
+ *
+ * 1.924:1, so **width** follows a height the caller sets — the same axis
+ * `BrandLogo` controls, which is what keeps the two in proportion when they are
+ * drawn side by side.
+ */
+export function BrandWordmark({ className, ...props }: React.ComponentProps<'svg'>) {
+  return (
+    <svg
+      viewBox={WORDMARK_VIEWBOX}
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden
+      className={cn('w-auto', className)}
+      {...props}
+    >
+      <path d={LOCKUP_WORDMARK_PATH} fill="var(--brand-wordmark)" />
     </svg>
   );
 }
