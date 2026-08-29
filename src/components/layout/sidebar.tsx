@@ -28,7 +28,7 @@ import {
 import { Link, usePathname } from '@/i18n/navigation';
 import type { Locale } from '@/i18n/routing';
 
-import { BrandLogo, BrandMark } from './brand-logo';
+import { BrandMark, BrandWordmark } from './brand-logo';
 import { SidebarProfile } from './sidebar-profile';
 
 /**
@@ -532,30 +532,7 @@ export function AppShell({
         primary={primary}
         secondary={secondary}
       />
-      <SidebarInset>
-        {/*
-          The trigger stands on the page, not in the rail.
-
-          Folded, the rail is 56px wide and has room for exactly one thing at
-          its head. It used to be the trigger, so the logo was hidden the moment
-          the rail closed — the app lost its mark at the one width where a
-          reader has the least else to orient by. Out here, the mark keeps the
-          head in both states and the control keeps working in both, because
-          nothing has to share the strip.
-
-          It is also where the control belongs: it acts on the boundary between
-          the rail and the page, and standing on the page it does not travel
-          16rem sideways every time it is pressed.
-
-          **Staff only**, the same test the phone app bar carried before it:
-          the portal draws its own header at the top of every screen, and a
-          second strip above that would push each one down by 44px to hold a
-          control the portal's own drawer already has. It keeps the trigger in
-          the rail head — see `AppSidebar`.
-        */}
-        {user ? <ShellTrigger /> : null}
-        {children}
-      </SidebarInset>
+      <SidebarInset>{children}</SidebarInset>
     </SidebarProvider>
   );
 }
@@ -564,7 +541,7 @@ export function AppShell({
 /*
  * `BrandMark` — the clinic's own uploaded logo, drawn as a 28px rounded square
  * at the head of the rail — used to live here. The head now leads with the
- * product logo instead (see `BrandLogo` in the header below), so the component
+ * product logo instead (see `RailMark` below), so the component
  * had no caller and is gone rather than left to rot.
  *
  * `brand.logoUrl` still travels down from the staff layout and the settings
@@ -585,6 +562,18 @@ function AppSidebar({
 }: Omit<ShellProps, 'children'>) {
   const t = useTranslations('nav');
 
+  /*
+   * Which of the head's two triggers is the reachable one.
+   *
+   * Both are in the DOM at every width — they cross-fade, so neither can be
+   * `display: none` — and a button faded to nothing is still a tab stop and
+   * still announced. `inert` is the whole of what this drives; nothing about
+   * either control's *painting* is decided in JavaScript, which is why reading
+   * the state here does not reintroduce the remount the rail avoids everywhere
+   * else. See the two blocks in the header below.
+   */
+  const folded = useSidebar().state === 'collapsed';
+
 
   /*
    * Where the logo at the head of the rail goes: the section's own index — the
@@ -601,19 +590,35 @@ function AppSidebar({
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="gap-0 pb-1">
-        <div className="flex h-12 items-center gap-2 px-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+      <SidebarHeader className="gap-0 pb-3">
+        {/*
+          No padding and no `justify-*` of its own, and that is the fix for the
+          shaking logo.
+
+          `SidebarHeader` is `p-2`, so this row starts 8px from the rail's
+          inline-start edge — and the folded strip is 56px, which is 8px, a
+          40px mark, and 8px. The leaf therefore lands in the middle of the
+          folded rail *without being centred*: it is pinned to the one edge that
+          does not move, at the same offset in both states, and the width
+          animation happens entirely on the far side of it.
+
+          It was `px-2` plus `group-data-[collapsible=icon]:justify-center`
+          before, which is two instant jumps (the padding, and the switch to
+          centring) followed by 300ms of the mark being re-centred inside a box
+          that was still shrinking. Three movements on the one shape a reader
+          uses to orient, every time the rail closed.
+        */}
+        <div className="flex h-12 items-center">
           {/*
-            The mark stays at every width, and that is the change.
+            The mark stays at every width, at one size, and that is the change.
 
             The whole identity used to hide when the rail folded, because the
             trigger needed the row and a 56px strip fits one control. The
-            trigger stands on the page now (see `ShellTrigger`), so the head is
-            the mark's alone: the full lockup while there is a column to print a
-            wordmark in, the leaf alone at 56px, in the same place both times.
-            An app that drops its own mark the moment its navigation narrows is
-            an app the reader has to re-identify every time they reclaim some
-            width.
+            trigger takes the line *below* now (see the block after this one),
+            so the head is the mark's alone: the leaf at 36px in both states,
+            with the wordmark collapsing beside it. An app that drops its own
+            mark the moment its navigation narrows is an app the reader has to
+            re-identify every time they reclaim some width.
           */}
           {brand ? (
             homeHref ? (
@@ -672,24 +677,72 @@ function AppSidebar({
             {brand?.name ?? title}
           </span>
           {/*
-            The portal keeps its trigger here. It renders no `user`, so
-            `AppShell` draws no `ShellTrigger` on the page for it, and the rail
-            would otherwise have nothing to close it with on a desktop. The
-            staff shell passes the labels through to `ShellTrigger` instead and
-            this renders nothing.
+            The trigger, expanded: at the end of the logo's own row, where it
+            costs no line of its own.
 
-            The two labels the trigger names itself with, one per state, travel
-            from here for the same reason the destination rows' tooltips do:
+            It stood on the *page* for a release — a floating square in the
+            corner of every screen, with one rule in `globals.css` indenting the
+            first row of every layout to clear it. Out there it belonged to
+            nothing: the reader saw a control beside a page heading that folded
+            a column somewhere else, and each screen paid 40px of its start
+            edge for it. The thing it acts on is the rail, so it lives in the
+            rail.
+
+            The two labels it names itself with, one per state, travel from here
+            for the same reason the destination rows' tooltips do:
             `ui/sidebar.tsx` is registry code with no locale of its own, and
             this component already holds the `nav` namespace.
           */}
-          {user ? null : (
+          <span className="q-rail-collapse ms-auto" inert={folded}>
+            <span>
+              <SidebarTrigger
+                expandLabel={t('expandSidebar')}
+                collapseLabel={t('collapseSidebar')}
+              />
+            </span>
+          </span>
+        </div>
+
+        {/*
+          The same control, folded: a row of its own directly under the mark.
+
+          At 56px the head has one column and two things that want it, and the
+          mark wins — an app that drops its own logo the moment its navigation
+          narrows is an app the reader has to re-identify every time. So the
+          trigger takes the line below instead of the space beside, which is the
+          only other place in the rail that is still about the rail rather than
+          about a destination.
+
+          **Rendered alongside rather than moved**, for the reason `NavRow`
+          renders both of its shapes: CSS picking between two identical buttons
+          is invisible, while re-parenting one across the fold would remount it
+          — a control blinking out at the exact moment it is being pressed. Only
+          one of the two is ever displayed, so neither the tab order nor the
+          accessibility tree sees a duplicate.
+
+          **They cross-fade rather than swap.** `hidden` / `block` on the two
+          was one blinking out and the other blinking in 40px lower, in a frame
+          where everything else was still moving. `.q-rail-drop` opens this row
+          from zero height on the fold's own clock while the one above narrows
+          away, so the action below slides down rather than jumping, and neither
+          control is ever the only thing on screen that moved instantly.
+
+          ⚠ **The space above the button belongs to the button.** On a phone the
+          rail is locked open at 56px and `SidebarTrigger` takes itself out of
+          the page — there is nothing to fold, and a control that cannot do
+          anything is worse than no control. Padding on the wrapper would then
+          be dead space at the top of the narrowest rail in the product, held by
+          an empty box. With the margin on the button, an empty wrapper is 0px
+          tall, and `SidebarHeader` is `gap-0` so it costs no gap either.
+        */}
+        <div className="q-rail-drop" inert={!folded}>
+          <div>
             <SidebarTrigger
-              className="ms-auto shrink-0"
+              className="mt-2"
               expandLabel={t('expandSidebar')}
               collapseLabel={t('collapseSidebar')}
             />
-          )}
+          </div>
         </div>
 
         {/*
@@ -704,10 +757,20 @@ function AppSidebar({
           No horizontal padding of its own. `SidebarHeader` is `p-2` and
           `SidebarGroup` — which holds the destinations — is `p-2` as well, so
           the button already stands in the same 8px gutter as every row below
-          it, and its own `px-3` puts its glyph in the same column as theirs.
-          Adding `px-2` here indented it by 8px against the whole rail.
+          it, and its own inline padding puts its glyph in the same column as
+          theirs. Adding `px-2` here indented it by 8px against the whole rail.
+
+          ⚠ **The vertical space is the point, and 4px was not enough of it.**
+          This is the one thing in the head that is neither the identity above
+          it nor a destination below it, and at `pt-1` it had less air around it
+          than the destinations have between themselves — it read as a row that
+          had been given a border rather than as its own band. 8px here and
+          `pb-3` on the header make it 12px clear on both sides: 12 above,
+          because the 40px mark sits in a 48px row and keeps 4px of its own, and
+          12 below, because the first group starts at `pt-0` and takes the
+          header's padding as its whole gap. Even, and enough to separate.
         */}
-        {primary ? <div className="pt-1">{primary}</div> : null}
+        {primary ? <div className="pt-2">{primary}</div> : null}
       </SidebarHeader>
 
       <SidebarContent>
@@ -782,71 +845,57 @@ function AppSidebar({
 }
 
 /**
- * The rail's mark, in whichever of its two shapes fits the current width.
+ * The rail's mark: one leaf, at one size, in both states.
  *
- * Both are rendered and CSS picks, for the same reason `NavTree` renders both
- * of its lists: the rail's width animates over 200ms, and swapping one SVG for
- * another on `useSidebar().state` would remount the mark in the middle of that
- * movement — a blink at exactly the moment the eye is following it.
+ * ## Why this is two elements and not one lockup
  *
- * The full lockup is the leaf plus the wordmark at 2.6:1, which needs about
- * 90px to be legible and has 40px in the folded strip. So the folded rail draws
- * `BrandMark` — the leaf alone, square — rather than a squeezed lockup or, as
- * before, nothing at all.
+ * It was `BrandLogo` swapped for `BrandMark` on the fold — a 36px leaf becoming
+ * a 28px one, moving from the head's start edge to the middle of a 56px strip,
+ * in the same 200ms the whole column was already moving. Three changes at once
+ * to the one shape a reader orients by, and the mark appeared to jump.
+ *
+ * Drawn as the leaf **plus** the lettering, only the lettering has anything to
+ * do: `BrandMark` is `size-10` in both states and never resizes, and
+ * `.q-rail-collapse` collapses the word beside it from its own width to nothing
+ * over `--duration-arc` while fading over `--duration-label`. Nothing swaps,
+ * nothing remounts, and the leaf is the fixed point the fold turns around.
+ *
+ * ## `dir="rtl"`, in both locales
+ *
+ * The wordmark is Arabic, so the lockup reads right to left: the leaf leads
+ * from the right and the word sits to its left. `BrandLogo` got that for free —
+ * one SVG with both shapes at fixed coordinates, and `logo.ts` records that it
+ * is *never* mirrored for English. Split into two flex children the order is
+ * the page's, so an English page would compose the lockup backwards. The
+ * direction is pinned here instead, which also puts `ms-2` — the gap the lockup
+ * has between leaf and word — on the correct side of the word in both scripts.
+ *
+ * That margin lives *inside* the collapsing wrapper rather than being the row's
+ * `gap`, so it collapses with the word. A gap left outside would survive the
+ * fold as 8px of nothing and push the centred mark 4px off centre.
  */
 function RailMark() {
   return (
-    <>
-      <BrandLogo className="h-9 shrink-0 group-data-[collapsible=icon]:hidden" />
-      <BrandMark className="hidden size-7 shrink-0 group-data-[collapsible=icon]:block" />
-    </>
+    <span dir="rtl" className="flex items-center">
+      {/*
+        40px, which is the folded rail (56px) less the head's 8px gutter on each
+        side — so the leaf fills the strip's own module exactly and needs no
+        centring to sit in the middle of it. It is also the height of every row
+        and of the action below, so the head is on the same grid as the column.
+      */}
+      <BrandMark className="size-10 shrink-0" />
+      <span className="q-rail-collapse">
+        <span>
+          {/* 29px is the lettering's height inside a 40px lockup — the
+              proportion `BrandLogo` draws the two at, stated once here now that
+              they are two elements rather than one canvas. */}
+          <BrandWordmark className="ms-2 h-[29px]" />
+        </span>
+      </span>
+    </span>
   );
 }
 
-/**
- * The rail's toggle, standing on the page rather than in the rail.
- *
- * A component of its own because the decision it needs — is there anything to
- * toggle at this width — is `useSidebar()`, and `AppShell` is the thing that
- * *creates* that context and so cannot read it.
- *
- * ## It costs no row
- *
- * It had one for a release — a 44px strip above the page — and 44px of every
- * screen in the app spent on a single 32px control is not a trade worth making
- * twice. It is out of the flow now, in the page's top inline-start corner, and
- * the page's own first row is inset far enough to sit beside it rather than
- * under it. That inset is one rule in `globals.css` keyed on
- * `[data-slot='shell-scroll']`, so it reaches every staff screen — including
- * the several that draw their own first line instead of `PageHeader` — without
- * any of them knowing this control exists.
- *
- * The trigger is a sibling of `main` rather than a child, so it does not
- * scroll: the way to reach the navigation stays on screen wherever the reader
- * has got to on a long page. It carries the page's own background for the same
- * reason, because content does travel underneath it.
- *
- * It renders nothing on a phone. `SidebarTrigger` takes itself out of the page
- * when the rail is locked — a control that cannot do anything is worse than no
- * control — and the inset above is withheld in the same breath, keyed on the
- * `data-locked` the provider puts on the shell.
- */
-function ShellTrigger() {
-  const t = useTranslations('nav');
-  const { locked } = useSidebar();
-
-  if (locked) return null;
-
-  return (
-    <div className="absolute top-3 z-20 flex bg-background start-3 md:top-5 md:start-5">
-      <SidebarTrigger
-        standing
-        expandLabel={t('expandSidebar')}
-        collapseLabel={t('collapseSidebar')}
-      />
-    </div>
-  );
-}
 
 /* ────────────────────────────────────────────────────────────────────────── */
 
@@ -1033,9 +1082,22 @@ function NavTree({
         header above it: otherwise the dashboard sits a line lower than the logo
         leads you to expect, and the gap reads as a missing row rather than as
         the top of the column.
+
+        **A headed band takes three times the space above its heading that it
+        leaves below it** — `pt-3` over the `pb-1` every band carries, so 12px
+        plus the previous band's 4px sits above the word and the rows it names
+        start directly under it. That asymmetry is what makes the heading read
+        as a heading. The alternative every sidebar guide reaches for —
+        `uppercase` and letter-spacing — is unavailable here (see
+        `NavSectionLabel`), and with size and colour alone the word was one step
+        of grey away from the rows and could be read as a disabled one. Space is
+        the separator that works in both scripts.
       */}
       {items.map((section, index) => (
-        <SidebarGroup key={section.id} className={cn('py-1', index === 0 && 'pt-0')}>
+        <SidebarGroup
+          key={section.id}
+          className={cn('py-1', section.labelKey && 'pt-3', index === 0 && 'pt-0')}
+        >
           {section.labelKey ? <NavSectionLabel labelKey={section.labelKey} /> : null}
           <SidebarGroupContent>
             <SidebarMenu>
@@ -1179,6 +1241,13 @@ function NavRow({ node, depth, levelKey, icons, at, openIdAt, onToggle }: RowPro
         nothing to animate between, and this is the movement the whole
         disclosure is timed against.
 
+        **`ms-1`, not `ms-auto`.** Pushed to the row's far edge it ended up an
+        inch of empty rail away from the word it opens — and it is the only
+        chevron in the column, so that far edge held exactly one mark with
+        nothing above or below it to line up with. Beside the label it is part
+        of the thing it belongs to, and the row reads as one target rather than
+        as two marks at opposite ends of a wide box.
+
         Shut, it points along the reading direction: `-rotate-90` turns the "v"
         into a ">" for English, and the `rtl:` variant turns it into a "<" for
         Arabic. Open, it is upright in both. The rotation shares
@@ -1186,7 +1255,7 @@ function NavRow({ node, depth, levelKey, icons, at, openIdAt, onToggle }: RowPro
         are the same gesture rather than two that happen to overlap.
       */
       className={cn(
-        'ms-auto size-4 transition-transform duration-(--duration-arc) ease-(--ease-sweep)',
+        'ms-1 size-4 transition-transform duration-(--duration-arc) ease-(--ease-sweep)',
         open ? 'rotate-0' : '-rotate-90 rtl:rotate-90',
       )}
     />

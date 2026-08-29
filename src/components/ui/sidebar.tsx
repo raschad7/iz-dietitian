@@ -27,7 +27,11 @@ import { Icon } from "@/components/ui/icon"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
-const SIDEBAR_WIDTH = "16rem"
+// 14rem, not the registry's 16rem. Six labels of two or three short words left
+// every row in a 16rem column better than half empty, and the ragged inline-end
+// edge that produced is what made the chevron on التقويم look stranded. The
+// 32px comes back to the page, which is the side of the screen the work is on.
+const SIDEBAR_WIDTH = "14rem"
 const SIDEBAR_WIDTH_MOBILE = "18rem"
 /*
   56px, not the registry's 48px. The rail's glyphs are 20px rather than 16px —
@@ -331,7 +335,7 @@ function Sidebar({
       <div
         data-slot="sidebar-gap"
         className={cn(
-          "relative w-(--sidebar-width) bg-transparent transition-[width] duration-200 ease-linear",
+          "relative w-(--sidebar-width) bg-transparent transition-[width] duration-(--duration-fold) ease-(--ease-sweep)",
           "group-data-[collapsible=offcanvas]:w-0",
           "group-data-[side=inline-end]:rotate-180",
           variant === "floating" || variant === "inset"
@@ -343,7 +347,7 @@ function Sidebar({
         data-slot="sidebar-container"
         data-side={side}
         className={cn(
-          "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[inset-inline-start,inset-inline-end,width] duration-200 ease-linear data-[side=inline-start]:start-0 data-[side=inline-start]:group-data-[collapsible=offcanvas]:start-[calc(var(--sidebar-width)*-1)] data-[side=inline-end]:end-0 data-[side=inline-end]:group-data-[collapsible=offcanvas]:end-[calc(var(--sidebar-width)*-1)] md:flex",
+          "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[inset-inline-start,inset-inline-end,width] duration-(--duration-fold) ease-(--ease-sweep) data-[side=inline-start]:start-0 data-[side=inline-start]:group-data-[collapsible=offcanvas]:start-[calc(var(--sidebar-width)*-1)] data-[side=inline-end]:end-0 data-[side=inline-end]:group-data-[collapsible=offcanvas]:end-[calc(var(--sidebar-width)*-1)] md:flex",
           // Same reason as the wrapper above: with no Sheet standing in for it
           // below `md`, the locked rail has to draw itself there. The width
           // needs no help — `data-collapsible="icon"` is set on the group, so
@@ -374,7 +378,6 @@ function SidebarTrigger({
   onClick,
   expandLabel,
   collapseLabel,
-  standing = false,
   ...props
 }: React.ComponentProps<typeof Button> & {
   /**
@@ -393,15 +396,6 @@ function SidebarTrigger({
    */
   expandLabel?: string
   collapseLabel?: string
-  /**
-   * This trigger stands on the page rather than in the rail's head.
-   *
-   * It changes one thing — the resting fill stops being conditional; see the
-   * note on `className` below. The staff shell passes it because its trigger
-   * moved out onto the page (`ShellTrigger` in `layout/sidebar.tsx`); the
-   * portal, whose trigger is still a row in the rail's head, does not.
-   */
-  standing?: boolean
 }) {
   const { toggleSidebar, locked, state, isMobile, openMobile } = useSidebar()
 
@@ -426,24 +420,21 @@ function SidebarTrigger({
       variant="ghost"
       size="icon-sm"
       /*
-        ## The fill belongs wherever the control stands alone
+        ## The fill belongs to the state in which the control stands alone
 
-        One rule, applied to two positions.
+        **Expanded** the trigger sits at the end of the logo's row, beside the
+        mark and above a labelled column. Its job is obvious from the company it
+        keeps, and a resting disc in the busiest row of the rail is one more
+        thing competing there — so it rests bare and the pointer gets nothing
+        either. (`hover:bg-transparent` is not an omission: `ghost` carries a
+        hover fill of its own that has to be turned off.)
 
-        **In the rail's head** (`standing` false, which is the portal) the fill
-        is the collapsed state's only. Expanded, the trigger sits beside the
-        logo in a 48px head and its job is already obvious from the column it is
-        standing in; a disc under the pointer there is one more thing moving in
-        the busiest row of the rail. Collapsed, it is the only control left in a
-        56px strip, so the fill is what says the strip is pressable at all.
-
-        **On the page** (`standing`, which is the staff shell) it is the fill in
-        both states, because the condition that made it conditional is gone: out
-        here the trigger is a lone unlabelled glyph on an empty row whether the
-        rail is open or shut, and it is *more* exposed expanded, not less. Left
-        conditional it faded to a bare chevron on white at exactly the width
-        where there is most page around it to lose it in — and it changed shape
-        on every press, which made one control read as two.
+        **Collapsed** it is alone on a line under the mark in a 56px strip, an
+        unlabelled glyph with nothing around it, and the fill is what says the
+        strip is pressable at all. A fill that only appears under a pointer is a
+        fill nobody on a touch screen ever sees, so this one is *standing* — no
+        `hover:` prefix, simply there — and the `hover:` pair restates it so
+        `ghost` cannot repaint it grey on the way past.
 
         ⚠ **The `aria-expanded:` reset is not optional.** `ghost` lights up on
         `aria-expanded` (see `button.tsx`) because the variant was written for
@@ -453,52 +444,29 @@ function SidebarTrigger({
         for as long as the rail stayed open. Neutralised rather than dropped:
         the attribute is the correct semantics, only its default paint is not.
 
-        Stated unconditionally because it can only bite while `aria-expanded` is
-        true, which is exactly the state it is meant to cover. The `hover:`
-        half needs the guard.
-
-        `focus-visible` is untouched in both states — it comes from the base
-        layer, and it is keyboard reachability rather than decoration.
-
-        ## The fill is standing, not a hover
-
-        `bg-sidebar-accent` with no `hover:` prefix, so the tint is simply there
-        for as long as the control is on its own. A fill that only appears under
-        a pointer is a fill half the people using this — anyone on a touch
-        screen — never see, and an unlabelled glyph with nothing around it then
-        reads as decoration rather than as the way back.
-
-        **The `hover:` pair restates the same fill rather than omitting it.**
-        `ghost` still carries `hover:bg-accent`, which would otherwise fire over
-        the standing tint and turn the square grey on the way past — the one
-        moment the colour has no business changing.
+        `focus-visible` is untouched — it comes from the base layer, and it is
+        keyboard reachability rather than decoration.
 
         The colour is not chosen for this button: it is character for character
         what the *current page's* row takes in the rail (see
         `sidebarMenuButtonVariants`), so the control that opens the column is
         drawn in the column's own vocabulary. `--sidebar-accent` under
-        `--sidebar-accent-foreground` — c-200 under c-600 in light, green-800
-        under green-300 on the dark rail. A hand-written fill would not have
-        been.
-
-        Accent rather than `--sidebar-hover`, and the distinction survived the
-        two of them becoming steps of one ramp: a *standing* fill that never
-        responds to the pointer must not be the same value a pointer produces,
-        or the control looks like it is being pointed at when nothing is.
+        `--sidebar-accent-foreground` — c-200 under green-700 in light,
+        green-800 under green-300 on the dark rail. A hand-written fill would
+        not have been. Accent rather than `--sidebar-hover`, and the distinction
+        matters: a standing fill that never responds to the pointer must not be
+        a value a pointer can produce, or the control looks like it is being
+        pointed at when nothing is.
 
         `rounded-md` overrides `icon-sm`'s `rounded-full`: a disc is the shape of
         a floating control, and this one is a row in a column of rows.
       */
       className={cn(
         "rounded-md",
-        standing
-          ? "bg-sidebar-accent text-sidebar-accent-foreground aria-expanded:bg-sidebar-accent aria-expanded:text-sidebar-accent-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          : cn(
-              "aria-expanded:bg-transparent aria-expanded:text-secondary-foreground",
-              expanded
-                ? "hover:bg-transparent hover:text-secondary-foreground"
-                : "bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-            ),
+        "aria-expanded:bg-transparent aria-expanded:text-secondary-foreground",
+        expanded
+          ? "hover:bg-transparent hover:text-secondary-foreground"
+          : "bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
         className
       )}
       /*
@@ -551,7 +519,7 @@ function SidebarTrigger({
         side="inline-end"
         align="center"
         /*
-          Expanded, the trigger is beside a logo and above five labelled rows;
+          Expanded, the trigger is beside the logo and above a labelled column;
           the one control on screen whose purpose is least in doubt does not
           need a bubble explaining it. Collapsed, the labels are gone and the
           hint is the only text there is. Hidden on mobile for the reason the
@@ -724,7 +692,7 @@ function SidebarGroupLabel({
     props: mergeProps<"div">(
       {
         className: cn(
-          "flex h-8 shrink-0 items-center rounded-md px-3 text-xs font-medium text-sidebar-label ring-sidebar-ring outline-hidden transition-[margin,opacity] duration-200 ease-linear group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
+          "flex h-8 shrink-0 items-center rounded-md px-3 text-xs font-medium text-sidebar-label ring-sidebar-ring outline-hidden transition-[margin,opacity] duration-(--duration-fold) ease-(--ease-sweep) group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
           className
         ),
       },
@@ -820,6 +788,12 @@ function SidebarMenuItem({ className, ...props }: React.ComponentProps<"li">) {
   `aria-current="page"`.** ΔL* 6.6 from the rail and 5.00:1 for the ink on it.
   Three marks, none of them loud: the fill separates the row from the column,
   the colour says which row it is, and the weight is a step rather than a shove.
+
+  ⚠ **No edge bar.** A 3px rule down the row's inline-start was tried as a way
+  to stop the filled current row rhyming with the filled action above it, and it
+  was rejected on sight: in a column this short it reads as a stray mark rather
+  than as a marker, and it puts a second vertical line 8px from the one
+  `SidebarMenuSub` already draws. The fill carries the state alone.
 
   The fill is doing more work than it used to — it was a green-50 tint measuring
   ΔL* 0.74, which was no fill at all — so the gap between it and the hover step

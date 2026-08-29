@@ -404,6 +404,23 @@
   --duration-travel: 420ms;
 
   /*
+   * The navigation rail folding between its two widths.
+   *
+   * Between an arc and a travel, because that is what it is: 168px of column
+   * narrowing, with the whole page moving over to meet it. At `--duration-arc`
+   * it was over before the eye had followed it — everything arrived at once and
+   * the fold read as a cut rather than as a movement. `--duration-travel` is
+   * the other way wrong; the rail is not crossing the screen, it is changing
+   * size in place.
+   *
+   * Every part of the fold is timed against this one number — the column, the
+   * page beside it, the rows' geometry, the wordmark, the section headings —
+   * so there is exactly one clock and nothing can arrive early. Ink is the one
+   * exception and keeps `--duration-label`: a colour has no distance to cover.
+   */
+  --duration-fold: 300ms;
+
+  /*
    * How long a finger rests on something before it picks it up.
    *
    * Not a reaction like the four durations above — it is a *requirement*, the
@@ -3735,35 +3752,171 @@
 }
 
 /*
- * ── Room for the rail's trigger, in the corner of every staff page ──
+ * ── The fold, as one movement ──
  *
- * The control that folds the rail stands on the page rather than in the rail
- * (see `ShellTrigger` in `layout/sidebar.tsx`), pinned to the top inline-start
- * corner and out of the flow. Out of the flow it takes no height from the page
- * — which is the whole point, a 44px strip on every screen to hold one 32px
- * button was not worth it — but it does occupy that corner, and the corner is
- * where every staff screen starts its first line.
+ * Closing the rail used to be four things happening at once on four different
+ * clocks: the column's width on a linear 200ms, the rows' padding on 180ms, the
+ * headings' margin on another linear 200ms, and the logo *swapping* — one SVG
+ * hidden, a smaller one shown — with no clock at all. Four is why it read as a
+ * lurch rather than as a fold.
  *
- * So the first line moves over. `> :first-child` is the page's own opening row
- * on every screen in the app: `PageHeader` on most of them, a breadcrumb on a
- * client's record, a toolbar on the ones that have neither. Reaching them
- * through the shell's scroller rather than through `PageHeader` is what makes
- * this cover the screens that do not use `PageHeader` at all — there are six of
- * them, and they were exactly the screens a fix applied to the shared header
- * would have missed.
+ * It is one gesture now: `--duration-fold` along `--ease-sweep`, for everything
+ * that changes size or position. Ink keeps the shorter `--duration-label`,
+ * because a colour has no distance to cover and would only look late. The one
+ * asymmetry is deliberate: a label fades **out** immediately when the column
+ * starts to close, and fades **in** 80ms late when it opens, so text never
+ * appears in a column too narrow to hold it.
  *
- * 2.5rem is the 32px control plus 8px of gap. It applies at every width because
- * the trigger is there at every width, and it is padding rather than a margin
- * so a first child with a background of its own still reaches the page's edge.
+ * ⚠ **Nothing in the head is positioned from the column's edge that moves.**
+ * The leaf sits at the rail's `padding-inline-start` in both states and is
+ * exactly as wide as the folded strip minus that padding, so it is pinned to
+ * the edge that stays put and does not travel at all. Centring it while the
+ * box around it shrank is what made the logo shake — the mark was being
+ * re-centred on every frame of the width animation.
  *
- * ⚠ Withheld while the rail is **locked**. On a phone there is no trigger — the
- * rail cannot be folded, so `SidebarTrigger` removes itself — and an inset
- * reserving space for a control that is not there is a paragraph indented for
- * no reason on the narrowest screen in the product. `data-locked` is the
- * provider's own answer to that question; see `SidebarProvider`.
+ * `prefers-reduced-motion` is handled by the global block further down this
+ * file, which flattens every transition in the app — the rail still folds, with
+ * the time taken out.
  */
-[data-slot='sidebar-wrapper']:not([data-locked]) [data-slot='shell-scroll'] > :first-child {
-  padding-inline-start: 2.5rem;
+
+/*
+ * Anything in the rail that should narrow to nothing rather than be cut off:
+ * the wordmark beside the leaf, the trigger at the end of the head's row, and
+ * the label inside the one filled action (`NewClientRailButton`).
+ *
+ * The same three-element shape as `.q-nav-collapse`, turned on its side — a
+ * track that animates between `1fr` and `0fr`, a clip with `min-inline-size: 0`
+ * (the `min-content` floor a grid item carries by default is what would
+ * otherwise pin it open at the width of its first word), and the content
+ * inside. `grid-template-columns` is the one width value that interpolates from
+ * a content-sized track, which `width: auto` does not.
+ *
+ * ⚠ **The gap belongs inside the clip.** Whatever sits next to the collapsing
+ * part carries its own `ms-*` within this wrapper rather than the row carrying
+ * a `gap`. A gap outside survives the fold as 8px of nothing, and the mark it
+ * was supposed to sit beside ends up off-centre in the 56px strip by half of it.
+ */
+.q-rail-collapse {
+  display: grid;
+  grid-template-columns: 1fr;
+  transition:
+    grid-template-columns var(--duration-fold) var(--ease-sweep),
+    opacity var(--duration-label) var(--ease-sweep) 80ms;
+}
+
+.q-rail-collapse > * {
+  min-inline-size: 0;
+  overflow: hidden;
+}
+
+[data-slot='sidebar'][data-collapsible='icon'] .q-rail-collapse {
+  grid-template-columns: 0fr;
+  opacity: 0;
+  /* Out immediately, in late — see the note above. The shorthand's delay is
+     overridden here rather than restated, so only the direction changes. */
+  transition-delay: 0ms;
+}
+
+/*
+ * The other half of the trigger's crossfade: the row it drops into under the
+ * mark once the column has folded.
+ *
+ * The same track on the block axis, and inverted — shut while the rail is open,
+ * open while it is folded — so the two triggers hand over rather than one
+ * blinking out and the other blinking in 40px lower. The action below slides
+ * down over the fold's own duration instead of jumping.
+ *
+ * Only one of the pair is ever reachable: `AppSidebar` marks whichever is
+ * closing `inert`, because a button faded to nothing is still a tab stop.
+ */
+.q-rail-drop {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows var(--duration-fold) var(--ease-sweep),
+    opacity var(--duration-label) var(--ease-sweep);
+}
+
+.q-rail-drop > * {
+  min-block-size: 0;
+  overflow: hidden;
+}
+
+[data-slot='sidebar'][data-collapsible='icon'] .q-rail-drop {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition-delay: 0ms, 80ms;
+}
+
+/*
+ * The destinations' labels fade instead of being guillotined.
+ *
+ * They do not need the track above: a row's own `overflow-hidden` already clips
+ * them, and the glyph is at a fixed offset from the row's start edge in both
+ * states, so a label still occupying width costs nothing. What it did cost was
+ * the *look* of the close — six words sliced off mid-letter by a moving edge —
+ * and an opacity is the whole fix.
+ *
+ * `> span` rather than `> span:last-child`: on التقويم the last child is the
+ * chevron, and that row's label was the one being cut.
+ */
+[data-slot='sidebar']
+  :is([data-slot='sidebar-menu-button'], [data-slot='sidebar-menu-sub-button'])
+  > span {
+  transition: opacity var(--duration-label) var(--ease-sweep) 80ms;
+}
+
+[data-slot='sidebar'][data-collapsible='icon']
+  :is([data-slot='sidebar-menu-button'], [data-slot='sidebar-menu-sub-button'])
+  > span {
+  opacity: 0;
+  transition-delay: 0ms;
+}
+
+/*
+ * A row's own geometry moves with the column, not faster than it.
+ *
+ * `sidebarMenuButtonVariants` transitions size and colour together on
+ * `--duration-label`, which is right for a hover and half the length of the
+ * fold. Split here rather than in the variant, because these two answer to
+ * different events: the size is the rail closing, the colour is a pointer
+ * arriving.
+ */
+[data-slot='sidebar'] [data-slot='sidebar-menu-button'] {
+  transition-property: width, height, padding, background-color, color;
+  transition-duration:
+    var(--duration-fold), var(--duration-fold), var(--duration-fold),
+    var(--duration-label), var(--duration-label);
+  transition-timing-function: var(--ease-sweep);
+}
+
+/*
+ * The search control folds with the rows rather than against them.
+ *
+ * It had no geometry transition at all, so the whole of its fold happened in
+ * the frame the state flipped: a 200-odd pixel box became a 40px square, and
+ * its glyph took up its folded offset, while every destination glyph under it
+ * was still two pixels and 300ms from arriving. Instant beside gliding is what
+ * reads as a twitch — the one control in the head that did not move with the
+ * column was the one thing on the strip you could see move at all.
+ *
+ * The same four properties as the rows above it, on the same two clocks, for
+ * the same reason: size is the rail closing, colour is a pointer arriving.
+ * `border-color` stands where the rows have `background-color`, because this is
+ * the one box in the rail whose hover is drawn on its edge.
+ *
+ * ⚠ Stated here rather than as a `transition-*` utility on the button. This
+ * rule would override one anyway, and two half-answers in two files is how the
+ * fold got onto four clocks the first time — see the note that opens this
+ * section.
+ */
+[data-slot='sidebar'] [data-slot='rail-search'] {
+  transition-property: width, padding, border-color, color;
+  transition-duration:
+    var(--duration-fold), var(--duration-fold), var(--duration-label),
+    var(--duration-label);
+  transition-timing-function: var(--ease-sweep);
 }
 
 /*

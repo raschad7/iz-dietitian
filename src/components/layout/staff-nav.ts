@@ -6,28 +6,35 @@ import { type IconName } from '@/components/ui/icon';
  *
  * ```text
  * لوحة التحكم
+ * التقويم ▾            يوم · أسبوع · شهر
  *
  * إدارة                ← a heading, not a control
  *   المشتركون
  *   الفواتير
- *
- * المواعيد
- *   التقويم ▾            يوم · أسبوع · شهر
  *
  * خطط التغذية
  *   الخطط الأسبوعية
  *   كتالوج الأطباق
  * ```
  *
- * **A section is a label, not a button.** إدارة, المواعيد and خطط التغذية were
- * rows you pressed to reveal what was under them; they are printed headings
- * now and everything they name is on screen at all times. Three presses left
- * the rail, and with them the state of "which one is open" — a rail whose shape
- * changes as you use it is a rail you have to re-read on every screen.
+ * **A section is a label, not a button.** إدارة and خطط التغذية were rows you
+ * pressed to reveal what was under them; they are printed headings now and
+ * everything they name is on screen at all times. A rail whose shape changes as
+ * you use it is a rail you have to re-read on every screen.
  *
- * The cost is height, and it is affordable: six destinations and three headings
- * fit a laptop with room to spare. If this list ever outgrows the column, the
- * answer is fewer destinations, not headings that hide them again.
+ * **Two headings for six destinations, not three.** المواعيد was the third, and
+ * it stood over a single row — التقويم — which is a heading that names nothing.
+ * The word cost a line, a gap and a second thing to scan on the way to one
+ * link, and it said very nearly what the row underneath it already said. The
+ * calendar leads the rail with the dashboard instead, in the band that has no
+ * heading at all: those two are what the day *is*, and everything below them is
+ * a list you go and work in. Six links, two words, and no word over fewer than
+ * two things.
+ *
+ * The cost of printed headings is height, and it is affordable: six
+ * destinations and two headings fit a laptop with room to spare. If this list
+ * ever outgrows the column, the answer is fewer destinations, not headings that
+ * hide them again.
  *
  * **التقويم is the one thing that still opens**, and for a reason no heading
  * covers: يوم, أسبوع and شهر are three *views of one screen* rather than three
@@ -36,9 +43,10 @@ import { type IconName } from '@/components/ui/icon';
  * the same segmented control on the page, so the rail is the way in, not the
  * only way across.
  *
- * **The dashboard has a section to itself, and that section has no heading.**
- * It is where you land rather than something you go to, so it leads the column
- * with a rule of whitespace under it instead of a word above it.
+ * **The dashboard's band has no heading.** It is where you land rather than
+ * somewhere you go to, so it leads the column with a rule of whitespace under
+ * it instead of a word above it — and that whitespace is now naming two rows
+ * rather than one.
  *
  * **الفواتير sits beside المشتركون, under إدارة.** Billing arrived on `dev` as
  * a sixth flat row, having tried and dropped a group holding the register and
@@ -65,10 +73,26 @@ import { type IconName } from '@/components/ui/icon';
  */
 export const STAFF_NAV = [
   {
-    /* No `labelKey`: an unheaded section, which is how the dashboard keeps the
-       top of the rail without a word above it naming a section of one. */
+    /* No `labelKey`: an unheaded band, which is how the top of the rail keeps
+       its two rows without a word above them naming what they plainly are. */
     id: 'overview',
-    children: [{ href: '/app', labelKey: 'dashboard' }],
+    children: [
+      { href: '/app', labelKey: 'dashboard' },
+      /* The calendar moved up here when its own heading — المواعيد, over this
+         one row — was dropped. It is a category rather than a destination, and
+         a category in the unheaded band is fine: `levelKey` is the band's id,
+         so it accordions against its siblings exactly as it did against none. */
+      {
+        id: 'calendar',
+        labelKey: 'calendar',
+        collapsedHref: '/app/calendar?view=week',
+        children: [
+          { href: '/app/calendar?view=day', labelKey: 'day' },
+          { href: '/app/calendar?view=week', labelKey: 'week' },
+          { href: '/app/calendar?view=month', labelKey: 'month' },
+        ],
+      },
+    ],
   },
   {
     id: 'management',
@@ -85,22 +109,6 @@ export const STAFF_NAV = [
     ],
   },
   {
-    id: 'appointments',
-    labelKey: 'appointments',
-    children: [
-      {
-        id: 'calendar',
-        labelKey: 'calendar',
-        collapsedHref: '/app/calendar?view=week',
-        children: [
-          { href: '/app/calendar?view=day', labelKey: 'day' },
-          { href: '/app/calendar?view=week', labelKey: 'week' },
-          { href: '/app/calendar?view=month', labelKey: 'month' },
-        ],
-      },
-    ],
-  },
-  {
     id: 'plans',
     labelKey: 'plans',
     children: [
@@ -113,9 +121,9 @@ export const STAFF_NAV = [
 /**
  * One glyph per destination.
  *
- * **Section headings have none.** They used to — إدارة, المواعيد and خطط
- * التغذية were rows, and a text-only row in a column of iconed ones reads as a
- * heading rather than as something to press. That is exactly what they are now,
+ * **Section headings have none.** They used to — إدارة and خطط التغذية were
+ * rows, and a text-only row in a column of iconed ones reads as a heading
+ * rather than as something to press. That is exactly what they are now,
  * so the glyph that made them look pressable is gone and the icon column below
  * each heading is uninterrupted.
  *

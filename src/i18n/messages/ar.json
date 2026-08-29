@@ -63,10 +63,32 @@
     "notifications": "الإشعارات",
     "openNavigation": "فتح التنقل",
     "closeNavigation": "إغلاق التنقل",
-
     "expandSidebar": "توسيع الشريط الجانبي",
-
     "collapseSidebar": "طي الشريط الجانبي"
+  },
+  "commandPalette": {
+    "label": "بحث وأوامر",
+    "trigger": "ابحث",
+    "placeholder": "ابحث عن مشترك أو أمر…",
+    "pickClient": "اختر مشتركاً…",
+    "searching": "جارٍ البحث…",
+    "empty": "لا نتائج مطابقة لبحثك.",
+    "groupActions": "إجراءات سريعة",
+    "newWeeklyPlan": "خطة أسبوعية جديدة",
+    "groupRecent": "مفتوحة مؤخراً",
+    "groupClients": "المشتركون",
+    "groupSettings": "الإعدادات والمزيد",
+    "groupNavigation": "الانتقال إلى",
+    "groupCommands": "أوامر",
+    "switchLanguage": "التبديل إلى {language}",
+    "language": {
+      "ar": "العربية",
+      "en": "English"
+    },
+    "hintNavigate": "تنقّل",
+    "hintOpen": "فتح",
+    "hintBack": "رجوع",
+    "hintClose": "إغلاق"
   },
   "settingsWorkspace": {
     "title": "الإعدادات",
