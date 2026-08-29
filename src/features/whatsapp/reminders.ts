@@ -30,16 +30,6 @@ import { type ReminderCandidate, type ReminderRunSummary } from './types';
  */
 
 /**
- * Sends are sequential and spaced out on purpose.
- *
- * The gateway drives an unofficial WhatsApp client, and bursts are the single
- * most reliable way to get a number restricted (its README is explicit about
- * this). A clinic's real volume is a handful of reminders per hour, so pacing
- * costs nothing and removes the failure mode entirely.
- */
-const SEND_SPACING_MS = 1_200;
-
-/**
  * One day before the appointment — the clinic's rule, and the only lead time in
  * use.
  *
@@ -131,7 +121,11 @@ export type ReminderRunDeps = {
   gateway?: WhatsappGateway;
   /** The instant the run is judged against. Injected by the tests. */
   now?: Date;
-  /** Pacing between sends. Zero in tests; see {@link SEND_SPACING_MS}. */
+  /**
+   * Overrides the gap the send funnel holds this clinic's number to — the
+   * configured `WHATSAPP_SEND_SPACING_MS` otherwise. Zero in tests; the pacing
+   * itself lives in `pacing.ts`, so every path pays it, not just this run.
+   */
   spacingMs?: number;
   limit?: number;
 };
@@ -152,7 +146,7 @@ export async function sendDueAppointmentReminders(deps: ReminderRunDeps = {}): P
 
   const gateway = deps.gateway ?? createHttpGateway(config);
   const instant = deps.now ?? new Date();
-  const spacing = deps.spacingMs ?? SEND_SPACING_MS;
+  const spacing = deps.spacingMs;
   const limit = deps.limit ?? MAX_MESSAGES_PER_RUN;
 
   const clinics = await listReminderReadyClinics();
@@ -176,9 +170,7 @@ export async function sendDueAppointmentReminders(deps: ReminderRunDeps = {}): P
       continue;
     }
 
-    for (const [index, candidate] of due.entries()) {
-      if (index > 0 && spacing > 0) await sleep(spacing);
-
+    for (const candidate of due) {
       const result = await sendWhatsappTemplate(
         {
           kind: 'appointmentReminder',
@@ -199,7 +191,7 @@ export async function sendDueAppointmentReminders(deps: ReminderRunDeps = {}): P
           phone: candidate.phone,
           dedupeKey: reminderDedupeKey(candidate.appointmentId, candidate.date),
         },
-        { gateway, settings },
+        { gateway, settings, spacingMs: spacing },
       );
 
       if (result.status === 'sent') {
@@ -216,10 +208,4 @@ export async function sendDueAppointmentReminders(deps: ReminderRunDeps = {}): P
   return summary;
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
-
-export { MAX_MESSAGES_PER_RUN, SEND_SPACING_MS };
+export { MAX_MESSAGES_PER_RUN };
