@@ -5862,6 +5862,32 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 }
 
 /*
+ * ── The week does not snap while a card is being carried across it ──
+ *
+ * `.planner-week-scroll` snaps on the inline axis so a flick comes to rest on a
+ * day boundary — see `scroll-snap-type` above, and the note there for why it is
+ * `proximity` and not `mandatory`. That note already knew this was a fight:
+ * someone dragging a card towards the edge is scrolling on purpose.
+ *
+ * `proximity` is not soft enough to stay out of it. The board pans by about
+ * 22px a frame while a drag rests against an edge (`PAN_SPEED_PX` in
+ * `board-dnd.tsx`), and every one of those writes ends a scroll operation the
+ * snap engine then resolves — from a position still well inside the current
+ * day's proximity range, so it is pulled straight back. The week did not creep;
+ * it did not move at all, while the block axis, which has no snap, panned
+ * perfectly. That asymmetry is the whole symptom.
+ *
+ * So snapping is suspended for the length of the gesture. `data-dragging` is put
+ * on the scrollport by the pan loop and taken off when it stops, which means the
+ * flick behaviour is untouched everywhere except during a drag — and when the
+ * card lands, the attribute goes and the week settles onto a day boundary the
+ * way it always has.
+ */
+.planner-week-scroll[data-dragging] {
+  scroll-snap-type: none;
+}
+
+/*
  * A drag handle has to behave like a handle on touch hardware, not like hover
  * chrome that happens to exist in the DOM. The card itself keeps `touch-action`
  * available for board scrolling; only this explicit grip reserves the gesture

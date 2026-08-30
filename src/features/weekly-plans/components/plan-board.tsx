@@ -609,6 +609,9 @@ function BoardBody({
             wheel back. */}
         <div
           ref={weekScrollRef}
+          /* The surface a drag pans when it reaches an edge. `BoardEditor` finds
+             it by this attribute — see `panWhileDragging` in `board-dnd.tsx`. */
+          data-week-scroll=""
           className="planner-week-scroll no-scrollbar min-w-0 flex-1 overflow-auto rounded-lg bg-background overscroll-x-contain"
           tabIndex={0}
           aria-label={t('title')}

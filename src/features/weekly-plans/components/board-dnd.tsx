@@ -15,7 +15,6 @@ import {
   DndContext,
   DragOverlay,
   KeyboardSensor,
-  MeasuringStrategy,
   MouseSensor,
   TouchSensor,
   useSensor,
@@ -123,6 +122,19 @@ export const HOLD_TO_DRAG_MS = 320;
  * belongs to the scroller.
  */
 const HOLD_TOLERANCE_PX = 8;
+
+/**
+ * How close to an edge of the board a drag has to come before the week pans.
+ *
+ * A fixed band rather than a fraction of the frame. The gesture is a fingertip
+ * approaching a physical edge, and what makes it easy or hard to hit is how many
+ * millimetres of glass it has to land in — which does not get more generous
+ * because the board got wider.
+ */
+const PAN_BAND_PX = 88;
+
+/** The fastest the week pans, in pixels per frame, reached at the very edge. */
+const PAN_SPEED_PX = 22;
 
 /** Where a pointer event is on the screen, for mouse and touch alike. */
 function pointerCoordinates(event: Event): { x: number; y: number } | null {
@@ -318,6 +330,104 @@ export function BoardEditor({
     return () => {
       window.removeEventListener('mousemove', track, options);
       window.removeEventListener('touchmove', track, options);
+    };
+  }, [dragging]);
+
+  /*
+   * ── Panning the week from the edge, in place of dnd-kit's auto-scroll ──
+   *
+   * dnd-kit's own edge scrolling cannot pan this board, because it asks whether
+   * a container has room left to scroll like this:
+   *
+   *     const minScroll = { x: 0 };
+   *     const maxScroll = { x: scrollWidth - clientWidth };
+   *     isLeft  = scrollLeft <= minScroll.x;
+   *     isRight = scrollLeft >= maxScroll.x;
+   *
+   * That is the left-to-right convention, where `scrollLeft` runs from 0 up to
+   * `scrollWidth - clientWidth`. In a right-to-left scroller it runs the other
+   * way — 0 at the start, which is the *right* edge, down to a negative number
+   * at the end. So `isLeft` is true for every value the board can hold and
+   * `isRight` is false for every one of them: dnd-kit believes the week is
+   * permanently jammed against its left extreme and has unlimited room to the
+   * right. The branch that scrolls left is gated on `!isLeft` and therefore
+   * never ran at all, which is why dragging towards the later days did nothing,
+   * while the other direction ran without ever believing it had arrived.
+   *
+   * This replaces it rather than correcting it, because the correction is the
+   * whole of the arithmetic. What is below has no notion of direction to get
+   * wrong: `scrollLeft` is a physical axis in both scripts, so moving the finger
+   * towards the physical left edge subtracts from it and towards the right edge
+   * adds, in Arabic and English alike. The browser clamps at both ends, so there
+   * are no bounds to compute and none to get backwards.
+   *
+   * The drop targets need no help while this runs. dnd-kit measures a droppable
+   * into a live `Rect` whose `left` is a getter reading its scrollable ancestors
+   * each time — `rect.left + (offsetWhenMeasured - offsetNow)` — and that is a
+   * difference between two readings of the same element, so it stays true as the
+   * week moves and stays true in either script.
+   */
+  useEffect(() => {
+    if (!dragging) return;
+
+    const board = document.querySelector<HTMLElement>('[data-week-scroll]');
+    if (!board) return;
+
+    /*
+     * Suspends the week's scroll snapping for the length of the gesture.
+     *
+     * Without this the loop below cannot move the board sideways at all: the
+     * scrollport snaps on the inline axis, and a 22px write lands well inside
+     * the current day's proximity range, so the browser resolves it straight
+     * back. The block axis has no snap, which is why it panned and the inline
+     * axis did not. See `.planner-week-scroll[data-dragging]` in `globals.css`.
+     *
+     * Set from here rather than rendered, so the attribute cannot outlive the
+     * drag: it is removed by the same cleanup that stops the loop, on a drop, a
+     * cancel and an unmount alike.
+     */
+    board.dataset.dragging = '';
+
+    let frame = requestAnimationFrame(function panWhileDragging() {
+      frame = requestAnimationFrame(panWhileDragging);
+
+      const current = gesture.current;
+      if (!current) return;
+
+      const box = board.getBoundingClientRect();
+      const { x, y } = current.now;
+
+      /*
+       * How far past the near edge the pointer has reached, as a share of the
+       * band — 0 outside it, 1 at the edge and beyond. Clamped at 1 so a finger
+       * that has left the board entirely pans at full speed rather than an
+       * accelerating one, and so the bezel behaves like the edge it is.
+       */
+      const reach = (distance: number): number => Math.max(0, Math.min(1, distance / PAN_BAND_PX));
+
+      /*
+       * Each axis only pans while the pointer is over the board on the *other*
+       * one. Without that, carrying a card up over the header would keep the
+       * week sliding underneath it.
+       */
+      if (y >= box.top && y <= box.bottom) {
+        const towardsLeft = reach(box.left + PAN_BAND_PX - x);
+        const towardsRight = reach(x - (box.right - PAN_BAND_PX));
+        const step = (towardsRight - towardsLeft) * PAN_SPEED_PX;
+        if (step !== 0) board.scrollLeft += step;
+      }
+
+      if (x >= box.left && x <= box.right) {
+        const towardsTop = reach(box.top + PAN_BAND_PX - y);
+        const towardsBottom = reach(y - (box.bottom - PAN_BAND_PX));
+        const step = (towardsBottom - towardsTop) * PAN_SPEED_PX;
+        if (step !== 0) board.scrollTop += step;
+      }
+    });
+
+    return () => {
+      cancelAnimationFrame(frame);
+      delete board.dataset.dragging;
     };
   }, [dragging]);
 
@@ -593,35 +703,18 @@ export function BoardEditor({
         id="weekly-plan-board"
         sensors={sensors}
         /*
-          Re-measure the slots as the week pans, instead of once when the drag
-          began.
+          The board pans itself — see `panWhileDragging` above, and the note
+          there for why dnd-kit's own edge scrolling cannot do it in Arabic.
 
-          dnd-kit's default is `WhileDragging`, which measures every drop target
-          the moment a card is lifted and then trusts those boxes for the rest of
-          the gesture. On a board that fits, they stay true. On a tablet the week
-          scrolls under the drag — the auto-scroll below is *why* it scrolls —
-          and from the first pixel of that pan every box it is holding describes
-          where a day used to be. That is what made a card dragged towards a day
-          off the edge feel stuck: the days it was passing over had not moved as
-          far as dnd-kit believed, so the target under the finger kept being the
-          wrong one, or none at all.
-
-          `Always` re-measures each frame of the drag. It costs a layout pass per
-          frame over thirty-five cells, which is real but bounded, and it is the
-          only strategy that stays correct while the surface underneath moves.
+          Off rather than tuned. Left on, it would keep fighting for the same
+          scroller from the same broken arithmetic: one axis pinned, the other
+          never satisfied. Measuring was briefly forced to `Always` to work
+          around it, which re-measured thirty-five cells every frame and is what
+          made cards blink in and out mid-drag. Both are gone; the default
+          `WhileDragging` is correct here, because a droppable's rect compensates
+          for its own scrolling.
         */
-        measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
-        /*
-          Reaching a day that is off the edge.
-
-          The default threshold asks the drag to come within 5% of the frame's
-          edge before the week starts panning — about 40px on this board, and a
-          band a finger tends to overshoot into the bezel rather than land in.
-          A quarter of the frame gives the gesture somewhere to aim, which is
-          what "drag it to the first day" needs on a surface where the first day
-          is not on screen.
-        */
-        autoScroll={{ threshold: { x: 0.25, y: 0.15 }, acceleration: 12 }}
+        autoScroll={false}
         onDragPending={onDragPending}
         onDragAbort={onDragAbort}
         onDragStart={onDragStart}
