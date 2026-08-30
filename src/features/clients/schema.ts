@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { defaultLocale, locales } from '@/i18n/routing';
+import { type FitRowsBounds } from '@/lib/fit-rows';
 import { isIsoDate, toIsoDate } from '@/lib/iso-date';
 import { splitPhone } from '@/lib/phone-format';
 
@@ -639,6 +640,45 @@ export const CLIENT_FILTER_VALUES = {
 } as const satisfies Record<ClientFilter, readonly [string, ...string[]]>;
 
 /**
+ * How many subscribers one page of the register holds — as a range, not a
+ * number, because it is a property of the screen rather than of the register.
+ *
+ * It was a single constant (`CLIENTS_PAGE_SIZE`, nine) chosen so that a page
+ * fit "a laptop" without the list needing a scrollbar of its own. Nine fits the
+ * screen it was measured on and no other: a 1366×768 laptop, a 1080p panel at
+ * 125% scaling and a browser at 110% zoom all fit fewer, and on each of them the
+ * pager — the only way through the register — went below the fold or off the
+ * frame entirely.
+ *
+ * So the register measures instead of guessing. The browser reports how many
+ * rows the bounded frame can hold and this range is what that answer is clamped
+ * into:
+ *
+ * - `min` is the shortest usable page. Under it the frame simply overflows and
+ *   the shell scrolls, which is the honest outcome for a window too short to
+ *   hold a register at all.
+ * - `max` caps what a tall monitor asks the database for.
+ * - `fallback` is what the first paint draws with, before any browser has
+ *   measured anything — the old nine, unchanged, so a cookie-less first visit
+ *   looks exactly as it did.
+ *
+ * The Bills screen pages the same register through the same query and therefore
+ * uses this same range. See `FitRows` for how the measurement travels.
+ */
+export const CLIENTS_ROWS = { min: 4, max: 14, fallback: 9 } as const satisfies FitRowsBounds;
+
+/**
+ * The name the register's measured row count is stored under.
+ *
+ * The register and Bills are the *same* list — the same query, the same
+ * toolbar, the same pager, one screen showing people and the other showing what
+ * they owe — drawn in the same frame at the same widths, so a row count measured
+ * on one is the right answer on the other. Sharing the name shares the cookie,
+ * and walking between the two costs no second measurement and no second refresh.
+ */
+export const CLIENTS_FIT_LIST = 'clients';
+
+/**
  * List filters. Every field uses `.catch()` so a hand-edited query string
  * degrades to the default view instead of throwing a 500 at the user.
  *
@@ -667,6 +707,26 @@ export const listClientsSchema = z.object({
   sort: z.enum(CLIENT_SORTS).catch('createdAt'),
   dir: z.enum(['asc', 'desc']).catch('desc'),
   page: z.coerce.number().int().min(1).max(10_000).catch(1),
+  /**
+   * How many rows one page of the register holds.
+   *
+   * **Not from the query string.** It is the browser's answer to "how many rows
+   * fit the frame", measured on the screen the register is being read on and
+   * carried in a cookie — see `FitRows`. It is a field of this schema anyway
+   * because it is an input to the same query as the page number, and because
+   * `.catch()` is the same protection a hand-edited value needs here as
+   * anywhere else on this object.
+   *
+   * The bounds are `CLIENTS_ROWS`, so a value from an older cookie or a
+   * different build is clamped into the range this register can actually draw
+   * rather than becoming a `LIMIT` nobody chose.
+   */
+  pageSize: z.coerce
+    .number()
+    .int()
+    .min(CLIENTS_ROWS.min)
+    .max(CLIENTS_ROWS.max)
+    .catch(CLIENTS_ROWS.fallback),
 });
 
 export type ListClientsInput = z.infer<typeof listClientsSchema>;

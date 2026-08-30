@@ -392,14 +392,20 @@ export async function ClientExpensesPanel({
         of pushing the card past the column, and **no `overflow`** — the card
         never scrolls.
 
-        That is a decision with a cost, and it is the intended one: seven rows
-        fit the record shell at ordinary window heights, and on a window short
-        enough that they do not, the last bill is clipped rather than reachable
-        by scrolling. The pager is what keeps the list short enough for this to
-        hold; dropping the page size is the lever if a clinic screen turns out
-        to be shorter than seven rows.
+        That used to be a decision with a cost, and the cost was being paid:
+        seven rows fit the record shell "at ordinary window heights", which
+        meant they fit the window this card was designed on. On a 1366×768
+        laptop — and on any 1080p panel at 125% scaling — the seventh bill and
+        the pager under it both fell outside the frame, and because nothing here
+        scrolls, they were not clipped *and* reachable. They were simply gone,
+        with the only way through the ledger among them.
+
+        The page size is measured now rather than assumed: `data-fit-region`
+        marks this box as the height a page of bills has to fit into, and
+        `ExpensesBillList` asks it how many rows that is. The card still never
+        scrolls, and now it never needs to.
       */}
-      <CardContent className="lg:min-h-0 lg:flex-1">
+      <CardContent data-fit-region className="lg:min-h-0 lg:flex-1">
         {entries.length === 0 ? (
           /*
             An account with nothing on it is the normal state of a subscriber who
@@ -422,7 +428,7 @@ export async function ClientExpensesPanel({
               const charge = entry.kind === 'charge';
 
               return (
-                <li key={`${entry.kind}-${entry.id}`} className="flex items-center gap-3 py-3">
+                <li key={`${entry.kind}-${entry.id}`} data-fit-row className="flex items-center gap-3 py-3">
                   {/*
                     The mark says which side of the ledger this is before the
                     figure does — `aria-hidden`, because the amount's own sign

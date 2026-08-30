@@ -16,8 +16,15 @@ import { CLIENTS_PAGE_SIZE } from '@/features/clients/queries';
  * and a different shape entirely.
  *
  * `CLIENTS_PAGE_SIZE` rows, read from the query that will fill them rather than
- * guessed at: that figure is chosen so a full page fits the screen, so it is
- * also exactly the number of rows that makes this the same height as the table.
+ * guessed at. That is the register's *unmeasured* page size — what the server
+ * draws before a browser has told it how many rows this screen holds (see
+ * `FitRows`) — and it is the right number here for the same reason: a skeleton
+ * is shown while the first page is still being fetched, which is precisely when
+ * nothing better is known.
+ *
+ * So this can be a row or two out from the page that lands on a screen that has
+ * been measured. It is the same trade the fallback itself makes, and a
+ * placeholder that guessed at a height nobody has measured would be no closer.
  */
 export function ClientListSkeleton() {
   return (

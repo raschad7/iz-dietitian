@@ -47,6 +47,7 @@ import { normalizeForSearch } from './search';
 import { clientSeq } from './seq';
 import {
   clientIdSchema,
+  CLIENTS_ROWS,
   PAYMENT_STATUS_VALUES,
   SUBSCRIPTION_FILTER_VALUES,
   WEEKLY_PROGRESS_VALUES,
@@ -63,25 +64,29 @@ import { type ClientIntakeValues, type MealSlotValues } from './types';
  */
 
 /**
- * How many clients one page of the register holds.
+ * How many clients one page of the register holds **before a browser has
+ * measured the screen** — the row count a first paint and a server-rendered
+ * skeleton are drawn with.
  *
- * Nine, and the number is a layout decision as much as a query one: nine rows
- * plus the title, the search row and the pager fits a laptop screen without the
- * list needing a scrollbar of its own. It was twenty, which never did — so the
- * register carried a bounded, independently scrolling table, and "where am I in
- * this list" was a question the page could not answer without being scrolled.
- * The pager answers it now, and it is the only way through the register.
+ * It used to be the whole answer: nine, a layout decision as much as a query
+ * one, chosen so that nine rows plus the title, the search row and the pager fit
+ * "a laptop" without the list needing a scrollbar of its own. It was twenty
+ * before that, which never did — so the register carried a bounded,
+ * independently scrolling table, and "where am I in this list" was a question
+ * the page could not answer without being scrolled.
  *
- * This doc is the only place the figure is written out. The page and the table
- * that depend on it describe the *constraint* — a register that fits the screen
- * — and name the constant rather than repeating its value, because a comment
- * three files away saying "ten" is one nobody edits when this line changes.
+ * Nine fits the screen it was measured on and no other, and on every screen
+ * shorter than that one the pager went below the fold or off the frame — which
+ * is the same failure the twenty had, arrived at more quietly. So the figure is
+ * now a *starting* point rather than the answer: the register measures its own
+ * frame and pages by what fits. See `CLIENTS_ROWS` for the range that answer is
+ * clamped into, and `FitRows` for how it is taken and how it travels.
  *
- * Read by `listClients` for the `LIMIT`/`OFFSET` and the page count, and by
- * `ClientPagination` for the arithmetic behind the page numbers. One constant,
- * so the pager and the query cannot disagree.
+ * `listClients` reads `input.pageSize` and not this, so the `LIMIT`, the
+ * `OFFSET` and the page count all come from one number and the pager and the
+ * query cannot disagree. This constant is what that field defaults to.
  */
-export const CLIENTS_PAGE_SIZE = 9;
+export const CLIENTS_PAGE_SIZE = CLIENTS_ROWS.fallback;
 
 export type ClientListItem = {
   id: string;
@@ -597,8 +602,8 @@ export async function listClients(
     .from(clients)
     .where(where)
     .orderBy(...buildOrder(input))
-    .limit(CLIENTS_PAGE_SIZE)
-    .offset((input.page - 1) * CLIENTS_PAGE_SIZE);
+    .limit(input.pageSize)
+    .offset((input.page - 1) * input.pageSize);
 
   const clientIds = rows.map((row) => row.id);
 
@@ -621,7 +626,7 @@ export async function listClients(
     })),
     total,
     page: input.page,
-    pageCount: Math.max(1, Math.ceil(total / CLIENTS_PAGE_SIZE)),
+    pageCount: Math.max(1, Math.ceil(total / input.pageSize)),
   };
 }
 
