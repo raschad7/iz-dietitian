@@ -73,7 +73,13 @@ export function BillsRow({
   const subscription = subscriptionStanding(entries, today);
 
   return (
-    <TableBody>
+    /*
+      `data-fit-row` marks the whole group, not the `<tr>` inside it: a
+      subscriber's record here is this `<tbody>` — the summary line plus
+      whatever the ledger adds under it — and it is that unit the Bills page
+      measures its page size in. See `FitRows`.
+    */
+    <TableBody data-fit-row>
       <TableRow linked>
         {/*
           Drawn in the reader's own column order — see `useBillsColumns`. One

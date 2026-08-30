@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useState, type ReactNode } from 'react';
 
+import { useFittingRows } from '@/components/ui/fit-rows';
 import {
   Pagination,
   PaginationContent,
@@ -11,10 +12,27 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
+import { type FitRowsBounds } from '@/lib/fit-rows';
 import { pageWindow } from '@/lib/pagination';
 
-/** How many bills the account shows before it asks you to turn a page. */
-export const EXPENSES_PAGE_SIZE = 7;
+/**
+ * How many bills the account shows before it asks you to turn a page — as a
+ * range, because it is a property of the card's height rather than of the
+ * ledger.
+ *
+ * It was seven, flat, and the card around it neither scrolls nor grows: on any
+ * window where seven rows plus the pager did not fit the record shell, the
+ * pager was outside the frame and the ledger had no way through it. Seven fits
+ * the screen it was picked on; a 1366×768 laptop holds fewer.
+ *
+ * `fallback` is still seven, because it is what the first paint draws before
+ * the card has been measured. `min` is the shortest page worth turning, and
+ * `max` is what a tall screen may fill.
+ */
+export const EXPENSES_ROWS = { min: 3, max: 12, fallback: 7 } as const satisfies FitRowsBounds;
+
+/** What one page of the account holds before the card has been measured. */
+export const EXPENSES_PAGE_SIZE = EXPENSES_ROWS.fallback;
 
 /**
  * The bill list on a client's Expenses tab, seven at a time.
@@ -54,12 +72,21 @@ export function ExpensesBillList({
   const t = useTranslations('billing');
   const [page, setPage] = useState(1);
 
-  const pageCount = Math.max(1, Math.ceil(rows.length / EXPENSES_PAGE_SIZE));
+  /*
+    How many bills the card can actually hold, measured from the box it is drawn
+    in rather than assumed — see `FitRows`. No cookie and no server round trip
+    here: every row is already in hand, so the count is state and the list
+    re-slices in place. `anchor` goes in the column below, because the
+    measurement is taken from wherever it is rendered.
+  */
+  const { rows: pageSize, anchor } = useFittingRows(EXPENSES_ROWS);
+
+  const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
   /* Clamped rather than trusted: nothing can currently shrink the list under a
      reader mid-page, but a component that renders an empty page when something
      does is a bug that only shows up in front of somebody. */
   const current = Math.min(page, pageCount);
-  const start = (current - 1) * EXPENSES_PAGE_SIZE;
+  const start = (current - 1) * pageSize;
   const atStart = current === 1;
   const atEnd = current === pageCount;
 
@@ -71,7 +98,10 @@ export function ExpensesBillList({
       list — the same arrangement arrived at by another route.
     */
     <div className="flex flex-col lg:h-full">
-      <ul className="divide-y divide-border">{rows.slice(start, start + EXPENSES_PAGE_SIZE)}</ul>
+      <ul className="divide-y divide-border">{rows.slice(start, start + pageSize)}</ul>
+
+      {/* Renders nothing; it is the node the measurement above is taken from. */}
+      <span ref={anchor} hidden aria-hidden />
 
       {/*
         Held at the foot of the card by `mt-auto` rather than left to follow
@@ -98,7 +128,7 @@ export function ExpensesBillList({
         moving through nothing.
       */}
       {pageCount > 1 ? (
-        <div className="mt-auto flex items-center justify-center py-3">
+        <div data-fit-footer className="mt-auto flex items-center justify-center py-3">
           <Pagination>
             <PaginationContent>
               <PaginationItem>

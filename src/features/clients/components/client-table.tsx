@@ -205,11 +205,13 @@ export function ClientTable({
     /*
       No vertical scroll of its own, at any width. It used to take a bounded
       height from the page and scroll its rows inside it, which is the right
-      construction for a long table — and this one is no longer long. A page
-      is `CLIENTS_PAGE_SIZE` rows, a figure chosen so the whole register fits
-      the screen, so a frame around it would be a scrollbar on a list with
-      nothing below the fold. The pager is what moves you through the register
-      now.
+      construction for a long table — and this one is no longer long. A page is
+      as many rows as the register's frame holds, measured on the screen it is
+      being read on (see `FitRows`), so a frame around *this* would be a
+      scrollbar on a list with nothing below the fold. The pager is what moves
+      you through the register now.
+
+      Each row carries `data-fit-row`, which is what that measurement counts in.
 
       `TableRoot` keeps its own `overflow-x-auto`: that is the sideways scroll
       a wide table needs on a phone, and it is untouched by any of this.
@@ -304,7 +306,9 @@ export function ClientTable({
           ) : null}
 
           {result.items.map((client) => (
-            <TableRow key={client.id} linked>
+            /* `data-fit-row` is what the register's page size is measured
+               against — one of these is one unit of the list. See `FitRows`. */
+            <TableRow key={client.id} linked data-fit-row>
               {/*
                 Who this is: the disc, the name, and the number under it. One
                 cell rather than three, so the three parts of an identity move

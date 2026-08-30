@@ -1,7 +1,9 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 
 import { PageHeader } from '@/components/layout/page-header';
+import { FitRows } from '@/components/ui/fit-rows';
 import { BillsTable } from '@/features/billing/components/bills-table';
 import { clinicServicePrices, consultedClients } from '@/features/billing/queries';
 import { ledgerByClient, subscriberTotalsByClient } from '@/features/billing/queries';
@@ -10,8 +12,9 @@ import { DISPLAY_TIME_ZONE } from '@/lib/format';
 import { ClientPagination } from '@/features/clients/components/client-pagination';
 import { ClientSearch } from '@/features/clients/components/client-search';
 import { listClients } from '@/features/clients/queries';
-import { listClientsSchema } from '@/features/clients/schema';
+import { CLIENTS_FIT_LIST, CLIENTS_ROWS, listClientsSchema } from '@/features/clients/schema';
 import { resolveLocale } from '@/i18n/params';
+import { resolveFittedRows, rowsCookieName } from '@/lib/fit-rows';
 import { requireStaffClinic } from '@/lib/session';
 
 /**
@@ -60,7 +63,11 @@ export default async function BillsPage({ params, searchParams }: BillsPageProps
     one this screen asks; the schema's default keeps this to active subscribers.
   */
   const raw = await searchParams;
+  const jar = await cookies();
   const input = listClientsSchema.parse({
+    /* The row count this screen was measured to hold — the register's own, under
+       the register's cookie. See `CLIENTS_FIT_LIST`. */
+    pageSize: resolveFittedRows(jar.get(rowsCookieName(CLIENTS_FIT_LIST))?.value, CLIENTS_ROWS),
     q: single(raw.q),
     filterBy: single(raw.filterBy),
     filterValue: single(raw.filterValue),
@@ -101,30 +108,44 @@ export default async function BillsPage({ params, searchParams }: BillsPageProps
   ]);
 
   return (
-    /* The register's own column, for the reason given on `min-h-full` there. */
-    <div className="flex min-h-full flex-col gap-6 text-start">
-      <PageHeader
-        locale={locale}
-        title={t('title')}
-        subtitle={t('subtitle')}
-        clinicId={clinicId}
-      />
+    /* The register's own frame, built the same way and for the same reasons —
+       the long note on the column there covers both screens. */
+    <div className="flex min-h-full flex-col gap-6 text-start lg:h-full lg:min-h-0">
+      <div className="flex shrink-0 flex-col gap-6">
+        <PageHeader
+          locale={locale}
+          title={t('title')}
+          subtitle={t('subtitle')}
+          clinicId={clinicId}
+        />
 
-      <ClientSearch input={input} locale={locale} variant="bills" />
+        <ClientSearch input={input} locale={locale} variant="bills" />
+      </div>
 
-      <BillsTable
-        result={result}
-        totals={totals}
-        ledgers={ledgers}
-        filtered={Boolean(input.q) || Boolean(input.filterBy && input.filterValue)}
-        locale={locale}
-        /* The clinic's own today, not the browser's — see the prop's comment. */
-        today={wallClockIn(DISPLAY_TIME_ZONE).date}
-        prices={prices}
-        consulted={consulted}
-      />
+      <div data-fit-region className="flex flex-1 flex-col lg:min-h-0">
+        <BillsTable
+          result={result}
+          totals={totals}
+          ledgers={ledgers}
+          filtered={Boolean(input.q) || Boolean(input.filterBy && input.filterValue)}
+          locale={locale}
+          /* The clinic's own today, not the browser's — see the prop's comment. */
+          today={wallClockIn(DISPLAY_TIME_ZONE).date}
+          prices={prices}
+          consulted={consulted}
+        />
 
-      <ClientPagination result={result} input={input} className="mt-auto" />
+        <div data-fit-footer className="mt-auto pt-6">
+          <ClientPagination result={result} input={input} />
+        </div>
+
+        {/*
+          The same probe the register carries, under the same name — so the row
+          count is measured once and both screens page by it. See
+          `CLIENTS_FIT_LIST`.
+        */}
+        <FitRows name={CLIENTS_FIT_LIST} current={input.pageSize} bounds={CLIENTS_ROWS} />
+      </div>
     </div>
   );
 }

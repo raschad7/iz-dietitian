@@ -74,7 +74,7 @@ Check the directory itself for the exact API. The current shared inventory is:
 | Choice controls | `Select`, `SelectField`, `Combobox`, `Checkbox`, `RadioGroup`, `Switch`, `Segmented` |
 | Date, time, and phone | `DatePicker`, `DateChooser`, `DateCalendar`, `Calendar`, `TimeInput`, `PhoneField` |
 | Surfaces and overlays | `Card`, `Dialog`, `Sheet`, `Popover`, `DropdownMenu`, `Tooltip`, `TooltipHint`, `Toaster`/`toast` |
-| Navigation | `Sidebar`, `Tabs`, `PanelTabs`, `Pagination` |
+| Navigation | `Sidebar`, `Tabs`, `PanelTabs`, `Pagination`, `FitRows` |
 | Data display | `Table`, `Chart`, `ChartTip`, `StatGrid`, `StatTile`, `Progress`, `ComfortBand`, `Timeline` |
 | Feedback | `Callout`, `EmptyState`, `Skeleton`, `Spinner` |
 | Identity and graphics | `Avatar`, `Icon`, `Caret` |
@@ -570,6 +570,44 @@ Compose `TableRoot`, `Table`, `TableHeader`, `TableRow`, `TableHead`,
 
 Keep the distinction semantic: an address uses links, a panel uses tabs, and a
 temporary display preference uses a segmented control.
+
+### A page of a list is what the frame holds
+
+**Never pick a page size by hand.** A number chosen because "it fits a laptop"
+fits the one screen it was measured on: a 1366×768 laptop, a 1080p panel at 125%
+scaling and a browser at 110% zoom all hold fewer rows, and on each of them the
+pager — the only way through the list — falls below the fold or outside a
+bounded frame entirely.
+
+Measure instead. `FitRows` in
+[`fit-rows.tsx`](../src/components/ui/fit-rows.tsx) reads the bounded region a
+list is drawn in and answers how many rows fit; three data attributes are the
+whole contract:
+
+| Attribute | On | What it is |
+|---|---|---|
+| `data-fit-region` | the bounded box | the height a page of the list gets |
+| `data-fit-row` | each row | one unit of the list |
+| `data-fit-footer` | the pager | held at the foot of the region by `mt-auto` |
+
+Two shapes, one measurement:
+
+- A list paged by a **server query** renders `<FitRows>`, which writes the count
+  to a cookie and refreshes. The register and Bills share one cookie name.
+- A list paged in the **browser** calls `useFittingRows` and slices in place. No
+  cookie, no round trip — the expenses card on a client's record.
+
+Rules:
+
+- The region must be bounded, or there is nothing to fit into. Bound the page
+  column to the shell from `lg` up (`lg:h-full lg:min-h-0`) and give the region
+  `flex-1` with `lg:min-h-0`; below `lg` the page scrolls as one and the list
+  asks for its `fallback` size.
+- Clamp with `{ min, max, fallback }`. `fallback` is what the first paint draws
+  before anything has been measured, and it is the phone's answer too.
+- The list still needs a real overflow fallback under `min`. Prefer
+  `overflow-y: auto` on the frame over `hidden`; a clipped pager is a control
+  nobody can reach.
 
 ### Dialogs, sheets, menus, tooltips, and toast
 

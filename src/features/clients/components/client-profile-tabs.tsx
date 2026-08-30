@@ -258,15 +258,31 @@ export function ClientProfileTabs({
           'lg:-mx-1 lg:px-1 lg:pt-1',
           /*
             Expenses joins the account view in filling rather than scrolling.
-            Its list is capped at seven bills with a pager under them — see
-            `ExpensesBillList` — so the card has a bounded height and can stand
-            the same height as the identity panel beside it. A panel that
-            scrolled would make the two columns end in different places and put
-            a second scrollbar next to the record's own.
+            Its list is paged, and the page is now sized to the card it is drawn
+            in — see `ExpensesBillList` — so the card has a bounded height and
+            can stand the same height as the identity panel beside it. A panel
+            that scrolled as a matter of course would make the two columns end in
+            different places and put a second scrollbar next to the record's own.
+
+            `overflow-y: auto` rather than `hidden`, and the difference is the
+            bug this pair of branches used to have. Sized to the frame, the card
+            fits and no bar appears — `auto` paints nothing when there is nothing
+            to scroll. But a window shorter than `EXPENSES_ROWS.min` bills is
+            still possible, and under `hidden` what fell outside the card was the
+            pager: the one control that moves through the ledger, clipped away
+            with no way to reach it. `auto` is the floor under the measurement
+            rather than a second scrollbar in the ordinary case.
+
+            It keeps `pb-1` and not the scrolling branch's `pb-6`: that padding
+            is breathing room under a list a reader scrolls to the end of, and
+            here it would only take height away from a card that is trying to
+            fit.
           */
-          shown === 'account' || shown === 'expenses'
+          shown === 'account'
             ? 'lg:overflow-hidden lg:pb-1'
-            : 'lg:overflow-y-auto lg:overscroll-contain lg:pb-6',
+            : shown === 'expenses'
+              ? 'lg:overflow-y-auto lg:overscroll-contain lg:pb-1'
+              : 'lg:overflow-y-auto lg:overscroll-contain lg:pb-6',
           fade,
         )}
       >
