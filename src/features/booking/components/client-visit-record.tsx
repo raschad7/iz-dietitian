@@ -116,12 +116,19 @@ export async function ClientVisitRecord({ visits, locale, today }: ClientVisitRe
 
   return (
     /*
-      One column, and from `lg` up it is the height of the view it sits in: the
-      facts hold their natural height and the views card takes what is left and
-      scrolls its own content. `min-h-0` at every level is what lets that flex
-      child actually shrink instead of growing the page.
+      One column, and from `lg` up it is the height of the view it
+      sits in: the facts hold their natural height and the views card takes what
+      is left and scrolls its own content. `min-h-0` at every level is what lets
+      that flex child actually shrink instead of growing the page. A tablet in
+      landscape matches `lg` and fills the same way — the height is keyed on
+      width alone, so the cards reach the bottom of the screen there too.
+
+      `gap-3`, matching the account view this sits in. It was `gap-4`, which put
+      a wider gutter between these two cards than between either of them and
+      everything else on the tab — and on the screen where the space was
+      scarcest.
     */
-    <div className="flex flex-col gap-4 lg:h-full lg:min-h-0">
+    <div className="flex flex-col gap-3 lg:h-full lg:min-h-0">
       <VisitFacts
         stats={stats}
         locale={locale}
