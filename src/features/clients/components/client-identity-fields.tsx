@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PhoneField } from '@/components/ui/phone-field';
 import { MAX_NAME_PART_LENGTH, MAX_PHONE_DIGITS } from '@/features/clients/form-rules';
+import { type ClientFormEcho } from '@/features/clients/form-state';
 import { splitName } from '@/features/clients/name';
 import { type ClientSex } from '@/features/clients/schema';
 import { type ClientFormValues } from '@/features/clients/types';
@@ -43,12 +44,22 @@ type FieldName = 'firstName' | 'lastName' | 'phone' | 'dateOfBirth' | 'sex';
 export function ClientIdentityFields({
   locale,
   client,
+  submitted,
   errorFor,
   dateOfBirthCaption,
 }: {
   locale: Locale;
   /** Absent when creating: the stored record, to fill the fields from. */
   client?: ClientFormValues;
+  /**
+   * What was typed on a save that was refused — see `ClientFormEcho`.
+   *
+   * It outranks `client`, and that is the whole point: after a refusal the
+   * fields must show what the reader last typed, not what is on file. Absent on
+   * a first open, and on the calendar's own dialog, which never loses its values
+   * because it submits without a form action and so is never reset.
+   */
+  submitted?: ClientFormEcho;
   /** The server's complaint about a field, if there is one to show. */
   errorFor?: (field: FieldName) => string | undefined;
   /**
@@ -62,7 +73,7 @@ export function ClientIdentityFields({
 }) {
   const t = useTranslations('clients');
 
-  const [dateOfBirth, setDateOfBirth] = useState(client?.dateOfBirth ?? '');
+  const [dateOfBirth, setDateOfBirth] = useState(submitted?.dateOfBirth ?? client?.dateOfBirth ?? '');
 
   /*
     The stored name, read back into the two fields the card now asks for.
@@ -73,6 +84,21 @@ export function ClientIdentityFields({
     component makes quietly on reopen.
   */
   const storedName = splitName(client?.fullName);
+
+  /**
+   * What each field should show: the last thing typed if there is one, then the
+   * stored record, then empty.
+   *
+   * One helper rather than a `??` chain per field, so no field can quietly be
+   * left out of the restore — which is exactly the sort of omission that leaves
+   * one box on a card blanking itself while the other four behave.
+   */
+  const shown = {
+    firstName: submitted?.firstName ?? storedName.firstName,
+    lastName: submitted?.lastName ?? storedName.lastName,
+    phone: submitted?.phone ?? client?.phone,
+    sex: submitted?.sex ?? client?.sex,
+  };
 
   /*
     Two dropdowns — a month list beside a year list — in both states.
@@ -143,7 +169,7 @@ export function ClientIdentityFields({
           maxLength={MAX_NAME_PART_LENGTH}
           aria-invalid={error('firstName') !== undefined || undefined}
           placeholder={t('placeholders.firstName')}
-          defaultValue={storedName.firstName}
+          defaultValue={shown.firstName}
         />
       </FormField>
     ),
@@ -157,7 +183,7 @@ export function ClientIdentityFields({
           maxLength={MAX_NAME_PART_LENGTH}
           aria-invalid={error('lastName') !== undefined || undefined}
           placeholder={t('placeholders.lastName')}
-          defaultValue={storedName.lastName}
+          defaultValue={shown.lastName}
         />
       </FormField>
     ),
@@ -171,7 +197,7 @@ export function ClientIdentityFields({
           required
           maxDigits={MAX_PHONE_DIGITS}
           aria-invalid={error('phone') !== undefined || undefined}
-          defaultValue={client?.phone}
+          defaultValue={shown.phone}
           countryLabel={t('fields.phoneCountry')}
           placeholder={t('placeholders.phone')}
         />
@@ -211,7 +237,7 @@ export function ClientIdentityFields({
 
     sex: (
       <FormField id="sex" label={t('fields.sex')} error={error('sex')}>
-        <SexField defaultValue={client?.sex} invalid={error('sex') !== undefined} />
+        <SexField defaultValue={shown.sex} invalid={error('sex') !== undefined} />
       </FormField>
     ),
   };

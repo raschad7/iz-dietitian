@@ -104,7 +104,30 @@ export function ClientForm({ locale, client, onCancel, onSaved }: ClientFormProp
           there on why the two surfaces stopped disagreeing about what a client
           is made of.
         */}
-        <ClientIdentityFields locale={locale} client={client} errorFor={errorFor} />
+        {/*
+          ⚠ **The `key` is what makes a refusal keep the reader's typing**, and
+          it is not a re-render hint — it is load-bearing.
+
+          React empties an uncontrolled form as soon as its action returns, so a
+          save refused for one missing field used to hand back a blank card: the
+          name and number somebody had just entered were gone, and the fix for
+          one empty field was to type all five again. The action now echoes what
+          was posted (`state.values`), and the fields seed from it.
+
+          For the plain inputs a new `defaultValue` would be enough on its own.
+          The phone and the date of birth are composite controls that hold their
+          value in React state and seed it once, so nothing short of a remount
+          reaches them — hence the key, and hence `attempt` being a counter:
+          keyed on the values themselves, submitting the same mistake twice would
+          not change the key, and the second refusal would restore nothing.
+        */}
+        <ClientIdentityFields
+          key={state.status === 'error' ? state.attempt : 0}
+          locale={locale}
+          client={client}
+          submitted={state.status === 'error' ? state.values : undefined}
+          errorFor={errorFor}
+        />
 
         {/*
           Where the disclosure used to be. Creating a client no longer asks for
