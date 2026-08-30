@@ -167,6 +167,10 @@ export function MealCard({
       ref={setCardRef}
       // What `onDragStart` measures the lifted card against — see `board-dnd.tsx`.
       data-meal-card=""
+      // The box a drag starts from, which is what the lifted card is positioned
+      // and sized from. Named separately from `data-meal-card` because the
+      // catalog's rows carry it too, and `onDragStart` asks one question of both.
+      data-drag-origin=""
       /*
         The touch activator, on the card rather than on the grip.
 
