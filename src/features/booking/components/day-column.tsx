@@ -84,7 +84,16 @@ export type DayColumnProps = {
   onMovePointerDown: (appointment: CalendarAppointment, event: ReactPointerEvent<HTMLElement>) => void;
   onResizePointerDown: (appointment: CalendarAppointment, event: ReactPointerEvent<HTMLElement>) => void;
   /** Appointment being dragged, and whether its candidate currently validates. */
-  dragging: { id: string; valid: boolean } | null;
+  dragging: {
+    id: string;
+    valid: boolean;
+    /** The slot the drop would land on, for the chip on the card being carried. */
+    date: string;
+    startMinute: number;
+    durationMinutes: number;
+  } | null;
+  /** Appointment a finger is resting on, mid-hold, before the drag is taken. */
+  holdingId: string | null;
 };
 
 export function DayColumn({
@@ -109,6 +118,7 @@ export function DayColumn({
   onMovePointerDown,
   onResizePointerDown,
   dragging,
+  holdingId,
 }: DayColumnProps) {
   const t = useTranslations('booking');
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -282,6 +292,22 @@ export function DayColumn({
             dimmed={dimmedIds.has(appointment.id)}
             compact={compactAppointments}
             dragState={dragging?.id === appointment.id ? (dragging.valid ? 'valid' : 'invalid') : null}
+            holding={holdingId === appointment.id}
+            /*
+              Where this card would land if it were let go now. The block itself
+              stays where it is for the length of the gesture — see
+              `previewedAppointments` in `./calendar` — so the chip is what tells
+              the reader what the drop means.
+            */
+            dragCandidate={
+              dragging?.id === appointment.id
+                ? {
+                    date: dragging.date,
+                    startMinute: dragging.startMinute,
+                    durationMinutes: dragging.durationMinutes,
+                  }
+                : null
+            }
             onSelect={onSelect}
             onOpen={onOpen}
             onMovePointerDown={onMovePointerDown}

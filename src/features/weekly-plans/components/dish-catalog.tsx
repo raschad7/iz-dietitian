@@ -685,6 +685,9 @@ function CatalogRow({
       ref={setNodeRef}
       {...(draggable ? listeners : {})}
       {...(draggable ? attributes : {})}
+      // The box this drag starts from — `onDragStart` in `board-dnd.tsx`
+      // positions the lifted card from it. A meal card carries the same mark.
+      data-drag-origin={draggable ? '' : undefined}
       aria-disabled={blocked || undefined}
       className={shape}
     >

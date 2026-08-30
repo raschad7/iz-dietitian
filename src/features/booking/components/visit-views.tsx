@@ -4,6 +4,7 @@ import { useState, type ReactNode } from 'react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Segmented } from '@/components/ui/segmented';
+import { cn } from '@/lib/utils';
 
 /**
  * The two halves of a visit record — what is booked and what has happened — and
@@ -48,6 +49,18 @@ import { Segmented } from '@/components/ui/segmented';
  * becomes as tall as its content and the whole record scrolls instead. It is
  * also why the Account view around it scrolls nothing of its own: two scrollbars
  * a finger apart, each moving a different thing, is worse than either.
+ *
+ * A tablet is inside that arrangement, not an exception to it: the height is
+ * keyed on width alone, so at `lg` the card reaches the bottom of the screen on
+ * glass exactly as it does on a laptop, and the history scrolls inside it.
+ *
+ * ⚠ There was a revision that let it grow instead on a coarse pointer, on the
+ * grounds that a landscape tablet matches `lg` with only 768px of height and the
+ * port left over is small. That is a real constraint and this is not the answer
+ * to it: what pays for the port is the space above it, which is why the doubled
+ * gap below was removed. If the port is still too short, take height from the
+ * facts strip or the plans card — do not let the card stop filling, or it ends
+ * partway down the screen with the panel around it not scrolling either.
  */
 export type VisitView = 'upcoming' | 'past';
 
@@ -140,7 +153,18 @@ export function VisitViews({
       <CardContent
         role="tabpanel"
         aria-label={active?.label ?? label}
-        className="mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain"
+        className={cn(
+          'min-h-0 flex-1 overflow-y-auto overscroll-contain',
+          /*
+            ⚠ No `mt-*` here, and it is worth knowing why the obvious one is
+            wrong. `Card` already sets `gap-(--card-spacing)` between its header
+            and its content — 16px, 20px from `sm` up — so a margin on top of
+            that is not "some breathing room", it is a second full gap. The two
+            together put 32–36px between the heading and the first visit, which
+            on a tablet is most of the reason a reader had to scroll to see one
+            card at all.
+          */
+        )}
       >
         {panels[view]}
       </CardContent>

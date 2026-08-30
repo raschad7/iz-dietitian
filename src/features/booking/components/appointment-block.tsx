@@ -9,7 +9,7 @@ import { Link } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
-import { formatDuration, formatMinuteRange } from '../format';
+import { formatDuration, formatMinuteRange, formatWeekday } from '../format';
 import { blockTypeScale, DRAG_THRESHOLD_PX } from '../geometry';
 import { patientToneStyle } from '../patient-color';
 import { type CalendarAppointment } from '../types';
@@ -60,6 +60,19 @@ export type AppointmentBlockProps = {
   compact?: boolean;
   /** Live drag feedback: the candidate is valid, invalid, or not being dragged. */
   dragState?: 'valid' | 'invalid' | null;
+  /**
+   * A finger is resting on this block, mid-hold, before the drag is taken.
+   * Coarse pointers only — nothing holds anything on a mouse.
+   */
+  holding?: boolean;
+  /**
+   * The slot and day this card would land on if the drag ended now.
+   *
+   * The block does not move in the layout while it is being carried — see
+   * `previewedAppointments` in `./calendar` for why — so this is what the chip
+   * on it reports. `null` when nothing is being dragged.
+   */
+  dragCandidate?: { date: string; startMinute: number; durationMinutes: number } | null;
   onSelect: (id: string) => void;
   onOpen: (appointment: CalendarAppointment, pointer: { x: number; y: number }) => void;
   onMovePointerDown?: (appointment: CalendarAppointment, event: ReactPointerEvent<HTMLElement>) => void;
@@ -76,6 +89,8 @@ export function AppointmentBlock({
   dimmed,
   compact = false,
   dragState = null,
+  holding = false,
+  dragCandidate = null,
   onSelect,
   onOpen,
   onMovePointerDown,
@@ -97,6 +112,28 @@ export function AppointmentBlock({
    * one row alongside a name even on a narrow week column.
    */
   const timeRange = formatMinuteRange(locale, appointment.date, appointment.startMinute, endMinute);
+
+  /**
+   * The same range for the candidate the drag is currently over, and the day it
+   * is on when that is no longer this card's own.
+   *
+   * Both fall back to the card's own facts, so the chip reads correctly on a
+   * resize — where the block itself does grow with the gesture — and in the
+   * frame before the first candidate arrives.
+   */
+  const dragTimeRange = dragCandidate
+    ? formatMinuteRange(
+        locale,
+        dragCandidate.date,
+        dragCandidate.startMinute,
+        dragCandidate.startMinute + dragCandidate.durationMinutes,
+      )
+    : timeRange;
+
+  const dragDay =
+    dragCandidate && dragCandidate.date !== appointment.date
+      ? formatWeekday(locale, dragCandidate.date)
+      : null;
 
   /**
    * A finished appointment stays where it is.
@@ -132,6 +169,25 @@ export function AppointmentBlock({
     // from the shared clock, never stored.
     filter: completed ? 'saturate(0.3)' : undefined,
     opacity: completed ? 0.6 : dimmed ? 0.25 : 1,
+    /*
+      ── No transform here, deliberately ──
+
+      The card follows the pointer freely while it is dragged, and the offset
+      that does it is written straight onto this element by the gesture hook
+      (`--drag-x` / `--drag-y`, read by `.calendar-dragging`). React must not own
+      that property: the offset changes every pointer frame, and a `setState` per
+      frame re-renders the whole grid — which is precisely the drag that sticks.
+
+      `top` above stays where the card *started*, untouched for the whole
+      gesture: the transform is the entire movement, so there is no second value
+      on a second clock for it to disagree with. That is what stopped the shake —
+      see `previewedAppointments` in `./calendar`.
+
+      Historical note, since it is the obvious thing to reach back for: `top` was
+      the snapped position for a revision, with the transform carrying only the
+      remainder. It reads as the tidier arrangement and it is the one that
+      shakes — do not restore it without reading that note first.
+    */
   };
 
   return (
@@ -172,6 +228,20 @@ export function AppointmentBlock({
           filled.
         */
         '[--tone-avatar-fill:transparent]',
+        /*
+          What a finger needs before it can hold a card: iOS answers a long
+          press with its own callout and magnifier, takes the pointer, and fires
+          the `pointercancel` the gesture reads as abandoned — so the platform's
+          long press would kill ours at about the moment it fired. See
+          `.calendar-appointment` in `globals.css`; `touch-action` is
+          deliberately not among what it claims, because this card sits on a
+          column that has to keep scrolling.
+        */
+        'calendar-appointment',
+        // The press, made visible, for the length of the hold. `:active` would
+        // not do: it has no memory of *how long*, so it would fire on every tap
+        // and announce a drag that is not coming.
+        holding && draggable && 'calendar-holding',
         'absolute rounded-sm border',
         compact ? 'start-1.5 end-1.5 px-2' : 'start-2.5 end-2.5 px-4',
         'text-start transition-[opacity,box-shadow,background-color,border-color] select-none',
@@ -236,6 +306,14 @@ export function AppointmentBlock({
         // opened up while dragging so the time chip below can escape a block too
         // short to contain it.
         dragState ? 'z-30 overflow-visible shadow-lg' : 'overflow-hidden',
+        /*
+          What turns the two custom properties the gesture writes into movement.
+          A class rather than an inline transform, because React never touches
+          those properties — see the note on `style` above — and because it is
+          the one place that can also promote the card to its own layer for the
+          length of the drag.
+        */
+        dragState && 'calendar-dragging',
       )}
       style={style}
       onPointerDown={(event) => {
@@ -494,9 +572,17 @@ export function AppointmentBlock({
             dragState === 'valid' ? 'border-primary/60 text-foreground' : 'border-destructive/60 text-destructive',
           )}
         >
-          <span>{timeRange}</span>
+          {/*
+            The *candidate* time, not the card's own — and on a move they are
+            not the same thing any more. The block stays in its own slot for the
+            length of the gesture, so this chip is the only thing on screen
+            saying what the drop would do, which is why it names the day as well
+            whenever the drag has left the one it started on.
+          */}
+          <span>{dragTimeRange}</span>
+          {dragDay && <span className="ms-1.5 font-normal">{dragDay}</span>}
           <span className="ms-1.5 font-normal text-muted-foreground">
-            {formatDuration(appointment.durationMinutes, {
+            {formatDuration(dragCandidate?.durationMinutes ?? appointment.durationMinutes, {
               hour: (n) => t('duration.hours', { count: n }),
               minute: (n) => t('duration.minutes', { count: n }),
             })}
@@ -505,47 +591,21 @@ export function AppointmentBlock({
       )}
 
       {/*
-        The move grip, for fingers.
+        ── There is no move grip any more ──
 
-        Invisible on a mouse: the whole block is draggable there and always has
-        been, so a grip would be chrome answering a question nobody asked. On a
-        coarse pointer it becomes a 28px column down the block's inline-start
-        edge — see `.calendar-drag-grip` in `globals.css` for why an explicit
-        grip is the only way a drag survives on glass, and why the block itself
-        cannot claim the gesture.
+        There was one: a 28px column down the block's inline-start edge, shown
+        only on coarse pointers, and it existed because it was the one surface
+        here that could claim `touch-action: none`. The block cannot — it fills a
+        column that has to stay pannable — so on glass the gesture had to be
+        reserved by a piece of chrome, and on a 30-minute booking that chrome
+        took a quarter of the card away from the client's name.
 
-        It sits at the inline-start edge and the actions button sits at the
-        inline-end one, so the two touch targets cannot be confused for each
-        other, and the name link between them keeps its own tap.
-
-        `draggable` gates it exactly as it gates the block's own handler: a
-        finished appointment is fixed, and a grip on one would promise a gesture
-        that does nothing.
+        The gesture changed, so the bargain is off. A press and hold anywhere on
+        the block picks it up (`HOLD_TO_DRAG_MS` in `use-calendar-gestures.ts`),
+        which means the whole card is the handle and there is nothing left for a
+        strip to promise. The same move the planner board made — see
+        `.planner-holding` in `globals.css`.
       */}
-      {onMovePointerDown && draggable && (
-        <span
-          role="presentation"
-          aria-hidden
-          className="calendar-drag-grip absolute start-0 top-0 z-10 cursor-grab active:cursor-grabbing"
-          onPointerDown={(event) => {
-            if (event.button !== 0) return;
-            // The block's own handler would otherwise start a second move for
-            // the same finger.
-            event.stopPropagation();
-            onSelect(appointment.id);
-            onMovePointerDown(appointment, event);
-          }}
-        >
-          {/* Two rules, the universal "grab here" mark. `text-current` so it
-              takes the block's own foreground and stays legible on every one of
-              the ten patient colours. */}
-          <span aria-hidden className="flex flex-col gap-0.5 opacity-50">
-            <span className="block h-px w-3 bg-current" />
-            <span className="block h-px w-3 bg-current" />
-            <span className="block h-px w-3 bg-current" />
-          </span>
-        </span>
-      )}
 
       {/*
         Resize handle — lengthen the appointment by dragging its bottom edge.

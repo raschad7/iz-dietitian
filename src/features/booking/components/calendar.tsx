@@ -805,14 +805,35 @@ export function Calendar({
     const preview = gestures.dragPreview;
     if (!preview) return optimisticAppointments;
 
+    /*
+      ── A move preview does not move anything here ──
+
+      It used to: the dragged row was rewritten to the candidate date and slot,
+      and the grid drew the card in its new place while a transform carried the
+      few pixels between one slot and the next.
+
+      Those two halves are applied by different machines on different clocks —
+      the transform during the pointer event, the position whenever React
+      commits — and near a slot boundary they routinely landed in different
+      frames. Each of those frames showed one half without the other, which is a
+      displacement of a whole slot, and a finger resting on a boundary crosses it
+      many times a second. That was the shake, and its amplitude was exactly
+      `pxPerSlot`.
+
+      So while a move is in flight the grid leaves the card where it started and
+      the transform is the whole of the movement — one value, one clock. A resize
+      is a different gesture and keeps its preview: it changes the block's
+      *height*, which no transform is carrying and which cannot disagree with
+      itself.
+
+      What the reader loses is the card sitting in the target column mid-gesture;
+      what they get instead is the chip on the card, which names the time and day
+      it would land on, and the drop tint that says whether it may. Both come
+      from this same preview.
+    */
     return optimisticAppointments.map((row) =>
-      row.id === preview.id
-        ? {
-            ...row,
-            date: preview.date,
-            startMinute: preview.startMinute,
-            durationMinutes: preview.durationMinutes,
-          }
+      row.id === preview.id && row.durationMinutes !== preview.durationMinutes
+        ? { ...row, durationMinutes: preview.durationMinutes }
         : row,
     );
   }, [gestures.dragPreview, optimisticAppointments]);
@@ -1771,10 +1792,24 @@ export function Calendar({
                         onSelect={setSelectedId}
                         onOpen={openAppointment}
                         onMovePointerDown={gestures.beginMovePointerDown}
+                        holdingId={gestures.holdingId}
                         onResizePointerDown={gestures.beginResizePointerDown}
                         dragging={
                           gestures.dragPreview
-                            ? { id: gestures.dragPreview.id, valid: gestures.dragPreview.valid }
+                            ? {
+                                id: gestures.dragPreview.id,
+                                valid: gestures.dragPreview.valid,
+                                /*
+                                  Where it would land. The card itself no longer
+                                  travels in the layout, so this is the only
+                                  thing on screen saying what the drop means —
+                                  which makes the chip part of the gesture
+                                  rather than a decoration on it.
+                                */
+                                date: gestures.dragPreview.date,
+                                startMinute: gestures.dragPreview.startMinute,
+                                durationMinutes: gestures.dragPreview.durationMinutes,
+                              }
                             : null
                         }
                       />

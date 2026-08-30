@@ -91,7 +91,7 @@ import {
   Pizza,
   Plus,
   Printer,
-  ReceiptText,
+  Receipt,
   RefreshCw,
   Repeat,
   RotateCcw,
@@ -170,7 +170,7 @@ export const APP_ICONS = {
     from `clients` rather than tints of it, because a submenu whose parent and
     children share one glyph is three of the same mark stacked in a column.
   */
-  bills: ReceiptText,
+  bills: Receipt,
   /*
     The Forms tab in Settings — the clinic's own wording for its bills and its
     automatic messages. A page with a pen on it, because what is edited there is
