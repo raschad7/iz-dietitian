@@ -34,8 +34,27 @@ export function ServiceWorkerRegister({ locale }: { locale: string }) {
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
 
+    /*
+     * No trailing slash — it has to match the manifest's own `scope` and
+     * `start_url` exactly (`/${locale}/portal`, see
+     * `portal/manifest.webmanifest/route.ts`), or the registration covers a
+     * different URL than the one Chromium checks for installability.
+     *
+     * Service-worker scope matching is a plain string prefix check, not a
+     * directory-aware one: a scope of `/ar/portal/` does not cover the URL
+     * `/ar/portal` (no trailing slash), because the shorter string can never
+     * start with the longer one. `start_url` in the manifest has no trailing
+     * slash, so a scope that adds one leaves `start_url` outside the
+     * service worker's own scope — which means Chromium finds no
+     * controlling service worker for it, one of the installability checks
+     * fails silently, `beforeinstallprompt` never fires, and every surface
+     * reading `useInstallPrompt()` reports the install action as
+     * `'unavailable'` even though nothing else is wrong. `portal-sw.js`'s own
+     * `scopeLocale()` comment already documented the scope this way; this
+     * registration had drifted from it.
+     */
     navigator.serviceWorker
-      .register(SCRIPT_URL, { scope: `/${locale}/portal/` })
+      .register(SCRIPT_URL, { scope: `/${locale}/portal` })
       .catch(() => {
         // Best-effort only: a failed registration should never block the
         // portal from working without a service worker.

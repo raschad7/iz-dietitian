@@ -2890,6 +2890,28 @@
   }
 
   /*
+   * The missing half of the pair above. `content-visibility: hidden` (the
+   * UA's own default for a closed `::details-content`) skips box generation
+   * entirely, so the instant it flips to visible there is no previous frame
+   * for the transition engine to animate *from* — `block-size` has no prior
+   * computed value to interpolate away from, only the target `auto`, so the
+   * browser has nothing to do but snap straight to it. Closing never has
+   * this problem: the box is already generated and already has a real,
+   * measured height to transition down from.
+   *
+   * `@starting-style` is exactly the escape hatch the Transitions spec added
+   * for this "just became renderable" case: it names the value to treat as
+   * the starting point on the very first frame a rule newly matches, once
+   * only, so the entering side of the transition has the same well-defined
+   * start the exiting side already had for free.
+   */
+  @starting-style {
+    .q-disclosure[open]::details-content {
+      block-size: 0;
+    }
+  }
+
+  /*
    * ── The sidebar's nav categories: a submenu that grows rather than appears ──
    *
    * Applied to the wrapper `AppSidebar` puts around every `SidebarMenuSub`.
