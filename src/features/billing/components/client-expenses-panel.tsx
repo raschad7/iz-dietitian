@@ -2,7 +2,7 @@ import { getTranslations } from 'next-intl/server';
 
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDivider, CardHeader, CardTitle } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { batchNumbers, billNumber, describeEntry, type BillEntry } from '@/features/billing/bill';
 import { ExpensesActionsMenu } from '@/features/billing/components/expenses-actions-menu';
@@ -372,6 +372,20 @@ export async function ClientExpensesPanel({
           </div>
         </div>
       </CardHeader>
+
+      {/*
+        The card genuinely has two parts, so it is ruled into two: above the
+        line, where the account stands and what can be done about it — the
+        totals, the debt and the controls, one block; below it, the operations
+        that produced them. Without the rule those run together as one long
+        header, and the ledger reads as more of the summary rather than as the
+        second thing on the card.
+
+        `CardDivider` rather than a `border-b` on the header: an inset hairline
+        parts two sections of one surface, where a full-bleed rule cuts the card
+        in half and reads as two cards that happen to touch.
+      */}
+      <CardDivider />
 
       {/*
         `min-h-0` so the list can be shorter than its content asks for instead
