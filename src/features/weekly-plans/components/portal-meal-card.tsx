@@ -119,7 +119,7 @@ export function PortalMealCard({
     MEAL_SHELL,
   )}
     >
-      <details className="q-disclosure group">
+      <details className="group">
         {/*
           The whole row is the control — full width, and no shorter than the
           44px tick's own footprint (`min-h-11`), so it stays a target that
@@ -146,6 +146,19 @@ export function PortalMealCard({
 
             A future day renders neither, which is why this is a two-way and
             not a `disabled` prop.
+
+            **A real descendant of `<summary>`, deliberately, despite the
+            temptation to lift it out.** Every `<details>`'s `::details-content`
+            box — a UA default, not something the `q-disclosure` class opts
+            into — wraps every child *except* the first `<summary>` and
+            collapses it to zero height while closed, regardless of whether
+            anything here styles that pseudo-element. A sibling placed
+            outside `<summary>` to dodge the touch bug below would vanish
+            along with the rest of the panel whenever the card is shut, which
+            is exactly when this tick is needed most. The fix for the touch
+            bug lives in `animated-disclosure.tsx` instead, where the click
+            is told apart from inside the one listener that actually
+            receives it first.
           */}
           {standing === 'future' ? null : (
             <MealCheck mealId={meal.id} label={t('markEaten', { meal: meal.label })} />
