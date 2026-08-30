@@ -33,7 +33,7 @@ import { VisitViews, type VisitViewOption } from './visit-views';
  *
  * ## The shape of it
  *
- * **A strip of facts, and two views of the record under it** — what is booked,
+ * **A list of facts, and two views of the record under it** — what is booked,
  * and what has already happened.
  *
  * ⚠ **This used to be a rail beside the views, and that rail led with the
@@ -42,8 +42,13 @@ import { VisitViews, type VisitViewOption } from './visit-views';
  * and the profile has that panel — permanently, beside every view — so the rail
  * had become the same person drawn a second time, in a column that also cost the
  * history a third of its width. What the rail knew that the panel does not is
- * the *shape of the attendance*, and those five facts are what survived, set
- * across one line where they take a row rather than a column.
+ * the *shape of the attendance*, and those five facts are what survived.
+ *
+ * They spent a release set across one line, as a strip. They read as rows again
+ * — see `VisitFacts` — but in two columns above the history rather than in a
+ * rail taking width from it. The card is a little taller than the strip was, and
+ * that height comes out of the history's scroll port: if the port ever gets too
+ * short to be useful, this is the card to take it back from.
  *
  * **Three views, not three stacked cards.** The record used to draw the figures,
  * the upcoming panel and the past table one under another, which put the most
@@ -204,24 +209,56 @@ type FactLabels = {
 };
 
 /**
- * What the attendance adds up to, on one line.
+ * What the attendance adds up to, as a list.
  *
  * The five facts the summary rail used to stack down the inline-start edge —
  * when it started, when it last happened, what is booked, how often, and how
  * much time it comes to. They are the one thing on this view that no other view
  * of the record states, which is why they survived the rail being cut.
  *
- * **A wrapped row of label/value pairs, not a `StatGrid`.** Three of the five
- * are dates, and a lattice sets its figures at 20px: five dates at that size
- * across this column would be a second heading strip competing with the history
- * under it. Set small, with the label above the value, they read as reference —
- * which is what they are.
+ * **Ruled label→value rows, not a row of stacked pairs.** They were laid across
+ * one line, five label-over-value pairs wrapping in a strip, and a strip makes
+ * the reader do two things at once: find the label they want by scanning
+ * sideways, then jump down a line to read its value. Five facts is more than a
+ * glance holds that way, and the pairs re-wrapped into a different arrangement
+ * at every width, so no two screens put "الزيارة القادمة" in the same place.
  *
- * **The button is here rather than in the views card's header.** That header
- * already carries the view's name, its count and the switch between three
- * panels; a fourth control on the same line is where a header stops being
- * scannable. It also belongs with these five: every one of them is about *when*,
- * and this is the one thing that changes a when.
+ * As rows they are read the way a record is: the name of the fact, then its
+ * value, a hairline between each so a row is a row, and the list in a fixed
+ * order the reader can learn.
+ *
+ * ## Two columns, and why not one
+ *
+ * ⚠ **One column was tried and it does not survive this card's width.** The
+ * card is the full width of the record panel — around 1000px on a laptop — and
+ * five short facts do not fill that however they are arranged. Pinning each
+ * value to the far edge opened a canyon between "أول زيارة" and the date it
+ * labels; keeping the value beside its label instead left the whole list packed
+ * into the first third with a desert after it. Both were the same problem:
+ * a single column has no answer for the 700px it is not using.
+ *
+ * Split three and two, the column is around 490px — the width a label/value row
+ * is *for*, the one settings lists have used forever. The value sits against the
+ * column's own end edge, close enough to its label to be read as a pair and
+ * anchored by the rule between the columns. It also halves the card's height,
+ * which the visit history below spends on its scroll port.
+ *
+ * They stack back into one column below `sm`, where there is no width to split
+ * and the rows are narrow on their own.
+ *
+ * The type is unchanged and deliberately small. Three of the five are dates, and
+ * a lattice of `StatTile`s sets its figures at 20px: five dates at that size
+ * would be a second heading strip competing with the history under it. These are
+ * reference, and they are set as reference.
+ *
+ * **The button takes the empty sixth cell.** It is here and not in the views
+ * card's header — that header already carries the view's name, its count and the
+ * switch between the two panels, and a fourth control on the same line is where
+ * a header stops being scannable. It also belongs with these five: every one of
+ * them is about *when*, and this is the one thing that changes a when. Sitting
+ * where the column's third row would be, it closes the grid instead of leaving a
+ * hole in it — and it stays at its own width, which is not negotiable; see the
+ * note on it.
  */
 function VisitFacts({
   stats,
@@ -257,46 +294,120 @@ function VisitFacts({
     },
   ];
 
+  /*
+    Three and two, in the order above — so the column a reader starts in holds
+    the three dates and the second holds the two derived figures. Splitting at
+    the midpoint instead would put "الزيارة القادمة" at the head of the second
+    column, away from the two dates it is read against.
+
+    The short column is the one that takes the button, which is what makes the
+    grid come out even.
+  */
+  const dateFacts = facts.slice(0, 3);
+  const derivedFacts = facts.slice(3);
+
   return (
     <Card size="sm" className="shrink-0">
-      <CardContent className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
-        <dl className="flex min-w-0 flex-wrap items-baseline gap-x-8 gap-y-3">
-          {facts.map((fact) => (
-            <div key={fact.label} className="flex min-w-0 flex-col gap-0.5">
-              <dt className="text-caption text-muted-foreground">{fact.label}</dt>
-              {/*
-                `<bdi>` isolates the value's own direction. A formatted date has
-                no strong character to set a block's direction from, so
-                `dir="auto"` would resolve it LTR and drag its alignment with it.
-              */}
-              {/*
-                Every value is full-strength foreground, the next visit included.
-                It carried green-700 as "the one accented fact", which put a
-                coloured date in a row of black ones and made the strip read as
-                though the other four had been greyed out. The row is reference;
-                olive stays on the things you press.
-              */}
-              <dd
-                className={cn(
-                  'truncate text-body-sm font-semibold tabular-nums',
-                  fact.value === null && 'font-normal text-muted-foreground',
-                )}
-              >
-                <bdi>{fact.value ?? labels.none}</bdi>
-              </dd>
-            </div>
-          ))}
-        </dl>
+      {/*
+        The two columns. No `gap` between them — the rule *is* the gap, and the
+        24px each side of it belongs to the columns so the hairline sits
+        centred in the gutter rather than hard against the second column's
+        labels.
 
-        <Link
-          href="/app/calendar?view=day"
-          className={buttonVariants({ variant: 'outline', size: 'sm' })}
-        >
-          <Icon name="bookAppointment" />
-          {labels.book}
-        </Link>
+        Below `sm` they stack, and the second column's `border-t` becomes the
+        seam between the two halves of what is then one list, continuing the
+        rhythm the rows' own `divide-y` sets.
+      */}
+      <CardContent className="flex flex-col sm:flex-row">
+        <FactList facts={dateFacts} none={labels.none} className="sm:flex-1 sm:pe-6" />
+
+        <div className="flex flex-col border-t border-border/60 sm:flex-1 sm:border-t-0 sm:border-s sm:ps-6">
+          <FactList facts={derivedFacts} none={labels.none} />
+
+          {/*
+            ⚠ **No `w-full` on this.** It carried one for a release and came out
+            as a box stretched to exactly 320px and glued to the inline-start
+            edge, which reads as a button that failed to load rather than as a
+            deliberate width. `buttonVariants` caps every button at `max-w-80`
+            (docs/design-system.md, "Buttons": labels stay on one line and are
+            capped at 320px), so a full-width button inside a card wider than
+            that is not a thing this system can draw — asking for one just moves
+            the stretch to wherever the cap lands.
+
+            `self-start` is what the cap needs beside it: this column is a flex
+            column, so without it the link still stretches to the cap.
+
+            `sm:mt-auto` is what puts it in the sixth cell. The first column has
+            three rows and this one has two, so pushing the button to the bottom
+            of its column lands it level with the row it is standing in for, and
+            the two columns end together instead of one trailing the other.
+          */}
+          <Link
+            href="/app/calendar?view=day"
+            className={cn(
+              buttonVariants({ variant: 'outline', size: 'sm' }),
+              'mt-3 self-start sm:mt-auto',
+            )}
+          >
+            <Icon name="bookAppointment" />
+            {labels.book}
+          </Link>
+        </div>
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * One column of the facts grid: a ruled list of label→value rows.
+ *
+ * `justify-between` here and not in the single-column arrangement this
+ * replaced — see the note on `VisitFacts`. At a column's width the value lands
+ * close enough to its label to be read with it, and against the rule between
+ * the columns, which gives every value in the card one edge to line up on.
+ *
+ * `divide-y` rather than a border per row: it rules *between* the facts and
+ * never after the last one, so a column ends on its content rather than on a
+ * line pointing at nothing.
+ */
+function FactList({
+  facts,
+  none,
+  className,
+}: {
+  facts: { label: string; value: string | null }[];
+  /** Shown in place of a value the record does not have — "لا يوجد". */
+  none: string;
+  className?: string;
+}) {
+  return (
+    <dl className={cn('flex flex-col divide-y divide-border/60', className)}>
+      {facts.map((fact) => (
+        <div key={fact.label} className="flex items-baseline justify-between gap-4 py-2">
+          <dt className="shrink-0 text-caption text-muted-foreground">{fact.label}</dt>
+          {/*
+            `<bdi>` isolates the value's own direction. A formatted date has no
+            strong character to set a block's direction from, so `dir="auto"`
+            would resolve it LTR and drag its alignment with it.
+          */}
+          {/*
+            Every value is full-strength foreground, the next visit included. It
+            carried green-700 as "the one accented fact", which put a coloured
+            date in a column of black ones and made the list read as though the
+            other four had been greyed out. The list is reference; olive stays on
+            the things you press.
+          */}
+          <dd
+            className={cn(
+              'min-w-0 truncate text-end text-body-sm font-semibold tabular-nums',
+              fact.value === null && 'font-normal text-muted-foreground',
+            )}
+          >
+            <bdi>{fact.value ?? none}</bdi>
+          </dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
