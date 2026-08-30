@@ -127,8 +127,22 @@ export function ContextPanel({
         16px the five figures beside it do not have on a 1280px laptop. 10rem
         holds a name at 20px with its chevron and still leaves the row nothing
         to complain about.
+
+        ⚠ **The floor starts at `md`, and it has to.** It was unconditional, and
+        that made this row 322px wide at its narrowest — 44px of disc, a 160px
+        floor, and the 96px control pill at the end of it. The board header is
+        `overflow-hidden`, and a 375px phone gives the row 293px: the 29px that
+        did not fit was the end of that pill, so on an iPhone the button that
+        creates a client's nutrition profile was cut in half and the one behind
+        it was gone. Clipped, with the scrollbars hidden app-wide, means there is
+        no wheel, no drag and no gesture that reaches it.
+
+        Below `md` the picker keeps `min-w-0` and shrinks instead. It loses
+        nothing by it: the name inside truncates already (see `ClientPicker`),
+        and a truncated name beside a reachable control beats a whole name beside
+        a control that is not there.
       */}
-      <div className="min-w-40 max-w-72 flex-1">
+      <div className="max-w-72 min-w-0 flex-1 md:min-w-40">
         <ClientPicker clients={clients} selectedClientId={context.clientId} appearance="bar" />
       </div>
 
