@@ -2,7 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 
-import { getClientVisitSummary, listClientVisits } from '@/features/booking/queries';
+import { listClientVisits } from '@/features/booking/queries';
 import { ClientProfile } from '@/features/clients/components/client-profile';
 import { PROFILE_TABS, type ProfileTab } from '@/features/clients/components/profile-tab';
 import { getPortalUsername, suggestPortalUsername } from '@/features/clients/portal-credentials';
@@ -63,7 +63,6 @@ export default async function ClientInfoPage({ params, searchParams }: ClientInf
   const today = toIsoDate(new Date());
 
   const [
-    visitSummary,
     visitEntries,
     plans,
     intake,
@@ -74,7 +73,6 @@ export default async function ClientInfoPage({ params, searchParams }: ClientInf
     prices,
     consulted,
   ] = await Promise.all([
-      getClientVisitSummary(clinicId, client.id, today),
       listClientVisits(clinicId, client.id),
       listPlans(clinicId, client.id),
       // The Nutrition view's whole subject, and the meal-slot denominator the
@@ -162,7 +160,7 @@ export default async function ClientInfoPage({ params, searchParams }: ClientInf
       locale={locale}
       today={today}
       defaultTab={defaultTab}
-      visits={{ summary: visitSummary, entries: visitEntries }}
+      visits={{ entries: visitEntries }}
       plans={plans}
       intake={intake}
       progress={progress}

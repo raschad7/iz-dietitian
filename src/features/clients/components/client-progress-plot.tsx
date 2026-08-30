@@ -4,6 +4,7 @@ import { useEffect, useState, type Key } from 'react';
 import { Area, AreaChart, CartesianGrid, Dot, XAxis, YAxis } from 'recharts';
 
 import { ChartContainer, ChartTooltip, type ChartConfig } from '@/components/ui/chart';
+import { cn } from '@/lib/utils';
 
 /**
  * The Progress tab's weekly graph.
@@ -42,6 +43,42 @@ const CONFIG = {
 } satisfies ChartConfig;
 
 const PLOT_HEIGHT = 'h-56 w-full';
+
+/**
+ * ⚠ **The percentage ticks have to be laid out left-to-right, or they land on
+ * the plot.**
+ *
+ * Recharts anchors a left-hand Y axis's tick text with `text-anchor="end"` (see
+ * `getTickTextAnchor` in `CartesianAxis`), and `start`/`end` in SVG are
+ * *logical*: they resolve against the text's own `direction`. Under Arabic the
+ * whole page is `dir="rtl"`, the label inherits it, and "end" becomes the label's
+ * left edge — so instead of hanging back into the 36px gutter, "0%" and "100%"
+ * ran rightward across the axis line and sat directly under Sunday's dot, which
+ * is the leftmost point of the series.
+ *
+ * The X axis never showed it because a category tick anchors `middle`, and
+ * `middle` is the one anchor that does not depend on direction. This is also the
+ * only Y axis in the codebase, which is why nothing else drifted.
+ *
+ * `direction: ltr` on the tick text alone, and not `dir="ltr"` on the chart:
+ * these labels are Latin digits with a percent sign in both languages, so
+ * nothing here is being un-Arabised, whereas flipping the whole container would
+ * take the tooltip's Arabic with it. It also cannot be fixed by widening the
+ * axis — the overlap is an anchor resolving to the wrong side, not a label too
+ * big for its gutter.
+ *
+ * ⚠ **Match on `-tick-labels`, not on the axis group.** Recharts 3.4 renders
+ * every axis label into a *portal* — a `<g class="recharts-zIndex-layer_2000">`
+ * at the root of the SVG, because SVG has no `z-index` — so the tick text is not
+ * a descendant of `.recharts-yAxis` at all and a selector going through the axis
+ * matches nothing. (`chart.tsx`'s upstream `.recharts-cartesian-axis-tick text`
+ * rule is in that same blind spot; it is left alone because that file is kept
+ * byte-identical to the registry on purpose.) The second selector is the same
+ * rule written for the nested arrangement, so a Recharts version that stops
+ * portalling labels does not quietly reopen this.
+ */
+const Y_TICKS_LTR =
+  '[&_.recharts-yAxis-tick-labels_text]:[direction:ltr] [&_.recharts-yAxis_text]:[direction:ltr]';
 
 function useReducedMotion(): boolean {
   const [reduced, setReduced] = useState(
@@ -91,7 +128,7 @@ export function ClientProgressChart({
   const reducedMotion = useReducedMotion();
 
   return (
-    <ChartContainer config={config} className={PLOT_HEIGHT}>
+    <ChartContainer config={config} className={cn(PLOT_HEIGHT, Y_TICKS_LTR)}>
       <AreaChart accessibilityLayer data={data} margin={{ top: 8, left: 4, right: 4, bottom: 0 }}>
         <defs>
           <linearGradient id="client-progress-fill" x1="0" y1="0" x2="0" y2="1">
