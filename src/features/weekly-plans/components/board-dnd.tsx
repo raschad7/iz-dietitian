@@ -1,11 +1,21 @@
 'use client';
 
-import { createContext, useContext, useEffect, useOptimistic, useRef, useState, useTransition } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useOptimistic,
+  useRef,
+  useState,
+  useTransition,
+} from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import {
   DndContext,
   DragOverlay,
   KeyboardSensor,
+  MeasuringStrategy,
   MouseSensor,
   TouchSensor,
   useSensor,
@@ -13,6 +23,7 @@ import {
   type DragEndEvent,
   type DragPendingEvent,
   type DragStartEvent,
+  type Modifier,
 } from '@dnd-kit/core';
 
 import type { DishDetail } from '@/features/weekly-plans/nutrition';
@@ -113,6 +124,20 @@ export const HOLD_TO_DRAG_MS = 320;
  */
 const HOLD_TOLERANCE_PX = 8;
 
+/** Where a pointer event is on the screen, for mouse and touch alike. */
+function pointerCoordinates(event: Event): { x: number; y: number } | null {
+  if (typeof TouchEvent !== 'undefined' && event instanceof TouchEvent) {
+    const touch = event.touches[0] ?? event.changedTouches[0];
+    return touch ? { x: touch.clientX, y: touch.clientY } : null;
+  }
+
+  if (typeof MouseEvent !== 'undefined' && event instanceof MouseEvent) {
+    return { x: event.clientX, y: event.clientY };
+  }
+
+  return null;
+}
+
 const EditorContext = createContext<EditorValue | null>(null);
 
 export function useEditor(): EditorValue {
@@ -206,12 +231,95 @@ export function BoardEditor({
    */
   const [holdingId, setHoldingId] = useState<string | null>(null);
   const moveToastSequence = useRef(0);
+  /**
+   * The gesture in flight, in screen coordinates: the box it was lifted from,
+   * where the pointer went down, and where the pointer is now.
+   *
+   * This is the whole of the lifted card's position — see `pinToPointer`. Null on
+   * a keyboard drag, which has no pointer and keeps dnd-kit's own arithmetic.
+   */
+  const gesture = useRef<{
+    origin: { left: number; top: number };
+    start: { x: number; y: number };
+    now: { x: number; y: number };
+  } | null>(null);
+
+  /*
+   * ── The lifted card is placed from the finger, not from a measurement ──
+   *
+   * dnd-kit draws the overlay as `position: fixed` with `left`/`top` set to the
+   * source node's rect and a `transform` for the distance travelled since. Both
+   * halves come out of its own measuring pass, and on a tablet the anchor was
+   * the half that went wrong: scroll the week sideways, then press and hold, and
+   * the card was drawn from a box measured before the scroll — so it trailed by
+   * exactly how far the week had been panned.
+   *
+   * It only ever showed on a tablet because that is the only place the week
+   * overflows. On a desktop the seven days fit, so every scroll offset is zero
+   * and a stale measurement is indistinguishable from a fresh one.
+   *
+   * Correcting the transform is not enough, and was tried: the anchor is added
+   * after any modifier runs. So the anchor is taken away instead — `left: 0` and
+   * `top: 0` on the overlay (see the `style` prop, which dnd-kit spreads *after*
+   * its own rect and which is therefore the one place either can be overridden)
+   * — and this modifier supplies the absolute screen position on its own.
+   *
+   * What it returns is not an offset: it is where the card's inline-start top
+   * corner belongs, which is the box it was lifted from plus the distance the
+   * finger has travelled. Nothing dnd-kit measured takes part, so nothing it
+   * cached can be stale. A scroll *during* the drag needs no correction either —
+   * the anchor is a place on the screen, not a place in the week, so a board
+   * panning underneath does not drag the card along with it.
+   *
+   * This is the overlay's own modifier. It changes what is drawn and nothing
+   * about what a drop lands on.
+   */
+  const pinToPointer = useCallback<Modifier>(({ transform }) => {
+    const current = gesture.current;
+    if (!current) return transform;
+
+    return {
+      ...transform,
+      x: current.origin.left + (current.now.x - current.start.x),
+      y: current.origin.top + (current.now.y - current.start.y),
+    };
+  }, []);
 
   useEffect(() => {
     if (!settledMealId) return;
     const timeout = window.setTimeout(() => setSettledMealId(null), 520);
     return () => window.clearTimeout(timeout);
   }, [settledMealId]);
+
+  /*
+   * Keeps `pointer` current for the life of a drag.
+   *
+   * Capture phase, so the ref is already updated by the time dnd-kit's own
+   * listeners run on the same event and re-render the overlay — the modifier
+   * reads this during that render, and a frame-late pointer would be a lag of
+   * its own. Passive: this only observes, and the sensors decide what the
+   * gesture is allowed to do.
+   *
+   * `mousemove` and `touchmove` rather than `pointermove`, to match the two
+   * sensors exactly — see the note on `sensors` for why those are separate here.
+   */
+  useEffect(() => {
+    if (!dragging) return;
+
+    function track(event: MouseEvent | TouchEvent): void {
+      const coordinates = pointerCoordinates(event);
+      if (coordinates && gesture.current) gesture.current.now = coordinates;
+    }
+
+    const options = { capture: true, passive: true } as const;
+    window.addEventListener('mousemove', track, options);
+    window.addEventListener('touchmove', track, options);
+
+    return () => {
+      window.removeEventListener('mousemove', track, options);
+      window.removeEventListener('touchmove', track, options);
+    };
+  }, [dragging]);
 
   /*
    * ── Mouse and touch are two different gestures, so they are two sensors ──
@@ -381,10 +489,27 @@ export function BoardEditor({
      */
     const activator = event.activatorEvent.target;
     const node =
-      activator instanceof Element ? activator.closest('[data-meal-card]') : null;
+      activator instanceof Element ? activator.closest('[data-drag-origin]') : null;
 
     const rect = node?.getBoundingClientRect() ?? event.active.rect.current.initial;
     setDragSize(rect ? { width: rect.width, height: rect.height } : null);
+
+    /*
+     * Where the gesture began, and the box it began in.
+     *
+     * `activatorEvent` is the `mousedown` or `touchstart` the sensor activated
+     * on, so the coordinates are the pointer's own starting point rather than an
+     * approximation of it — which matters, because the lifted card's position is
+     * a distance measured from here. Both are read now, in the same frame, off a
+     * box that is still on screen: a dish drag closes the catalog a few lines
+     * below and the row this was measured from stops existing.
+     *
+     * A keyboard drag has neither, and leaves this null so `pinToPointer` stands
+     * aside and dnd-kit's own arithmetic runs.
+     */
+    const start = pointerCoordinates(event.activatorEvent);
+    gesture.current =
+      start && rect ? { origin: { left: rect.left, top: rect.top }, start, now: start } : null;
 
     if (payload?.kind === 'dish') onDishDragStart?.();
   }
@@ -393,6 +518,12 @@ export function BoardEditor({
     setDragging(null);
     setDragSize(null);
     setHoldingId(null);
+    /*
+     * Cleared here rather than left for the next `onDragStart` to overwrite. The
+     * drop animation renders the overlay for 240ms after this runs, and a stale
+     * gesture would spend them positioning it from a finger that has lifted.
+     */
+    gesture.current = null;
   }
 
   function onDragEnd(event: DragEndEvent): void {
@@ -461,6 +592,36 @@ export function BoardEditor({
       <DndContext
         id="weekly-plan-board"
         sensors={sensors}
+        /*
+          Re-measure the slots as the week pans, instead of once when the drag
+          began.
+
+          dnd-kit's default is `WhileDragging`, which measures every drop target
+          the moment a card is lifted and then trusts those boxes for the rest of
+          the gesture. On a board that fits, they stay true. On a tablet the week
+          scrolls under the drag — the auto-scroll below is *why* it scrolls —
+          and from the first pixel of that pan every box it is holding describes
+          where a day used to be. That is what made a card dragged towards a day
+          off the edge feel stuck: the days it was passing over had not moved as
+          far as dnd-kit believed, so the target under the finger kept being the
+          wrong one, or none at all.
+
+          `Always` re-measures each frame of the drag. It costs a layout pass per
+          frame over thirty-five cells, which is real but bounded, and it is the
+          only strategy that stays correct while the surface underneath moves.
+        */
+        measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+        /*
+          Reaching a day that is off the edge.
+
+          The default threshold asks the drag to come within 5% of the frame's
+          edge before the week starts panning — about 40px on this board, and a
+          band a finger tends to overshoot into the bezel rather than land in.
+          A quarter of the frame gives the gesture somewhere to aim, which is
+          what "drag it to the first day" needs on a surface where the first day
+          is not on screen.
+        */
+        autoScroll={{ threshold: { x: 0.25, y: 0.15 }, acceleration: 12 }}
         onDragPending={onDragPending}
         onDragAbort={onDragAbort}
         onDragStart={onDragStart}
@@ -568,7 +729,23 @@ export function BoardEditor({
           {children}
         </EditorActionsContext.Provider>
 
-        <DragOverlay dropAnimation={{ duration: 240, easing: 'cubic-bezier(.16,1,.3,1)' }}>
+        <DragOverlay
+          modifiers={[pinToPointer]}
+          /*
+            The anchor, taken off dnd-kit and given to `pinToPointer`.
+
+            `PositionedOverlay` builds its style as its own rect first and this
+            prop spread last, so these four are the only way to override what it
+            measured. `left`/`top` go to zero because the modifier now returns an
+            absolute position rather than an offset; `width`/`height` go to `auto`
+            because the card inside already sizes itself — a lifted meal from the
+            box it left (`dragSize`), a lifted dish to a card's own footprint —
+            and a measured size on the wrapper is one more thing that can be
+            stale for the same reason the anchor was.
+          */
+          style={{ left: 0, top: 0, width: 'auto', height: 'auto' }}
+          dropAnimation={{ duration: 240, easing: 'cubic-bezier(.16,1,.3,1)' }}
+        >
           {dragging ? <DragPreview payload={dragging} size={dragSize} /> : null}
         </DragOverlay>
       </DndContext>
