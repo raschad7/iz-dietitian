@@ -54,6 +54,27 @@ function payment(overrides: Partial<{ amount: string; method: string; paidOn: st
   });
 }
 
+/**
+ * Asserts a call is refused, and hands back what it threw.
+ *
+ * Deliberately not `expect(promise).rejects.toThrow()`: under Bun 1.3.14 that
+ * matcher never settles for a rejected postgres.js query, which hangs the whole
+ * file — the connection keeps its lock, every later `beforeEach` blocks on
+ * TRUNCATE behind it, and the run dies of timeouts rather than reporting a
+ * failure. The same note sits on `expectRejected` in
+ * `src/features/booking/constraints.test.ts`. A plain try/catch has no such
+ * problem.
+ */
+async function expectRejected(call: () => Promise<unknown>): Promise<unknown> {
+  try {
+    await call();
+  } catch (error) {
+    return error;
+  }
+
+  throw new Error('expected this call to be refused, but it succeeded');
+}
+
 describe('recordPayment', () => {
   test('stores the amount in agorot, not shekels', async () => {
     await billed(100_000);
@@ -93,7 +114,7 @@ describe('recordPayment', () => {
   test('refuses a payment larger than the account owes', async () => {
     await billed(100_000);
 
-    expect(recordPayment(clinicId, payment({ amount: '1200' }))).rejects.toThrow(
+    expect(await expectRejected(() => recordPayment(clinicId, payment({ amount: '1200' })))).toBeInstanceOf(
       PaymentExceedsBalanceError,
     );
     expect(await db.select().from(clientPayments)).toHaveLength(0);
@@ -110,7 +131,7 @@ describe('recordPayment', () => {
     await billed(100_000);
     await recordPayment(clinicId, payment({ amount: '400' }));
 
-    expect(recordPayment(clinicId, payment({ amount: '700' }))).rejects.toThrow(
+    expect(await expectRejected(() => recordPayment(clinicId, payment({ amount: '700' })))).toBeInstanceOf(
       PaymentExceedsBalanceError,
     );
 
@@ -119,7 +140,7 @@ describe('recordPayment', () => {
   });
 
   test('refuses money on an account with nothing billed on it', async () => {
-    expect(recordPayment(clinicId, payment({ amount: '100' }))).rejects.toThrow(
+    expect(await expectRejected(() => recordPayment(clinicId, payment({ amount: '100' })))).toBeInstanceOf(
       PaymentExceedsBalanceError,
     );
   });
@@ -141,7 +162,7 @@ describe('recordPayment', () => {
       paidOn: '2026-08-12',
     });
 
-    expect(recordPayment(clinicId, input)).rejects.toThrow(ClientNotInClinicError);
+    expect(await expectRejected(() => recordPayment(clinicId, input))).toBeInstanceOf(ClientNotInClinicError);
 
     const rows = await db.select().from(clientPayments);
     expect(rows).toHaveLength(0);
@@ -157,14 +178,16 @@ describe('recordPayment', () => {
 
   test('the database rejects a zero payment even if one got past validation', async () => {
     expect(
-      db.insert(clientPayments).values({
-        clinicId,
-        clientId,
-        amountMinor: 0,
-        method: 'cash',
-        paidOn: '2026-08-12',
+      await expectRejected(async () => {
+        await db.insert(clientPayments).values({
+          clinicId,
+          clientId,
+          amountMinor: 0,
+          method: 'cash',
+          paidOn: '2026-08-12',
+        });
       }),
-    ).rejects.toThrow();
+    ).toBeInstanceOf(Error);
   });
 });
 
@@ -305,8 +328,8 @@ describe('recordCharge', () => {
     await recordCharge(clinicId, charge({ service: 'monthly', chargedOn: '2026-08-10' }));
 
     expect(
-      recordCharge(clinicId, charge({ service: 'monthly', chargedOn: '2026-08-24' })),
-    ).rejects.toThrow(SubscriptionActiveError);
+      await expectRejected(() => recordCharge(clinicId, charge({ service: 'monthly', chargedOn: '2026-08-24' }))),
+    ).toBeInstanceOf(SubscriptionActiveError);
     expect(await db.select().from(clientCharges)).toHaveLength(1);
   });
 
@@ -314,8 +337,8 @@ describe('recordCharge', () => {
     await recordCharge(clinicId, charge({ service: 'monthly', chargedOn: '2026-08-10' }));
 
     expect(
-      recordCharge(clinicId, charge({ service: 'quarterly', chargedOn: '2026-08-11' })),
-    ).rejects.toThrow(SubscriptionActiveError);
+      await expectRejected(() => recordCharge(clinicId, charge({ service: 'quarterly', chargedOn: '2026-08-11' }))),
+    ).toBeInstanceOf(SubscriptionActiveError);
   });
 
   test('takes the next subscription the day after the last one ends', async () => {
@@ -346,7 +369,7 @@ describe('recordCharge', () => {
       chargedOn: '2026-08-01',
     });
 
-    expect(recordCharge(clinicId, input)).rejects.toThrow(ClientNotInClinicError);
+    expect(await expectRejected(() => recordCharge(clinicId, input))).toBeInstanceOf(ClientNotInClinicError);
     expect(await db.select().from(clientCharges)).toHaveLength(0);
   });
 });
