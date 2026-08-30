@@ -286,8 +286,36 @@ export function useGuideAnchor(
           technically visible at the very bottom of the viewport is one the card
           is about to sit on top of. Centring gives the card somewhere to go on
           either side of it.
+
+          ## `instant`, and why it is not a downgrade
+
+          This was `smooth`, and a smooth scroll is what the tour's remaining lag
+          was made of. The sequence: the card is promoted on the *first* sighting
+          of the anchor — see the retention note below — so it is placed against
+          the box as it was before the scroll started. The scroll then runs for
+          the several hundred milliseconds a smooth scroll takes, the hole
+          gliding with it, and the card is only re-placed once the box has held
+          still for {@link SETTLE_MS} on top of that. Every step whose anchor
+          needs bringing into view therefore paid for the whole scroll before it
+          settled, and the steps that scroll — the register table, the search
+          field above it, the calendar toolbar after a route change, the
+          planner's suggestions below the picker — are exactly the ones that were
+          reported as lagging.
+
+          Instant costs nothing here. The screen behind this is dimmed to a hole
+          the size of one control, so there is no travel for the reader to
+          follow and nothing for the animation to explain: the hole and the card
+          simply arrive together, on the first frame, in the right place.
+
+          It also settles a bug. `scrollIntoView`'s `behavior` **overrides** the
+          CSS `scroll-behavior` property, so the `scroll-behavior: auto
+          !important` that `globals.css` applies under `prefers-reduced-motion`
+          never reached this call: a reader who had asked for no motion got a
+          smooth scroll on every anchored step regardless. Passing `instant`
+          asks for no motion for everybody, which is the one answer that cannot
+          disagree with a preference.
         */
-        element.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' });
+        element.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' });
       }
 
       const raw = element.getBoundingClientRect();

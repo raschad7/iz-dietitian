@@ -6,7 +6,7 @@ import { type IconName } from '@/components/ui/icon';
  *
  * ```text
  * لوحة التحكم
- * التقويم ▾            يوم · أسبوع · شهر
+ * التقويم
  *
  * إدارة                ← a heading, not a control
  *   المشتركون
@@ -36,12 +36,19 @@ import { type IconName } from '@/components/ui/icon';
  * ever outgrows the column, the answer is fewer destinations, not headings that
  * hide them again.
  *
- * **التقويم is the one thing that still opens**, and for a reason no heading
- * covers: يوم, أسبوع and شهر are three *views of one screen* rather than three
- * screens. Printing them flat would put four rows in the rail where the reader
- * only ever thinks about one — and the calendar's own toolbar already carries
- * the same segmented control on the page, so the rail is the way in, not the
- * only way across.
+ * **Nothing in this rail opens.** Every row is a destination, so the column has
+ * one shape and holds it on every screen.
+ *
+ * التقويم was the last exception: it carried يوم, أسبوع and شهر on a
+ * disclosure. They are three *views of one screen* rather than three screens,
+ * and the calendar's own toolbar already carries that same segmented control on
+ * the page — so the rail was offering a second control for a choice the screen
+ * makes better, at the cost of the one thing in the column that moved. The row
+ * opens the calendar now and the page decides the view.
+ *
+ * Nothing became unreachable: the toolbar switches all three, and a `?view=`
+ * URL still resolves (`app/calendar/page.tsx` reads the query and falls back to
+ * the week), so old links and bookmarks are unaffected.
  *
  * **The dashboard's band has no heading.** It is where you land rather than
  * somewhere you go to, so it leads the column with a rule of whitespace under
@@ -78,20 +85,17 @@ export const STAFF_NAV = [
     id: 'overview',
     children: [
       { href: '/app', labelKey: 'dashboard' },
-      /* The calendar moved up here when its own heading — المواعيد, over this
-         one row — was dropped. It is a category rather than a destination, and
-         a category in the unheaded band is fine: `levelKey` is the band's id,
-         so it accordions against its siblings exactly as it did against none. */
-      {
-        id: 'calendar',
-        labelKey: 'calendar',
-        collapsedHref: '/app/calendar?view=week',
-        children: [
-          { href: '/app/calendar?view=day', labelKey: 'day' },
-          { href: '/app/calendar?view=week', labelKey: 'week' },
-          { href: '/app/calendar?view=month', labelKey: 'month' },
-        ],
-      },
+      /*
+        The calendar moved up here when its own heading — المواعيد, over this
+        one row — was dropped.
+
+        No query on the href, and that is what keeps the row lit on all three
+        views: `isItemActive` treats a calendar address *without* a `?view=` as
+        the whole section (rule 3), where one carrying a view matches only that
+        view. The page defaults to the week when the query is absent, which is
+        the screen the old `collapsedHref` pointed at anyway.
+      */
+      { href: '/app/calendar', labelKey: 'calendar' },
     ],
   },
   {
@@ -127,12 +131,8 @@ export const STAFF_NAV = [
  * so the glyph that made them look pressable is gone and the icon column below
  * each heading is uninterrupted.
  *
- * التقويم keeps one: it is still a row, and still something you press.
- *
- * Day / week / month have none either. They are the third level, they are three
- * words of one syllable, and a glyph for each would be three marks distinguished
- * only by the number printed on them; the indentation and the label are enough
- * that deep in.
+ * التقويم keeps one: it is a row like the other five now, and every row in the
+ * column carries a glyph.
  *
  * `satisfies` ties this to the label keys, so a typo is a compile error rather
  * than a row that quietly sits misaligned.

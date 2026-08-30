@@ -136,3 +136,39 @@ export function useIsCompact() {
     () => false,
   )
 }
+
+/**
+ * Whether the primary pointer is a finger.
+ *
+ * ⚠ **A width question must not be asked here, and this must not be asked of
+ * width.** The note on `useIsSheetSurface` above is the other half of this one:
+ * a tablet has a desktop's *room*, so what it should look like is a question
+ * about the screen — while how big a target must be, and what a drag across a
+ * list means, are questions about the finger. This is the second kind. It
+ * mirrors the `(pointer: coarse)` block in `globals.css`, which sizes touch
+ * targets off exactly this query.
+ *
+ * `pointer` reports the **primary** input, so a laptop with a touchscreen and a
+ * trackpad answers `fine` — correct, because its reader is on the trackpad. A
+ * tablet with a mouse paired answers `fine` too, and also correctly: nothing
+ * here is about the hardware, only about what is being pointed with.
+ *
+ * `false` on the server. There is no pointer during a server render, and a
+ * first paint that assumes a mouse degrades to "hover selection works", which
+ * is the state every desktop stays in anyway.
+ */
+const COARSE_POINTER_QUERY = '(pointer: coarse)'
+
+function subscribeCoarsePointer(onChange: () => void) {
+  const query = window.matchMedia(COARSE_POINTER_QUERY)
+  query.addEventListener('change', onChange)
+  return () => query.removeEventListener('change', onChange)
+}
+
+export function useIsCoarsePointer() {
+  return React.useSyncExternalStore(
+    subscribeCoarsePointer,
+    () => window.matchMedia(COARSE_POINTER_QUERY).matches,
+    () => false,
+  )
+}

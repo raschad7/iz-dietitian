@@ -22,6 +22,7 @@ import { Kbd } from '@/components/ui/kbd';
 import { patientToneStyle } from '@/features/booking/patient-color';
 import { normalizeForSearch } from '@/features/clients/search';
 import { useGuide } from '@/features/user-guide/guide-context';
+import { useIsCoarsePointer } from '@/hooks/use-mobile';
 import { usePathname, useRouter } from '@/i18n/navigation';
 import { getLocaleDirection, locales, type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
@@ -126,6 +127,9 @@ export function CommandPalette({
   const router = useRouter();
   const pathname = usePathname();
   const guide = useGuide();
+
+  /* Whether a drag across the list is a finger scrolling. See `Command` below. */
+  const coarsePointer = useIsCoarsePointer();
 
   const [query, setQuery] = useState('');
 
@@ -354,6 +358,25 @@ export function CommandPalette({
           the last row is always one key from the first.
         */
         loop
+        /*
+          On a touch screen, a drag across the list is somebody scrolling — not
+          somebody choosing.
+
+          `cmdk` puts `onPointerMove` on every row and selects whatever the
+          pointer crosses. That is right for a mouse and wrong for a finger, and
+          the cost is not just a moving highlight: changing the selected value
+          makes `cmdk` call `.focus()` on its input (it re-points
+          `aria-activedescendant`, and the input is what owns it). A programmatic
+          focus outside a gesture does not raise the soft keyboard — which is why
+          `autoFocus` on open does not — but that same call *inside* the touch
+          gesture does. So the keyboard shot up the instant a finger landed on
+          the list, over the rows the reader was trying to scroll.
+
+          Off for a finger, on for a mouse: a pointer that hovers has somewhere
+          to hover, and a pointer that scrolls does not. Tapping a row is
+          unaffected either way — that is `onClick`, which `cmdk` keeps.
+        */
+        disablePointerSelection={coarsePointer}
         /*
           A **fixed** height, not a ceiling — the one thing that made the old
           surface feel cheap.
