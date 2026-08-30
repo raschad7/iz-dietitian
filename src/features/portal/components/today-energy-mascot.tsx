@@ -90,7 +90,7 @@ export function TodayEnergyMascot({
           <span className="text-caption leading-none text-muted-foreground">{t('meals', { completed, total })}</span>
         ) : null}
 
-        <p className="pt-2 font-heading text-lg leading-snug font-bold text-[#6D6C65]">{t(`energy.${messageKey}`)}</p>
+        <p className="pt-2 font-heading text-lg leading-snug font-bold text-muted-foreground">{t(`energy.${messageKey}`)}</p>
       </span>
     </span>
   );
