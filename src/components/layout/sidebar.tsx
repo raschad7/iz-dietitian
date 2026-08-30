@@ -98,11 +98,13 @@ export type NavItem = {
 /**
  * A category: a row that opens a list rather than going anywhere.
  *
- * ⚠ **Rare, and meant to stay rare.** A rail's shape should not change as it is
- * used. The one category left in the staff rail is التقويم, and it earns the
- * disclosure by holding three *views of one screen* rather than three screens —
- * everything that is genuinely a list of destinations is a `NavSection` with a
- * printed heading and nothing to press. Reach for a section first.
+ * ⚠ **Rare, and currently unused.** A rail's shape should not change as it is
+ * used. Neither the staff rail nor the portal's has a category left — التقويم
+ * was the last, and its three calendar views went back to the page's own
+ * toolbar — so this type and `collapsedHref` below are capability, not
+ * precedent. Everything that is genuinely a list of destinations is a
+ * `NavSection` with a printed heading and nothing to press. Reach for a section
+ * first, and justify a disclosure before adding one back.
  *
  * Categories nest — `children` takes `NavNode`, not just `NavItem` — and there
  * is no depth limit in the type because there is none in the rendering either;
@@ -121,10 +123,11 @@ export type NavGroup = {
    * label and glyph — and its children are not walked. A category without it is
    * transparent: its children are flattened in its place.
    *
-   * `التقويم` is the one that needs it. Day, week and month are three views of
-   * one screen, and three calendar glyphs stacked in a 56px strip would be
-   * three marks nobody can tell apart; folded, the section is one row pointing
-   * at the week.
+   * `التقويم` was the one that needed it, while day, week and month were rail
+   * rows: three calendar glyphs stacked in a 56px strip are three marks nobody
+   * can tell apart. Those rows are gone and the calendar is a plain
+   * destination, so nothing sets this today — it stays for the next category
+   * that has to fold to one glyph.
    */
   collapsedHref?: NavHref;
   children: readonly NavNode[];

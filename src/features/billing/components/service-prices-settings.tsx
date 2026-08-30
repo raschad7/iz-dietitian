@@ -8,22 +8,25 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { saveServicePricesAction } from '@/features/billing/actions';
 import { initialBillingFormState } from '@/features/billing/form-state';
-import { toPriceInput, toPriceValue } from '@/features/billing/money';
+import { formatAmountCompact, toPriceInput, toPriceValue } from '@/features/billing/money';
 import { BILLING_SERVICES, type BillingService, type ServicePrices } from '@/features/billing/services';
 import { SettingsEditDialog } from '@/features/settings/components/settings-edit-dialog';
-import { SettingsRow, SettingsSection } from '@/features/settings/components/settings-section';
+import {
+  SettingsEmptyValue,
+  SettingsRow,
+  SettingsSection,
+} from '@/features/settings/components/settings-section';
 import { currencySymbol } from '@/lib/format';
 import type { Locale } from '@/i18n/routing';
 
 /**
- * What the clinic charges: one row naming the prices, and one control that
- * opens them.
+ * What the clinic charges: the rates as text, and one control that opens them.
  *
  * The dietitian sets these; nothing else does. There is no default price and no
  * suggested one — a clinic's rates are its own, and a figure this app invented
  * would be a figure somebody eventually charged a subscriber by not noticing.
  *
- * ## Why the fields moved into a dialog, behind one control
+ * ## Why the fields are in a dialog and the figures are not
  *
  * They were three live inputs sitting open on the tab, with a Save button that
  * appeared on the first edited digit. That is a form on a page nobody came to
@@ -31,11 +34,14 @@ import type { Locale } from '@/i18n/routing';
  * charges than to change it, and a page of open inputs makes every visit look
  * like unfinished work — and gives a stray keystroke somewhere to hide.
  *
- * So it reads like every other row on this page now: a row that says what it
- * is, and one control that opens it. Reading is the default and writing is
- * deliberate. The control sits in the row's action slot, which puts it at the
- * far end of the line — the left in Arabic, the right in English — where every
- * other Change on this page already is.
+ * The fields went into a dialog for that reason and should stay there. **The
+ * figures did not follow them**, and briefly did: with the prices behind the
+ * dialog, the only way to read a rate was to open the editor for all three —
+ * which is the reading case, the common one, paying the writing case's price.
+ *
+ * So the section reads and the dialog writes. The three rates are text, one row
+ * each, and a single Change opens all of them. Reading is the default and
+ * writing is still deliberate.
  *
  * `SettingsEditDialog` brings the rest with it: the open state, the pending
  * state, the close on success, and the re-keyed form that makes every opening
@@ -78,24 +84,53 @@ export function ServicePricesSettings({
       title={t('prices.title')}
       description={t('prices.description')}
       icon="recordCharge"
+      /*
+        One control for the whole section rather than one per row.
+
+        The three rates are a single decision — see the note above — and all
+        three open the same editor, so a Change beside each would read as three
+        separate ones. The section's own action slot is where a control that
+        governs a group belongs; the working-hours table next door sits in it
+        for the same reason.
+      */
+      action={<PricesDialog locale={locale} prices={prices} />}
     >
       {/*
-        One row, and it names the subject rather than listing it: the three
-        services and their rates are what the dialog is for, and a row that
-        recited them would be the editor's contents written out twice — once as
-        text nobody can change and once as fields.
-
-        So there is a single control, where there were three that all opened the
-        same editor. Three Changes down a column read as three separate
-        decisions; the prices are one.
+        A row per service, in the order the list defines them — the same order
+        the dialog stacks its fields in, so the figures do not reshuffle between
+        reading them and editing them.
       */}
-      <SettingsRow
-        label={t('prices.rowLabel')}
-        /* Nothing to state. The section's own description says what these are
-           and the dialog holds the figures. */
-        value={null}
-        action={<PricesDialog locale={locale} prices={prices} />}
-      />
+      {BILLING_SERVICES.map((service) => {
+        const price = prices[service.value];
+
+        return (
+          <SettingsRow
+            key={service.value}
+            label={t(`services.${service.value}`)}
+            value={
+              price === null ? (
+                /*
+                  A dash carrying the words as its accessible name, which is
+                  this page's convention for a value nobody has set — see
+                  `SettingsEmptyValue`. It must not be `₪0`: zero is a real
+                  answer for a service the clinic gives away, and the two are
+                  stored differently.
+                */
+                <SettingsEmptyValue label={t('prices.unpriced')} />
+              ) : (
+                formatAmountCompact(locale, price)
+              )
+            }
+            /*
+              An amount runs left to right in Arabic as in English; it is the
+              row around it that mirrors. `isolate` is for the figure alone, so
+              the unset dash — which has no direction of its own — does not take
+              it.
+            */
+            isolate={price !== null}
+          />
+        );
+      })}
     </SettingsSection>
   );
 }

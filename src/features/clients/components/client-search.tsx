@@ -441,12 +441,33 @@ export function ClientSearch({
           gone — the default size is `h-12 px-5`, which without text is a 48px
           control with 40px of empty padding in it.
         */}
-        {/* Bills takes the export in the archive's place: same slot, same
-            width, and the one control on that screen acting on every
-            subscriber at once rather than on the row under the pointer. */}
+        {/*
+          Bills: the filter, then the export.
+
+          The export is this screen's one green control, and it sits at the
+          **inline-end** — the left in Arabic, the right in English — which is
+          where the register puts its own green control, "New client", a few
+          lines below. Bills used to be the single screen holding its primary
+          action at the inline-start, so the two toolbars disagreed about which
+          end of a row a decision lives at. They agree now.
+
+          The order is the DOM's, not a physical property's: `flex-row` lays
+          these out along the inline axis, so one list of children mirrors
+          itself and neither locale needs a rule of its own. An `order` or an
+          `ms-auto` here would have pinned the arrangement to one direction and
+          broken the other — see `docs/design-system.md`.
+
+          The filter takes the slot the archive holds on the register, which is
+          the right company for it either way: both answer "which records am I
+          looking at".
+        */}
         {variant === 'bills' ? (
-          <ExportBillsDialog locale={locale} />
+          <>
+            <ClientFilterMenu input={input} variant={variant} />
+            <ExportBillsDialog locale={locale} />
+          </>
         ) : (
+          <>
         <Link
           href={statusHref(archived ? 'active' : 'archived')}
           /*
@@ -471,9 +492,10 @@ export function ClientSearch({
           <Icon name="archive" />
           <span className="sr-only sm:not-sr-only">{t('archive.title')}</span>
         </Link>
-        )}
 
-        <ClientFilterMenu input={input} variant={variant} />
+            <ClientFilterMenu input={input} variant={variant} />
+          </>
+        )}
 
         {/* Opens the client card over the list, matching the empty state's copy
             of this button. */}

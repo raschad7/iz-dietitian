@@ -10,11 +10,14 @@ import { type IconName } from '@/components/ui/icon';
 /**
  * One address the palette can send the reader to.
  *
- * `parentLabelKey` is set only for a row whose own label does not stand alone.
- * يوم, أسبوع and شهر are the three of them: each is one word, and one word is
- * not an answer to "where does this go" outside the calendar that names it. The
- * palette draws them as `التقويم — أسبوع`; in the rail they need no such help,
- * because they sit indented under the row that says it.
+ * `parentLabelKey` is set only for a row whose own label does not stand alone —
+ * a child of a category, drawn as `التقويم — أسبوع` so that one word like أسبوع
+ * still answers "where does this go". In the rail such a row needs no help,
+ * because it sits indented under the row that names it.
+ *
+ * **Nothing sets it today.** The calendar's three views were the only rows that
+ * ever did, and they left the rail for the page's own toolbar; every staff
+ * destination is now top-level and names itself. It stays for the next category.
  */
 export type PaletteDestination = {
   href: NavHref;
@@ -55,9 +58,12 @@ function walk(nodes: readonly NavNode[], parent?: NavLabelKey): PaletteDestinati
  * navigates somewhere the product no longer has.
  *
  * This is a *different* walk from `flatten` in `sidebar.tsx`, and deliberately.
- * That one answers "what does the 56px icon strip show", where التقويم must
- * collapse to a single glyph pointing at one view. This one answers "what can
- * the reader ask for by name", where all three views are separately askable.
+ * That one answers "what does the 56px icon strip show", where a category folds
+ * to a single glyph pointing at one address. This one answers "what can the
+ * reader ask for by name", where every destination inside it is separately
+ * askable. The staff rail has no category at present, so the two currently
+ * agree — they are not the same question, and a category added tomorrow would
+ * part them again.
  */
 export function paletteDestinations(
   sections: readonly NavSection[] = STAFF_NAV,
