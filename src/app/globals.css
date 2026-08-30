@@ -2208,7 +2208,7 @@
    * carrying a role rather than as buttons, so an element-only selector would
    * miss exactly the popup rows this is meant to fix. Living in `@layer base`
    * means any utility (`touch-none` on the scroll-area thumb) and any unlayered
-   * rule (`.planner-drag-handle`, `.calendar-drag-grip`, `.calendar-resize-grip`,
+   * rule (`.planner-drag-handle`, `.calendar-resize-grip`,
    * which all claim `touch-action: none` so dnd-kit and the calendar's pointer
    * capture own the gesture) still win without an `!important` anywhere.
    */
@@ -3466,7 +3466,7 @@
   /*
     Rows reach the touch floor. The anchored menu's 1px/4px gutters are a mouse
     target; a thumb needs the 44px the rest of this file already reserves for
-    coarse pointers (see `.planner-drag-handle` and `.calendar-drag-grip`).
+    coarse pointers (see `.planner-drag-handle` and `.calendar-resize-grip`).
     `min-block-size` rather than a height, so a two-line row still grows.
   */
   [data-slot='dropdown-menu-item'],
@@ -5899,8 +5899,14 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
  * fact about touch hardware and not three decisions.
  */
 .planner-drag-handle,
-.calendar-drag-grip,
 .calendar-resize-grip,
+/*
+  The appointment card is on this list for the same reason the canvas below it
+  is: a booking is moved by holding it now, and a hold is precisely the press
+  iOS answers with the callout. Like the canvas it takes the opt-out and not
+  `touch-action` — see `.calendar-appointment`.
+*/
+.calendar-appointment,
 /*
   The empty booking canvas belongs on this list even though it is not a grip,
   because `use-calendar-gestures.ts` now arms a paint-a-range gesture on a
@@ -6026,22 +6032,97 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
  * fills the grid, and a grid that cannot be panned is a calendar with one screen
  * of day in it.
  *
- * So the same answer as the planner: the surface stays scrollable and an
- * explicit grip reserves the gesture. `touch-action: none` on the grip alone
- * means the browser never competes for a finger that starts there, while a
- * finger anywhere else on the block still scrolls the week.
+ * So the same answer as the planner, in the same two stages. The first was an
+ * explicit grip: a strip claiming `touch-action: none`, which the browser never
+ * competes for, while a finger anywhere else on the block still scrolled the
+ * week. It worked, and it cost a quarter of the card on the shortest bookings —
+ * the ones a tablet has least room for.
  *
- * `.calendar-drag-grip` is the move handle. It is invisible on a mouse — the
- * whole block is draggable there and always has been, so the grip would be
- * chrome answering a question nobody asked — and on coarse pointers it becomes a
- * 44px target in the block's inline-start edge, clear of the name link and of
- * the actions button in the opposite corner.
+ * The second is the one in the file: the block is held rather than gripped. A
+ * finger resting still is not scrolling, so nothing has to be taken from the
+ * browser until the hold is met, and from that moment the hook holds the gesture
+ * with `preventDefault()` on `touchmove`. The card gets its full width back and
+ * the whole of it is the handle.
  */
-.calendar-drag-grip {
-  touch-action: none;
+/*
+ * The appointment card itself, which is now what a finger holds.
+ *
+ * The two opt-outs a hold needs from the platform, and no more than those. A
+ * long press is how a touch OS starts selecting text, and on iOS how it raises
+ * the callout and the magnifier — and the instant either appears WebKit takes
+ * the pointer and fires `pointercancel`, which the gesture hook reads as
+ * "abandoned". Which is to say the platform's own long press would kill ours at
+ * roughly the moment it fired.
+ *
+ * `touch-action` is deliberately absent. The column under this card scrolls and
+ * the week beside it pans; claiming the gesture here would trade a scroll for a
+ * drag on every booking on screen. A hold needs no such trade — a finger that
+ * has not moved is not scrolling anything, and the hook only starts calling
+ * `preventDefault()` once the hold has been met.
+ *
+ * `.calendar-drag-grip` used to live here: a 28px strip down the card's leading
+ * edge, the one surface that could claim `touch-action: none`, and the reason a
+ * 30-minute booking on a tablet showed a quarter of a name. The hold replaced
+ * it — see `AppointmentBlock`, where the grip's markup was removed.
+ */
+.calendar-appointment {
   user-select: none;
   -webkit-user-select: none;
-  display: none;
+  -webkit-touch-callout: none;
+}
+
+/*
+ * ── The free half of a drag ──
+ *
+ * The card's `top` is the *snapped* position — the slot that would be written —
+ * and these two properties are the remainder of the pointer's travel, so the
+ * block sits exactly under the hand between one slot and the next instead of
+ * stepping between them. `use-calendar-gestures.ts` writes them straight to the
+ * element on every pointer frame; React never sets them and never renders for
+ * them, which is what keeps the movement smooth. See `DRAG_X` there for why the
+ * two halves of a drag are split this way.
+ *
+ * The fallbacks matter: the class is applied by React the moment a drag starts,
+ * which can be the frame before the first offset is written, and a `transform`
+ * with an unset variable in it would otherwise be invalid and drop the card's
+ * layer for a frame.
+ *
+ * `will-change` for the length of the drag only. It is a standing request for a
+ * compositing layer, which is worth making for the one card a hand is carrying
+ * and not for the forty on a week.
+ */
+.calendar-dragging {
+  transform: translate3d(var(--drag-x, 0px), var(--drag-y, 0px), 0);
+  will-change: transform;
+}
+
+/*
+ * The press, made visible — the same treatment, and the same reasoning, as
+ * `.planner-holding` above: a hold that gives nothing back until it fires is a
+ * gesture nobody discovers and nobody trusts. The card settles inwards over
+ * exactly the length of the hold, ending as it lifts, so the two read as one
+ * movement.
+ *
+ * Restated rather than shared with the planner's class. They are the same
+ * numbers today and they are not the same decision: this runs on a card as
+ * short as 20px on a grid where a mis-fired press moves an appointment, and the
+ * board's runs on a meal tile. Either can be tuned without disturbing the other.
+ */
+.calendar-holding {
+  transform: scale(0.97);
+  transition:
+    transform var(--duration-hold) var(--ease-sweep),
+    box-shadow var(--duration-hold) var(--ease-sweep);
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The ring alone: the press is the part that is motion, the outline is the
+     part that is information. */
+  .calendar-holding {
+    transform: none;
+    transition: box-shadow var(--duration-hold) var(--ease-sweep);
+  }
 }
 
 /*
@@ -6065,14 +6146,6 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 }
 
 @media (pointer: coarse) {
-  .calendar-drag-grip {
-    display: grid;
-    place-items: center;
-    inline-size: 28px;
-    block-size: 100%;
-    opacity: 1;
-  }
-
   .calendar-resize-grip {
     block-size: var(--resize-grip-coarse, 20px);
   }
