@@ -8,9 +8,7 @@ describe('paletteDestinations', () => {
   test('lists every screen in the staff rail, in the rail’s own order', () => {
     expect(paletteDestinations().map((destination) => destination.href)).toEqual([
       '/app',
-      '/app/calendar?view=day',
-      '/app/calendar?view=week',
-      '/app/calendar?view=month',
+      '/app/calendar',
       '/app/clients',
       '/app/clients/bills',
       '/app/weekly-plans',
@@ -19,18 +17,17 @@ describe('paletteDestinations', () => {
   });
 
   /*
-    The distinction this whole module exists for. `flatten` in `sidebar.tsx`
-    answers a different question — what the 56px icon strip draws — and there
-    التقويم must collapse to one row pointing at the week. A palette that
-    borrowed that walk would make two of the three calendar views unaskable.
+    The calendar is one destination, not three. Its day/week/month rows left the
+    rail — the page's own toolbar switches views — so the palette offers the
+    screen once, under its own name, with nothing to qualify it.
   */
-  test('spells out all three calendar views rather than collapsing them', () => {
-    const views = paletteDestinations().filter((destination) =>
+  test('offers the calendar once, as a screen rather than three views', () => {
+    const calendar = paletteDestinations().filter((destination) =>
       destination.href.startsWith('/app/calendar'),
     );
 
-    expect(views.map((view) => view.labelKey)).toEqual(['day', 'week', 'month']);
-    expect(views.every((view) => view.parentLabelKey === 'calendar')).toBe(true);
+    expect(calendar.map((entry) => entry.labelKey)).toEqual(['calendar']);
+    expect(calendar[0]?.parentLabelKey).toBeUndefined();
   });
 
   test('leaves a top-level destination without a parent to qualify it', () => {

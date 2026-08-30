@@ -17,6 +17,7 @@ import {
   TableSortLabel,
 } from '@/components/ui/table';
 import { TooltipHint } from '@/components/ui/tooltip-hint';
+import { ROW_ACTION_CLASS } from '@/features/billing/components/row-action';
 import { patientToneStyle } from '@/features/booking/patient-color';
 import { calculateAge } from '@/features/clients/age';
 import { ArchiveButton } from '@/features/clients/components/archive-button';
@@ -450,11 +451,36 @@ export function ClientTable({
                 */}
                 <div className="flex items-center justify-end gap-0.5">
                   {/* Straight to this client's board — the client is the route, not a query param. */}
+                  {/*
+                    Drawn the way a Bills row draws its own icons — grey at
+                    rest, the brand green with a faint fill under the pointer.
+                    `ROW_ACTION_CLASS` is that treatment, and it is imported
+                    rather than restated so the two registers cannot drift into
+                    two answers for the same question; see its note for why a
+                    column of these must not wear the brand colour at rest.
+
+                    They were `neutralGhost`, which draws its label in
+                    `text-foreground` — the body ink. At the end of every row of
+                    a full register that is a column of near-black marks
+                    competing with the names beside them, which is the reading
+                    `text-muted-foreground` gives back.
+
+                    **`rounded-full` after it, and deliberately.** The shared
+                    class ends in `rounded-sm`, which is right for the 48px
+                    icons it was written for and wrong here: these are the 40px
+                    circles the note above this row describes. Colour is what is
+                    being borrowed, not the shape — tailwind-merge takes the
+                    last radius in the list.
+                  */}
                   <TooltipHint label={tNav('weeklyPlans')}>
                     <Link
                       href={`/app/weekly-plans/${client.id}`}
                       aria-label={tNav('weeklyPlans')}
-                      className={buttonVariants({ variant: 'neutralGhost', size: 'icon-sm' })}
+                      className={cn(
+                        buttonVariants({ variant: 'ghost', size: 'icon-sm' }),
+                        ROW_ACTION_CLASS,
+                        'rounded-full',
+                      )}
                     >
                       <Icon name="weeklyPlans" className="size-5" />
                     </Link>
@@ -465,7 +491,11 @@ export function ClientTable({
                       locale={locale}
                       clientId={client.id}
                       aria-label={t('edit')}
-                      className={buttonVariants({ variant: 'neutralGhost', size: 'icon-sm' })}
+                      className={cn(
+                        buttonVariants({ variant: 'ghost', size: 'icon-sm' }),
+                        ROW_ACTION_CLASS,
+                        'rounded-full',
+                      )}
                     >
                       <Icon name="edit" className="size-5" />
                     </ClientFormTrigger>

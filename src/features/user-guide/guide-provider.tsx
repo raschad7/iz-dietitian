@@ -122,6 +122,36 @@ export function GuideProvider({
   }, [routed, step, pathname, router]);
 
   /*
+    The *next* step's screen, fetched while the reader is still reading this one.
+
+    Four steps in the tour cross a route, and each of them pays for a cold server
+    component: the tour navigates programmatically, so — unlike every other
+    navigation in the app — there is no `<Link>` in the viewport to have warmed
+    the destination first. The reader waits that fetch out with the screen
+    already dimmed and the card already advanced, which is the half of the
+    remaining lag that centring the anchor instantly does not touch.
+
+    One step of lookahead is the whole trick, and it is nearly free: the tour is
+    a straight line, so the screen fetched here is the screen asked for next
+    almost every time. The guard below skips the fetch whenever the next step
+    stays on the screen already showing, which is most of them.
+  */
+  useEffect(() => {
+    if (!routed) return;
+    if (!active) return;
+
+    const upcoming = GUIDE_STEPS[index + 1];
+    if (upcoming === undefined) return;
+
+    /* Corrected for this device first, exactly as the push above is — otherwise
+       a phone would warm the week view it is never going to be sent to. */
+    const href = stepHrefForScreen(upcoming.href, window.matchMedia(CALENDAR_PHONE_QUERY).matches);
+    if (stepScreenMatches(href, pathname)) return;
+
+    router.prefetch(href);
+  }, [routed, active, index, pathname, router]);
+
+  /*
     Browser Back, or a gesture that produces one, ends the tour.
 
     Without this the effect above would immediately push the reader back to the
