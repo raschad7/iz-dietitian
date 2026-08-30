@@ -1,10 +1,16 @@
-import { getTranslations } from 'next-intl/server';
+import { getTranslations } from "next-intl/server";
 
-import { buttonVariants } from '@/components/ui/button';
-import { Icon } from '@/components/ui/icon';
-import { Link } from '@/i18n/navigation';
-import { getSession } from '@/lib/session';
-import { cn } from '@/lib/utils';
+import { buttonVariants } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
+import {
+  MARK_LEAF_PATH,
+  MARK_SEED_CX,
+  SEED_CY,
+  SEED_ROTATION,
+} from "@/features/brand/logo";
+import { Link } from "@/i18n/navigation";
+import { getSession } from "@/lib/session";
+import { cn } from "@/lib/utils";
 
 /**
  * The 404 page, for the whole locale.
@@ -22,10 +28,12 @@ import { cn } from '@/lib/utils';
  *
  * ## The figure
  *
- * `4`, a ghost, `4` — the number split around a drawing rather than sitting on
- * one. The ghost is what carries the tone: this screen is a wrong turn, not a
- * fault, and a character that drifts is a friendlier way to say so than a
- * warning glyph.
+ * `4`, the product's own leaf, `4` — the number split around a drawing rather
+ * than sitting on one. The leaf is what carries the tone: this screen is a
+ * wrong turn, not a fault, and the mark itself pulling an X-eyed face and
+ * drifting is a friendlier way to say so than a warning glyph. It is also the
+ * one character on this page the reader already knows, which is worth more
+ * here than a stock ghost.
  *
  * The three of them are **one SVG**, not an HTML row. Two reasons, and both are
  * about keeping promises this repository already makes:
@@ -34,14 +42,15 @@ import { cn } from '@/lib/utils';
  *    type scale rather than arbitrary sizes, and the scale stops at
  *    `text-display-lg`/40px — a third of what a figure this size needs. Inside
  *    a viewBox the size is a drawing dimension in user units, so the row scales
- *    with its column at every width and the digits and the ghost cannot drift
+ *    with its column at every width and the digits and the mark cannot drift
  *    out of proportion with each other.
- *  - Nothing here is a hosted image. The reference this is modelled on pulled
- *    its ghost from a personal GitHub Pages URL; the drawing below reads the
- *    theme's own tokens, costs no request, and cannot 404 on the 404 page.
+ *  - Nothing here is a hosted image. The leaf below is `MARK_LEAF_PATH` from
+ *    `features/brand/logo`, the same geometry the rail, the icon route and the
+ *    Open Graph card draw — inline, so it costs no request and cannot 404 on
+ *    the 404 page.
  */
 export default async function NotFound() {
-  const t = await getTranslations('errors');
+  const t = await getTranslations("errors");
 
   /*
    * Where "out of here" goes depends on who is asking.
@@ -68,9 +77,9 @@ export default async function NotFound() {
    * the real check on arrival.
    */
   const session = await getSession();
-  const staff = session?.user.role === 'staff';
+  const staff = session?.user.role === "staff";
 
-  const destination = session ? (staff ? '/app' : '/portal') : '/';
+  const destination = session ? (staff ? "/app" : "/portal") : "/";
 
   /*
    * Two labels for three destinations, and they line up: "home page" is honest
@@ -78,24 +87,26 @@ export default async function NotFound() {
    * word only the staff area uses for itself (`nav.dashboard`) — the portal
    * calls its equivalent screen Home (`nav.portalHome`).
    */
-  const cta = staff ? t('notFoundCtaDashboard') : t('notFoundCtaHome');
+  const cta = staff ? t("notFoundCtaDashboard") : t("notFoundCtaHome");
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-xl flex-col items-center justify-center gap-8 px-6 py-16 text-center">
       {/*
         Decoration, all of it — `aria-hidden` covers the digits as well as the
-        ghost. A screen reader that announced "44" here would be reading two
+        mark. A screen reader that announced "44" here would be reading two
         glyphs that only mean anything as a picture, in front of a heading that
         already says the thing in words.
       */}
       <div className="w-full max-w-md" aria-hidden="true">
-        <GhostFigure />
+        <MarkFigure />
       </div>
 
       <div className="q-404-enter q-404-enter-2 space-y-3">
-        <h1 className="font-heading text-heading-lg font-semibold">{t('notFound')}</h1>
+        <h1 className="font-heading text-heading-lg font-semibold">
+          {t("notFound")}
+        </h1>
         <p className="text-pretty text-body-md leading-relaxed text-muted-foreground">
-          {t('notFoundDescription')}
+          {t("notFoundDescription")}
         </p>
       </div>
 
@@ -141,9 +152,9 @@ export default async function NotFound() {
       <Link
         href={destination}
         className={cn(
-          buttonVariants({ variant: 'neutral' }),
-          'q-404-enter q-404-enter-3 gap-2',
-          'hover:bg-accent/50',
+          buttonVariants({ variant: "neutral" }),
+          "q-404-enter q-404-enter-3 gap-2",
+          "hover:bg-accent/50",
         )}
       >
         {cta}
@@ -168,18 +179,27 @@ export default async function NotFound() {
 }
 
 /**
- * `4` — ghost — `4`, drawn as one picture.
+ * `4` — the leaf, X-eyed — `4`, drawn as one picture.
  *
  * ## Colour
  *
- * Every fill is a semantic utility, most of them at low alpha — no `fill="#…"`,
- * which `eslint-rules/no-raw-hex.mjs` would reject anyway. The ghost is a wash
- * of `--primary` rather than a flat white body, so it holds its shape on the
- * dark ground as well as the light one: an alpha over whatever is behind it
- * moves with the theme, where a baked light fill would become a bright hole in
- * dark mode. The digits take `--muted-foreground`, which is the app's token for
- * de-emphasised ink and gives the reference's faded numerals without an opacity
- * on text.
+ * The digits are a semantic utility, `--muted-foreground` — the app's token for
+ * de-emphasised ink, which gives faded numerals without an opacity on text. No
+ * `fill="#…"` anywhere, which `eslint-rules/no-raw-hex.mjs` would reject.
+ *
+ * The mark takes the same token, and only that token: the leaf at 30% and the
+ * crossed-out eyes at full strength, so the figure is one grey in two weights
+ * and the digits are the third. Not `--brand-leaf`/`--brand-seed`, which is
+ * what `BrandLogo` uses and what this drew first — brand green is the product
+ * announcing itself, and a 404 is not the screen to do that on. Greyed, the
+ * mark is a shape the reader recognises rather than a logo placement, which is
+ * also why it can sit at the same weight as the numerals beside it without
+ * pulling the eye off the heading.
+ *
+ * One token for both parts rather than two greys, so the pair cannot drift, and
+ * an alpha rather than a lighter stop because `--muted-foreground` is the only
+ * de-emphasised ink the theme states — the 30% composites over whatever ground
+ * it lands on, light or dark, and stays a step below the eyes in both.
  *
  * ## Direction
  *
@@ -198,7 +218,7 @@ export default async function NotFound() {
  * this frame pivoted on x = 0 instead of its own centre. The `translate`
  * property needs no origin, so it cannot be got wrong that way.
  */
-function GhostFigure() {
+function MarkFigure() {
   return (
     <svg
       viewBox="0 0 320 150"
@@ -208,7 +228,7 @@ function GhostFigure() {
       aria-hidden
     >
       {/*
-        The digit baselines sit at 112 and the ghost's crown at 26, which is
+        The digit baselines sit at 112 and the mark's crown at 26, which is
         also where a 120-unit Readex Pro figure tops out. The two are aligned by
         arithmetic rather than by eye, so a change to one size shows up as a
         mismatch instead of drifting quietly.
@@ -226,28 +246,88 @@ function GhostFigure() {
       </g>
 
       {/*
-        The ghost's shadow stays behind while the ghost drifts above it. That is
-        the whole trick of the float: a shadow that rose and fell with the body
-        would read as the *page* moving rather than the ghost.
+        The shadow stays behind while the mark drifts above it. That is the
+        whole trick of the float: a shadow that rose and fell with the body
+        would read as the *page* moving rather than the mark.
       */}
-      <ellipse cx="160" cy="146" rx="34" ry="5" className="fill-muted-foreground/15" />
+      <ellipse
+        cx="160"
+        cy="146"
+        rx="34"
+        ry="5"
+        className="fill-muted-foreground/15"
+      />
 
       <g className="q-404-ghost">
         {/*
-          A dome on six scallops. The arc is 50 × 62 rather than a circle, so
-          the head is taller than it is round — a semicircle reads as a bell.
+          The figure drawn in the mark's own coordinates and then placed: one
+          transform puts the 743-unit square in this frame at 112 units wide — x
+          104 to 216 — and everything inside stays in the numbers
+          `features/brand/logo` states. The eyes in particular land on
+          `MARK_SEED_CX`/`SEED_CY` exactly, rather than on positions re-measured
+          by eye in the outer viewBox.
+
+          The mark is drawn whole — `MARK_LEAF_PATH` and nothing else. An
+          earlier pass cut its bottom off and hung a scalloped hem there to make
+          a ghost of it, and that is exactly the thing not to do: the bitten
+          circle is the mark, and a mark with its silhouette rewritten is a
+          drawing that resembles the product rather than the product's own. What
+          carries the ghost here is the treatment and the drift, neither of
+          which touches the shape.
+
+          743 units square, so the body ends at y = 138 in this frame and the
+          shadow at 146 sits just under it.
         */}
-        <path
-          d="M110 88a50 62 0 0 1 100 0v36l-16.7 12-16.7-12-16.6 12-16.7-12-16.6 12-16.7-12z"
-          className="fill-primary/12 stroke-primary/35"
-          strokeWidth="2"
-          strokeLinejoin="round"
-        />
-        <ellipse cx="126" cy="96" rx="8" ry="5" className="fill-primary/30" />
-        <ellipse cx="194" cy="96" rx="8" ry="5" className="fill-primary/30" />
-        <ellipse cx="143" cy="78" rx="7.5" ry="9.5" className="fill-foreground" />
-        <ellipse cx="177" cy="78" rx="7.5" ry="9.5" className="fill-foreground" />
-        <ellipse cx="160" cy="101" rx="6.5" ry="8" className="fill-foreground/60" />
+        <g transform="translate(104 26) scale(0.1507)">
+          {/*
+            Fill and stroke both, the treatment the ghost had: a wash too light
+            to read as a solid shape, and an edge that states it. One token at
+            two alphas, so the pair cannot drift apart, and both composite over
+            whatever ground they land on rather than assuming a light one.
+
+            13 units of stroke, which is 2 in the outer frame — the weight the
+            ghost's outline carried, converted through the scale rather than
+            re-picked by eye.
+          */}
+          <path
+            d={MARK_LEAF_PATH}
+            className="fill-muted-foreground/15 stroke-muted-foreground/40"
+            strokeWidth="13"
+            strokeLinejoin="round"
+          />
+
+          {/*
+            The seeds, crossed out. Each is an X on the seed's own centre,
+            carrying the seed's rotation so the pair leans with the mark the way
+            the ellipses do.
+
+            Half-extents of 44 × 74 against the seed's 56.5 × 96.3 radii: an X
+            drawn to the ellipse's full box reads as a cross scratched over the
+            leaf, where one sitting inside it reads as a face.
+          */}
+          {MARK_SEED_CX.map((cx) => (
+            <g
+              key={cx}
+              transform={`rotate(${SEED_ROTATION} ${cx} ${SEED_CY})`}
+              className="stroke-muted-foreground"
+              strokeWidth="30"
+              strokeLinecap="round"
+            >
+              <line
+                x1={cx - 44}
+                y1={SEED_CY - 74}
+                x2={cx + 44}
+                y2={SEED_CY + 74}
+              />
+              <line
+                x1={cx - 44}
+                y1={SEED_CY + 74}
+                x2={cx + 44}
+                y2={SEED_CY - 74}
+              />
+            </g>
+          ))}
+        </g>
       </g>
 
       <g className="q-404-digit-out-right">
