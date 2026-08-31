@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useRef, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
+import { type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 
 import { Avatar } from '@/components/ui/avatar';
 import { Icon } from '@/components/ui/icon';
@@ -10,7 +10,7 @@ import { type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
 import { formatDuration, formatMinuteRange, formatWeekday } from '../format';
-import { blockTypeScale, DRAG_THRESHOLD_PX } from '../geometry';
+import { blockTypeScale } from '../geometry';
 import { patientToneStyle } from '../patient-color';
 import { type CalendarAppointment } from '../types';
 
@@ -99,9 +99,6 @@ export function AppointmentBlock({
   const t = useTranslations('booking');
   const scale = blockTypeScale(height);
   const compactStacked = compact && !scale.inline;
-
-  /** Where a press on the client name began — see the link's own note below. */
-  const pressPoint = useRef<{ x: number; y: number } | null>(null);
 
   const endMinute = appointment.startMinute + appointment.durationMinutes;
   /**
@@ -321,6 +318,18 @@ export function AppointmentBlock({
         // drag, or the modal would open with the block already moved.
         if (event.button !== 0) return;
         onSelect(appointment.id);
+        /*
+          The name is not a drag surface — it is the way into the record, and
+          the rest of the card is the way to move the booking. Two gestures on
+          one target meant every press on a name was ambiguous until it ended,
+          and the way that was resolved (drop the click if the pointer had
+          travelled) made an unsteady hand fail to open anything.
+
+          Splitting them by target makes each gesture certain from its first
+          frame: press the name, you are opening a client; press anywhere else,
+          you are carrying the appointment.
+        */
+        if ((event.target as HTMLElement).closest('[data-appointment-name]')) return;
         // Selecting still works on a finished appointment; only moving does not.
         if (draggable) onMovePointerDown?.(appointment, event);
       }}
@@ -395,40 +404,24 @@ export function AppointmentBlock({
         */}
         <Link
           href={`/app/clients/${appointment.clientId}`}
+          data-appointment-name
           className={cn(
-            'min-w-0 flex-1 truncate font-semibold text-foreground underline-offset-2',
+            /*
+              Sized to the name, not to the row.
+
+              It used to take `flex-1`, which made the link the whole width of
+              the card — so the empty space after a short name was still a link,
+              and the only place left to grab the card was the time. Now the
+              anchor ends where the text does and everything past it is the
+              drag surface. `max-w-full` with `truncate` keeps a long name
+              inside the card exactly as before; `self-start` stops the stacked
+              layout stretching it back across the row.
+            */
+            'w-fit max-w-full cursor-pointer self-start truncate font-semibold text-foreground underline-offset-2',
             'hover:underline focus-visible:underline focus-visible:outline-none',
             compactStacked && 'col-start-2 pe-2',
           )}
           style={{ fontSize: `${scale.nameRem}rem`, lineHeight: 'var(--lh-label)' }}
-          /*
-            The press still reaches the card, so the block can be dragged by
-            its name like any other part of it — the whole top line is the
-            biggest grab surface a short booking has, and taking it away to
-            make room for a link would be a bad trade.
-
-            What that costs is a drag that ends where it started: the browser
-            fires a click on the anchor, and the appointment would move *and*
-            the calendar would navigate away from itself. So the press records
-            where it began and the click is dropped if the pointer travelled at
-            all — the same `DRAG_THRESHOLD_PX` the gesture hook uses to decide
-            the same question, so a press is a click here exactly when it is a
-            click there.
-          */
-          onPointerDown={(event) => {
-            pressPoint.current = { x: event.clientX, y: event.clientY };
-          }}
-          onClick={(event) => {
-            const origin = pressPoint.current;
-            pressPoint.current = null;
-
-            if (
-              origin &&
-              Math.hypot(event.clientX - origin.x, event.clientY - origin.y) > DRAG_THRESHOLD_PX
-            ) {
-              event.preventDefault();
-            }
-          }}
         >
           {appointment.clientName}
         </Link>
