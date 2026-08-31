@@ -132,6 +132,29 @@ export function DayColumn({
   const isDragging = pending !== null || dragging !== null;
 
   /**
+   * The candidate slot to outline in *this* column, or null.
+   *
+   * Two ways to be null: the drop is landing on some other day, or it is landing
+   * exactly where the appointment already starts — a resize, or a move still at
+   * home — which is an outline that would trace its own card and say nothing.
+   * The stored row is looked up here rather than trusted from the parent because
+   * only this column knows which appointments it is holding.
+   */
+  const dragGhost =
+    dragging !== null && dragging.date === date
+      ? (() => {
+          const home = appointments.find((row) => row.id === dragging.id);
+          if (home && home.startMinute === dragging.startMinute) return null;
+
+          return {
+            startMinute: dragging.startMinute,
+            durationMinutes: dragging.durationMinutes,
+            valid: dragging.valid,
+          };
+        })()
+      : null;
+
+  /**
    * Nothing new can be created here, because the clinic is shut.
    *
    * A past day used to count too. It no longer does — the clinic writes up
@@ -315,6 +338,47 @@ export function DayColumn({
           />
         );
       })}
+
+      {/*
+        The drop ghost: where the card being carried would land.
+
+        The card itself does not travel in the layout — see
+        `previewedAppointments` in `./calendar` for why — so without this the
+        only answer to "where am I dropping?" was a chip riding the finger,
+        which names a time but never shows the slot. The ghost is that slot, at
+        the real height of the appointment, in the column of the day it would
+        land on: drag across to Wednesday and the outline appears there while
+        the card stays put.
+
+        It is safe to move in layout where the card was not: nothing is carrying
+        it by transform, so there are no two clocks to disagree, and a boundary
+        crossing is one discrete step of the outline rather than a shake.
+
+        Suppressed while the candidate is exactly where the appointment already
+        is — a resize, or a move that has not left home — because an outline
+        traced over its own card says nothing.
+      */}
+      {dragGhost && (
+        <div
+          aria-hidden
+          className={cn(
+            // Same gutter as `AppointmentBlock` and the create preview, so
+            // the outline is drawn exactly where the card would sit.
+            'pointer-events-none absolute start-2.5 end-2.5 z-20 rounded-md border-2 border-dashed',
+            /*
+              Grey, not olive: this is a *shadow* of the card, and the card it
+              shadows is already tinted for validity a few pixels away. Two
+              affirmative colours on one gesture read as two different claims.
+              An invalid drop keeps clay, though — a refusal has to be visible
+              wherever the reader is looking, and here that is the outline.
+            */
+            dragGhost.valid
+              ? 'border-muted-foreground/40 bg-muted-foreground/10'
+              : 'border-destructive bg-destructive/15',
+          )}
+          style={blockCardBox(dragGhost, hours.openMinute, pxPerSlot)}
+        />
+      )}
 
       {/*
         The drag-to-create preview. Rendered only once the pointer has actually
