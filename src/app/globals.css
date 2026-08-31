@@ -2779,6 +2779,80 @@
   }
 
   /*
+   * ── The gutter a vertical bar takes out of the trick ──
+   *
+   * For a scroller that can also show a vertical scrollbar. Opt in with
+   * `TableRoot`'s `scrollY`; on anything else this class must stay off.
+   *
+   * The two attachments above measure from different boxes. A `scroll` layer is
+   * placed against the padding box, which runs the full width of the frame; a
+   * `local` layer is placed against the *scrollable* area, which is that width
+   * less whatever the vertical bar takes. So the moment a bar appears the wedges
+   * and the shadows stop agreeing, by exactly a bar's width, at the physical
+   * right edge — and Chromium anchors the scrollable area at the padding box's
+   * left edge in both directions, so it is always the right edge that parts.
+   *
+   * In English that costs nothing, because the right edge is where the bar is
+   * drawn: the strip of shadow the wedge cannot reach is underneath it. In
+   * Arabic the bar is at the left, so the same strip is out in the open, and a
+   * grey edge sits down the right of every table long enough to scroll. The dish
+   * catalog and the dashboard's day panel are the two this was reported on, and
+   * they are the two scrollers in the product that bound their own height.
+   *
+   * **The wedge cannot be pushed over to meet the shadow.** A `local` layer is
+   * clipped to the scrollable area as well as positioned against it, so moving
+   * it outward does not slide it over the gutter — it trims it away, a pixel per
+   * pixel, until at a full bar's width there is no wedge left and the shadow is
+   * barer than before. That was the first attempt at this bug and the reason it
+   * changed nothing anyone could see.
+   *
+   * So the shadow comes in instead, to the edge of the area the wedge can
+   * actually reach. In RTL the *left* pair moves the other way for the same
+   * reason: there the gutter is at the physical left, so the end-edge wedge and
+   * shadow were both being painted underneath the bar — which is why an Arabic
+   * table scrolled sideways had no end-edge cue at all. Off the gutter, it has
+   * one.
+   *
+   * What this does not buy back: with a bar present, a *start*-edge shadow lands
+   * a bar's width inboard of the frame, because that is as far out as the wedge
+   * that has to mask it can go. It is a 14px gradient at 12% black, it only
+   * shows on a table scrolled sideways *and* tall enough to have a bar, and it
+   * is the whole of what the engine leaves available.
+   *
+   * `--scroll-cue-bar` is the width the bar actually *took*, measured and
+   * published by `DesktopScrollbars`, not `--scrollbar-size`, the width it was
+   * asked for: the two part company wherever the engine rounds — 14px is 17.5
+   * device pixels on a 1.25x display and no engine draws half of one — and
+   * entirely on a platform that picks its own. Err long rather than short if you
+   * ever hard-code it. The wedge is opaque for the 12px nearest its edge, so a
+   * shadow set down a little too far in is still covered, while one set short
+   * leaves precisely the hairline this bug decays into.
+   *
+   * Absent the variable it resolves to zero and both rules change nothing —
+   * every surface with no bar to correct for (the portal, a phone, anything
+   * under `lg`) and the frame before the effect has measured.
+   *
+   * `[dir]`, never `:dir()`: Lightning CSS drops the latter from the production
+   * build. See the note at the head of this section.
+   */
+  .q-scroll-cue-inset {
+    background-position:
+      0 0,
+      100% 0,
+      0 0,
+      calc(100% - var(--scroll-cue-bar, 0px)) 0;
+  }
+
+  [dir='rtl'] .q-scroll-cue-inset,
+  .q-scroll-cue-inset[dir='rtl'] {
+    background-position:
+      var(--scroll-cue-bar, 0px) 0,
+      100% 0,
+      var(--scroll-cue-bar, 0px) 0,
+      calc(100% - var(--scroll-cue-bar, 0px)) 0;
+  }
+
+  /*
     The block-axis twin of `.q-scroll-cue`, for a panel that scrolls *down*.
     Same trick, rotated: two surface-coloured wedges pinned to the scroller's
     own content box (`local`) and two shadows pinned to its frame (`scroll`).
