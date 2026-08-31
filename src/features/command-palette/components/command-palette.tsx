@@ -22,7 +22,7 @@ import { Kbd } from '@/components/ui/kbd';
 import { patientToneStyle } from '@/features/booking/patient-color';
 import { normalizeForSearch } from '@/features/clients/search';
 import { useGuide } from '@/features/user-guide/guide-context';
-import { useIsCoarsePointer } from '@/hooks/use-mobile';
+import { useIsCoarsePointer, useIsCompact } from '@/hooks/use-mobile';
 import { usePathname, useRouter } from '@/i18n/navigation';
 import { getLocaleDirection, locales, type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
@@ -130,6 +130,13 @@ export function CommandPalette({
 
   /* Whether a drag across the list is a finger scrolling. See `Command` below. */
   const coarsePointer = useIsCoarsePointer();
+  /*
+    Two different questions, and they are not interchangeable — see
+    `use-mobile.ts`. `coarsePointer` is about the finger, and decides whether a
+    row highlights under a pointer that is only passing over it. `compact` is
+    about the screen, and decides whether the keyboard legend is drawn at all.
+  */
+  const compact = useIsCompact();
 
   const [query, setQuery] = useState('');
 
@@ -645,28 +652,45 @@ export function CommandPalette({
 
           ↑ and ↓ are two patches, because they are two keys. Printed as `↑↓` in
           one they read as a single glyph nobody has on their keyboard.
+
+          **None of which is true on a phone or a tablet.** There are no arrow
+          keys to press there, no Enter and no Escape — the palette is driven
+          by tapping a row and dismissed by the sheet's own gesture — so the
+          whole strip is an instruction the reader cannot follow, taking a row's
+          height off the results on the screens with the fewest of them. It goes
+          with the `⌘K` chord on the rail's search control, which stands down on
+          exactly the same question.
+
+          `useIsCompact` is the band, and it is the one the rail itself folds
+          on, so the legend goes with the face rather than on a line of its own.
+          It reads both dimensions, which is what naming a tablet takes: under
+          `64rem` wide is every phone and a tablet held upright, and the second
+          clause catches that same tablet turned on its side, where it is wide
+          enough to pass for a desktop and is not one.
         */}
-        <div className="flex flex-none items-center gap-5 border-t border-border px-4 py-2.5 text-caption text-muted-foreground">
-          <span className="flex items-center gap-1.5">
-            <Kbd size="sm">↑</Kbd>
-            <Kbd size="sm">↓</Kbd>
-            {t('hintNavigate')}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Kbd size="sm">↵</Kbd>
-            {t('hintOpen')}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Kbd size="sm">esc</Kbd>
-            {picking ? t('hintBack') : t('hintClose')}
-          </span>
-          {picking ? (
+        {compact ? null : (
+          <div className="flex flex-none items-center gap-5 border-t border-border px-4 py-2.5 text-caption text-muted-foreground">
             <span className="flex items-center gap-1.5">
-              <Kbd size="sm">⌫</Kbd>
-              {t('hintBack')}
+              <Kbd size="sm">↑</Kbd>
+              <Kbd size="sm">↓</Kbd>
+              {t('hintNavigate')}
             </span>
-          ) : null}
-        </div>
+            <span className="flex items-center gap-1.5">
+              <Kbd size="sm">↵</Kbd>
+              {t('hintOpen')}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Kbd size="sm">esc</Kbd>
+              {picking ? t('hintBack') : t('hintClose')}
+            </span>
+            {picking ? (
+              <span className="flex items-center gap-1.5">
+                <Kbd size="sm">⌫</Kbd>
+                {t('hintBack')}
+              </span>
+            ) : null}
+          </div>
+        )}
       </Command>
     </Dialog>,
     document.body,

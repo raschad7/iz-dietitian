@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 
 import { Icon } from '@/components/ui/icon';
 import { Kbd } from '@/components/ui/kbd';
+import { useIsCompact } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
 import { useCommandPalette } from './command-palette-provider';
@@ -181,11 +182,33 @@ const readPlatformOnServer = () => 'unknown' as const;
  * looking at yet, and the button is fully usable without it. The shortcut is
  * also announced by `aria-keyshortcuts` on the button itself, which does not
  * depend on this rendering at all.
+ *
+ * ## Not on a phone or a tablet
+ *
+ * A chord is an instruction, and printing one for a key the reader has not got
+ * is an instruction they cannot follow — on the narrowest control in the app,
+ * where the space it takes is the space the label wanted. So the whole thing
+ * stands down on a touch device, and the rail's search control there is a
+ * glyph, a word, and nothing else.
+ *
+ * **The band is `useIsCompact`** — the same one the rail itself folds on, so
+ * the chord disappears with the face it belongs to rather than on a line of its
+ * own. It asks both dimensions, which is what it takes to name a tablet: under
+ * `64rem` wide catches every phone and a tablet held upright, and the second
+ * clause catches the same tablet turned on its side, where it is 1024–1366px
+ * wide and would otherwise read as a desktop. A short desktop window is not
+ * caught by either, because that clause also asks for a finger.
+ *
+ * `aria-keyshortcuts` on the button stays either way. It describes what the
+ * control *supports*, which does not change with the pointer in the reader's
+ * hand — and a screen reader user on a tablet may well have a keyboard.
  */
 function Shortcut() {
   const platform = useSyncExternalStore(subscribeToNothing, readPlatform, readPlatformOnServer);
+  const compact = useIsCompact();
 
   if (platform === 'unknown') return null;
+  if (compact) return null;
 
   /*
     `⌘K` as one key, `Ctrl` + `K` as two.
