@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useRef, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 
 import { Avatar } from '@/components/ui/avatar';
 import { Icon } from '@/components/ui/icon';
@@ -99,6 +99,38 @@ export function AppointmentBlock({
   const t = useTranslations('booking');
   const scale = blockTypeScale(height);
   const compactStacked = compact && !scale.inline;
+
+  /**
+   * Whether the press that is ending was a drag rather than a click.
+   *
+   * The name is both a link and a handle, and a drag that started on it ends
+   * with a `click` on an anchor like any other press does — so without this,
+   * carrying an appointment by its name would drop it and then navigate away
+   * from the calendar.
+   *
+   * A ref rather than state because nothing renders from it: it is written
+   * while the pointer is down and read once, in the click handler that follows.
+   * Rendering from it would also be too late — the drag is over by then, and
+   * the value would have been thrown away by the re-render that ended it.
+   */
+  const dragged = useRef(false);
+
+  /*
+    The drag is *this block's* while `dragState` is set, and that is the only
+    honest moment to record it: the flag has to survive the pointer being
+    released, and by the click that follows the state has already gone back to
+    `null`.
+
+    Recorded from an effect rather than during render, which is both the rule
+    here and the right shape — a ref written during render is a value React is
+    entitled to throw away — and it is in time regardless: a drag has been live
+    for at least a threshold's worth of travel or 450ms of hold by the time the
+    pointer comes up, and the click is after that.
+  */
+  useEffect(() => {
+    if (dragState === null) return;
+    dragged.current = true;
+  }, [dragState]);
 
   const endMinute = appointment.startMinute + appointment.durationMinutes;
   /**
@@ -318,18 +350,25 @@ export function AppointmentBlock({
         // drag, or the modal would open with the block already moved.
         if (event.button !== 0) return;
         onSelect(appointment.id);
-        /*
-          The name is not a drag surface — it is the way into the record, and
-          the rest of the card is the way to move the booking. Two gestures on
-          one target meant every press on a name was ambiguous until it ended,
-          and the way that was resolved (drop the click if the pointer had
-          travelled) made an unsteady hand fail to open anything.
 
-          Splitting them by target makes each gesture certain from its first
-          frame: press the name, you are opening a client; press anywhere else,
-          you are carrying the appointment.
+        /*
+          The name carries both gestures now, and the card is a drag surface
+          from edge to edge — including under the anchor.
+
+          It was excluded for a while, because the two gestures sharing one
+          target used to be ambiguous until the press ended. They are not any
+          more, and the reason is that neither gesture starts on the press
+          itself: a mouse has to travel `DRAG_THRESHOLD_PX` before anything is a
+          drag, and a finger has to rest for `HOLD_TO_DRAG_MS` (both in
+          `use-calendar-gestures.ts`). A click is a press that did neither, so
+          the two are told apart by what the pointer *did*, not by where it
+          landed — and the name can be the way into the record and a place to
+          pick the card up from at the same time.
+
+          What the anchor does need is to know when the gesture turned into a
+          drag, so it does not also navigate on the way out. That is
+          `dragged` below.
         */
-        if ((event.target as HTMLElement).closest('[data-appointment-name]')) return;
         // Selecting still works on a finished appointment; only moving does not.
         if (draggable) onMovePointerDown?.(appointment, event);
       }}
@@ -405,6 +444,27 @@ export function AppointmentBlock({
         <Link
           href={`/app/clients/${appointment.clientId}`}
           data-appointment-name
+          /*
+            A browser drags a link by default — it is how a URL is dropped into
+            another window — and that native gesture would start on the first
+            pixel of travel and take the card's own drag with it. The card is
+            what is being moved here, not its address.
+          */
+          draggable={false}
+          onPointerDown={() => {
+            dragged.current = false;
+          }}
+          onClick={(event) => {
+            /*
+              The press that is ending carried the appointment somewhere, so it
+              was never a click on a link. Opening the client here would take
+              the reader off the calendar the moment they finished arranging it.
+            */
+            if (dragged.current) {
+              event.preventDefault();
+              dragged.current = false;
+            }
+          }}
           className={cn(
             /*
               Sized to the name, not to the row.
