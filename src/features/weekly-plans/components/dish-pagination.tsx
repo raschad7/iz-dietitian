@@ -123,8 +123,22 @@ export function DishPagination({
                     The current page goes nowhere: `aria-current` on a link that
                     reloads the page you are on is a step to nowhere with a
                     focus stop attached.
+
+                    `prefetch={false}` on the numbers, and only on the numbers.
+                    Next prefetches every link in the viewport, and this pager
+                    puts five or six of them on screen at once, so opening the
+                    catalog fired a request for page 2, 3, 4, 5 and 6 before the
+                    reader had touched anything — the catalog fetching its whole
+                    pagination is the one thing paging exists to avoid. It bought
+                    nothing either: `/app/dishes` is dynamic, so an `auto`
+                    prefetch reaches only as far as `loading.tsx` and the dishes
+                    themselves are still fetched on the click. Next and Previous
+                    keep theirs below — one step, in the direction a reader
+                    actually goes.
                   */
-                  render={token === result.page ? <span /> : <Link href={query(token)} />}
+                  render={
+                    token === result.page ? <span /> : <Link href={query(token)} prefetch={false} />
+                  }
                 >
                   {token}
                 </PaginationLink>

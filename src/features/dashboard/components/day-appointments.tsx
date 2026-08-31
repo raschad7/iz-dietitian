@@ -461,6 +461,7 @@ export function DayAppointments({
             <TableRoot
               ref={scrollRef}
               onScroll={readEdges}
+              scrollY
               /*
                 `flex-1` **and** the ceiling, not one or the other: the table
                 takes what the card's header leaves and stops at
@@ -468,7 +469,7 @@ export function DayAppointments({
                 screen show the whole finished morning; a fixed height without
                 `flex-1` is what pushed the card past the bottom of a short one.
               */
-              className={cn(TABLE_HEIGHT, 'overflow-y-auto xl:min-h-0 xl:flex-1')}
+              className={cn(TABLE_HEIGHT, 'xl:min-h-0 xl:flex-1')}
             >
               {/*
                 `table-fixed` so one long reason cannot squeeze the time column —

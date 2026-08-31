@@ -47,14 +47,39 @@ import { cn } from '@/lib/utils';
  *
  * A long table can also scroll *vertically* inside that same frame: give
  * `TableRoot` a bounded height (`min-h-0 flex-1` inside a full-height column)
- * plus `overflow-y-auto`, and pass `sticky` to `TableHeader` so the column
+ * and the `scrollY` prop, and pass `sticky` to `TableHeader` so the column
  * names stay put while the rows move under them.
  *
  * Cells default to `text-start`, so they follow the document direction. Pass
  * `numeric` for anything that must stay LTR inside Arabic text — figures,
  * times, IDs and units read left-to-right in both scripts.
  */
-function TableRoot({ className, ...props }: React.ComponentProps<'div'>) {
+function TableRoot({
+  className,
+  scrollY,
+  ...props
+}: React.ComponentProps<'div'> & {
+  /**
+   * This frame bounds its own height, so it can grow a vertical scrollbar.
+   *
+   * Pair it with the height that bounds the frame — the prop cannot supply that
+   * part, because where the ceiling comes from is the call site's business
+   * (`min-h-0 flex-1` in a full-height column here, a declared maximum there).
+   *
+   * It says one thing the frame cannot say for itself, and the inline cue needs
+   * it: a vertical bar takes its width out of the box the cue's masking wedges
+   * are measured against but not out of the box its shadows are, and in Arabic
+   * that gap is a grey edge down the side of the table. `q-scroll-cue-inset`
+   * closes it; see the note under `.q-scroll-cue-inset` in `globals.css` for
+   * why the correction moves the shadow rather than the wedge.
+   *
+   * `overflow-y-auto` rides along for the reader rather than for the browser:
+   * `overflow-x: auto` already computes `overflow-y` from `visible` to `auto`,
+   * so every one of these frames is a vertical scroll container whether or not
+   * anyone asked. What decides if a bar appears is the height.
+   */
+  scrollY?: boolean;
+}) {
   return (
     <div
       data-slot="table-container"
@@ -66,7 +91,11 @@ function TableRoot({ className, ...props }: React.ComponentProps<'div'>) {
         it paints nothing at all when the table fits. See its note in
         `globals.css`.
       */
-      className={cn('q-scroll-cue relative w-full overflow-x-auto', className)}
+      className={cn(
+        'q-scroll-cue relative w-full overflow-x-auto',
+        scrollY && 'q-scroll-cue-inset overflow-y-auto',
+        className,
+      )}
       {...props}
     />
   );

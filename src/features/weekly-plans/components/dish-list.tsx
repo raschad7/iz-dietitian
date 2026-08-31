@@ -269,7 +269,7 @@ export function DishList({
         column heads below — and `overflow-x-auto` stays only as the floor under
         a case the rearrangement cannot absorb.
       */}
-      <TableRoot data-guide="dishes-list" className="md:min-h-0 md:flex-1 md:overflow-y-auto">
+      <TableRoot data-guide="dishes-list" scrollY className="md:min-h-0 md:flex-1">
         {/*
           Fixed layout is the distribution rule: a column is as wide as it is
           declared to be, and whatever is left over is shared by the columns
