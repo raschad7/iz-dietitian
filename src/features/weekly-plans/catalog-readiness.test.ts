@@ -290,6 +290,55 @@ describe('clinic-owned rows are none of this check’s business', () => {
     expect(named(checks, 'portions').problem).toContain('holds 0 row(s)');
   });
 
+  /**
+   * The regression that quarantined v0.5.0 on the production host.
+   *
+   * Checks 8 and 9 counted every row in `dish_ingredients`, while the number they
+   * compare against describes the shipped dishes and nothing else. The first clinic
+   * to save a recipe of its own in a household unit therefore read as extra shipped
+   * lines — "67 of 63" — and failed the deploy gate over a dietitian doing her job.
+   */
+  test('a clinic’s own dish does not count towards the shipped ingredient totals', async () => {
+    const expected = readExpectation();
+    const clinicId = await createTestClinic();
+    const foodId = await createTestCatalogFood({
+      slug: 'pita-white',
+      nameAr: 'خبز',
+      nameEn: 'Pita',
+      category: 'grains',
+    });
+    const portionId = await createTestCatalogPortion(foodId, {
+      labelAr: 'رغيف',
+      labelEn: 'Loaf',
+      grams: 60,
+    });
+
+    const [dish] = await db.execute<{ id: string }>(sql`
+      insert into dishes (clinic_id, slug, name_ar, name_en, meal_types, tags, allergen_tags, base_serving_label)
+      values (${clinicId}, 'clinic-own', 'طبق العيادة', 'Clinic dish', ARRAY['lunch']::text[], ARRAY[]::text[], ARRAY[]::text[], 'حصة')
+      returning id
+    `);
+    // `is_primary` is set here as well, which `createClinicDish` never does. That
+    // is the only reason check 8 was passing on the same rows check 9 failed on,
+    // so a test that left it false would lock in the accident rather than the fix.
+    await db.execute(sql`
+      insert into dish_ingredients (dish_id, catalog_food_id, quantity_grams, portion_id, portion_quantity, is_primary, sort_order)
+      values (${dish!.id}, ${foodId}, 60, ${portionId}, 1, true, 0)
+    `);
+
+    const checks = await checkCatalogReadiness();
+
+    expect(named(checks, 'household units').problem).toBe(
+      `0 of ${expected.unitIngredients} ingredients kept the unit they were authored in`,
+    );
+    expect(named(checks, 'adjustable lines').problem).toBe(
+      `0 of ${expected.primaryIngredients} adjustable ingredients are marked`,
+    );
+    expect(named(checks, 'shipped dishes carry all').problem).toContain(
+      'shipped dishes hold 0 ingredient row(s)',
+    );
+  });
+
   test('the clinic food really is in the database', async () => {
     const clinicId = await createTestClinic();
     await createTestCatalogFood({
