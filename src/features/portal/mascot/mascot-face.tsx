@@ -13,7 +13,14 @@ import {
 import { cn } from '@/lib/utils';
 
 import type { MascotEmotion } from './emotion';
-import { EMOTION_SEQUENCES, LOOPING_EMOTIONS, RESTING_FRAME, tierBaseline } from './eye-choreography';
+import {
+  EMOTION_SEQUENCES,
+  LOOPING_EMOTIONS,
+  NEUTRAL_BASELINE,
+  RESTING_FRAME,
+  tierBaseline,
+  type MascotKeyframe,
+} from './eye-choreography';
 import type { MascotState } from './states';
 
 /**
@@ -75,25 +82,74 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 }
 
+/**
+ * Beats written by a caller instead of read out of `EMOTION_SEQUENCES`.
+ *
+ * The emotion vocabulary is the *portal's*: half its names — `mealReminder`,
+ * `missedMeal`, `streakAtRisk` — describe a client's week, and a screen with no
+ * client on it cannot honestly ask for one of them just because the eyes happen
+ * to move the right way. The staff app's guided tour is that screen, so it
+ * brings its own beats (`src/features/user-guide/guide-emotes.ts`) and this
+ * component stays the one place the character is drawn and played.
+ *
+ * `id` is what a new performance is recognised by — the same job `emotion` does
+ * for the portal — so it has to change whenever `frames` does, or the sequence
+ * carries on from wherever the last one left off.
+ */
+export type MascotPerformance = {
+  id: string;
+  frames: readonly MascotKeyframe[];
+  /** Repeats for as long as it is current, rather than settling. Rare. */
+  looping?: boolean;
+};
+
 export type MascotFaceProps = {
-  emotion: MascotEmotion;
-  /** The adherence tier's resting mood — see `tierBaseline` in `eye-choreography.ts`. */
-  tier: MascotState;
+  /**
+   * Which of the portal's emotions to play. Ignored when `performance` is
+   * given, and defaulted so a caller supplying its own beats does not have to
+   * name a feeling it is not using.
+   */
+  emotion?: MascotEmotion;
+  /** Beats of the caller's own. See {@link MascotPerformance}. */
+  performance?: MascotPerformance;
+  /**
+   * The adherence tier's resting mood — see `tierBaseline` in
+   * `eye-choreography.ts`. Omitted where there is no adherence to reflect, and
+   * the face rests at the drawing's own geometry instead.
+   */
+  tier?: MascotState;
+  /**
+   * An extra gaze, added on top of whatever the current frame is doing, in the
+   * drawing's own units.
+   *
+   * For a caller that knows something about the world the choreography cannot:
+   * where the reader's pointer is, which control they are about to press. It is
+   * added rather than substituted, so a face that is already looking somewhere
+   * for a reason keeps looking there and only leans.
+   *
+   * It is deliberately not part of a keyframe. Keyframes are a story with a
+   * beginning and an end; this is a live value that changes as fast as a
+   * pointer moves, and stepping a sequence forward every time it changed would
+   * restart the story on every mouse move.
+   */
+  look?: { x: number; y: number };
   /** Pixels — the SVG is square. */
   size: number;
   className?: string;
 };
 
-export function MascotFace({ emotion, tier, size, className }: MascotFaceProps) {
+export function MascotFace({ emotion = 'resting', performance, tier, look, size, className }: MascotFaceProps) {
   // `EMOTION_SEQUENCES` is a `Record<MascotEmotion, …>` and `emotion` is
   // always a valid `MascotEmotion`, so this index is never `undefined` — a
   // `?? [RESTING_FRAME]` fallback here would be unreachable at runtime but
   // still read by the effect below as "a new array every render".
-  const sequence = EMOTION_SEQUENCES[emotion];
-  const looping = LOOPING_EMOTIONS.has(emotion);
+  const sequence = performance?.frames ?? EMOTION_SEQUENCES[emotion];
+  const looping = performance === undefined ? LOOPING_EMOTIONS.has(emotion) : performance.looping === true;
+  /** What "a different performance" means, whichever of the two is driving. */
+  const playing = performance?.id ?? emotion;
   const reduced = prefersReducedMotion();
 
-  const [renderedEmotion, setRenderedEmotion] = useState(emotion);
+  const [renderedEmotion, setRenderedEmotion] = useState(playing);
   const [frameIndex, setFrameIndex] = useState(0);
 
   /*
@@ -104,8 +160,8 @@ export function MascotFace({ emotion, tier, size, className }: MascotFaceProps) 
     first frame painting immediately rather than one tick after the emotion
     itself arrives.
   */
-  if (emotion !== renderedEmotion) {
-    setRenderedEmotion(emotion);
+  if (playing !== renderedEmotion) {
+    setRenderedEmotion(playing);
     setFrameIndex(0);
   }
 
@@ -172,11 +228,11 @@ export function MascotFace({ emotion, tier, size, className }: MascotFaceProps) 
   }, [idleEligible, reduced]);
 
   const target = reduced ? (sequence[sequence.length - 1] ?? RESTING_FRAME) : (sequence[frameIndex] ?? RESTING_FRAME);
-  const baseline = tierBaseline(tier);
+  const baseline = tier === undefined ? NEUTRAL_BASELINE : tierBaseline(tier);
   const durationMs = reduced ? 0 : target.durationMs;
 
-  const gazeX = target.eyes.gazeX;
-  const gazeY = target.eyes.gazeY;
+  const gazeX = target.eyes.gazeX + (look?.x ?? 0);
+  const gazeY = target.eyes.gazeY + (look?.y ?? 0);
   const tilt = EYE_BASE_TILT + target.eyes.tilt + baseline.tilt;
   const openness = (idleBlink ? 0.08 : target.eyes.openness) * baseline.openness;
 

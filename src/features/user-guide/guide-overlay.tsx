@@ -1,7 +1,7 @@
 'use client';
 
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,8 @@ import { getLocaleDirection, type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
 import { useGuide } from './guide-context';
+import type { GuideReactionName } from './guide-emotes';
+import { GuideMascot } from './guide-mascot';
 import { placeCard } from './place-card';
 import { GUIDE_SECTION_ICONS, stepIsOptional, stepSide, type GuideStep } from './steps';
 import { useGuideAnchor, type AnchorRect, type AnchorState } from './use-guide-anchor';
@@ -50,6 +52,144 @@ function useIsDocked() {
     */
     () => true,
   );
+}
+
+/**
+ * The mark's size, in pixels, as a floor and two ceilings.
+ *
+ * **Beside the card it is drawn at the card's own height**, so the two read as
+ * one object: a character the height of the panel it is standing next to, not
+ * an ornament stuck to its corner. The card's height is the honest number to
+ * take, because it is the one thing about the card that already answers to this
+ * step — it is as tall as this step's sentence made it.
+ *
+ * The floor is what the face needs to be legible at all: it is two ellipses,
+ * and every expression the tour has is carried by how open, how tilted and how
+ * high those two shapes are. At 40px the difference between a squint and a
+ * stare was a pixel and a half, which is to say there was no difference.
+ *
+ * The beside ceiling is a guard rather than a preference — a card whose Arabic
+ * sentence ran to six lines on a short screen should not put a 300px face next
+ * to itself.
+ *
+ * Stacked above or below, the ceiling is much lower. A mark as tall as the card
+ * *over* the card is two cards' worth of screen for one step, and on the phone
+ * that is where the sheet is docked, that is most of the screen. Beside, the
+ * height is shared with the card; stacked, it is spent on top of it.
+ */
+const MASCOT_MIN = 72;
+const MASCOT_BESIDE_MAX = 200;
+const MASCOT_STACKED_MAX = 88;
+
+/**
+ * The gap between the mark's box and the card's edge, in pixels.
+ *
+ * The two are the same height and sit side by side, so this is the only thing
+ * keeping them from reading as one shape with a bite out of it. It is measured
+ * between the *drawings*, not the boxes: the stylesheet adds the 12.1% of
+ * transparent canvas `MascotFace` paints past its own edge on top of this, so
+ * what lands on screen is this much clear space.
+ */
+const MASCOT_GAP = 24;
+
+/**
+ * How much of the drawn size lands outside the mark's own box, as a factor.
+ *
+ * `MascotFace` renders `(743 + 2 × 90) / 743` of the size it is given — the
+ * padding it puts around the leaf so a tilt has somewhere to go. Written here
+ * as the ratio rather than as a pixel count because the size is no longer
+ * fixed, and used only to ask for enough room on the screen.
+ */
+const MASCOT_CANVAS = 923 / 743;
+
+/**
+ * Where the card is, and how big it turned out — the whole of what the card's
+ * own geometry tells the rest of the render.
+ *
+ * `placeCard` answers the first half. The second is measured here rather than
+ * derived, because the card's width is a clamp against the viewport and its
+ * height depends on how long this step's sentence came out in this language;
+ * {@link mascotPlacement} needs the height to size the mark and both to know
+ * which side of the card has room for it.
+ */
+type CardPlacement = { top: number; left: number; width: number; height: number };
+
+/** Which side of the card the mark stands on. Physical — see {@link mascotPlacement}. */
+type MascotSide = 'above' | 'below' | 'left' | 'right';
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
+
+/**
+ * Where the mark goes and how big it is drawn, or `null` where it does not go
+ * at all.
+ *
+ * ## Not on a phone or a tablet
+ *
+ * `docked` is the whole answer there, and it is `null`: the sheet is as wide as
+ * the screen, so there is no "beside" for a character to stand in, and the
+ * edges above and below it are the ones the tour has deliberately left clear —
+ * that is where the spotlight and the control the step is about are. A mark
+ * stacked on a docked sheet is a mark covering either the thing being pointed
+ * at or the notch.
+ *
+ * It is a companion to a floating card, in other words, and a device that never
+ * floats the card never sees it. The card reads the same without it; nothing in
+ * the tour is carried by the mascot, which is exactly why it can be dropped on
+ * the layouts that have no room for it.
+ *
+ * ## Beside the card, wherever the screen allows it
+ *
+ * On whichever side has more room — a card pushed to the left of the screen
+ * puts the mark on its right, because that is where the space is. Beside is the
+ * placement worth having: the card is a column of text, so a character next to
+ * it, at its height, reads as standing beside what it is saying, while one
+ * above or below reads as another row of the card.
+ *
+ * The sides are **physical, not logical**, and that is on purpose. Every other
+ * placement decision in this file mirrors for Arabic because it is about
+ * reading order; this one is about which half of the screen is empty, and a
+ * screen does not mirror. What does mirror is the fallback: above and below
+ * align the mark to the card's inline-start, which is the corner its eyebrow and
+ * its title begin at.
+ *
+ * The side is also what the mark *looks* at — `guideEmote` turns the eyes and
+ * the head towards the card from whichever side it ends up on, and mirrors the
+ * drawing outright on the one side where a turn of the eyes is not enough — so
+ * this answer decides both where the character stands and which way it faces.
+ *
+ * A floating card with no room either side takes the last fallback: above it,
+ * unless the card is itself near the top of the screen, in which case below.
+ *
+ * An unmeasured card (the first frame of a floating step) answers "above" at
+ * the floor size and is never seen: the card is hidden until it has been
+ * measured, and the mark is inside it.
+ */
+function mascotPlacement(
+  docked: boolean,
+  placement: CardPlacement | null,
+): { side: MascotSide; size: number } | null {
+  if (docked) return null;
+
+  function stacked(side: MascotSide) {
+    const height = placement?.height ?? MASCOT_MIN;
+    return { side, size: clamp(height, MASCOT_MIN, MASCOT_STACKED_MAX) };
+  }
+
+  if (placement === null) return stacked('above');
+
+  const size = clamp(placement.height, MASCOT_MIN, MASCOT_BESIDE_MAX);
+  const needed = size * MASCOT_CANVAS + MASCOT_GAP + GUTTER;
+  const roomLeft = placement.left;
+  const roomRight = window.innerWidth - (placement.left + placement.width);
+
+  if (roomLeft >= needed || roomRight >= needed) {
+    return { side: roomRight >= roomLeft ? 'right' : 'left', size };
+  }
+
+  const above = stacked('above');
+  return placement.top >= above.size * MASCOT_CANVAS + MASCOT_GAP + GUTTER ? above : stacked('below');
 }
 
 /** Keep-out margin against the edges of the screen, and around the spotlight. */
@@ -243,6 +383,7 @@ function GuideSurface({ step }: { step: GuideStep }) {
       <GuideCard
         step={step}
         rect={rect}
+        anchorStatus={anchor.status}
         docked={docked}
         dir={dir}
         index={guide.index}
@@ -447,6 +588,7 @@ function Spotlight({ anchor, stepId }: { anchor: AnchorState; stepId: string }) 
 function GuideCard({
   step,
   rect,
+  anchorStatus,
   docked,
   dir,
   index,
@@ -457,6 +599,7 @@ function GuideCard({
 }: {
   step: GuideStep;
   rect: AnchorRect | null;
+  anchorStatus: AnchorState['status'];
   docked: boolean;
   dir: 'ltr' | 'rtl';
   index: number;
@@ -467,7 +610,52 @@ function GuideCard({
 }) {
   const t = useTranslations('userGuide');
   const card = useRef<HTMLDivElement>(null);
-  const [placement, setPlacement] = useState<{ top: number; left: number } | null>(null);
+  const [placement, setPlacement] = useState<CardPlacement | null>(null);
+
+  /*
+    What the character is reacting to, and who decides it.
+
+    Two sources, and they are not the same kind of thing. A **reaction** is
+    something the reader did — a press, a pointer resting on a control — and it
+    is stored, because the event is a moment and the face has to keep showing it
+    after the moment has passed. `GuideMascot` owns how long that lasts and
+    calls back when it is over.
+
+    An **ambient** reaction is a condition rather than an event: the anchor for
+    this step has not been found, or is not going to be. That one is read
+    straight off `anchorStatus` every render — there is nothing to remember,
+    because the condition itself is the memory, and it clears when the anchor
+    resolves rather than on a timer.
+
+    A press wins over a condition while it lasts: the reader doing something is
+    always more current than the state of the search.
+  */
+  const [reaction, setReaction] = useState<GuideReactionName | null>(null);
+  const clearReaction = useCallback(() => setReaction(null), []);
+
+  /*
+    `waiting` is every step's first frame, so it cannot raise `hunting` on its
+    own — the mark would twitch into a search at the top of all sixteen steps,
+    on top of the expression that step just started. It has to have *lasted*,
+    and the only steps where it does are the ones that cross a route.
+
+    The state is set from a timer rather than during render, and the cleanup
+    puts it back: React skips a re-render when the value is unchanged, so
+    clearing it on every status that is not `waiting` costs nothing.
+  */
+  const [huntingSince, setHuntingSince] = useState<string | null>(null);
+  useEffect(() => {
+    if (anchorStatus !== 'waiting') return;
+
+    const timer = window.setTimeout(() => setHuntingSince(step.id), 700);
+    return () => {
+      window.clearTimeout(timer);
+      setHuntingSince(null);
+    };
+  }, [anchorStatus, step.id]);
+
+  const ambient: GuideReactionName | null =
+    anchorStatus === 'missing' ? 'puzzled' : huntingSince === step.id ? 'hunting' : null;
 
   const isFirst = index === 0;
   const isLast = index === total - 1;
@@ -506,8 +694,8 @@ function GuideCard({
     if (element === null) return;
 
     const box = element.getBoundingClientRect();
-    setPlacement(
-      placeCard({
+    setPlacement({
+      ...placeCard({
         anchor: rect,
         card: { width: box.width, height: box.height },
         viewport: { width: window.innerWidth, height: window.innerHeight },
@@ -516,7 +704,9 @@ function GuideCard({
         gutter: GUTTER,
         gap: GAP,
       }),
-    );
+      width: box.width,
+      height: box.height,
+    });
   }, [rect, docked, dir, step]);
 
   /*
@@ -563,6 +753,9 @@ function GuideCard({
   const spaceBelow = rect === null ? 0 : window.innerHeight - (rect.top + rect.height);
   const dockTop = rect !== null && spaceAbove > spaceBelow + DOCK_MARGIN;
 
+  /* Beside the card, at its height — and nowhere at all when docked. */
+  const mascot = mascotPlacement(docked, placement);
+
   return (
     <div
       ref={card}
@@ -588,6 +781,51 @@ function GuideCard({
       )}
       style={docked ? undefined : { top: placement?.top ?? 0, left: placement?.left ?? 0 }}
     >
+      {/*
+        The mark, standing on the outside of the card.
+
+        It is the product's own logo — the same leaf `BrandMark` draws, with its
+        two seeds moving as eyes — and the tour is the one place in the staff app
+        it is anything other than still. A first run is when a character earns
+        its keep: sixteen dimmed screens in a row is a procedure, and a face that
+        reacts to each one is a walkthrough. Each step has its own expression, in
+        `guide-emotes.ts`, and the eyes and the head are all that move.
+
+        ## Outside the card, and outside the keyed block
+
+        Both of those are deliberate, and the second is what makes the tour read
+        as one character rather than sixteen.
+
+        The contents below are replaced whole on every step (`key={step.id}`), so
+        anything inside them is *destroyed and rebuilt* — a mascot in there
+        starts each step from a standing start, playing its opening beat from the
+        drawing's resting geometry with a fade under it. Out here it is the same
+        element from the first step to the last: when the expression changes, the
+        eyes and the head travel from the pose they are holding to the new one,
+        on the transitions `MascotFace` already puts on them. Nothing cuts.
+
+        Hanging it outside the card's box is the other half. Inside, it was
+        another line of the card's contents, competing with the eyebrow and the
+        title for the top of a panel that is mostly words. Out here it is a
+        character standing next to what it is saying — and the card keeps the
+        whole of its own width for the sentence.
+
+        Decorative, and it says so twice: `MascotFace` marks its own SVG
+        `role="presentation"`, and this box carries nothing to read. The eyebrow,
+        the title and the sentence are the entire content of the card, which is
+        what keeps a screen reader's account of a step identical to a sighted
+        reader's.
+      */}
+      {mascot === null ? null : (
+        <GuideMascot
+          stepId={step.id}
+          side={mascot.side}
+          size={mascot.size}
+          reaction={reaction ?? ambient}
+          onReactionEnd={clearReaction}
+        />
+      )}
+
       {/*
         The step's own contents, remounted on every step so their entrance
         replays.
@@ -673,6 +911,8 @@ function GuideCard({
               size="sm"
               className="-ms-3 text-muted-foreground"
               onClick={onStop}
+              onPointerEnter={() => setReaction('warned')}
+              onFocus={() => setReaction('warned')}
             >
               {t('skip')}
             </Button>
@@ -685,12 +925,38 @@ function GuideCard({
               examine before ignoring, and this row is already three wide.
             */}
             {isFirst ? null : (
-              <Button type="button" variant="ghost" size="sm" onClick={onPrevious}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setReaction('returning');
+                  onPrevious();
+                }}
+              >
                 {t('back')}
               </Button>
             )}
 
-            <Button type="button" size="sm" onClick={isLast ? onStop : onNext}>
+            {/*
+              The two controls the face answers to.
+
+              `onPointerEnter`/`onFocus` rather than `onMouseOver`: the second
+              is what makes the mark react to a keyboard reader as well, who
+              never hovers anything. Both are advisory — a reaction is a face,
+              not a state change — so neither does anything a reader could be
+              stuck in.
+            */}
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => {
+                setReaction('advancing');
+                (isLast ? onStop : onNext)();
+              }}
+              onPointerEnter={() => setReaction('offered')}
+              onFocus={() => setReaction('offered')}
+            >
               {isLast ? t('finish') : t('next')}
             </Button>
           </div>

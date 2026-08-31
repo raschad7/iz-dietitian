@@ -6626,6 +6626,136 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 }
 
 /*
+ * How much of the drawing lands outside the box, on each side.
+ *
+ * `MascotFace` renders `(743 + 2 × 90) / 743` of the size it is asked for — the
+ * transparent padding it puts around the leaf so a tilted head is not clipped —
+ * which is 12.1% past each edge of this box. Every standoff below adds it, and
+ * that is the difference between a gap and a mark leaning on the card: the box
+ * clears the card's edge by 0.75rem, but the drawing inside it starts 12.1%
+ * earlier, so without this the leaf touched the card at 72px and overlapped it
+ * outright at 200. The 1.5rem in each standoff is therefore the clear
+ * space that lands on screen, not a number the drawing eats into.
+ */
+.q-guide-mascot {
+  --q-guide-mascot-bleed: calc(var(--q-guide-mascot-size, 4.5rem) * 0.121);
+}
+
+/*
+ * The mascot's box, hung on the outside of the guide card.
+ *
+ * Which of the four sides it takes, and how big it is drawn, are decided in
+ * `guide-overlay.tsx` — see `mascotPlacement` — from where the card ended up
+ * and how much screen is left around it. Beside the card it is drawn at the
+ * card's own height, which is why the size arrives as `--q-guide-mascot-size`
+ * rather than being written here: it is a different number on every step and in
+ * every language, and only the component has measured it.
+ *
+ * The mark is only ever drawn beside a *floating* card: a phone or a tablet
+ * docks the card to an edge of the screen and `mascotPlacement` returns nothing
+ * at all there, so none of these rules apply on a touch layout.
+ *
+ * `left`/`right` are physical, and only here in this block: the side is chosen
+ * from which half of the screen is empty, which is not a thing that mirrors for
+ * Arabic. `above` and `below` do mirror — they align the mark to the card's
+ * inline-start, the corner its eyebrow and title begin at.
+ *
+ * `pointer-events: none` because the card floats over a dimmed page and this is
+ * the one part of it hanging past its own edges — a decorative mark must not be
+ * what a click near the card lands on.
+ */
+.q-guide-mascot {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  inline-size: var(--q-guide-mascot-size, 4.5rem);
+  block-size: var(--q-guide-mascot-size, 4.5rem);
+  pointer-events: none;
+}
+
+/*
+ * Beside the card, and centred on its height rather than pinned to a corner.
+ * When the mark is the card's own height — which it is wherever there is room
+ * for it — the two line up exactly, top and bottom.
+ *
+ * `top` with half the box subtracted rather than `translateY(-50%)`, because
+ * the breathing below is a transform on this same element and the two would
+ * overwrite each other; which one won would come down to the order the rules
+ * happen to be in.
+ */
+.q-guide-mascot-left,
+.q-guide-mascot-right {
+  top: calc(50% - var(--q-guide-mascot-size, 4.5rem) / 2);
+}
+
+.q-guide-mascot-left {
+  right: calc(100% + 1.5rem + var(--q-guide-mascot-bleed));
+}
+
+.q-guide-mascot-right {
+  left: calc(100% + 1.5rem + var(--q-guide-mascot-bleed));
+}
+
+.q-guide-mascot-above,
+.q-guide-mascot-below {
+  inset-inline-start: 1rem;
+}
+
+.q-guide-mascot-above {
+  inset-block-end: calc(100% + 1.5rem + var(--q-guide-mascot-bleed));
+}
+
+.q-guide-mascot-below {
+  inset-block-start: calc(100% + 1.5rem + var(--q-guide-mascot-bleed));
+}
+
+/*
+ * Standing on the card's left, the character is turned round to face it.
+ *
+ * The mark looks left as drawn — the seeds are in the left half of the leaf and
+ * the bite is out of the top right — so on this one side it needs mirroring or
+ * it has its back to the card it is introducing. `MIRRORED` in
+ * `guide-emotes.ts` is the other half of this: it writes that side's gazes and
+ * tilts backwards so they still come out pointing at the card afterwards.
+ *
+ * On the SVG rather than on the box, because the box carries the breathing
+ * animation and a transform here would replace it.
+ */
+.q-guide-mascot-left > svg {
+  transform: scaleX(-1);
+}
+
+/*
+ * The breathing under every expression.
+ *
+ * A 2px rise over four seconds, on the box rather than on the drawing: the
+ * expression's own transforms are written onto the SVG's groups by
+ * `MascotFace`, so putting this on an ancestor keeps the two from writing the
+ * same property in the same moment — the wobble the portal's mascot documents
+ * at `.q-mascot-float`.
+ *
+ * It is what stops a held pose reading as a still image. Every expression the
+ * tour has settles and stays for as long as the reader takes over the step, and
+ * a character that arrives, stops dead and never moves again reads as a picture
+ * of a character. Slow and small enough to be felt rather than watched.
+ */
+@keyframes q-guide-mascot-breathe {
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+.q-guide-mascot {
+  animation: q-guide-mascot-breathe 4200ms ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .q-guide-mascot {
+    animation: none;
+  }
+}
+
+/*
  * Reduced motion drops every one of the three travels above and keeps the
  * surfaces. The hole's own travel is suspended in `Spotlight`, which checks the
  * same query in script — `element.animate` is not reached by a stylesheet.

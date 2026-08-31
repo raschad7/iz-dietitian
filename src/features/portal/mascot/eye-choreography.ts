@@ -55,6 +55,19 @@ function frame(
   };
 }
 
+/**
+ * The baseline for a face that has no adherence tier behind it: the drawing's
+ * own geometry, untouched.
+ *
+ * {@link tierBaseline} answers "how bright is this client's week", which is a
+ * question only the portal is in a position to ask. A face drawn somewhere with
+ * no adherence to reflect — the staff app's guided tour, a gallery — must not
+ * borrow one of the six answers at random, because every one of them says
+ * something about a client that is not on screen. This says nothing, which is
+ * the honest reading in those places.
+ */
+export const NEUTRAL_BASELINE: EyePose = RESTING_EYE;
+
 /** The single resting frame — everything at the drawing's own geometry. */
 export const RESTING_FRAME = frame({}, {}, 0, 0);
 
