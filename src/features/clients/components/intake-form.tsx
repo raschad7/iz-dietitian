@@ -292,480 +292,500 @@ export function IntakeForm({
         desktop window can also be dragged to. Only a media query can ask that,
         so the rearrangement lives in CSS and these are its handles.
       */}
-      <div data-slot="intake-shell" className="flex min-h-0 flex-1 flex-col sm:flex-row">
-        <SectionRail
-          current={section}
-          filled={filled}
-          onSelect={setSection}
-          panelId={panelId}
-        />
+      {/*
+        The scrollport the dialog frame is looking for.
 
-        {/*
-          Every section stays mounted. A value typed into the schedule and then
-          navigated away from has to still be there on save — this is one form
-          with one submit, not five.
-        */}
-        <div
-          id={panelId}
-          className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6"
-        >
-          <Panel id="measurements" current={section}>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {/*
-                All four fields in this panel are required — they are what the
-                calorie formula runs on. See the ⚠ on `intakeSchema`: they are
-                the exception on a form that is otherwise optional to the last
-                field, and the rest of it must not follow.
-              */}
-              <NumberField
-                name="heightCm"
-                label={t('fields.heightCm')}
-                icon="heightOutline"
-                placeholder={t('intake.placeholders.heightCm')}
-                min={HEIGHT_CM_RANGE.min}
-                max={HEIGHT_CM_RANGE.max}
-                step={1}
-                /*
-                  Three digits, which is exactly what the bound above allows:
-                  300 cm and 200 kg are both three-digit numbers, so a fourth
-                  digit can only ever be a value the schema would reject. Better
-                  refused at the keystroke than accepted and complained about.
-                */
-                maxDigits={MEASUREMENT_MAX_DIGITS}
-                required
-                value={heightCm}
-                onChange={setHeightCm}
-                error={errorFor('heightCm')}
-              />
-              <NumberField
-                name="weightKg"
-                label={t('fields.weightKg')}
-                icon="weightOutline"
-                placeholder={t('intake.placeholders.weightKg')}
-                min={WEIGHT_KG_RANGE.min}
-                max={WEIGHT_KG_RANGE.max}
-                step={0.5}
-                // Digits, not characters — `70.5` still fits. See `maxDigits`.
-                maxDigits={MEASUREMENT_MAX_DIGITS}
-                required
-                value={weightKg}
-                onChange={setWeightKg}
-                error={errorFor('weightKg')}
-              />
-            </div>
+        `globals.css` decides whether a dialog clips itself or scrolls as a
+        whole by asking whether it has a `dialog-body`, and this form had
+        none — so the frame took its fallback branch and made the *dialog* the
+        scroller. On the long sections that showed as the surface sliding
+        under its own footer, and a band of empty card below it once the
+        fields ran out. The panel inside was already the right scrollport;
+        nothing had told the frame so.
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field>
-                <Label htmlFor="goal" required>
-                  {t('fields.goal')}
-                </Label>
-                <SelectField
-                  id="goal"
-                  name="goal"
-                  value={goal}
-                  onValueChange={setGoal}
-                  placeholder={t('intake.choose')}
-                  aria-required
-                  aria-invalid={errorFor('goal') !== undefined || undefined}
-                  /*
-                    ⚠ **No "Not provided" row any more.** It was here so that a
-                    goal chosen by mistake could be un-chosen without reloading
-                    the page — a good reason while the field was optional, and
-                    now an offer of the one answer the form will refuse to save.
-                    A required field has no valid empty state to walk back to;
-                    the placeholder covers the not-yet-chosen case.
-                  */
-                  options={CLIENT_GOALS.map((value) => ({ value, label: t(`goal.${value}`) }))}
-                />
-                <FieldError>{errorFor('goal')}</FieldError>
-              </Field>
-
-              <Field>
-                <Label htmlFor="activityLevel" required>
-                  {t('fields.activityLevel')}
-                </Label>
-                <SelectField
-                  id="activityLevel"
-                  name="activityLevel"
-                  value={activityLevel}
-                  onValueChange={setActivityLevel}
-                  placeholder={t('intake.choose')}
-                  aria-required
-                  aria-invalid={errorFor('activityLevel') !== undefined || undefined}
-                  options={CLIENT_ACTIVITY_LEVELS.map((value) => ({
-                    value,
-                    label: t(`activity.${value}`),
-                  }))}
-                />
-                <FieldError>{errorFor('activityLevel')}</FieldError>
-              </Field>
-            </div>
-
-            <TargetReadout
-              targets={targets}
-              protein={suggestedProtein}
-              overrideKcal={intake.dailyKcalTarget}
-            />
-          </Panel>
-
+        It wraps the shell rather than marking it, because the tablet block in
+        `globals.css` reads `[data-slot='intake-shell']` and an element
+        carries one slot. This box takes the clip and the bounded height from
+        the frame; the row below stays a row, and the panel inside it still
+        does the scrolling, so the section rail does not scroll away with the
+        fields.
+      */}
+      <div data-slot="dialog-body" data-scroll="inner" className="flex min-h-0 flex-1 flex-col p-0">
+        <div data-slot="intake-shell" className="flex min-h-0 flex-1 flex-col sm:flex-row">
+          <SectionRail
+            current={section}
+            filled={filled}
+            onSelect={setSection}
+            panelId={panelId}
+          />
 
           {/*
-            The clinic's paper assessment sheet, split across two panels.
-
-            One panel would have been eighteen questions in a single scroll —
-            the exact shape the rail exists to avoid. They split where the sheet
-            itself does: who the person is and what brought them here, then how
-            they live. Everything on both panels is optional, and the fixed
-            answers are selects rather than text so two records taken months
-            apart can be read against each other.
+            Every section stays mounted. A value typed into the schedule and then
+            navigated away from has to still be there on save — this is one form
+            with one submit, not five.
           */}
-          <Panel id="background" current={section}>
-            <p className="text-body-sm text-muted-foreground">{t('intake.backgroundHint')}</p>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <ChoiceField
-                name="maritalStatus"
-                label={t('fields.maritalStatus')}
-                defaultValue={intake.maritalStatus ?? ''}
-                options={CLIENT_MARITAL_STATUSES.map((value) => ({
-                  value,
-                  label: t(`maritalStatus.${value}`),
-                }))}
-                error={errorFor('maritalStatus')}
-              />
-              {/*
-                A count, not a "has children" switch followed by a number: the
-                count answers both, and 0 is a different answer from a blank —
-                one says none, the other says nobody asked.
-              */}
-              <NumberField
-                name="childrenCount"
-                label={t('fields.childrenCount')}
-                icon="clients"
-                placeholder={t('intake.placeholders.childrenCount')}
-                min={0}
-                max={20}
-                step={1}
-                defaultValue={intake.childrenCount?.toString() ?? ''}
-                error={errorFor('childrenCount')}
-              />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <ChoiceField
-                name="bloodType"
-                label={t('fields.bloodType')}
-                defaultValue={intake.bloodType ?? ''}
-                options={BLOOD_TYPES.map((value) => ({
-                  value,
-                  label: t(`bloodType.${value}`),
-                }))}
-                error={errorFor('bloodType')}
-              />
-              <Field>
-                <Label htmlFor="occupation">{t('fields.occupation')}</Label>
-                <Input
-                  id="occupation"
-                  name="occupation"
-                  maxLength={120}
-                  defaultValue={intake.occupation ?? ''}
-                  placeholder={t('intake.placeholders.occupation')}
+          <div
+            id={panelId}
+            className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6"
+          >
+            <Panel id="measurements" current={section}>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {/*
+                  All four fields in this panel are required — they are what the
+                  calorie formula runs on. See the ⚠ on `intakeSchema`: they are
+                  the exception on a form that is otherwise optional to the last
+                  field, and the rest of it must not follow.
+                */}
+                <NumberField
+                  name="heightCm"
+                  label={t('fields.heightCm')}
+                  icon="heightOutline"
+                  placeholder={t('intake.placeholders.heightCm')}
+                  min={HEIGHT_CM_RANGE.min}
+                  max={HEIGHT_CM_RANGE.max}
+                  step={1}
+                  /*
+                    Three digits, which is exactly what the bound above allows:
+                    300 cm and 200 kg are both three-digit numbers, so a fourth
+                    digit can only ever be a value the schema would reject. Better
+                    refused at the keystroke than accepted and complained about.
+                  */
+                  maxDigits={MEASUREMENT_MAX_DIGITS}
+                  required
+                  value={heightCm}
+                  onChange={setHeightCm}
+                  error={errorFor('heightCm')}
                 />
-                <FieldError>{errorFor('occupation')}</FieldError>
-              </Field>
-            </div>
+                <NumberField
+                  name="weightKg"
+                  label={t('fields.weightKg')}
+                  icon="weightOutline"
+                  placeholder={t('intake.placeholders.weightKg')}
+                  min={WEIGHT_KG_RANGE.min}
+                  max={WEIGHT_KG_RANGE.max}
+                  step={0.5}
+                  // Digits, not characters — `70.5` still fits. See `maxDigits`.
+                  maxDigits={MEASUREMENT_MAX_DIGITS}
+                  required
+                  value={weightKg}
+                  onChange={setWeightKg}
+                  error={errorFor('weightKg')}
+                />
+              </div>
 
-            <TextField
-              name="visitReason"
-              label={t('fields.visitReason')}
-              placeholder={t('intake.placeholders.visitReason')}
-              rows={3}
-              maxLength={1000}
-              defaultValue={intake.visitReason}
-              error={errorFor('visitReason')}
-            />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field>
+                  <Label htmlFor="goal" required>
+                    {t('fields.goal')}
+                  </Label>
+                  <SelectField
+                    id="goal"
+                    name="goal"
+                    value={goal}
+                    onValueChange={setGoal}
+                    placeholder={t('intake.choose')}
+                    aria-required
+                    aria-invalid={errorFor('goal') !== undefined || undefined}
+                    /*
+                      ⚠ **No "Not provided" row any more.** It was here so that a
+                      goal chosen by mistake could be un-chosen without reloading
+                      the page — a good reason while the field was optional, and
+                      now an offer of the one answer the form will refuse to save.
+                      A required field has no valid empty state to walk back to;
+                      the placeholder covers the not-yet-chosen case.
+                    */
+                    options={CLIENT_GOALS.map((value) => ({ value, label: t(`goal.${value}`) }))}
+                  />
+                  <FieldError>{errorFor('goal')}</FieldError>
+                </Field>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <TextField
-                name="dietHistory"
-                label={t('fields.dietHistory')}
-                placeholder={t('intake.placeholders.dietHistory')}
-                rows={3}
-                maxLength={1000}
-                defaultValue={intake.dietHistory}
-                error={errorFor('dietHistory')}
-              />
-              <TextField
-                name="familyHistory"
-                label={t('fields.familyHistory')}
-                placeholder={t('intake.placeholders.familyHistory')}
-                rows={3}
-                maxLength={1000}
-                defaultValue={intake.familyHistory}
-                error={errorFor('familyHistory')}
-              />
-            </div>
-          </Panel>
+                <Field>
+                  <Label htmlFor="activityLevel" required>
+                    {t('fields.activityLevel')}
+                  </Label>
+                  <SelectField
+                    id="activityLevel"
+                    name="activityLevel"
+                    value={activityLevel}
+                    onValueChange={setActivityLevel}
+                    placeholder={t('intake.choose')}
+                    aria-required
+                    aria-invalid={errorFor('activityLevel') !== undefined || undefined}
+                    options={CLIENT_ACTIVITY_LEVELS.map((value) => ({
+                      value,
+                      label: t(`activity.${value}`),
+                    }))}
+                  />
+                  <FieldError>{errorFor('activityLevel')}</FieldError>
+                </Field>
+              </div>
 
-          <Panel id="habits" current={section}>
-            <p className="text-body-sm text-muted-foreground">{t('intake.habitsHint')}</p>
+              <TargetReadout
+                targets={targets}
+                protein={suggestedProtein}
+                overrideKcal={intake.dailyKcalTarget}
+              />
+            </Panel>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <TextField
-                name="activityNotes"
-                label={t('fields.activityNotes')}
-                placeholder={t('intake.placeholders.activityNotes')}
-                rows={3}
-                maxLength={1000}
-                defaultValue={intake.activityNotes}
-                error={errorFor('activityNotes')}
-              />
-              <TextField
-                name="activityBarriers"
-                label={t('fields.activityBarriers')}
-                placeholder={t('intake.placeholders.activityBarriers')}
-                rows={3}
-                maxLength={1000}
-                defaultValue={intake.activityBarriers}
-                error={errorFor('activityBarriers')}
-              />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <NumberField
-                name="sleepHours"
-                label={t('fields.sleepHours')}
-                icon="clock"
-                placeholder={t('intake.placeholders.sleepHours')}
-                min={0}
-                max={16}
-                /*
-                  Half-hours, because "six and a half" is how the question gets
-                  answered. A whole-hour step would round it on the way in.
-                */
-                step={0.5}
-                defaultValue={intake.sleepHours?.toString() ?? ''}
-                error={errorFor('sleepHours')}
-              />
-              <ChoiceField
-                name="smoking"
-                label={t('fields.smoking')}
-                defaultValue={intake.smoking ?? ''}
-                options={SMOKING_HABITS.map((value) => ({
-                  value,
-                  label: t(`smoking.${value}`),
-                }))}
-                error={errorFor('smoking')}
-              />
-            </div>
-
-            <Divider label={t('intake.frequencyLegend')} />
 
             {/*
-              Ten questions on one scale, so the panel is one column of labels
-              against one column of identical selects. The period each question
-              is asked over — a day or a week — is in its label, which is where
-              the paper sheet puts it too.
+              The clinic's paper assessment sheet, split across two panels.
 
-              Ten and not six because four questions each covered more than one
-              food: caffeine was asked together with sweetened drinks, vegetables
-              together with fruit, and beef, chicken and fish shared a single
-              answer. One scale answered once per food is the same control
-              repeated, which is why splitting them costs rows of the grid and
-              nothing else.
+              One panel would have been eighteen questions in a single scroll —
+              the exact shape the rail exists to avoid. They split where the sheet
+              itself does: who the person is and what brought them here, then how
+              they live. Everything on both panels is optional, and the fixed
+              answers are selects rather than text so two records taken months
+              apart can be read against each other.
             */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              {FREQUENCY_FIELDS.map((name) => (
+            <Panel id="background" current={section}>
+              <p className="text-body-sm text-muted-foreground">{t('intake.backgroundHint')}</p>
+
+              <div className="grid gap-4 sm:grid-cols-2">
                 <ChoiceField
-                  key={name}
-                  name={name}
-                  label={t(`fields.${name}`)}
-                  defaultValue={intake[name] ?? ''}
-                  options={INTAKE_FREQUENCIES.map((value) => ({
+                  name="maritalStatus"
+                  label={t('fields.maritalStatus')}
+                  defaultValue={intake.maritalStatus ?? ''}
+                  options={CLIENT_MARITAL_STATUSES.map((value) => ({
                     value,
-                    label: t(`frequency.${value}`),
+                    label: t(`maritalStatus.${value}`),
                   }))}
-                  error={errorFor(name)}
+                  error={errorFor('maritalStatus')}
                 />
-              ))}
-            </div>
-          </Panel>
+                {/*
+                  A count, not a "has children" switch followed by a number: the
+                  count answers both, and 0 is a different answer from a blank —
+                  one says none, the other says nobody asked.
+                */}
+                <NumberField
+                  name="childrenCount"
+                  label={t('fields.childrenCount')}
+                  icon="clients"
+                  placeholder={t('intake.placeholders.childrenCount')}
+                  min={0}
+                  max={20}
+                  step={1}
+                  defaultValue={intake.childrenCount?.toString() ?? ''}
+                  error={errorFor('childrenCount')}
+                />
+              </div>
 
-          <Panel id="allergies" current={section}>
-            <AllergenField
-              defaultTags={intake.allergenTags}
-              custom={custom}
-              onCustomChange={setCustom}
-            />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <ChoiceField
+                  name="bloodType"
+                  label={t('fields.bloodType')}
+                  defaultValue={intake.bloodType ?? ''}
+                  options={BLOOD_TYPES.map((value) => ({
+                    value,
+                    label: t(`bloodType.${value}`),
+                  }))}
+                  error={errorFor('bloodType')}
+                />
+                <Field>
+                  <Label htmlFor="occupation">{t('fields.occupation')}</Label>
+                  <Input
+                    id="occupation"
+                    name="occupation"
+                    maxLength={120}
+                    defaultValue={intake.occupation ?? ''}
+                    placeholder={t('intake.placeholders.occupation')}
+                  />
+                  <FieldError>{errorFor('occupation')}</FieldError>
+                </Field>
+              </div>
 
-            <Field>
-              <Label htmlFor="allergies">{t('intake.allergyDetailLabel')}</Label>
-              <Textarea
-                id="allergies"
-                name="allergies"
-                rows={3}
-                maxLength={1000}
-                defaultValue={intake.allergies ?? ''}
-                placeholder={t('intake.allergyDetailPlaceholder')}
-              />
-              <FieldError>{errorFor('allergies')}</FieldError>
-            </Field>
-
-            {/*
-              Drug allergies, which had no control at all.
-
-              The column exists, `intakeSchema` validates it, the Nutrition tab
-              renders it, and `FIELDS_BY_SECTION` files it on this panel — the
-              only missing piece was the field itself, so the record could show
-              a drug allergy that nothing in the app could ever write. It sits
-              here rather than in Background for the reason that mapping already
-              gives: someone looking for what a client reacts to should find
-              every answer on one panel.
-            */}
-            <TextField
-              name="drugAllergies"
-              label={t('fields.drugAllergies')}
-              placeholder={t('intake.placeholders.drugAllergies')}
-              rows={3}
-              maxLength={1000}
-              defaultValue={intake.drugAllergies}
-              error={errorFor('drugAllergies')}
-            />
-          </Panel>
-
-          <Panel id="clinical" current={section}>
-            <div className="grid gap-4 sm:grid-cols-2">
               <TextField
-                name="conditions"
-                label={t('fields.conditions')}
-                placeholder={t('intake.placeholders.conditions')}
+                name="visitReason"
+                label={t('fields.visitReason')}
+                placeholder={t('intake.placeholders.visitReason')}
                 rows={3}
                 maxLength={1000}
-                defaultValue={intake.conditions}
-                error={errorFor('conditions')}
+                defaultValue={intake.visitReason}
+                error={errorFor('visitReason')}
               />
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField
+                  name="dietHistory"
+                  label={t('fields.dietHistory')}
+                  placeholder={t('intake.placeholders.dietHistory')}
+                  rows={3}
+                  maxLength={1000}
+                  defaultValue={intake.dietHistory}
+                  error={errorFor('dietHistory')}
+                />
+                <TextField
+                  name="familyHistory"
+                  label={t('fields.familyHistory')}
+                  placeholder={t('intake.placeholders.familyHistory')}
+                  rows={3}
+                  maxLength={1000}
+                  defaultValue={intake.familyHistory}
+                  error={errorFor('familyHistory')}
+                />
+              </div>
+            </Panel>
+
+            <Panel id="habits" current={section}>
+              <p className="text-body-sm text-muted-foreground">{t('intake.habitsHint')}</p>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField
+                  name="activityNotes"
+                  label={t('fields.activityNotes')}
+                  placeholder={t('intake.placeholders.activityNotes')}
+                  rows={3}
+                  maxLength={1000}
+                  defaultValue={intake.activityNotes}
+                  error={errorFor('activityNotes')}
+                />
+                <TextField
+                  name="activityBarriers"
+                  label={t('fields.activityBarriers')}
+                  placeholder={t('intake.placeholders.activityBarriers')}
+                  rows={3}
+                  maxLength={1000}
+                  defaultValue={intake.activityBarriers}
+                  error={errorFor('activityBarriers')}
+                />
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <NumberField
+                  name="sleepHours"
+                  label={t('fields.sleepHours')}
+                  icon="clock"
+                  placeholder={t('intake.placeholders.sleepHours')}
+                  min={0}
+                  max={16}
+                  /*
+                    Half-hours, because "six and a half" is how the question gets
+                    answered. A whole-hour step would round it on the way in.
+                  */
+                  step={0.5}
+                  defaultValue={intake.sleepHours?.toString() ?? ''}
+                  error={errorFor('sleepHours')}
+                />
+                <ChoiceField
+                  name="smoking"
+                  label={t('fields.smoking')}
+                  defaultValue={intake.smoking ?? ''}
+                  options={SMOKING_HABITS.map((value) => ({
+                    value,
+                    label: t(`smoking.${value}`),
+                  }))}
+                  error={errorFor('smoking')}
+                />
+              </div>
+
+              <Divider label={t('intake.frequencyLegend')} />
+
+              {/*
+                Ten questions on one scale, so the panel is one column of labels
+                against one column of identical selects. The period each question
+                is asked over — a day or a week — is in its label, which is where
+                the paper sheet puts it too.
+
+                Ten and not six because four questions each covered more than one
+                food: caffeine was asked together with sweetened drinks, vegetables
+                together with fruit, and beef, chicken and fish shared a single
+                answer. One scale answered once per food is the same control
+                repeated, which is why splitting them costs rows of the grid and
+                nothing else.
+              */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                {FREQUENCY_FIELDS.map((name) => (
+                  <ChoiceField
+                    key={name}
+                    name={name}
+                    label={t(`fields.${name}`)}
+                    defaultValue={intake[name] ?? ''}
+                    options={INTAKE_FREQUENCIES.map((value) => ({
+                      value,
+                      label: t(`frequency.${value}`),
+                    }))}
+                    error={errorFor(name)}
+                  />
+                ))}
+              </div>
+            </Panel>
+
+            <Panel id="allergies" current={section}>
+              <AllergenField
+                defaultTags={intake.allergenTags}
+                custom={custom}
+                onCustomChange={setCustom}
+              />
+
+              <Field>
+                <Label htmlFor="allergies">{t('intake.allergyDetailLabel')}</Label>
+                <Textarea
+                  id="allergies"
+                  name="allergies"
+                  rows={3}
+                  maxLength={1000}
+                  defaultValue={intake.allergies ?? ''}
+                  placeholder={t('intake.allergyDetailPlaceholder')}
+                />
+                <FieldError>{errorFor('allergies')}</FieldError>
+              </Field>
+
+              {/*
+                Drug allergies, which had no control at all.
+
+                The column exists, `intakeSchema` validates it, the Nutrition tab
+                renders it, and `FIELDS_BY_SECTION` files it on this panel — the
+                only missing piece was the field itself, so the record could show
+                a drug allergy that nothing in the app could ever write. It sits
+                here rather than in Background for the reason that mapping already
+                gives: someone looking for what a client reacts to should find
+                every answer on one panel.
+              */}
               <TextField
-                name="medications"
-                label={t('fields.medications')}
-                placeholder={t('intake.placeholders.medications')}
+                name="drugAllergies"
+                label={t('fields.drugAllergies')}
+                placeholder={t('intake.placeholders.drugAllergies')}
                 rows={3}
                 maxLength={1000}
-                defaultValue={intake.medications}
-                error={errorFor('medications')}
+                defaultValue={intake.drugAllergies}
+                error={errorFor('drugAllergies')}
               />
-            </div>
+            </Panel>
 
-            {/*
-              One note, not two.
+            <Panel id="clinical" current={section}>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField
+                  name="conditions"
+                  label={t('fields.conditions')}
+                  placeholder={t('intake.placeholders.conditions')}
+                  rows={3}
+                  maxLength={1000}
+                  defaultValue={intake.conditions}
+                  error={errorFor('conditions')}
+                />
+                <TextField
+                  name="medications"
+                  label={t('fields.medications')}
+                  placeholder={t('intake.placeholders.medications')}
+                  rows={3}
+                  maxLength={1000}
+                  defaultValue={intake.medications}
+                  error={errorFor('medications')}
+                />
+              </div>
 
-              These were `medicalNotes` and `notes`: two textareas under one
-              heading, both private to the clinic, both free prose, told apart
-              only by their labels — "ملاحظات طبية" over "ملاحظات". Nothing said
-              which one a note belonged in, so the answer was whichever the
-              dietitian's eye landed on first, and reading a record meant
-              reading both boxes to be sure.
+              {/*
+                One note, not two.
 
-              The heading names the group and the field is the group, so the
-              divider goes with the second box: a labelled rule above a single
-              field is a section of one. Text already in `notes` is merged into
-              the value below — see `mergedNotes`.
-            */}
-            <TextField
-              name="medicalNotes"
-              label={t('intake.notesDivider')}
-              placeholder={t('intake.placeholders.medicalNotes')}
-              rows={5}
-              maxLength={4000}
-              defaultValue={mergedNotes(intake.medicalNotes, intake.notes)}
-              error={errorFor('medicalNotes')}
-            />
-          </Panel>
+                These were `medicalNotes` and `notes`: two textareas under one
+                heading, both private to the clinic, both free prose, told apart
+                only by their labels — "ملاحظات طبية" over "ملاحظات". Nothing said
+                which one a note belonged in, so the answer was whichever the
+                dietitian's eye landed on first, and reading a record meant
+                reading both boxes to be sure.
 
-          <Panel id="planning" current={section}>
-            <TextField
-              name="permanentInstructions"
-              label={t('fields.permanentInstructions')}
-              placeholder={t('intake.placeholders.permanentInstructions')}
-              rows={3}
-              maxLength={2000}
-              defaultValue={intake.permanentInstructions}
-              error={errorFor('permanentInstructions')}
-            />
-
-            <div className="grid gap-4 sm:grid-cols-2">
+                The heading names the group and the field is the group, so the
+                divider goes with the second box: a labelled rule above a single
+                field is a section of one. Text already in `notes` is merged into
+                the value below — see `mergedNotes`.
+              */}
               <TextField
-                name="preferences"
-                label={t('fields.preferences')}
-                placeholder={t('intake.placeholders.preferences')}
-                rows={3}
-                maxLength={1000}
-                defaultValue={intake.preferences}
-                error={errorFor('preferences')}
+                name="medicalNotes"
+                label={t('intake.notesDivider')}
+                placeholder={t('intake.placeholders.medicalNotes')}
+                rows={5}
+                maxLength={4000}
+                defaultValue={mergedNotes(intake.medicalNotes, intake.notes)}
+                error={errorFor('medicalNotes')}
               />
+            </Panel>
+
+            <Panel id="planning" current={section}>
               <TextField
-                name="dislikes"
-                label={t('fields.dislikes')}
-                placeholder={t('intake.placeholders.dislikes')}
+                name="permanentInstructions"
+                label={t('fields.permanentInstructions')}
+                placeholder={t('intake.placeholders.permanentInstructions')}
                 rows={3}
-                maxLength={1000}
-                defaultValue={intake.dislikes}
-                error={errorFor('dislikes')}
+                maxLength={2000}
+                defaultValue={intake.permanentInstructions}
+                error={errorFor('permanentInstructions')}
               />
-            </div>
 
-            <Divider label={t('intake.overrideDivider')} />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField
+                  name="preferences"
+                  label={t('fields.preferences')}
+                  placeholder={t('intake.placeholders.preferences')}
+                  rows={3}
+                  maxLength={1000}
+                  defaultValue={intake.preferences}
+                  error={errorFor('preferences')}
+                />
+                <TextField
+                  name="dislikes"
+                  label={t('fields.dislikes')}
+                  placeholder={t('intake.placeholders.dislikes')}
+                  rows={3}
+                  maxLength={1000}
+                  defaultValue={intake.dislikes}
+                  error={errorFor('dislikes')}
+                />
+              </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <NumberField
-                name="dailyKcalTarget"
-                label={t('fields.dailyKcalTarget')}
-                icon="calories"
-                min={800}
-                max={6000}
-                step={50}
-                /*
-                  Placeholder, never prefilled: an empty field means "keep using
-                  the formula", and prefilling would silently freeze today's
-                  number into a permanent override.
+              <Divider label={t('intake.overrideDivider')} />
 
-                  The formula needs a weight, a height, a goal and an activity
-                  level, and until all four are in it returns nothing — which
-                  left this box showing an icon and no text at all, on the one
-                  screen where an empty box has a *meaning*. The fallback says
-                  what the emptiness is for.
-                */
-                placeholder={
-                  targets.suggestedKcal?.toString() ?? t('intake.placeholders.computedTarget')
-                }
-                defaultValue={intake.dailyKcalTarget?.toString() ?? ''}
-                error={errorFor('dailyKcalTarget')}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <NumberField
+                  name="dailyKcalTarget"
+                  label={t('fields.dailyKcalTarget')}
+                  icon="calories"
+                  min={800}
+                  max={6000}
+                  step={50}
+                  /*
+                    Placeholder, never prefilled: an empty field means "keep using
+                    the formula", and prefilling would silently freeze today's
+                    number into a permanent override.
+
+                    The formula needs a weight, a height, a goal and an activity
+                    level, and until all four are in it returns nothing — which
+                    left this box showing an icon and no text at all, on the one
+                    screen where an empty box has a *meaning*. The fallback says
+                    what the emptiness is for.
+                  */
+                  placeholder={
+                    targets.suggestedKcal?.toString() ?? t('intake.placeholders.computedTarget')
+                  }
+                  defaultValue={intake.dailyKcalTarget?.toString() ?? ''}
+                  error={errorFor('dailyKcalTarget')}
+                />
+                <NumberField
+                  name="proteinTargetGrams"
+                  label={t('fields.proteinTargetGrams')}
+                  icon="protein"
+                  min={20}
+                  max={400}
+                  step={5}
+                  // Same fallback, and this one needs it more often: the protein
+                  // suggestion runs on the weight alone, so it is blank only
+                  // before the very first measurement is recorded.
+                  placeholder={
+                    suggestedProtein?.toString() ?? t('intake.placeholders.computedTarget')
+                  }
+                  defaultValue={intake.proteinTargetGrams?.toString() ?? ''}
+                  error={errorFor('proteinTargetGrams')}
+                />
+              </div>
+            </Panel>
+
+            <Panel id="schedule" current={section}>
+              <MealScheduleField
+                slots={slots}
+                onChange={setSlots}
+                error={errorFor('mealSchedule')}
               />
-              <NumberField
-                name="proteinTargetGrams"
-                label={t('fields.proteinTargetGrams')}
-                icon="protein"
-                min={20}
-                max={400}
-                step={5}
-                // Same fallback, and this one needs it more often: the protein
-                // suggestion runs on the weight alone, so it is blank only
-                // before the very first measurement is recorded.
-                placeholder={
-                  suggestedProtein?.toString() ?? t('intake.placeholders.computedTarget')
-                }
-                defaultValue={intake.proteinTargetGrams?.toString() ?? ''}
-                error={errorFor('proteinTargetGrams')}
-              />
-            </div>
-          </Panel>
-
-          <Panel id="schedule" current={section}>
-            <MealScheduleField
-              slots={slots}
-              onChange={setSlots}
-              error={errorFor('mealSchedule')}
-            />
-          </Panel>
+            </Panel>
+          </div>
         </div>
       </div>
 

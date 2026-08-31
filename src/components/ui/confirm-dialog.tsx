@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { SheetGrip, useSheetDrag } from '@/components/ui/dialog-drag';
 import { DIALOG_NATIVE_CLOSE_DELAY_MS } from '@/components/ui/dialog-motion';
 import { getLocaleDirection, type Locale } from '@/i18n/routing';
 
@@ -70,6 +71,20 @@ export function ConfirmDialog({
   const settled = useRef(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  /*
+    Swipe-down-to-dismiss, the same gesture `Dialog` arms — this surface is a
+    bottom sheet below `sm` too, and a reader who learned the push on one has
+    learned it here. Pushing it away is a "no", exactly as Escape and the
+    backdrop are.
+
+    `beginClose` is a hoisted function declaration, so naming it above its own
+    definition is safe; the hook only ever calls it from a pointer handler.
+  */
+  const dragProps = useSheetDrag(dialogRef, {
+    enabled: true,
+    onDismiss: () => beginClose(false),
+  });
+
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog?.open) dialog?.showModal();
@@ -125,6 +140,7 @@ export function ConfirmDialog({
         if (event.target === dialogRef.current) beginClose(false);
       }}
     >
+      <SheetGrip {...dragProps} />
       <div className="flex flex-col gap-3 p-4 text-start">
         <h2 data-slot="dialog-header" id={titleId} className="text-base font-semibold" dir="auto">
           {title}

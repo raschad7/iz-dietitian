@@ -23,10 +23,39 @@ import { cn } from '@/lib/utils';
  * ## Shape
  *
  * The track carries the radius; the thumb takes a smaller one, so it reads as
- * sitting inside the track rather than as a second track. The thumb moves by
- * re-tinting rather than by translating a shared element,
- * because the options are not a fixed width in two languages and an animated
- * offset would need measuring on every locale change.
+ * sitting inside the track rather than as a second track.
+ *
+ * **`pill` and `contained` move a real thumb; `default` re-tints.** The
+ * distinction is not taste, it is arithmetic. Both lay their options out
+ * `flex-1`, so they are *equal* by construction and the selected one's offset is
+ * `index / count` of the track — a number this component already knows, with
+ * nothing to measure. `default` sizes its options to their labels, which are two
+ * different widths in two languages, so a travelling thumb there really would
+ * need measuring on every locale change and re-measuring on every font swap. It
+ * keeps the re-tint.
+ *
+ * The offset is written to `inset-inline-start` rather than to a `translate`.
+ * A transform would need the sign flipped in Arabic — positive X is rightward
+ * in both directions — which means either a `:dir()` rule or reading the
+ * computed direction during render. The logical inset resolves to `left` in
+ * English and `right` in Arabic on its own, and at this size the difference in
+ * paint cost is not measurable against a correctness trap.
+ *
+ * ⚠ The thumb assumes **every option is visible**. `SegmentedOption.className`
+ * can gate an option by width, which would leave the thumb counting a segment
+ * that is not on screen — so do not combine that gate with `pill` or
+ * `contained`. The calendar's view switch is `contained`, and it gates the whole
+ * control below `md` rather than any single segment, so all three are always
+ * present together whenever the thumb is.
+ *
+ * ⚠ **Never pass a `display` utility in `className` on a thumbed shape.** The
+ * equal-thirds arithmetic above is only true because `contained` is an
+ * `inline-grid` of equal columns (and `pill` a `w-full` flex row). The calendar
+ * hid its switch with `hidden md:inline-flex`, which reinstated flex from `md`
+ * up — segments then sized to their own labels, and since Arabic's "يوم" is far
+ * shorter than "أسبوع" the raised card landed across the wrong segment and hung
+ * off the end of the track. Hide a thumbed control with `max-*:hidden`, which
+ * only ever writes `display: none` and leaves the layout to this component.
  *
  * `shape="pill"` is the phone form: a track spanning the row with two equal
  * halves inside it. It exists because a switch that is the *first* thing on a
@@ -73,6 +102,7 @@ function Segmented<T extends string>({
   options,
   value,
   onChange,
+  onOptionHover,
   label,
   role = 'tablist',
   size = 'default',
@@ -84,6 +114,19 @@ function Segmented<T extends string>({
   options: readonly SegmentedOption<T>[];
   value: T;
   onChange: (value: T) => void;
+  /**
+   * A segment is about to be chosen — the pointer is on it, or focus has
+   * reached it. Optional, and for preparing the *result* of a choice, never for
+   * making one: it fires for segments the reader then moves off.
+   *
+   * The calendar uses it to prefetch the view under the pointer, so that by the
+   * time the click lands the page is already in the router cache. Hover leads a
+   * click by a couple of hundred milliseconds, which is most of a round trip.
+   *
+   * `onFocus` as well as `onMouseEnter`, so a keyboard arrowing along the track
+   * gets the same head start a pointer does.
+   */
+  onOptionHover?: (value: T) => void;
   /** Names the group for a screen reader, e.g. "Calendar view". */
   label: string;
   role?: 'tablist' | 'radiogroup';
@@ -114,12 +157,32 @@ function Segmented<T extends string>({
     activeClassName ??
     (pill || contained ? 'bg-card text-foreground' : 'bg-primary text-primary-foreground');
 
+  /*
+   * Where the travelling thumb is, for `pill` and `contained` — the two shapes
+   * whose segments are equal-width by construction, so the selected one's offset
+   * is `index / count` of the track with nothing to measure. `-1` — a value that
+   * is not in `options` — parks it out of sight rather than snapping it to the
+   * first segment, so a controlled caller passing an unknown value shows *no*
+   * selection instead of a wrong one.
+   */
+  const selectedIndex = options.findIndex((option) => option.value === value);
+  const showThumb = (pill || contained) && selectedIndex >= 0;
+
+  /*
+   * The track's own padding, as a number the thumb and the CSS below can agree
+   * on. `p-1` is 4px, so the segments share `100% - 8px` between them.
+   */
+  const trackPad = '0.25rem';
+  const segmentWidth = `calc((100% - ${trackPad} * 2) / ${options.length})`;
+
   return (
     <div
       role={role}
       aria-label={label}
       className={cn(
         'inline-flex rounded-lg border border-border p-0.5',
+        // The thumb is positioned against this box.
+        (pill || contained) && 'relative isolate',
         /*
          * 44px segments inside 4px of track, so the control lands at 52px and
          * every half clears the touch minimum on its own. `w-full` rather than
@@ -130,8 +193,19 @@ function Segmented<T extends string>({
         // and the selected half is the only thing on this control that lifts.
         pill && 'w-full rounded-[14px] border-transparent bg-muted p-1',
         // Matches the contained link tabs used by Settings: the same 44px
-        // recessed track with a raised card for the selected view.
-        contained && 'h-11 gap-0.5 rounded-lg border-transparent bg-muted p-1',
+        // recessed track with a raised card for the selected view. No `gap`
+        // between the segments — like `pill`, they sit flush so the travelling
+        // thumb, sized to `100% / count`, lands exactly on one of them.
+        //
+        // `inline-grid` with equal `fr` columns, **not** flex. The track sizes
+        // to its content (it lives in a toolbar and must not stretch across its
+        // grid track), and `flex-1` cannot equalise segments inside a
+        // shrink-to-fit flex box — with no free space to distribute, each
+        // segment collapses to its own label and "day"/"week"/"month" come out
+        // three different widths, which the equal-thirds thumb would then miss.
+        // Equal `fr` columns in a shrink-to-fit grid all resolve to the widest
+        // label, so the segments are equal *and* the control stays content-wide.
+        contained && 'inline-grid auto-cols-fr grid-flow-col h-11 rounded-lg border-transparent bg-muted p-1',
         /*
          * `sm` is pinned to 40px so the control matches `Button size="sm"` and
          * a 40px field beside it — the height is set on the *track*, and the
@@ -146,6 +220,37 @@ function Segmented<T extends string>({
         className,
       )}
     >
+      {/*
+        The thumb.
+
+        `aria-hidden` and `pointer-events-none`: it is the selection *drawn*, and
+        the selection is already announced by `aria-checked` / `aria-selected` on
+        the button it sits under. A screen reader that met this would find an
+        unlabelled element between the options.
+
+        `-z-10` against the track's `isolate` puts it behind the labels without
+        escaping into any stacking context the caller happens to be inside.
+      */}
+      {showThumb ? (
+        <span
+          aria-hidden="true"
+          className={cn(
+            'pointer-events-none absolute inset-y-1 -z-10',
+            // Concentric with the segment it sits under: 10px inside the pill's
+            // 14px well, 6px (`rounded-md`) inside the contained track's `lg`.
+            pill ? 'rounded-[10px]' : 'rounded-md',
+            'transition-[inset-inline-start] duration-(--duration-arc) ease-(--ease-sweep)',
+            'motion-reduce:transition-none',
+            selectedClassName,
+            'shadow-card',
+          )}
+          style={{
+            inlineSize: segmentWidth,
+            insetInlineStart: `calc(${trackPad} + ${selectedIndex} * ${segmentWidth})`,
+          }}
+        />
+      ) : null}
+
       {options.map((option) => {
         const active = option.value === value;
 
@@ -157,6 +262,8 @@ function Segmented<T extends string>({
             aria-selected={isTablist ? active : undefined}
             aria-checked={isTablist ? undefined : active}
             onClick={() => onChange(option.value)}
+            onMouseEnter={onOptionHover ? () => onOptionHover(option.value) : undefined}
+            onFocus={onOptionHover ? () => onOptionHover(option.value) : undefined}
             className={cn(
               'flex items-center justify-center rounded-md font-medium',
               'transition-[color,background-color,box-shadow,transform] duration-(--duration-label) ease-(--ease-sweep)',
@@ -171,19 +278,49 @@ function Segmented<T extends string>({
               // 10px against the track's 14px less its 4px of padding:
               // concentric, so the half sits inside the well rather than
               // looking pasted onto it.
-              pill && 'relative h-11 flex-1 rounded-[10px] px-3 py-0 font-semibold',
-              contained && 'h-full min-w-0 flex-auto rounded-md px-2.5 py-0',
+              // `font-normal`, not the base `font-medium`: in Arabic the two are
+              // the same 400 file anyway, and this is the one weight that is a
+              // real step down in both scripts.
+              // ⚠ `min-w-0` is what makes `flex-1` here actually mean *equal
+              // fifths*, and the thumb depends on it. A flex item's default
+              // `min-width: auto` refuses to shrink below its own content, so
+              // once the labels no longer fit — five views in the client record
+              // at a narrow desktop width, where four settings tabs never did —
+              // the segments size to their labels instead, come out unequal, and
+              // the thumb behind them (sized `100% / count`) lands across a
+              // seam. With it they stay equal and the longest label truncates,
+              // which is the failure this control can survive.
+              pill && 'relative h-11 min-w-0 flex-1 rounded-[10px] px-3 py-0 font-normal',
+              // Equal-width by the track's grid columns (see the track above),
+              // so the travelling thumb behind them lands on one exactly. The
+              // button stretches to fill its `1fr` cell on its own — no `flex-1`,
+              // which would be inert on a grid item anyway.
+              contained && 'relative h-full rounded-md px-2.5 py-0',
               // The default shape stays olive; recessed shapes lift a neutral
               // card out of their track unless the caller overrides it.
               active
-                ? cn(
-                    selectedClassName,
-                    'scale-100 shadow-card',
-                    'motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 motion-safe:duration-(--duration-label)',
-                  )
+                ? pill || contained
+                  ? /*
+                      Label colour and nothing else. The fill, the radius and the
+                      shadow are all on the thumb behind this button now —
+                      repainting them here would put an opaque box over the
+                      element that is doing the travelling, and the segment would
+                      appear to arrive before the thumb did.
+
+                      No `animate-in` either, for the same reason: a segment that
+                      zooms itself in on selection is a *second* answer to "which
+                      one is picked", fired at the moment the first one starts
+                      moving.
+                    */
+                    'text-foreground'
+                  : cn(
+                      selectedClassName,
+                      'scale-100 shadow-card',
+                      'motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 motion-safe:duration-(--duration-label)',
+                    )
                 : inactiveClassName
                   ? inactiveClassName
-                  : pill
+                  : pill || contained
                   ? // Label colour alone, with no hover fill of its own: the
                     // track *is* a fill, so tinting a half on hover puts a
                     // second grey inside the first and reads as a half that has

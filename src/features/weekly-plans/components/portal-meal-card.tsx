@@ -7,11 +7,10 @@ import { roundForDisplay, roundGrams } from '@/features/weekly-plans/nutrition';
 import { cn } from '@/lib/utils';
 
 import { localizedName } from '../food-display';
-import { servingGuideFor, servingGuideLines } from '../serving-guide';
 
+import { AnimatedDisclosure } from './animated-disclosure';
 import { MealCheck } from './meal-check';
-import { ServingGuideList } from './serving-guide-list';
-import { SettledMealCheck } from './meal-check-mark';
+import { MealIngredientAmounts } from './meal-ingredient-amounts';
 import type { BoardMeal } from '../queries';
 import { mealTypeForSlot, type MealType } from '../schema';
 import type { DayStanding } from '../week';
@@ -51,16 +50,6 @@ export const MEAL_ICONS = {
 const MEAL_SHELL = 'bg-meal-bg text-meal-fg';
 
 /**
- * The tick's colour on a day this component does not let you edit — past or
- * future's empty ring. The same `--meal-check-fill` green `MealCheck` wears
- * on the live button — see that token's comment in `globals.css` for why it
- * replaced green-500 here. A meal ticked today must not look like a
- * different kind of tick tomorrow, so this stays in lockstep with
- * `MealCheck`'s own colour rather than drifting back to `text-primary`.
- */
-const TICK_TONE = 'text-meal-check-fill';
-
-/**
  * One meal: a closed card that opens.
  *
  * A day is five meals, and each one fully expanded is a screen and a half of
@@ -74,12 +63,12 @@ const TICK_TONE = 'text-meal-check-fill';
  * week's dishes and ingredients are never shipped to the browser; and the
  * keyboard, the screen reader and find-in-page all work without being wired up.
  *
- * **The tick has three states, and only one of them is a control.**
+ * **The tick has two states, and it is a control on both.**
  *
- * - **Today** — the live `MealCheck`. The only day whose meals can be reported
- *   on, and the only day that ships any JavaScript for it.
- * - **A day that has ended** — `SettledMealCheck`: the same mark, stated rather
- *   than offered.
+ * - **Today, or a day already behind it** — the live `MealCheck`. A client
+ *   corrects yesterday's log the same way they set it in the first place;
+ *   `toggleMealCompletion` enforces the same rule server-side, so this is a
+ *   courtesy rather than the only guard.
  * - **A day that has not arrived** — nothing at all. Not a disabled circle: an
  *   empty ring on tomorrow's breakfast is a question ("have you eaten this?")
  *   whose only honest answer is "not yet, and you couldn't have", and five of
@@ -87,20 +76,16 @@ const TICK_TONE = 'text-meal-check-fill';
  *   The meal itself is unchanged — a future day is exactly what this screen is
  *   for reading.
  *
- * The row's shape survives all three. The tick's 44px footprint is kept on a
- * settled day and given up entirely on a future one, where nothing else is
- * competing for the inline-start edge.
+ * The row's shape survives both. The tick's 44px footprint is given up
+ * entirely on a future day, where nothing else is competing for the
+ * inline-start edge.
  */
 export function PortalMealCard({
   meal,
   standing,
-  completed,
 }: {
   meal: BoardMeal;
   standing: DayStanding;
-  /**
-   *  Server-known and fixed on a settled day; on today `MealCheck` owns it instead. */
-  completed: boolean;
 }) {
   const t = useTranslations('portal.plan');
   // The client's own locale, from next-intl — the same mechanism the staff board
@@ -111,11 +96,10 @@ export function PortalMealCard({
   const mealIcon = MEAL_ICONS[mealType];
   const dish = meal.dish;
 
-  // Empty for a dish with no guide, which is the safe default — see
-  // `serving-guide.ts`. The portal never falls back to the recipe; the weight and
-  // the dish's own serving label are what it says instead.
-  const guide = dish ? servingGuideFor(dish.slug) : null;
-  const servingLines = guide && dish ? servingGuideLines(guide, dish.servings, locale) : [];
+  // The same lines the dietitian set, in the same units. There is deliberately no
+  // second rendering for the patient: what she adjusted on the board is what they
+  // read here, or the two screens would be describing the same meal differently.
+  const servingLines = meal.lines;
 
   return (
     /*
@@ -129,26 +113,25 @@ export function PortalMealCard({
     */
     <Card
       className={cn(
-    'gap-0 p-1.5 shadow-none ring-0 transition-colors duration-(--duration-label)',
+    'gap-0 p-1 shadow-none ring-0 transition-colors duration-(--duration-label)',
     'group-open:bg-meal-bg-checked/70 group-open:ring-1 group-open:ring-meal-border-checked',
     'has-[[aria-checked=true]]:bg-meal-bg-checked/70 has-[[aria-checked=true]]:ring-1 has-[[aria-checked=true]]:ring-meal-border-checked',
-    MEAL_SHELL, 
-  )} 
+    MEAL_SHELL,
+  )}
     >
-      <details className="q-disclosure group">
+      <details className="group">
         {/*
-          The whole row is the control — 48px tall and full width, so it is a
-          target that cannot be missed rather than a chevron that has to be aimed
-          at, while still clearing the 44px tick's own footprint. `list-none`
-          plus the WebKit marker rule removes the default triangle in every
-          engine.
+          The whole row is the control — full width, and no shorter than the
+          44px tick's own footprint (`min-h-11`), so it stays a target that
+          cannot be missed rather than a chevron that has to be aimed at.
+          `list-none` plus the WebKit marker rule removes the default
+          triangle in every engine.
         */}
         {/*
-          `gap-2.5` again: the kcal pill left the row, so four elements share
-          three gaps where five shared four, and the eight pixels that were
-          taken out of them go back.
+          `gap-2`: the kcal pill left the row, so four elements share three
+          gaps where five shared four.
         */}
-        <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2.5 rounded-md px-2.5 py-1.5 outline-none transition-colors hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo [&::-webkit-details-marker]:hidden">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-md px-2 py-1 outline-none transition-colors hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo [&::-webkit-details-marker]:hidden">
           {/*
             The tick leads the row, at the **inline-start** — the edge a column of
             five is read down, so "which of these have I eaten" is answered by one
@@ -158,22 +141,28 @@ export function PortalMealCard({
             lands on the left, from the same source order.
 
             It stores nothing itself — see `meal-check.tsx`. Its label names the
-            meal, because five identical "mark as eaten" buttons on one screen give
-            a screen reader no way to tell which is which — and the settled
-            labels name it too, for the same reason.
+            meal, because five identical "mark as eaten" buttons on one screen
+            give a screen reader no way to tell which is which.
 
-            A future day renders neither, which is why this is a three-way and
+            A future day renders neither, which is why this is a two-way and
             not a `disabled` prop.
+
+            **A real descendant of `<summary>`, deliberately, despite the
+            temptation to lift it out.** Every `<details>`'s `::details-content`
+            box — a UA default, not something the `q-disclosure` class opts
+            into — wraps every child *except* the first `<summary>` and
+            collapses it to zero height while closed, regardless of whether
+            anything here styles that pseudo-element. A sibling placed
+            outside `<summary>` to dodge the touch bug below would vanish
+            along with the rest of the panel whenever the card is shut, which
+            is exactly when this tick is needed most. The fix for the touch
+            bug lives in `animated-disclosure.tsx` instead, where the click
+            is told apart from inside the one listener that actually
+            receives it first.
           */}
-          {standing === 'today' ? (
+          {standing === 'future' ? null : (
             <MealCheck mealId={meal.id} label={t('markEaten', { meal: meal.label })} />
-          ) : standing === 'past' ? (
-            <SettledMealCheck
-              checked={completed}
-              label={t(completed ? 'wasEaten' : 'wasNotEaten', { meal: meal.label })}
-              className={TICK_TONE}
-            />
-          ) : null}
+          )}
 
           {/*
             `span`, not `p`: a <summary> takes phrasing content, so a paragraph
@@ -181,15 +170,16 @@ export function PortalMealCard({
           */}
           <span className="min-w-0 flex-1">
             {/*
-              `text-heading-sm` (20px/600) rather than `text-base`: this row is
-              the card's title — the one thing a client is scanning five of to
-              find "which meal" — and the scale's own role table names that
-              exact job (§Typography "Card titles, dialog titles"). The step
-              bakes its own leading and weight, so it replaces
-              `leading-snug font-semibold` rather than joining them.
+              `text-sm font-semibold`, down from `text-heading-sm` (20px):
+              five of these stacked was taller than a client wanted to scroll
+              past to reach the plan below, and the tick beside it already
+              carries the row's own 44px — the title no longer has to match
+              that height to stay legible.
             */}
-            <span className="block font-heading text-heading-sm text-meal-fg/70">{meal.label}</span>
-            <span className="block truncate text-sm text-meal-fg/70">
+            <span className="block font-heading text-sm leading-snug font-semibold text-meal-fg/70">
+              {meal.label}
+            </span>
+            <span className="block truncate text-xs text-meal-fg/70">
               {/* `dir="ltr"`: a clock time reads the same way in both languages. */}
               <span dir="ltr" className="tabular-nums">
                 {meal.timeOfDay}
@@ -207,7 +197,7 @@ export function PortalMealCard({
           */}
           <Icon
             name="chevronDown"
-            className="size-4 shrink-0 opacity-70 transition-transform duration-(--duration-sweep) ease-(--ease-sweep) group-open:rotate-180"
+            className="size-3.5 shrink-0 opacity-70 transition-transform duration-(--duration-sweep) ease-(--ease-sweep) group-open:rotate-180"
           />
 
           {/*
@@ -218,7 +208,7 @@ export function PortalMealCard({
             — everything that identifies the meal is at the start, everything that
             is chrome is here. `opacity-70` to match the label and chevron beside it.
           */}
-          <Icon name={mealIcon} className="size-5 shrink-0 opacity-70" />
+          <Icon name={mealIcon} className="size-4 shrink-0 opacity-70" />
         </summary>
 
         {/*
@@ -228,6 +218,7 @@ export function PortalMealCard({
           opens inside of, not as a second, whiter surface floating on top.
         */}
         <div className="mt-1.5 rounded-lg bg-meal-bg p-4">
+          <AnimatedDisclosure />
           {dish ? (
             <div className="space-y-4">
               {/*
@@ -349,7 +340,7 @@ export function PortalMealCard({
               {servingLines.length > 0 ? (
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-muted-foreground">{t('mealQuantity')}</p>
-                  <ServingGuideList lines={servingLines} />
+                  <MealIngredientAmounts lines={servingLines} locale={locale} />
                 </div>
               ) : null}
             </div>

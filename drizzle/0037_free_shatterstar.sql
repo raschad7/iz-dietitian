@@ -1,0 +1,2 @@
+ALTER TABLE "whatsapp_settings" ADD COLUMN "reschedules_enabled" boolean DEFAULT true NOT NULL;--> statement-breakpoint
+ALTER TABLE "whatsapp_settings" ADD COLUMN "payment_reminders_enabled" boolean DEFAULT true NOT NULL;

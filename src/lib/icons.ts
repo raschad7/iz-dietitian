@@ -1,12 +1,19 @@
 import {
   Apple,
+  FileDown,
+  FilePenLine,
+  FileSpreadsheet,
   Archive,
   ArchiveRestore,
   ArrowLeft,
   ArrowUpDown,
   ArrowUpRight,
+  Ban,
   Beef,
+  Banknote,
+  BanknoteArrowUp,
   Bell,
+  Briefcase,
   Building2,
   Calendar,
   CalendarCheck,
@@ -14,13 +21,18 @@ import {
   CalendarRange,
   CalendarSync,
   CalendarX,
+  Candy,
+  Carrot,
   ChartLine,
   Check,
   ChefHat,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   ChevronUp,
+  Cigarette,
   Circle,
   CircleCheck,
   CircleUser,
@@ -30,19 +42,23 @@ import {
   Compass,
   Cookie,
   Copy,
+  CreditCard,
   CupSoda,
   DoorClosed,
   DoorOpen,
   Download,
   Droplet,
+  Drumstick,
   Eraser,
   Eye,
   EyeOff,
   FileLock,
   FileText,
+  FileType,
+  Fish,
   Flame,
   Footprints,
-  GripVertical,
+  GripHorizontal,
   Heart,
   HelpCircle,
   History,
@@ -64,6 +80,7 @@ import {
   Menu,
   MessageCircle,
   MessageSquare,
+  Milk,
   Minus,
   Moon,
   MoreVertical,
@@ -71,9 +88,13 @@ import {
   Pencil,
   Phone,
   Pill,
+  Pizza,
   Plus,
+  Printer,
+  Receipt,
   RefreshCw,
   Repeat,
+  RotateCcw,
   Ruler,
   Sandwich,
   Search,
@@ -96,6 +117,7 @@ import {
   User,
   UserPlus,
   Users,
+  WalletMinimal,
   Utensils,
   UtensilsCrossed,
   Venus,
@@ -104,6 +126,17 @@ import {
   Zap,
   type LucideIcon,
 } from 'lucide-react';
+
+import { WhatsappMark } from '@/components/ui/whatsapp-mark';
+
+/**
+ * A glyph drawn here rather than taken from lucide.
+ *
+ * It has to accept the props `Icon` hands every entry in the registry — the
+ * className that sizes it, the aria attributes that hide or name it — so that
+ * a call site cannot tell which of the two it asked for.
+ */
+type AppGlyph = (props: React.ComponentProps<'svg'>) => React.ReactElement;
 
 /**
  * Every icon in the app, by the name the app calls it.
@@ -130,12 +163,64 @@ export const APP_ICONS = {
   /* Navigation and sections */
   dashboard: LayoutDashboard,
   clients: Users,
+  /*
+    The two halves of the Subscriber group in the rail. `clients` is the group's
+    own glyph — the people — and these two are the things you can read about
+    them: the record, and the money. They are deliberately different pictures
+    from `clients` rather than tints of it, because a submenu whose parent and
+    children share one glyph is three of the same mark stacked in a column.
+  */
+  bills: Receipt,
+  /*
+    The Forms tab in Settings — the clinic's own wording for its bills and its
+    automatic messages. A page with a pen on it, because what is edited there is
+    the words a document is printed with rather than the document itself:
+    `bills` is the ledger, and this is what the ledger says.
+  */
+  forms: FilePenLine,
   calendar: Calendar,
   weeklyPlans: CalendarRange,
   mealPlans: ClipboardList,
   dishes: UtensilsCrossed,
+  /*
+    The two nav *categories* the staff rail grew — rows that open a group
+    rather than go anywhere. They are named for the section, not for the
+    picture, like everything else here.
+
+    `appointments` shares its glyph with the portal's `myAppointments`: it is
+    the same idea seen from either side of the clinic. It deliberately does not
+    share with `calendar` (a plain `Calendar`), because the two sit one above
+    the other in the rail — the section and the grid inside it — and a category
+    that repeats its own child's mark reads as a duplicated row.
+  */
+  management: Briefcase,
+  appointments: CalendarCheck,
   foods: Apple,
+  /* The export control on Bills, and the three files it can produce. Lucide
+     draws all four as a page with a mark on it, so they read as one family
+     rather than as four unrelated glyphs in a row of choices. */
+  fileDown: FileDown,
+  formatCsv: FileText,
+  formatXlsx: FileSpreadsheet,
+  formatPdf: FileType,
   whatsapp: MessageCircle,
+  /*
+    The Bills row’s send control, and the one glyph here that is not lucide’s.
+
+    It was `MessageCircleReply`, on the reasoning that the clinic is answering
+    an account the subscriber already has. A reply arrow is the wrong half of
+    that to draw: what a dietitian needs to know before pressing it is *where
+    the bill is about to go*, because this is the only control on the page
+    that reaches somebody outside the clinic and WhatsApp has no unsend. The
+    channel is the fact worth a glyph; the direction is not.
+
+    `whatsapp` above it is still lucide’s plain bubble and is a different job:
+    it labels sections and callouts *about* the integration — Settings, the
+    portal’s contact row — where a filled brand mark would sit heavier than
+    the stroked icons beside it. This one is a send, and the mark is the
+    point. See `WhatsappMark`.
+  */
+  sendBill: WhatsappMark,
   security: ShieldCheck,
   settings: Settings,
   language: Languages,
@@ -159,6 +244,18 @@ export const APP_ICONS = {
   chevronUp: ChevronUp,
   chevronStart: ChevronLeft,
   chevronEnd: ChevronRight,
+  /*
+    The doubled pair, for a control that moves a whole surface rather than
+    stepping through items. `SidebarTrigger` is the one caller: the rail folding
+    away is not the same gesture as a carousel advancing by one, and the second
+    chevron is what says so.
+
+    Named for the reading edge like their singular siblings, and on `DIRECTIONAL`
+    in `icon.tsx` with them — a chevron that keeps pointing left in Arabic points
+    away from the rail it belongs to.
+  */
+  chevronsStart: ChevronsLeft,
+  chevronsEnd: ChevronsRight,
   navigationMenu: Menu,
   signOut: LogOut,
   search: Search,
@@ -169,14 +266,85 @@ export const APP_ICONS = {
   copy: Copy,
   upload: Upload,
   install: Download,
+  /*
+    The two export formats, as a matched pair.
+
+    Both are pages, differing only in the mark on them — a laid-out sheet for
+    the PDF, a letterform for the editable Word file — because they sit side by
+    side as two answers to one question (see `PlanExport`). Giving one of them
+    a download arrow and the other a letter would make the arrowed one read as
+    "the download" and the other as something else.
+
+    Neither is the bare tray `install` uses: that glyph means "put this app on
+    your device" everywhere else in the product.
+  */
+  /*
+    The plain tray, for the control that opens the export menu.
+
+    Same glyph as `install`, and that is right: both mean "this hands you a
+    file". The pair below stay page marks because they answer *which* file,
+    inside a menu whose own trigger already carries the arrow.
+  */
+  download: Download,
+  downloadPdf: FileText,
+  downloadWord: FileType,
   share: Share2,
   refresh: RefreshCw,
   archive: Archive,
   restore: ArchiveRestore,
+  /*
+    Recording money received from a subscriber — the wallet on every Bills row.
+
+    `WalletMinimal` rather than `Wallet` or `WalletCards`: at the 20px a table
+    action is drawn at, the fuller glyphs lose their card slot to the stroke
+    weight and read as an anonymous rounded rectangle. The minimal one keeps one
+    clasp and stays legible.
+  */
+  recordPayment: WalletMinimal,
+  /*
+    Adding a charge to a subscriber's account — the banknote beside the wallet.
+
+    The two sit together on every Bills row and have to be told apart at 20px,
+    which is why they are different *shapes* rather than two wallets: the wallet
+    is money going into the drawer, the banknote's arrow is a line going up onto
+    the account.
+  */
+  recordCharge: BanknoteArrowUp,
+  /*
+    Printing a bill — the same glyph whether it is one operation or the whole
+    account, because printing is one verb. What differs is where it sits: the
+    printer on the row prints the statement, and each one inside the menu
+    prints the single bill it sits beside.
+  */
+  printBill: Printer,
+  /*
+    Paying by card — the second of the two ways money is taken, beside cash.
+
+    A card *machine the clinic already owns*, not a gateway: this app takes no
+    card details and contacts no bank. See the header of `src/db/schema/billing.ts`.
+  */
+  /*
+    Paying in cash — the plain banknote, and deliberately not `recordCharge`'s.
+    That one carries an arrow because it means *adding* money to an account;
+    this one names a method, and an arrow on it would say the method moves
+    money in a direction of its own.
+  */
+  paymentCash: Banknote,
+  paymentCard: CreditCard,
   filter: ListFilter,
   sort: ArrowUpDown,
   moreActions: MoreVertical,
-  dragHandle: GripVertical,
+  /*
+    Horizontal grip, not vertical.
+
+    The vertical grip is the mark for a row in a list you reorder up and down —
+    a settings list, a queue. A meal card moves in two dimensions here: to
+    another slot in its own day, and to the same slot on another day. The
+    horizontal bars read as "pick this up" rather than as "drag me up or down",
+    and the glyph is wider than it is tall, which is the shape of the corner it
+    sits in.
+  */
+  dragHandle: GripHorizontal,
   clearSlot: Eraser,
   repeat: Repeat,
   history: History,
@@ -185,6 +353,18 @@ export const APP_ICONS = {
   eyeOff: EyeOff,
   check: Check,
   back: ArrowLeft,
+  /*
+    Sparkles, which is what "generated" looks like across every product a
+    dietitian has ever used. It shares the glyph with `encouragement` in the
+    portal and that is fine — the names describe two different jobs, and either
+    one can be re-pointed without touching the other.
+
+    It replaced `refresh` on the planner's generate door, where a circular arrow
+    said "do that again" on a button that had never been pressed.
+  */
+  ai: Sparkles,
+  /* A counter-clockwise arrow: put back what it was, not fetch it again. */
+  undo: RotateCcw,
 
   /* Identity and access */
   email: Mail,
@@ -307,10 +487,39 @@ export const APP_ICONS = {
   calories: Flame,
   protein: Beef,
 
+  /*
+   * نمط الحياة والعادات — one glyph per answer on the lifestyle card.
+   *
+   * Fourteen labels in a four-column lattice read as an undifferentiated wall
+   * of grey text; a picture at the head of each label is what lets the eye land
+   * on "الأسماك" without reading the three labels beside it. They are named for
+   * the *question* they mark, not the food, so re-pointing one is an edit here.
+   */
+  habitActivity: Footprints,
+  habitBarrier: Ban,
+  habitSleep: Moon,
+  habitSmoking: Cigarette,
+  foodCaffeine: Coffee,
+  foodSweetDrinks: CupSoda,
+  foodFastFood: Pizza,
+  foodVegetables: Carrot,
+  foodFruit: Apple,
+  foodDairy: Milk,
+  foodRedMeat: Beef,
+  foodChicken: Drumstick,
+  foodFish: Fish,
+  foodSweets: Candy,
+
   /* Settings groups */
   settingsAccount: CircleUser,
   settingsPreferences: SlidersHorizontal,
   settingsSupport: LifeBuoy,
-} as const satisfies Record<string, LucideIcon>;
+  /*
+   * `LucideIcon | AppGlyph`: one entry is WhatsApp’s own mark, which no icon
+   * set ships. Anything drawn by hand still has to take the props `Icon`
+   * hands every glyph, which is what the second half of this union holds it
+   * to.
+   */
+} as const satisfies Record<string, LucideIcon | AppGlyph>;
 
 export type IconName = keyof typeof APP_ICONS;

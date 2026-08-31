@@ -1,21 +1,28 @@
-# Qiwam design system / نظام تصميم قوام
+# Enzyme design system / نظام تصميم إنزيم
 
-This file is the concise, authoritative UI contract for Qiwam. It describes the
+This file is the concise, authoritative UI contract for Enzyme. It describes the
 design system that is implemented now: a bilingual, RTL-first application built
-primarily from reusable shadcn components adapted to Qiwam's visual language.
+primarily from reusable shadcn components adapted to Enzyme's visual language.
+
+> The product was previously called **Qiwam / قوام**. Dated design records under
+> `docs/superpowers/` and `.impeccable/` still use that name and describe older
+> states of this system — including the olive-and-lime palette and the Q-shaped
+> Arc, both of which are gone. When one of them disagrees with this file, this
+> file wins.
 
 Use the following sources in this order when they disagree:
 
 1. Reusable component behavior and variants in [`src/components/ui/`](../src/components/ui/).
 2. Semantic tokens and global utilities in [`src/app/globals.css`](../src/app/globals.css).
 3. The rules in this file.
-4. Existing feature screens and prototypes.
-5. [`design-guide.html`](design-guide.html) and images in
-   [`design-images/`](design-images/) as detailed visual references only.
+4. Existing feature screens.
+5. The standalone studies in [`design-prototypes/`](../design-prototypes/) as
+   visual references only.
 
-The HTML guide and reference images include historical states. They can clarify
-the intended character of the product, but they never override current shared
-components, tokens, accessibility behavior, or this contract.
+The prototypes are colour and layout studies, not production code, and several
+predate the current brand. They can clarify the intended character of the
+product, but they never override current shared components, tokens,
+accessibility behavior, or this contract.
 
 ## Required UI workflow
 
@@ -39,16 +46,16 @@ already contains the component. Import from `@/components/ui/*`.
 
 [`components.json`](../components.json) configures shadcn with the `base-nova`
 style, Base UI primitives, React Server Components, Tailwind CSS variables, and
-RTL support. Qiwam depends heavily on that component model:
+RTL support. Enzyme depends heavily on that component model:
 
 - shadcn/Base UI supplies tested primitive behavior and composition patterns;
 - `src/components/ui/` owns the repository's installed and adapted versions;
-- semantic tokens give those components Qiwam's appearance;
+- semantic tokens give those components Enzyme's appearance;
 - feature code composes them into product workflows.
 
 An upstream shadcn component is a starting point, not permission to bypass the
 local system. When adding or updating one, review the generated diff carefully:
-preserve Qiwam tokens, sizes, focus behavior, RTL logic, popup behavior, and
+preserve Enzyme tokens, sizes, focus behavior, RTL logic, popup behavior, and
 existing variants. Never overwrite a customized shared component blindly.
 
 Feature code should not import `@base-ui/react` or another primitive library
@@ -67,7 +74,7 @@ Check the directory itself for the exact API. The current shared inventory is:
 | Choice controls | `Select`, `SelectField`, `Combobox`, `Checkbox`, `RadioGroup`, `Switch`, `Segmented` |
 | Date, time, and phone | `DatePicker`, `DateChooser`, `DateCalendar`, `Calendar`, `TimeInput`, `PhoneField` |
 | Surfaces and overlays | `Card`, `Dialog`, `Sheet`, `Popover`, `DropdownMenu`, `Tooltip`, `TooltipHint`, `Toaster`/`toast` |
-| Navigation | `Sidebar`, `Tabs`, `PanelTabs`, `Pagination` |
+| Navigation | `Sidebar`, `Tabs`, `PanelTabs`, `Pagination`, `FitRows` |
 | Data display | `Table`, `Chart`, `ChartTip`, `StatGrid`, `StatTile`, `Progress`, `ComfortBand`, `Timeline` |
 | Feedback | `Callout`, `EmptyState`, `Skeleton`, `Spinner` |
 | Identity and graphics | `Avatar`, `Icon`, `Caret` |
@@ -224,6 +231,14 @@ Add icons to `APP_ICONS` in `src/lib/icons.ts`. Use role-based names such as
 glyphs. The allowlist in `icon.tsx` owns RTL mirroring. Do not import Lucide
 directly in feature UI or introduce a second icon style.
 
+**One documented exception to inherited color:** the fourteen glyphs on نمط
+الحياة والعادات in the client record, tinted through `--intake-icon-*`. That
+card is a 4×4 lattice of `text-label` rows, and the tint is what lets a reader
+find one answer without reading the thirteen beside it. The tint marks the
+*subject* of a question, never the client's answer to it, and it reuses existing
+palette stops — no new hue was added for it. Nothing outside that card may reach
+for these tokens; new icon color is a change to this section, not a call site.
+
 **Two names may share a glyph; two rows of one screen may not.** Sharing is fine
 across the app — `dish` and `mealDinner` are both `Utensils` and never meet. It
 stops being fine when the duplicates land in the same list, where the glyph is
@@ -312,6 +327,16 @@ or colour that is not here, add it to the generator.
   `--duration-sweep`, `--duration-label`, `--duration-reverse`, and
   `--duration-travel`.
 - `--duration-travel` is reserved for an entire surface crossing the screen.
+- Page **entrances** are the one exception and carry their own numbers, written
+  beside their keyframes in `globals.css`: the launch screen, the 404 screen,
+  and the sign-in screen. The `--duration-*` tokens measure a reaction to
+  somebody, and an introduction is not one — so do not stretch a token to cover
+  one, and do not reach for an entrance where a reaction is what is wanted.
+- Before adding an entrance, check whether the launch screen plays over the same
+  route. `SplashLaunchGate` is mounted from `[locale]/layout.tsx`, so it covers
+  the public screens too, and an entrance timed from first paint will run to
+  completion underneath a full-screen tile and never be seen. `.q-auth-*` holds
+  itself at its first frame while `.q-splash` is in the document; copy that.
 - Reduced-motion preferences must leave state changes intact while removing
   unnecessary travel.
 
@@ -334,6 +359,44 @@ Avoid card-inside-card styling. A nested item uses `Card variant="tile"`,
 - Scrollbars are globally hidden while scrolling remains available through
   touch, wheel, trackpad, keyboard, and drag. Overflowing surfaces must provide
   another visible cue that more content exists.
+- One exception: the staff app draws a grey rail on desktop pointers. It is
+  scoped to `.q-desk-scrollbars` (passed by the staff layout to `AppShell`) and
+  gated on `(width >= 64rem) and (pointer: fine)`, so the client portal, phones
+  and tablets keep bare scrollers. It covers the shell scroller, dialog bodies,
+  and anything marked `q-scrollbar`; the cue rule above still applies, because
+  most viewports never see the rail. Colors come from the `--scrollbar-*`
+  tokens in [`globals.css`](../src/app/globals.css).
+
+### Viewport height, the keyboard, and the safe area
+
+Three tokens in [`globals.css`](../src/app/globals.css) describe the screen. Use
+them; do not re-derive any of them at a call site.
+
+| Token | What it is |
+|---|---|
+| `--q-safe-t` / `-b` / `-l` / `-r` | `env(safe-area-inset-*)`, with the `0px` fallback already written |
+| `--q-keyboard-inset` | How much of the layout viewport the software keyboard covers; `0px` otherwise |
+| `--q-viewport-block` | `100dvh` less that inset — **the block extent a surface may actually occupy** |
+
+Rules:
+
+- **Never size a surface in `100vh`.** `vh` is frozen at the large viewport, so
+  it overshoots the screen for as long as a phone's address bar is showing.
+- **`100dvh` is only correct where a keyboard cannot appear.** `dvh` shrinks
+  with the address bar but not with the keyboard: `interactiveWidget:
+  'resizes-content'` makes Android shrink the layout viewport, and iOS Safari
+  ignores it. Anything that can contain a field — a dialog, a sheet, a popover
+  with a search box — measures against `--q-viewport-block` instead.
+- A surface pinned to the block-end edge also needs `inset-block-end:
+  var(--q-keyboard-inset)`, or it stays on an edge that is now behind the keys.
+  Never lift it with a `transform`: that makes it the containing block for the
+  popup positioners portaled into it.
+- `viewport-fit=cover` is on, so anything touching an edge owes that edge its
+  inset — as padding, so the surface's own fill still reaches the glass.
+
+`KeyboardInset` in [`keyboard-inset.tsx`](../src/components/ui/keyboard-inset.tsx)
+publishes the keyboard token from the root layout. It is mounted once; nothing
+else should read `window.visualViewport`.
 
 ## RTL and bilingual behavior
 
@@ -508,11 +571,78 @@ Compose `TableRoot`, `Table`, `TableHeader`, `TableRow`, `TableHead`,
 Keep the distinction semantic: an address uses links, a panel uses tabs, and a
 temporary display preference uses a segmented control.
 
+### A page of a list is what the frame holds
+
+**Never pick a page size by hand.** A number chosen because "it fits a laptop"
+fits the one screen it was measured on: a 1366×768 laptop, a 1080p panel at 125%
+scaling and a browser at 110% zoom all hold fewer rows, and on each of them the
+pager — the only way through the list — falls below the fold or outside a
+bounded frame entirely.
+
+Measure instead. `FitRows` in
+[`fit-rows.tsx`](../src/components/ui/fit-rows.tsx) reads the bounded region a
+list is drawn in and answers how many rows fit; three data attributes are the
+whole contract:
+
+| Attribute | On | What it is |
+|---|---|---|
+| `data-fit-region` | the bounded box | the height a page of the list gets |
+| `data-fit-row` | each row | one unit of the list |
+| `data-fit-footer` | the pager | held at the foot of the region by `mt-auto` |
+
+Two shapes, one measurement:
+
+- A list paged by a **server query** renders `<FitRows>`, which writes the count
+  to a cookie and refreshes. The register and Bills share one cookie name.
+- A list paged in the **browser** calls `useFittingRows` and slices in place. No
+  cookie, no round trip — the expenses card on a client's record.
+
+Rules:
+
+- The region must be bounded, or there is nothing to fit into. Bound the page
+  column to the shell from `lg` up (`lg:h-full lg:min-h-0`) and give the region
+  `flex-1` with `lg:min-h-0`; below `lg` the page scrolls as one and the list
+  asks for its `fallback` size.
+- Clamp with `{ min, max, fallback }`. `fallback` is what the first paint draws
+  before anything has been measured, and it is the phone's answer too.
+- The list still needs a real overflow fallback under `min`. Prefer
+  `overflow-y: auto` on the frame over `hidden`; a clipped pager is a control
+  nobody can reach.
+
 ### Dialogs, sheets, menus, tooltips, and toast
 
 - Use `Dialog` for focused modal tasks and `Sheet` for secondary mobile/edge
   surfaces.
 - A dialog must have an accessible label and a deliberate dismissal policy.
+
+#### The responsive frame — do not write one per dialog
+
+Every `.q-dialog` gets a frame from `globals.css`: a height ceiling bound to
+`--q-viewport-block`, a flex column, a header and footer that stay, and a body
+that scrolls. **Composing `DialogHeader` / `DialogBody` / `DialogFooter` is what
+opts a surface in.** `Sheet` gets the same frame through `SheetBody`.
+
+So a new dialog needs *no* responsive class. In particular, do not add:
+
+- `max-h-[90dvh]`, `h-[…dvh]`, or any other viewport height — the ceiling is
+  already there, already keyboard-aware, and already tighter than a hand-written
+  one on a landscape phone;
+- `open:flex open:flex-col` — the frame supplies both;
+- `overflow-hidden` — the frame clips only when there is a body to scroll, and
+  deliberately does not when there is not.
+
+Two consequences worth knowing:
+
+- These declarations are **unlayered**, so they beat any Tailwind utility on the
+  element. A `max-h-[…]` at a call site does nothing at all. To make one surface
+  shorter than the screen allows, set `[--q-dialog-max-block:32rem]` (or
+  `[--q-sheet-max-block:…]`); the frame takes the smaller of that and what the
+  screen can show, so taste can tighten the ceiling and never remove it.
+- Put the middle of the surface in `DialogBody`. Content outside it is in the
+  header/footer band and will not scroll.
+
+`src/components/ui/dialog-responsive.test.ts` asserts all of this against the
+stylesheet and against the call sites the frame replaced.
 - G. Seam is the standard `Dialog` and `ConfirmDialog` transition: the surface
   reveals from its horizontal midpoint and closes back into it. Planner context
   sheets and application navigation drawers keep their own directional motion.

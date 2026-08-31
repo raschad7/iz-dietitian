@@ -5,12 +5,14 @@ import {
   count,
   desc,
   eq,
+  exists,
   getTableColumns,
   ilike,
   inArray,
   isNotNull,
   isNull,
   ne,
+  not,
   notInArray,
   sql,
   type AnyColumn,
@@ -25,6 +27,12 @@ import {
   weeklyPlans,
   type Client,
 } from '@/db/schema';
+/*
+  The Bills screen's two filters are ledger questions, and they are answered by
+  the billing feature's own readers rather than re-derived here — see
+  `billingCondition`.
+*/
+import { paymentStatusByClient, subscriptionStateByClient } from '@/features/billing/queries';
 import { wallClockIn } from '@/features/booking/completed';
 import { summariseAdherenceRun, type AdherenceRow } from '@/features/portal/adherence';
 import { type PlanStatus } from '@/features/weekly-plans/schema';
@@ -39,8 +47,13 @@ import { normalizeForSearch } from './search';
 import { clientSeq } from './seq';
 import {
   clientIdSchema,
+  CLIENTS_ROWS,
+  PAYMENT_STATUS_VALUES,
+  SUBSCRIPTION_FILTER_VALUES,
   WEEKLY_PROGRESS_VALUES,
   type ListClientsInput,
+  type PaymentStatusFilterValue,
+  type SubscriptionFilterValue,
   type WeeklyProgressFilterValue,
 } from './schema';
 import { type ClientIntakeValues, type MealSlotValues } from './types';
@@ -51,25 +64,29 @@ import { type ClientIntakeValues, type MealSlotValues } from './types';
  */
 
 /**
- * How many clients one page of the register holds.
+ * How many clients one page of the register holds **before a browser has
+ * measured the screen** — the row count a first paint and a server-rendered
+ * skeleton are drawn with.
  *
- * Nine, and the number is a layout decision as much as a query one: nine rows
- * plus the title, the search row and the pager fits a laptop screen without the
- * list needing a scrollbar of its own. It was twenty, which never did — so the
- * register carried a bounded, independently scrolling table, and "where am I in
- * this list" was a question the page could not answer without being scrolled.
- * The pager answers it now, and it is the only way through the register.
+ * It used to be the whole answer: nine, a layout decision as much as a query
+ * one, chosen so that nine rows plus the title, the search row and the pager fit
+ * "a laptop" without the list needing a scrollbar of its own. It was twenty
+ * before that, which never did — so the register carried a bounded,
+ * independently scrolling table, and "where am I in this list" was a question
+ * the page could not answer without being scrolled.
  *
- * This doc is the only place the figure is written out. The page and the table
- * that depend on it describe the *constraint* — a register that fits the screen
- * — and name the constant rather than repeating its value, because a comment
- * three files away saying "ten" is one nobody edits when this line changes.
+ * Nine fits the screen it was measured on and no other, and on every screen
+ * shorter than that one the pager went below the fold or off the frame — which
+ * is the same failure the twenty had, arrived at more quietly. So the figure is
+ * now a *starting* point rather than the answer: the register measures its own
+ * frame and pages by what fits. See `CLIENTS_ROWS` for the range that answer is
+ * clamped into, and `FitRows` for how it is taken and how it travels.
  *
- * Read by `listClients` for the `LIMIT`/`OFFSET` and the page count, and by
- * `ClientPagination` for the arithmetic behind the page numbers. One constant,
- * so the pager and the query cannot disagree.
+ * `listClients` reads `input.pageSize` and not this, so the `LIMIT`, the
+ * `OFFSET` and the page count all come from one number and the pager and the
+ * query cannot disagree. This constant is what that field defaults to.
  */
-export const CLIENTS_PAGE_SIZE = 9;
+export const CLIENTS_PAGE_SIZE = CLIENTS_ROWS.fallback;
 
 export type ClientListItem = {
   id: string;
@@ -225,7 +242,7 @@ export type ClientDetail = Client & {
  * value filters nothing: the popover can be opened and a column picked without
  * a term typed yet, and that state should show the register, not an empty one.
  */
-function filterCondition(input: ListClientsInput): SQL | undefined {
+function filterCondition(clinicId: string, input: ListClientsInput): SQL | undefined {
   const value = input.filterValue;
   if (!value) return undefined;
 
@@ -250,6 +267,41 @@ function filterCondition(input: ListClientsInput): SQL | undefined {
         : value === 'no'
           ? isNull(clients.userId)
           : undefined;
+    /*
+      Not a column either, but unlike `weeklyProgress` it needs no arithmetic to
+      answer: "does a plan exist for this client" is an `EXISTS` over
+      `weekly_plans`, correlated on the client row the outer query is already
+      looking at. So it stays here, in the synchronous half, rather than costing
+      a read of its own before the page query can be built.
+
+      Archived plans do not count — the same `ne(status, 'archived')` the
+      register's plan-status cell reads, so the filter and the cell cannot
+      disagree about whether someone has a plan. See `PLAN_FILTER_VALUES` for
+      why a draft does count and why this is not `weeklyProgress`'s `noPlan`.
+
+      `clinicId` is in the subquery as well as on the outer client row. It is
+      redundant — a plan hangs off a client, and that client is already scoped —
+      and it stays because a scoped read is the rule here rather than something
+      each query gets to reason its way out of.
+    */
+    case 'plan': {
+      if (value !== 'has' && value !== 'none') return undefined;
+
+      const hasPlan = exists(
+        db
+          .select({ one: sql`1` })
+          .from(weeklyPlans)
+          .where(
+            and(
+              eq(weeklyPlans.clinicId, clinicId),
+              eq(weeklyPlans.clientId, clients.id),
+              ne(weeklyPlans.status, 'archived'),
+            ),
+          ),
+      );
+
+      return value === 'has' ? hasPlan : not(hasPlan);
+    }
     default:
       return undefined;
   }
@@ -265,13 +317,15 @@ function buildFilter(
   clinicId: string,
   input: ListClientsInput,
   /**
-   * The `weeklyProgress` filter, already resolved to a condition over
-   * `clients.id` — see {@link weeklyProgressCondition}. Passed in rather than
-   * computed here because resolving it takes two reads, and this function is
-   * synchronous by design: it is what both the `count()` and the page query are
-   * built from, and they must be built from exactly the same thing.
+   * A filter that is not a condition on `clients` at all, already resolved to
+   * one over `clients.id` — `weeklyProgress` and the two Bills columns; see
+   * {@link weeklyProgressCondition} and {@link billingCondition}. Passed in
+   * rather than computed here because resolving one takes a read or two, and
+   * this function is synchronous by design: it is what both the `count()` and
+   * the page query are built from, and they must be built from exactly the same
+   * thing.
    */
-  progress?: SQL,
+  derived?: SQL,
 ): SQL | undefined {
   const conditions: SQL[] = [eq(clients.clinicId, clinicId), eq(clients.status, input.status)];
 
@@ -290,10 +344,10 @@ function buildFilter(
     conditions.push(ilike(clients.searchName, `%${normalizeForSearch(input.q)}%`));
   }
 
-  const filter = filterCondition(input);
+  const filter = filterCondition(clinicId, input);
   if (filter) conditions.push(filter);
 
-  if (progress) conditions.push(progress);
+  if (derived) conditions.push(derived);
 
   return and(...conditions);
 }
@@ -356,7 +410,9 @@ async function weeklyProgressCondition(
     // `recordedCount` is days carrying a report, which is exactly "has this
     // person logged anything in this period" — a day reported as `missed` is
     // still a day they answered on.
-    .filter(([, progress]) => (value === 'reported' ? progress.recordedCount > 0 : progress.recordedCount === 0))
+    .filter(([, progress]) =>
+      value === 'reported' ? progress.recordedCount > 0 : progress.recordedCount === 0,
+    )
     .map(([id]) => id);
 
   // No client matches, rather than "no filter": an empty result is the truthful
@@ -366,6 +422,87 @@ async function weeklyProgressCondition(
 
 function isWeeklyProgressValue(value: string | undefined): value is WeeklyProgressFilterValue {
   return WEEKLY_PROGRESS_VALUES.includes(value as WeeklyProgressFilterValue);
+}
+
+/**
+ * The Bills screen's two filters, as a condition over `clients.id`.
+ *
+ * ## Why they are id sets, like `weeklyProgress` and unlike `portalAccess`
+ *
+ * Neither is a column. A payment status is the sign of `charged − paid` summed
+ * over two tables, and a subscription standing is the newest subscription
+ * charge plus arithmetic on its service's term — see `subscriptionStanding`.
+ * Both could be written as correlated subqueries in the `WHERE`, and both would
+ * then exist twice: once here and once in the cell that draws them, free to
+ * disagree the next time either rule moves. So the ledger side is answered
+ * first, for the whole clinic, **by the same functions the Bills row itself
+ * reads** — `paymentStatus` and `subscriptionStanding` — and the answer is a
+ * list of ids. A filter cannot decide a subscriber is unpaid while the chip
+ * beside their name says paid.
+ *
+ * ## `none` is the complement
+ *
+ * Neither map holds an entry for "nothing at all": a subscriber with no ledger
+ * has no rows to sum, and one who has never been sold a term has no charge to
+ * date. That is exactly what `none` means on both columns, so it is
+ * `notInArray` over what the read *did* return rather than a second query for
+ * everybody. With no ledger anywhere the condition drops away and the register
+ * shows everyone — correct, because then nobody has been billed.
+ *
+ * ## The cost, stated plainly
+ *
+ * `paymentStatus` is two grouped reads over the clinic's charges and payments,
+ * both index-covered by `(clinic_id, client_id)`. `subscription` is one narrow
+ * read of the subscription charges only. They run only while one of these
+ * filters is on, and only on the Bills screen, which is the one screen where
+ * narrowing by money is the reason the reader came.
+ */
+async function billingCondition(
+  clinicId: string,
+  input: ListClientsInput,
+  today: string,
+): Promise<SQL | undefined> {
+  const value = input.filterValue;
+
+  if (input.filterBy === 'paymentStatus') {
+    // A stale or hand-edited value filters nothing, the same way an unknown
+    // `filterBy` does — see `filterCondition`'s `default`.
+    if (!PAYMENT_STATUS_VALUES.includes(value as PaymentStatusFilterValue)) return undefined;
+
+    const statusByClient = await paymentStatusByClient(clinicId);
+
+    if (value === 'none') return complement([...statusByClient.keys()]);
+
+    return matching([...statusByClient].filter(([, status]) => status === value).map(([id]) => id));
+  }
+
+  if (input.filterBy === 'subscription') {
+    if (!SUBSCRIPTION_FILTER_VALUES.includes(value as SubscriptionFilterValue)) return undefined;
+
+    const stateByClient = await subscriptionStateByClient(clinicId, today);
+
+    if (value === 'none') return complement([...stateByClient.keys()]);
+
+    return matching([...stateByClient].filter(([, state]) => state === value).map(([id]) => id));
+  }
+
+  return undefined;
+}
+
+/**
+ * The ids the ledger read matched — or no client at all when it matched none.
+ *
+ * `sql`false`` and not "no condition": an empty result is the truthful answer
+ * to "who is unpaid" when nobody is, and the same reasoning
+ * `weeklyProgressCondition` gives above.
+ */
+function matching(ids: readonly string[]): SQL {
+  return ids.length === 0 ? sql`false` : inArray(clients.id, [...ids]);
+}
+
+/** Everyone the ledger read did *not* return — the `none` answer on both columns. */
+function complement(ids: readonly string[]): SQL | undefined {
+  return ids.length === 0 ? undefined : notInArray(clients.id, [...ids]);
 }
 
 /**
@@ -436,10 +573,19 @@ export async function listClients(
   input: ListClientsInput,
   today: string = wallClockIn(DISPLAY_TIME_ZONE).date,
 ): Promise<ClientListResult> {
-  // Before the `count()`, because the pager counts the filtered register.
-  const progress = await weeklyProgressCondition(clinicId, input, today);
+  /*
+    Before the `count()`, because the pager counts the filtered register.
 
-  const where = buildFilter(clinicId, input, progress);
+    One filter is on at a time — the popover applies a column and a value — so
+    these are two questions of which at most one is being asked, and whichever
+    matches `filterBy` answers. Sequential rather than in a `Promise.all`
+    because the second is not run at all once the first has an answer.
+  */
+  const derived =
+    (await weeklyProgressCondition(clinicId, input, today)) ??
+    (await billingCondition(clinicId, input, today));
+
+  const where = buildFilter(clinicId, input, derived);
 
   const [totals] = await db.select({ value: count() }).from(clients).where(where);
   const total = totals?.value ?? 0;
@@ -456,8 +602,8 @@ export async function listClients(
     .from(clients)
     .where(where)
     .orderBy(...buildOrder(input))
-    .limit(CLIENTS_PAGE_SIZE)
-    .offset((input.page - 1) * CLIENTS_PAGE_SIZE);
+    .limit(input.pageSize)
+    .offset((input.page - 1) * input.pageSize);
 
   const clientIds = rows.map((row) => row.id);
 
@@ -480,7 +626,7 @@ export async function listClients(
     })),
     total,
     page: input.page,
-    pageCount: Math.max(1, Math.ceil(total / CLIENTS_PAGE_SIZE)),
+    pageCount: Math.max(1, Math.ceil(total / input.pageSize)),
   };
 }
 
@@ -557,7 +703,10 @@ async function weeklyProgressByClient(
   // plan in the vanishingly rare case that two published plans both contain
   // today — the same ordering, for the same reason, as the two portal readers.
   const planRows = await db
-    .select({ clientId: weeklyPlans.clientId, weekStartDate: weeklyPlans.weekStartDate })
+    .select({
+      clientId: weeklyPlans.clientId,
+      weekStartDate: weeklyPlans.weekStartDate,
+    })
     .from(weeklyPlans)
     .where(
       and(
@@ -615,7 +764,10 @@ async function weeklyProgressByClient(
     // `level` is plain `text` behind a check constraint, so the union is
     // reasserted on the way out rather than trusted from the driver's `string`
     // — the same cast `listPlanAdherence` makes for the same reason.
-    const adherenceRow: AdherenceRow = { ...row, level: row.level as AdherenceRow['level'] };
+    const adherenceRow: AdherenceRow = {
+      ...row,
+      level: row.level as AdherenceRow['level'],
+    };
 
     const bucket = byClient.get(clientId);
     if (bucket) bucket.push(adherenceRow);

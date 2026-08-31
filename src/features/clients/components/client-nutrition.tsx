@@ -1,18 +1,24 @@
+import { type ReactNode } from 'react';
+
 import { useFormatter, useTranslations } from 'next-intl';
 
 import { buttonVariants } from '@/components/ui/button';
 import { Callout } from '@/components/ui/callout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DismissibleCallout } from '@/components/ui/dismissible-callout';
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Disclosure } from '@/components/ui/disclosure';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { StatGrid, StatTile } from '@/components/ui/stat-tile';
 import { calculateAge } from '@/features/clients/age';
 import { IntakeFormTrigger } from '@/features/clients/components/intake-form-trigger';
 import { INTAKE_FIELD_COUNT, intakeGaps } from '@/features/clients/intake-gaps';
-import {
-  type IntakeSectionId,
-  isGroupedGapSection,
-  sectionForField,
-} from '@/features/clients/intake-sections';
+import { type IntakeSectionId } from '@/features/clients/intake-sections';
 import { mergedNotes } from '@/features/clients/notes';
 import {
   ALLERGENS,
@@ -40,7 +46,37 @@ import { cn } from '@/lib/utils';
  * you read, the dialog is what you write, and neither is a page you navigate
  * away to.
  *
- * ## What changed, and why
+ * ## One headline, then a spine
+ *
+ * **القياسات is a card and stays open.** It is the headline of the record —
+ * the six figures, where the BMI falls, the completeness meter, and the button
+ * that writes all of it. Nothing about it is optional reading.
+ *
+ * **Everything under it is one column of six identical disclosure rows**, in a
+ * fixed order that does not change from client to client: بيانات ومعلومات عامة,
+ * نمط الحياة والعادات, الحساسية, جدول الوجبات, ما تلتزم به الخطة, ملاحظات خاصة
+ * بالعيادة. Each row names its section, starts closed, and opens in place. See
+ * the note above the spine for why that order.
+ *
+ * ## What was wrong with rendering it all
+ *
+ * The record holds around forty label/value pairs. Every arrangement before this
+ * one rendered all of them at once and tried to fix the result by *grouping*:
+ * two columns, then three, then a wide stack beside a narrow one, then full-width
+ * cards in a considered order. Every one of them was still forty answers on a
+ * screen, with a blood type at the same visual weight as a drug allergy.
+ *
+ * Two things made it worse than dense. **The layout changed shape per client** —
+ * cards were omitted when empty, so a three-column grid collapsed to one when a
+ * stack emptied out and no two records looked alike; a reader could never learn
+ * where anything was, only search for it each time. And **the safety-critical
+ * section was in the narrowest column**, because it happened to be short.
+ *
+ * The spine answers both. Six rows, always the same six, always in the same
+ * order, with the clinical one first and the twenty-one answers of the assessment
+ * sheet closed behind a heading.
+ *
+ * ## What changed before that, and why
  *
  * **Three type sizes on one row.** Numeric facts were set at `heading-sm` with a
  * 12px unit beside them and non-numeric ones at `body-sm`, sharing a grid — so
@@ -48,19 +84,12 @@ import { cn } from '@/lib/utils';
  * with nothing aligned to anything. Every measurement is a `StatTile` now, which
  * is one size and one baseline by construction.
  *
- * **Cards with a heading and no contents.** `Facts` returned null when every
- * child was absent, but the `Card` around it still rendered — so a sparse record
- * drew three headed, empty boxes. This has been both ways since: sections
- * stopped rendering when empty, then went back to always drawing so the
- * record's shape would not change from client to client.
+ * **The BMI scale was a card of its own** — ring, shadow, title row and `gap-4`
+ * around a single 8px rule. It is the second half of القياسات now, under a
+ * hairline and a heading of its own; see the note where it is drawn.
  *
- * **A section with nothing in it draws no card.** That is the arrangement now,
- * and the objection to it — that a reader cannot tell "none recorded" from "not
- * on this screen" — is answered somewhere better than a headed empty box: the
- * dashed gap card at the foot names every missing section as a chip and opens
- * the dialog on it. One place listing what the record lacks beats seven boxes
- * each saying it about themselves, and a filled record is now only the cards
- * that have something on them. See the flags above the return.
+ * **The meal schedule led the record, at two-thirds width**, which opened on the
+ * conclusion and did it in a column too narrow for five meal names.
  *
  * **A record that contradicted itself in silence.** A manual calorie target far
  * from what the measurements imply is the most consequential thing this screen
@@ -115,38 +144,6 @@ export function ClientNutrition({
   const filled = INTAKE_FIELD_COUNT - gaps.length;
 
   /*
-   * The chips the gaps card offers, which are not one per missing field.
-   *
-   * A gap in a grouped section collapses into a single chip named after the
-   * section — `GROUPED_GAP_SECTIONS` says which, and why. Everything else still
-   * names the field it takes you to, and every chip opens the dialog on the
-   * panel that actually holds it.
-   *
-   * Built by walking `gaps`, so a group chip appears where its first missing
-   * field would have: the card keeps the order the intake itself is worked
-   * through rather than hoisting the groups to the front.
-   */
-  const gapChips: { key: string; label: string; section: IntakeSectionId }[] = [];
-  const grouped = new Set<IntakeSectionId>();
-
-  for (const field of gaps) {
-    const section = sectionForField(field);
-
-    if (!isGroupedGapSection(section)) {
-      gapChips.push({ key: field, label: t(`fields.${field}`), section });
-      continue;
-    }
-
-    if (grouped.has(section)) continue;
-    grouped.add(section);
-    gapChips.push({
-      key: section,
-      label: t(`intake.sections.${section}`),
-      section,
-    });
-  }
-
-  /*
    * A manual target more than a fifth away from what the measurements imply.
    * The record can hold this contradiction indefinitely, and before this it
    * never said so — a 1,200 kcal target against a weight-gain goal reads as
@@ -159,28 +156,57 @@ export function ClientNutrition({
       ? { manual: intake.dailyKcalTarget, computed: targets.suggestedKcal }
       : null;
 
-  const hasAllergyRecord =
-    Boolean(intake.drugAllergies) ||
-    allergenTags.length > 0 ||
-    intake.customAllergens.length > 0 ||
-    Boolean(intake.allergies) ||
-    Boolean(intake.conditions) ||
-    Boolean(intake.medications);
+  /*
+   * Everything the clinical section holds, as one list — the allergens rolled
+   * into a single line, then the written detail, the conditions, the drugs and
+   * the drug reactions.
+   *
+   * It is an array rather than five separate flags because two things read it as
+   * a whole: `recorded` below, which decides whether the section has anything in
+   * it at all, and the row's own summary, which shows the allergens themselves.
+   */
+  const allergyItems = [
+    {
+      label: t('intake.allergyLine'),
+      value:
+        allergenTags.length > 0 || intake.customAllergens.length > 0
+          ? format.list([
+              ...allergenTags.map((tag) => t(`allergens.${tag}`)),
+              ...intake.customAllergens,
+            ])
+          : null,
+      medical: true,
+    },
+    { label: t('intake.allergyDetailLabel'), value: intake.allergies },
+    { label: t('fields.conditions'), value: intake.conditions },
+    { label: t('fields.medications'), value: intake.medications },
+    { label: t('fields.drugAllergies'), value: intake.drugAllergies, medical: true },
+  ];
 
-  const hasPlanningRecord =
-    Boolean(intake.permanentInstructions) ||
-    Boolean(intake.preferences) ||
-    Boolean(intake.dislikes);
+  const planningItems = [
+    { label: t('fields.permanentInstructions'), value: intake.permanentInstructions },
+    { label: t('fields.preferences'), value: intake.preferences },
+    { label: t('fields.dislikes'), value: intake.dislikes },
+  ];
 
-  const hasPrivateRecord = Boolean(intake.medicalNotes) || Boolean(intake.notes);
+  /*
+   * One entry, merged: a record saved before the two note fields became one can
+   * still hold text in both, and reading them out as two labelled notes would
+   * put the split back on screen after the dialog stopped drawing it.
+   */
+  const privateItems = [
+    {
+      label: t('intake.notesDivider'),
+      value: mergedNotes(intake.medicalNotes, intake.notes),
+    },
+  ];
 
   /*
    * The assessment questionnaire, in the two halves the dialog writes it in.
    *
-   * Two flags rather than one: the sheet is filled in across visits, so a
+   * Two lists rather than one: the sheet is filled in across visits, so a
    * client can have answered the background questions and none of the habits
-   * ones, and each card decides for itself whether it has a record to show —
-   * or, having none, stays off the screen entirely.
+   * ones, and each section's row counts and opens for itself.
    */
   const backgroundFacts = [
     {
@@ -201,63 +227,121 @@ export function ClientNutrition({
     { label: t('fields.occupation'), value: intake.occupation },
   ];
 
-  const habitFacts = [
-    {
-      label: t('fields.sleepHours'),
-      value: intake.sleepHours !== null ? t('intake.hoursValue', { value: intake.sleepHours }) : null,
-    },
-    {
-      label: t('fields.smoking'),
-      value: isMember(SMOKING_HABITS, intake.smoking) ? t(`smoking.${intake.smoking}`) : null,
-    },
-    ...FREQUENCY_DISPLAY_FIELDS.map((field) => ({
-      label: t(`fields.${field}`),
-      value: isMember(INTAKE_FREQUENCIES, intake[field]) ? t(`frequency.${intake[field]}`) : null,
-    })),
-  ];
-
   const backgroundNotes = [
     { label: t('fields.visitReason'), value: intake.visitReason },
     { label: t('fields.dietHistory'), value: intake.dietHistory },
     { label: t('fields.familyHistory'), value: intake.familyHistory },
   ];
 
-  const habitNotes = [
-    { label: t('fields.activityNotes'), value: intake.activityNotes },
-    { label: t('fields.activityBarriers'), value: intake.activityBarriers },
+  /*
+   * How this person lives, and what they eat how often — two blocks, not one
+   * run of twelve answers.
+   *
+   * They used to be one `habitFacts` array with the two written answers hoisted
+   * into a `Notes` stack above it, which put "مشي 30 دقيقة" on a line of its own
+   * over a lattice of ten one-word frequencies. The written answers are the same
+   * shape as the closed ones — a label and a short phrase — so they read as one
+   * lattice; what genuinely divides the card is *subject*, and that is where the
+   * rule goes.
+   */
+  const lifestyleFacts = [
+    habitFact('habitActivity', t('fields.activityNotes'), intake.activityNotes),
+    habitFact('habitBarrier', t('fields.activityBarriers'), intake.activityBarriers),
+    habitFact(
+      'habitSleep',
+      t('fields.sleepHours'),
+      intake.sleepHours !== null ? t('intake.hoursValue', { value: intake.sleepHours }) : null,
+    ),
+    habitFact(
+      'habitSmoking',
+      t('fields.smoking'),
+      isMember(SMOKING_HABITS, intake.smoking) ? t(`smoking.${intake.smoking}`) : null,
+    ),
   ];
 
-  const hasBackgroundRecord = [...backgroundFacts, ...backgroundNotes].some((item) => item.value);
-  const hasHabitsRecord = [...habitFacts, ...habitNotes].some((item) => item.value);
-  const hasScheduleRecord = intake.mealSchedule.length > 0;
+  const frequencyFacts = FREQUENCY_DISPLAY_FIELDS.map((field) =>
+    habitFact(
+      FREQUENCY_ICONS[field],
+      t(`fields.${field}`),
+      isMember(INTAKE_FREQUENCIES, intake[field]) ? t(`frequency.${intake[field]}`) : null,
+    ),
+  );
 
   /*
-    ⚠ **A section with nothing in it draws no card**, and these are what decide
-    it — one flag per section, plus the stacks and grids that would otherwise be
-    left holding nothing.
+   * One flag per *block*, not per card. A rule between two halves of a card is
+   * only a divider when there is something on both sides of it; with one half
+   * empty it is a line under the contents, which is what a card's own edge
+   * already is.
+   */
+  /*
+    ⚠ **Every section is drawn for every client, filled or not**, and these
+    counts are what each row says about itself.
 
-    This reverses what the module note above records. The argument for drawing
-    every card, filled or not, was that a record whose *shape* changes from
-    client to client makes a reader hunt: on a sparse record you could not tell
-    "nothing recorded" from "not on this screen". That reasoning stands, and it
-    is answered by the dashed gap card at the foot rather than by seven headed
-    boxes — every missing section is named there as a chip (see
-    `GROUPED_GAP_SECTIONS`), so the record still says what it does not hold and
-    still offers one click to fill it. What it no longer does is spend a third
-    of the screen per empty section saying so.
+    This reverses the arrangement it replaced, where a section with nothing in
+    it drew no card at all and one dashed card at the foot listed what was
+    missing. That was the right trade when a section cost a headed, ringed card
+    a third of a screen tall — seven of those saying "nothing here" is most of a
+    screen spent on absence. It stops being the right trade now that a section
+    costs **one 72px row**.
 
-    **The stack and grid flags are not optional tidiness.** An empty flex child
-    still occupies its grid column, so a two-thirds stack with both cards hidden
-    would leave the narrow column stranded beside dead space — the same trap the
-    note on the grid below already warns about.
+    What the old arrangement cost was the thing that made this record hard to
+    read: its *shape changed from client to client*. Cards appeared and
+    disappeared, a three-column grid collapsed to one when a stack emptied, and
+    nothing was ever in the same place twice — so the record could not be
+    learned, only searched. Six identical rows in a fixed order can be learned
+    once and then navigated blind.
+
+    The gap card is gone with it, and nothing is silently absent: an empty
+    section says "لم تُسجَّل بعد" on its own row and opens the dialog on itself,
+    which is what that card's chips did. The measurement fields it also covered
+    are named by the `targets.missing` callout inside القياسات, and the meter in
+    that card's header still counts the record whole.
   */
-  const hasWideStack = hasScheduleRecord || hasPlanningRecord;
-  const hasNarrowStack = hasAllergyRecord || hasPrivateRecord;
-  const hasRecordGrid = hasWideStack || hasNarrowStack;
-  const hasAssessmentGrid = hasBackgroundRecord || hasHabitsRecord;
+  const recorded = (items: readonly { value: string | null }[]) =>
+    items.filter((item) => item.value !== null && item.value !== '').length;
+
+  const backgroundCount = recorded(backgroundFacts) + recorded(backgroundNotes);
+  const habitsCount = recorded(lifestyleFacts) + recorded(frequencyFacts);
+  const allergyCount = recorded(allergyItems);
+  const planningCount = recorded(planningItems);
+  const privateCount = recorded(privateItems);
+
+  const hasBackgroundFacts = recorded(backgroundFacts) > 0;
+  const hasBackgroundNotes = recorded(backgroundNotes) > 0;
+  const hasLifestyleRecord = recorded(lifestyleFacts) > 0;
+  const hasFrequencyRecord = recorded(frequencyFacts) > 0;
+  const hasScheduleRecord = intake.mealSchedule.length > 0;
+
+  /**
+   * What a closed row says about itself — **only when it has nothing to say.**
+   *
+   * A filled section's row now carries its name and nothing else. It used to
+   * carry a tally as well — '14 إجابة', '7 إجابات' — on the reasoning that a
+   * closed row should say whether it is worth opening. In practice the number
+   * never answered that: a section with fourteen answers and one with seven are
+   * equally worth opening, the count changes with a field the dietitian filled
+   * in months ago, and six rows each ending in a different numeral turned a
+   * clean spine into a column of arithmetic.
+   *
+   * "Not recorded yet" survives because it is not a count — it is the one thing
+   * a closed row can say that saves the reader the click, and without it an
+   * empty section and a full one are the same row.
+   *
+   * `undefined` rather than an empty string: `Disclosure` renders no summary
+   * element at all for it, so the row is genuinely title-and-chevron.
+   */
+  const emptySummary = (count: number) =>
+    count > 0 ? undefined : t('intake.sectionEmpty');
 
   return (
-    <div className="flex flex-col gap-4">
+    /*
+      `gap-3` rather than `gap-4`. A stack of six closed 72px rows wants less air
+      between them than a stack of tall cards did: at 16px the gaps were reading
+      as loudly as the rows, and a spine you are meant to scan down should look
+      like a list rather than like six unrelated objects that happen to be
+      stacked.
+    */
+    <div className="flex flex-col gap-3">
       {/*
         The meter lives in the header of the card it describes. It used to be a
         card of its own — no title, no heading, floating above four cards that
@@ -266,15 +350,45 @@ export function ClientNutrition({
         two different dialogs. This one names its object.
       */}
       <Card>
-        <CardHeader className="flex-row flex-wrap items-center justify-between gap-x-4 gap-y-3">
+        {/*
+          ⚠ **No `flex-row` override on this header.** It carried
+          `flex-row flex-wrap items-center justify-between`, which replaced
+          `CardHeader`'s own grid with a wrapping flex row — and a wrapping row
+          is exactly what it sounds like: as soon as the title, the meter, the
+          count and the button did not fit, the whole action group dropped to a
+          second line and the card opened with a heading alone above a stranded
+          row of controls.
+
+          The header is a grid built for this. `has-data-[slot=card-action]`
+          gives it `grid-cols-[1fr_auto]`, and `CardAction` is
+          `col-start-2 row-span-2 row-start-1 justify-self-end` — the title takes
+          the free column, the controls take exactly what they need at the
+          inline-end of the *same* line, and the description slides underneath
+          the title rather than pushing anything down.
+        */}
+        <CardHeader>
           <CardTitle as="h2" icon="progress" size="sm">
             {t('intake.sections.measurements')}
           </CardTitle>
 
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <span className="text-label text-muted-foreground">
-              {t('intake.completeShort')}
-            </span>
+          {/*
+            `justify-end` and `flex-wrap`: one line is what this is for, and on a
+            phone the button plus the meter genuinely cannot share a 360px row
+            with the title — so they wrap *within their own column*, at the
+            inline-end, rather than dragging the whole group under the heading.
+          */}
+          <CardAction className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2">
+            {/*
+              **No word in front of the meter.** It read "مكتمل" at every width
+              from `sm` up, which is the label of a reading that already reads as
+              one: a filled track with 11/11 beside it says "complete" without
+              being told, and on a partial record the word was saying the exact
+              opposite of what the bar showed.
+
+              The meter is still named for a screen reader — see `aria-label` and
+              `aria-valuetext` below — which is where that word was actually
+              doing work.
+            */}
             <span
               role="meter"
               aria-valuenow={filled}
@@ -307,36 +421,21 @@ export function ClientNutrition({
               <Icon name="edit" />
               {intake.hasProfile ? t('intake.editRecord') : t('intake.start')}
             </IntakeFormTrigger>
-          </div>
+          </CardAction>
         </CardHeader>
 
-        <CardContent className="flex flex-col gap-4">
-          {/*
-            Goal and activity as a sentence rather than two pills. They are
-            facts about the client, not states of the record, and the design
-            system spends its pill shape on the latter.
-          */}
-          {goalLabel || activityLabel ? (
-            <p className="flex flex-wrap items-center gap-x-6 gap-y-1 text-body-sm text-muted-foreground">
-              {goalLabel ? (
-                <span>
-                  {t('intake.goalLine')}{' '}
-                  <span className="font-semibold text-foreground">
-                    {goalLabel}
-                  </span>
-                </span>
-              ) : null}
-              {activityLabel ? (
-                <span>
-                  {t('intake.activityLine')}{' '}
-                  <span className="font-semibold text-foreground">
-                    {activityLabel}
-                  </span>
-                </span>
-              ) : null}
-            </p>
-          ) : null}
+        {/*
+          `pt-2` on top of the card's own `gap-(--card-spacing)`.
 
+          The gap alone was measured from the *title*, and this header is not as
+          tall as its title: `CardAction` puts a 40px button on the same line, so
+          the row's real bottom edge is the button's, and the grid was sitting
+          eight pixels under a control instead of twenty under a heading. The
+          card's gap is right for every other card and wrong for this one because
+          this one has a button in its header — so the correction belongs here,
+          not on the shared token.
+        */}
+        <CardContent className="flex flex-col gap-4 pt-2">
           {targets.missing.length > 0 ? (
             <Callout tone="attention">
               {t('intake.missingFields', {
@@ -350,13 +449,30 @@ export function ClientNutrition({
             </Callout>
           ) : null}
 
+          {/*
+            ⚠ **The one callout on this screen that can be closed**, and the
+            `noticeId` is what makes that safe: it carries the client *and both
+            figures*, so closing "1500 against 2868" says nothing about "1200
+            against 2868" — change either number and the warning is back.
+
+            It is dismissible because it is the only notice here that can be
+            *correct and unwanted at the same time*. A dietitian who has set a
+            manual target deliberately has already answered this question, and
+            the record can hold that state for months; the missing-fields
+            callout above cannot be answered by reading it, so it stays.
+          */}
           {kcalMismatch ? (
-            <Callout tone="attention" title={t('intake.kcalMismatch')}>
+            <DismissibleCallout
+              tone="attention"
+              title={t('intake.kcalMismatch')}
+              noticeId={`kcal-mismatch:${intake.clientId}:${kcalMismatch.manual}:${kcalMismatch.computed}`}
+              dismissLabel={t('intake.dismissWarning')}
+            >
               {t('intake.kcalMismatchDetail', {
                 manual: kcalMismatch.manual,
                 computed: kcalMismatch.computed,
               })}
-            </Callout>
+            </DismissibleCallout>
           ) : null}
 
           {/*
@@ -364,7 +480,39 @@ export function ClientNutrition({
             from, and 'فوق النطاق الصحي' repeated in words the band drawn
             immediately below it. A reading is a label and a figure.
           */}
-          <StatGrid columns={6}>
+          {/*
+            ⚠ **Eight tiles in four columns, and the two rows mean different
+            things.** The first is what was *measured* — height, weight, age, and
+            the BMI derived from them. The second is what the plan is *set to* —
+            the goal, the activity level, and the daily calorie and protein
+            targets those two produce. Reading down a column is meaningless;
+            reading across a row is the point, and four-up is what makes the rows
+            visible as rows. Six columns put all of it on one undifferentiated
+            strip.
+
+            **الهدف and النشاط are tiles here rather than a line of prose above
+            the grid.** They have now been in three places: a muted sentence at
+            the top of the card content, then the card's description under the
+            title. Both had the same fault — two facts of exactly the same shape
+            as the six below them, a label and a short value, set in a different
+            size and a different treatment because they happen to be words
+            instead of digits. That is precisely the row of three type sizes
+            `StatTile` was built to end (see the note at the top of
+            `stat-tile.tsx`); `textual` is what lets a worded value into the grid
+            without taking `dir="ltr"` and `tabular-nums` with it.
+
+            A null goal now draws an em dash in its own cell rather than removing
+            a sentence, which is the same answer every other unrecorded reading
+            on this grid gives.
+
+            ⚠ **الهدف is also on the identity panel**, as the pill under the
+            client's name, so this repeats it. It stays because that pill is
+            conditional — an archived client shows the archived badge *instead*
+            of the goal (see `ClientProfilePanel`) — and the one card that
+            computes a calorie target from the goal should not be the card that
+            stops naming it.
+          */}
+          <StatGrid columns={4}>
             <StatTile
               label={t('fields.heightCm')}
               value={intake.heightCm}
@@ -384,6 +532,9 @@ export function ClientNutrition({
               label={t('intake.bmi')}
               value={targets.bmi === null ? null : targets.bmi.toFixed(1)}
             />
+
+            <StatTile textual label={t('intake.goalLine')} value={goalLabel} />
+            <StatTile textual label={t('intake.activityLine')} value={activityLabel} />
             <StatTile
               label={t('intake.dailyTarget')}
               value={effectiveKcal}
@@ -396,347 +547,227 @@ export function ClientNutrition({
               unit={t('units.g')}
             />
           </StatGrid>
+
+          {/*
+            ⚠ **The scale is the second half of this card, not a card of its
+            own** — and the thing that makes that work is the heading, which it
+            did not have the first time it lived here.
+
+            It was moved out because inside the measurements card it read as a
+            footer to the six figures: an unlabelled rule under a grid, close
+            enough to the tiles to look like part of the same object, and the
+            only element on that card with no name of its own. All of that was
+            true, and none of it was an argument for a second card — it was an
+            argument for a name. A card whose title is 'مؤشر كتلة الجسم' and
+            whose entire contents are one 8px rule spends a whole surface, a
+            title row and a `gap-4` on a single line of chart.
+
+            The measurements and where they fall are one subject. The tiles say
+            what the numbers *are* and this says where this person *sits*, which
+            is the reading a dietitian acts on — and the second question is only
+            worth asking because of the first. A rule and a label divide them;
+            they do not need a gap and a ring to do it.
+
+            `Section` names it without competing with the card's own `h2`. A
+            bare 27.4 still means nothing to most readers; against the named
+            bands it means 'a little over'. See `BmiScale` for why this is no
+            longer a `ComfortBand`.
+          */}
+          {targets.bmi !== null && targets.bmiCategory ? (
+            <Section icon="trend" title={t('intake.bmiScale')}>
+              <BmiScale
+                bmi={targets.bmi}
+                category={targets.bmiCategory}
+                label={t('intake.bmi')}
+                valueText={t('intake.bmiValueText', {
+                  value: targets.bmi.toFixed(1),
+                  category: t(`bmiCategories.${targets.bmiCategory}`),
+                })}
+                scaleLabels={{
+                  underweight: t('bmiCategories.underweight'),
+                  normal: t('bmiCategories.normal'),
+                  overweight: t('bmiCategories.overweight'),
+                  obese: t('bmiCategories.obese'),
+                  severely_obese: t('bmiCategories.severely_obese'),
+                }}
+              />
+            </Section>
+          ) : null}
         </CardContent>
       </Card>
 
       {/*
-        ⚠ **The scale is a card of its own, not the last row of the one above.**
+        ⚠ **The spine: six rows, the same six for every client, in this order.**
 
-        Inside the measurements card it was read as a footer to the six figures
-        rather than as a chart — an unlabelled rule under a grid, close enough to
-        the tiles to look like part of the same object, and the only element on
-        that card with no name of its own. It also answers a different question
-        from the tiles: they say what the numbers *are*, this says where this
-        person *falls*, which is the reading a dietitian actually acts on.
+        The order is the argument, and it is not the order the intake dialog
+        writes them in. It reads the record the way the clinic does — who this
+        person is, then how they live, then what constrains the plan:
 
-        Given its own card it gets a title naming what is plotted, and the gap
-        between the two cards does the separating that a hairline inside one card
-        could not. A bare 27.4 still means nothing to most readers; against the
-        named categories it means 'a little over'. See `BmiScale` for why this is
-        no longer a `ComfortBand`.
+        1. **بيانات ومعلومات عامة** and 2. **نمط الحياة والعادات** — the
+           assessment sheet. Who the client is and how they live, which is what
+           the rest of the record is read against.
+        3. **الحساسية والبيانات الطبية** — what must not be prescribed. It was in
+           a one-third column beside the schedule, which put the only
+           safety-critical section on the record in the narrowest box on it.
+        4. **جدول الوجبات** — the shape of the day being prescribed.
+        5. **ما تلتزم به الخطة** — the standing instructions that shape it.
+        6. **ملاحظات خاصة بالعيادة** — the clinic's own note.
+
+        ⚠ **Every row starts closed** — no `defaultOpen` anywhere on this spine.
+        The tab opens on six named rows and nothing else, and the reader picks
+        the one they came for.
+
+        Rows used to open themselves when they held something, on the reasoning
+        that a dietitian arriving at a record wants the clinical facts in front
+        of them. What that produced in practice was the thing the spine exists
+        to fix: a record whose height and shape changed with how much happened
+        to be filled in — four sections of answers unrolled on one client, two
+        on the next — so the six rows were not a spine you could learn, only a
+        stack you had to re-read. Six closed rows are the same six rows for
+        every client, and an empty one still says so on its own row without
+        being opened.
+
+        One column, not the three-column grid this replaced. That grid put a
+        section's *width* at the mercy of whether its neighbour happened to be
+        filled in, so no two clients' records looked alike. A row is a row.
       */}
-      {targets.bmi !== null && targets.bmiCategory ? (
-        <Card>
-          <CardHeader>
-            <CardTitle as="h2" icon="trend" size="sm">
-              {t('intake.bmi')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <BmiScale
-              bmi={targets.bmi}
-              category={targets.bmiCategory}
-              label={t('intake.bmi')}
-              valueText={t('intake.bmiValueText', {
-                value: targets.bmi.toFixed(1),
-                category: t(`bmiCategories.${targets.bmiCategory}`),
-              })}
-              scaleLabels={{
-                underweight: t('bmiCategories.underweight'),
-                normal: t('bmiCategories.normal'),
-                overweight: t('bmiCategories.overweight'),
-                obese: t('bmiCategories.obese'),
-                severely_obese: t('bmiCategories.severely_obese'),
-              }}
-            />
-          </CardContent>
-        </Card>
-      ) : null}
 
-      {/*
-        ⚠ **Two independent column stacks, not four cards in one grid.**
-        A `grid-cols-3` holding a 2-column card beside a 1-column card puts the
-        next pair on a new grid *row*, and a row is as tall as its tallest
-        member — so a short meal schedule beside a long allergy record left a
-        hole under the schedule the height of the difference, and the planning
-        card started well below where it looked like it should. `items-start`
-        made each card the right height and did nothing about the row.
-
-        Each column is its own flex stack now, so a card follows the one above
-        it with exactly `gap-4` between them and nothing waits on the other
-        column. Below `lg` both stacks collapse into one, which is what a single
-        column of cards should look like anyway.
-
-        Each stack renders only when it has something in it: an empty flex child
-        still occupies its grid column, which would leave the other stack at
-        two-thirds width with dead space beside it.
-      */}
-      {/*
-        A section draws its card only when it holds something.
-
-        The counter-argument is on the record: the same seven cards in the same
-        order on every client is what lets a reader learn where the allergies
-        are once. What that cost was a third of a screen per empty section, on
-        the screen that is already the densest in the app — and on a new client,
-        seven headed boxes saying nothing before a single fact is on it.
-
-        What makes it safe to drop them is that nothing is silently absent: the
-        gap card at the foot lists every missing section by name and opens the
-        dialog on it, so "not recorded" is stated once, in one place, with the
-        way to fix it attached. The cards on screen are the record; the card at
-        the foot is what is missing from it.
-      */}
-      {hasRecordGrid ? (
-      /*
-        **The three-column split only exists when there are two stacks to
-        split.** With one of them hidden the survivor still sat in its own
-        track — the wide one across two thirds, the narrow one across one — and
-        the rest of the row was dead space beside a single card. A two-column
-        layout with one column is a one-column layout, so it is drawn as one.
-      */
-      <div className={cn('grid items-start gap-4', hasWideStack && hasNarrowStack && 'lg:grid-cols-3')}>
-          {hasWideStack ? (
-          <div className={cn('flex flex-col gap-4', hasNarrowStack && 'lg:col-span-2')}>
-            {hasScheduleRecord ? (
-            <Card>
-                <CardHeader className="flex-row flex-wrap items-center justify-between gap-x-4 gap-y-1">
-                  <CardTitle as="h2" icon="clock" size="sm">
-                    {t('intake.sections.schedule')}
-                  </CardTitle>
-                  {/*
-                What the schedule adds up to, in words. This was a pill counting
-                the slots — a number the row below it already shows by existing.
-                Saying which target the shares divide is the part that is not on
-                screen anywhere else.
-              */}
-                  <p className="text-body-sm text-muted-foreground">
-                    {t('intake.scheduleSummary', {
-                      count: intake.mealSchedule.length,
-                      kcal: effectiveKcal ?? '—',
-                    })}
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <MealSchedule slots={intake.mealSchedule} />
-                </CardContent>
-              </Card>
-            ) : null}
-
-            {hasPlanningRecord ? (
-            <Card>
-                <CardHeader>
-                  <CardTitle as="h2" icon="weeklyPlans" size="sm">
-                    {t('intake.sections.planning')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Notes
-                      items={[
-                        {
-                          label: t('fields.permanentInstructions'),
-                          value: intake.permanentInstructions,
-                        },
-                        {
-                          label: t('fields.preferences'),
-                          value: intake.preferences,
-                        },
-                        { label: t('fields.dislikes'), value: intake.dislikes },
-                      ]}
-                    />
-                </CardContent>
-              </Card>
-            ) : null}
-
-          </div>
-          ) : null}
-
-          {hasNarrowStack ? (
+      <Disclosure
+        icon="personOutline"
+        title={t('intake.sections.background')}
+        summary={emptySummary(backgroundCount)}
+      >
+        {backgroundCount > 0 ? (
           <div className="flex flex-col gap-4">
-            {hasAllergyRecord ? (
-            <Card>
-                <CardHeader>
-                  <CardTitle as="h2" icon="medical" size="sm">
-                    {t('intake.sections.allergies')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {/*
-                The allergens are a labelled line in the same list as the rest of
-                the clinical record, not a row of pills above it. They read in
-                clay, which is what marks a medical fact — the pill added a
-                filled shape around information that was already the loudest
-                thing on the card. The catalog/free-text distinction the filled
-                and outlined pills used to draw is the intake dialog's job; on a
-                read-only card it was a legend nobody had.
-              */}
-                  <Notes
-                      items={[
-                        {
-                          label: t('intake.allergyLine'),
-                          value:
-                            allergenTags.length > 0 ||
-                            intake.customAllergens.length > 0
-                              ? format.list([
-                                  ...allergenTags.map((tag) =>
-                                    t(`allergens.${tag}`),
-                                  ),
-                                  ...intake.customAllergens,
-                                ])
-                              : null,
-                          medical: true,
-                        },
-                        {
-                          label: t('intake.allergyDetailLabel'),
-                          value: intake.allergies,
-                        },
-                        {
-                          label: t('fields.conditions'),
-                          value: intake.conditions,
-                        },
-                        {
-                          label: t('fields.medications'),
-                          value: intake.medications,
-                        },
-                        {
-                          label: t('fields.drugAllergies'),
-                          value: intake.drugAllergies,
-                          medical: true,
-                        },
-                      ]}
-                    />
-                </CardContent>
-              </Card>
-            ) : null}
+            <FactList items={backgroundFacts} columns={4} />
+            {hasBackgroundFacts && hasBackgroundNotes ? <Rule /> : null}
+            {/*
+              Three across rather than one per line. `visitReason`,
+              `dietHistory` and `familyHistory` are answers to questions —
+              'انقاص وزن', 'كيتو لمدة شهرين' — not paragraphs, and giving each of
+              them the full width of the card made three short phrases occupy
+              three whole rows. A long one still wraps inside its own column.
+            */}
+            <Notes items={backgroundNotes} columns={3} />
+          </div>
+        ) : (
+          <SectionEmpty locale={locale} clientId={intake.clientId} section="background" label={t('intake.fillSection')} />
+        )}
+      </Disclosure>
 
-            {hasPrivateRecord ? (
-            <Card>
-                <CardHeader>
-                  {/*
-                'خاص بالعيادة' was a pill beside the title. It is a property of
-                the whole card, which is what a title is for.
-              */}
-                  <CardTitle as="h2" icon="notes" size="sm">
-                    {t('sections.privateNotes')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {/*
-                    One entry, merged: a record saved before the two note
-                    fields became one can still hold text in both, and reading
-                    them out as two labelled notes would put the split back on
-                    screen after the dialog stopped drawing it.
-                  */}
-                  <Notes
-                      items={[
-                        {
-                          label: t('intake.notesDivider'),
-                          value: mergedNotes(intake.medicalNotes, intake.notes),
-                        },
-                      ]}
-                    />
-                </CardContent>
-              </Card>
+      <Disclosure
+        icon="activityOutline"
+        title={t('intake.sections.habits')}
+        summary={emptySummary(habitsCount)}
+      >
+        {habitsCount > 0 ? (
+          <div className="flex flex-col gap-4">
+            <FactList items={lifestyleFacts} columns={4} />
+            {/*
+              The ten frequencies get a name of their own. They are one question
+              asked ten times — "how often do you eat this" — and unlabelled
+              under the sleep and smoking answers they read as the same list
+              continuing, which is what made this section feel like a form
+              dumped onto a page.
+            */}
+            {hasFrequencyRecord ? (
+              <Section
+                icon="leaf"
+                title={t('intake.foodFrequency')}
+                divided={hasLifestyleRecord}
+              >
+                <FactList items={frequencyFacts} columns={4} />
+              </Section>
             ) : null}
           </div>
-          ) : null}
-      </div>
-      ) : null}
+        ) : (
+          <SectionEmpty locale={locale} clientId={intake.clientId} section="habits" label={t('intake.fillSection')} />
+        )}
+      </Disclosure>
 
-      {/*
-        The assessment sheet, read back in the order it was asked.
+      <Disclosure
+        icon="medical"
+        title={t('intake.sections.allergies')}
+        /*
+          ⚠ **The allergens themselves used to be printed on this row**, in clay,
+          so the record read as a warning from across the screen without being
+          opened. That was the strongest argument any summary had, and it is
+          gone with the rest of them: every row on this spine now carries its
+          name and nothing else, and one row breaking that pattern is the row a
+          reader stops trusting the pattern over.
 
-        Short closed answers first as a labelled lattice, prose under
-        them: a marital status and a blood type are two words each, and
-        running them as `Notes` entries gave every one of them a line of
-        its own down a card that was mostly whitespace.
+          The allergens are one click away rather than on screen on arrival:
+          this row opens like every other one, and the row itself says whether
+          there is anything behind it. A reader who came for the allergies opens
+          the row named الحساسية; nothing else on this record is ever going to
+          be mistaken for it.
+        */
+        summary={emptySummary(allergyCount)}
+      >
+        {allergyCount > 0 ? (
+          /*
+            The allergens are a labelled line in the same list as the rest of the
+            clinical record, not a row of pills above it. They read in clay,
+            which is what marks a medical fact — a pill added a filled shape
+            around information that was already the loudest thing on the card.
+            The catalog/free-text distinction the filled and outlined pills used
+            to draw is the intake dialog's job; on a read-only card it was a
+            legend nobody had.
+          */
+          <Notes items={allergyItems} />
+        ) : (
+          <SectionEmpty locale={locale} clientId={intake.clientId} section="allergies" label={t('intake.fillSection')} />
+        )}
+      </Disclosure>
 
-        **The two halves sit side by side, across the full width.** They are the
-        one pair on this screen that is genuinely read together — who this person
-        is, and how they live — and each is a short lattice of two-word answers,
-        so stacked they were two wide cards of mostly empty row. They are out of
-        the three-column grid above rather than inside its wide column: at half
-        of two-thirds, a "نمط الحياة والعادات" lattice wraps to one answer per
-        line, which is the shape this pairing exists to avoid.
+      <Disclosure
+        icon="clock"
+        title={t('intake.sections.schedule')}
+        summary={hasScheduleRecord ? undefined : t('intake.sectionEmpty')}
+      >
+        {hasScheduleRecord ? (
+          <MealSchedule slots={intake.mealSchedule} />
+        ) : (
+          <SectionEmpty locale={locale} clientId={intake.clientId} section="schedule" label={t('intake.fillSection')} />
+        )}
+      </Disclosure>
 
-        `items-start` so the shorter of the two keeps its own height instead of
-        stretching to match, and one column below `sm`, where side by side would
-        be two narrow strips.
-      */}
-      {hasAssessmentGrid ? (
-      <div className="grid items-start gap-4 sm:grid-cols-2">
-        {hasBackgroundRecord ? (
-        <Card>
-          <CardHeader>
-            <CardTitle as="h2" icon="personOutline" size="sm">
-              {t('intake.sections.background')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <FactList items={backgroundFacts} />
-            <Notes items={backgroundNotes} />
-          </CardContent>
-        </Card>
-        ) : null}
+      <Disclosure
+        icon="weeklyPlans"
+        title={t('intake.sections.planning')}
+        summary={emptySummary(planningCount)}
+      >
+        {planningCount > 0 ? (
+          <Notes items={planningItems} />
+        ) : (
+          <SectionEmpty locale={locale} clientId={intake.clientId} section="planning" label={t('intake.fillSection')} />
+        )}
+      </Disclosure>
 
-        {hasHabitsRecord ? (
-        <Card>
-          <CardHeader>
-            <CardTitle as="h2" icon="activityOutline" size="sm">
-              {t('intake.sections.habits')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <Notes items={habitNotes} />
-            <FactList items={habitFacts} />
-          </CardContent>
-        </Card>
-        ) : null}
-      </div>
-      ) : null}
+      <Disclosure
+        icon="notes"
+        title={t('sections.privateNotes')}
+        summary={emptySummary(privateCount)}
+      >
+        {privateCount > 0 ? (
+          /*
+            ⚠ **The note sits in a tile, not loose on the section.** This is the
+            one thing on the record written *by* the clinic rather than
+            collected from the client, and set as plain text under a heading it
+            looked exactly like the medical answers two rows above it. The muted
+            fill marks it as a quotation from somebody's own hand.
 
-      {/*
-        Every gap, once, at the end — instead of a headed empty card per section.
-        Dashed and unfilled: `Card variant="empty"` is the system's "a space
-        waiting to be filled", which is exactly what this is. Each chip opens the
-        same dialog, so a gap is one click from being closed.
-      */}
-      {gaps.length > 0 ? (
-        <Card variant="empty" size="sm">
-          <CardContent className="flex flex-col gap-3">
-            {/*
-              The 'إكمال البيانات' button is gone. Every chip below already
-              opens the same dialog and each one names the field it will take
-              you to, so the button was a fourth door to a room with three —
-              counting the header's own control.
-            */}
-            <p className="text-body-md text-foreground">
-              {/*
-                The instruction leads and the count follows it, which is the
-                reverse of how this read before. The chips are sections now
-                rather than fields, so "# حقول بلا بيانات" no longer describes
-                what is under it — it is the size of the job, not the name of
-                it, and belongs in the muted half.
-              */}
-              {t('intake.gapsHeading')}
-              {' — '}
-              <span className="text-muted-foreground">
-                {t('intake.gapsPrompt', { count: gaps.length })}
-              </span>
-            </p>
-
-            <ul className="flex flex-wrap gap-2">
-              {gapChips.map((chip) => (
-                <li key={chip.key}>
-                  {/*
-                    `h-10`, the design system's floor for a control. These were
-                    26px tall — below the smallest size the button scale admits,
-                    on a target that is the whole point of the card.
-                  */}
-                  <IntakeFormTrigger
-                    locale={locale}
-                    clientId={intake.clientId}
-                    section={chip.section}
-                    className="inline-flex h-10 items-center gap-2 rounded-full border border-dashed border-input px-4 text-label text-muted-foreground transition-colors hover:border-solid hover:border-primary hover:bg-secondary hover:text-secondary-foreground"
-                  >
-                    <Icon name="edit" className="size-4" />
-                    {chip.label}
-                  </IntakeFormTrigger>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      ) : null}
+            `Card variant="tile"` and not a default card: a nested surface takes
+            the muted fill and drops the ring and shadow, which is the design
+            system's rule against card-inside-card.
+          */
+          <Card variant="tile">
+            <Notes items={privateItems} />
+          </Card>
+        ) : (
+          <SectionEmpty locale={locale} clientId={intake.clientId} section="clinical" label={t('intake.fillSection')} />
+        )}
+      </Disclosure>
     </div>
   );
 }
@@ -776,7 +807,7 @@ export function ClientNutrition({
  * obese span.
  *
  * The two obesity bands are coloured apart because `BMI_CATEGORIES` splits them
- * apart: clay-100 for `obese`, the solid clay for `severely_obese`. Clay is the
+ * apart: --red-tint for `obese`, the solid red for `severely_obese`. Red is the
  * system's only alarm colour and a clinical finding is what it is for.
  */
 const BMI_TONES = {
@@ -1027,6 +1058,78 @@ const FREQUENCY_DISPLAY_FIELDS = [
 ] as const satisfies readonly (keyof ClientIntakeValues)[];
 
 /**
+ * One glyph per frequency answer, so the ten of them read as ten questions
+ * rather than as one list of the word "أسبوعيًا".
+ *
+ * A `Record` keyed by the field rather than an icon on each entry of
+ * `FREQUENCY_DISPLAY_FIELDS`: that list is the order the assessment asks in and
+ * is kept in step with the dialog's copy of it by hand, so it stays a bare list
+ * of keys and everything else about a field hangs off the key.
+ */
+const FREQUENCY_ICONS = {
+  caffeineFrequency: 'foodCaffeine',
+  sweetDrinksFrequency: 'foodSweetDrinks',
+  fastFoodFrequency: 'foodFastFood',
+  vegetablesFrequency: 'foodVegetables',
+  fruitFrequency: 'foodFruit',
+  dairyFrequency: 'foodDairy',
+  redMeatFrequency: 'foodRedMeat',
+  chickenFrequency: 'foodChicken',
+  fishFrequency: 'foodFish',
+  sweetsFrequency: 'foodSweets',
+} as const satisfies Record<(typeof FREQUENCY_DISPLAY_FIELDS)[number], IconName>;
+
+/**
+ * The hue each of those glyphs is drawn in.
+ *
+ * ⚠ **The only icons in the app that carry a colour of their own**, and the
+ * reasoning for the exception is at `--intake-icon-*` in `globals.css`: this is
+ * a 4×4 lattice of thirteen-pixel labels, and the tint is what a reader lands
+ * on when they are looking for one answer out of fourteen.
+ *
+ * **It marks the subject, never the answer.** الأسماك is teal whether the
+ * client eats fish daily or never. Nothing on this card is a judgement — a
+ * green vegetable glyph over "نادرًا" would read as approval of a frequency the
+ * dietitian has not yet had a word about.
+ *
+ * Written as whole class names, not composed from the key, because Tailwind
+ * finds classes by scanning this file's text: `text-intake-icon-${x}` produces
+ * fourteen utilities that are never generated and fourteen icons drawn in the
+ * inherited grey.
+ */
+const HABIT_ICON_TONE = {
+  habitActivity: 'text-intake-icon-activity',
+  habitBarrier: 'text-intake-icon-barrier',
+  habitSleep: 'text-intake-icon-sleep',
+  habitSmoking: 'text-intake-icon-smoking',
+  foodCaffeine: 'text-intake-icon-caffeine',
+  foodSweetDrinks: 'text-intake-icon-sweet-drinks',
+  foodFastFood: 'text-intake-icon-fast-food',
+  foodVegetables: 'text-intake-icon-vegetables',
+  foodFruit: 'text-intake-icon-fruit',
+  foodDairy: 'text-intake-icon-dairy',
+  foodRedMeat: 'text-intake-icon-red-meat',
+  foodChicken: 'text-intake-icon-chicken',
+  foodFish: 'text-intake-icon-fish',
+  foodSweets: 'text-intake-icon-sweets',
+} as const satisfies Partial<Record<IconName, string>>;
+
+/**
+ * One answer on نمط الحياة والعادات: a glyph, its tint, a label and a value.
+ *
+ * The tint is looked up rather than passed, so a fact cannot be written with a
+ * colour that belongs to a different question — the glyph and its hue are one
+ * decision, made once, in the map above.
+ */
+function habitFact(
+  icon: keyof typeof HABIT_ICON_TONE,
+  label: string,
+  value: string | null,
+) {
+  return { icon, tone: HABIT_ICON_TONE[icon], label, value };
+}
+
+/**
  * Short label-over-value pairs, two or three across.
  *
  * `Notes` beneath it does the same job for prose and gives every entry a line
@@ -1036,15 +1139,143 @@ const FREQUENCY_DISPLAY_FIELDS = [
  * in across visits, and a lattice of placeholders reads as a form to complete
  * rather than a record to read.
  */
-function FactList({ items }: { items: { label: string; value: string | null }[] }) {
+/**
+ * How many answers a lattice puts on a row from `sm` up. Below that every
+ * lattice on this screen is one across: a label over a value is already two
+ * lines, and two of them side by side on a phone wraps both.
+ *
+ * Written out rather than interpolated: Tailwind reads the source for class
+ * names, and `sm:grid-cols-${n}` is a string it never sees.
+ */
+const LATTICE_COLUMNS = {
+  2: 'sm:grid-cols-2',
+  3: 'sm:grid-cols-2 lg:grid-cols-3',
+  4: 'sm:grid-cols-2 lg:grid-cols-4',
+} as const;
+
+type LatticeColumns = keyof typeof LATTICE_COLUMNS;
+
+/**
+ * What a section with nothing in it holds: the way to put something in it.
+ *
+ * This is the dashed chip the gap card at the foot of the record used to draw,
+ * one per missing section, moved to the section it names. It was the right
+ * control in the wrong place — a list of what is missing, kept somewhere other
+ * than where the missing thing goes, so closing a gap meant reading the foot of
+ * the page and then finding your way back up.
+ *
+ * `h-10`, the design system's floor for a control. These were 26px once — below
+ * the smallest size the button scale admits, on a target that is the entire
+ * point of the row it sits in.
+ */
+function SectionEmpty({
+  locale,
+  clientId,
+  section,
+  label,
+}: {
+  locale: Locale;
+  clientId: string;
+  section: IntakeSectionId;
+  label: string;
+}) {
+  return (
+    <IntakeFormTrigger
+      locale={locale}
+      clientId={clientId}
+      section={section}
+      className="inline-flex h-10 items-center gap-2 rounded-full border border-dashed border-input px-4 text-label text-muted-foreground transition-colors hover:border-solid hover:border-primary hover:bg-secondary hover:text-secondary-foreground"
+    >
+      <Icon name="add" className="size-4" />
+      {label}
+    </IntakeFormTrigger>
+  );
+}
+
+/**
+ * A named part of a card, under a hairline.
+ *
+ * The record has three places where one card genuinely holds two subjects — the
+ * measurements and where they fall on the BMI scale, the lifestyle answers and
+ * the food frequencies — and before this each of them was either a second card
+ * with a title row and a ring around one line of content, or an unlabelled block
+ * that read as the list above it continuing.
+ *
+ * A rule and a `text-label` heading is the whole treatment. It is quieter than
+ * `CardTitle size="sm"` on purpose: this names a part, and a part that shouts as
+ * loudly as the card it is inside makes the reader ask which of the two is the
+ * real heading.
+ *
+ * `divided` is false for a part with nothing above it — the rule separates two
+ * things, and drawn under the card header alone it is a line the card's own edge
+ * already provides.
+ */
+function Section({
+  icon,
+  title,
+  divided = true,
+  children,
+}: {
+  icon: IconName;
+  title: string;
+  divided?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <section className={cn('flex flex-col gap-3', divided && 'border-t border-border pt-4')}>
+      <h3 className="flex items-center gap-2 text-label text-muted-foreground">
+        <Icon name={icon} className="size-4 shrink-0" />
+        {title}
+      </h3>
+      {children}
+    </section>
+  );
+}
+
+/**
+ * The same hairline with nothing named on either side of it — for a card whose
+ * two halves are obviously different in kind and need no telling apart, such as
+ * the closed answers and the written ones in بيانات ومعلومات عامة.
+ */
+function Rule() {
+  return <div aria-hidden className="h-px bg-border" />;
+}
+
+function FactList({
+  items,
+  columns = 3,
+}: {
+  /**
+   * `icon` is optional and is drawn at the head of the label.
+   *
+   * Only نمط الحياة والعادات passes them. Fourteen labels four across is the
+   * one lattice on this record long enough that a reader scans it looking for
+   * *one* answer — "how often fish?" — and a picture is what the eye lands on
+   * before it has read a word. The four-answer lattices elsewhere are read
+   * whole, and a glyph on each of those is decoration.
+   */
+  items: { label: string; value: string | null; icon?: IconName; tone?: string }[];
+  columns?: LatticeColumns;
+}) {
   const present = items.filter((item) => item.value !== null && item.value !== '');
   if (present.length === 0) return null;
 
   return (
-    <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+    <dl className={cn('grid grid-cols-1 gap-x-6 gap-y-3', LATTICE_COLUMNS[columns])}>
       {present.map((item) => (
         <div key={item.label}>
-          <dt className="text-label text-muted-foreground">{item.label}</dt>
+          <dt className="flex items-center gap-1.5 text-label text-muted-foreground">
+            {/*
+              `size-3.5` and not the `size-4` default: the glyph marks a label
+              set in the smallest type on the card, and at 16px it outweighed
+              the words it belongs to. `shrink-0` comes from `Icon` itself, so a
+              long label wraps under itself rather than squeezing the picture.
+            */}
+            {item.icon ? (
+              <Icon name={item.icon} className={cn('size-3.5', item.tone)} />
+            ) : null}
+            {item.label}
+          </dt>
           <dd className="mt-1 text-body-md text-foreground [overflow-wrap:anywhere]">
             <bdi>{item.value}</bdi>
           </dd>
@@ -1056,8 +1287,22 @@ function FactList({ items }: { items: { label: string; value: string | null }[] 
 
 function Notes({
   items,
+  columns,
 }: {
   items: { label: string; value: string | null; medical?: boolean }[];
+  /**
+   * Lay the notes out as a lattice instead of a stack.
+   *
+   * Omitted — the default — every note takes a line of the card, which is what
+   * prose needs: standing instructions and an allergy description run to
+   * sentences, and a sentence in a third of a card wraps to five lines.
+   *
+   * Passed, the notes share rows. Only for a set that is short by nature — the
+   * three background answers are 'انقاص وزن', 'كيتو لمدة شهرين', 'سكري لدى الاب'
+   * — where a line each is three rows of mostly empty card. A long value still
+   * wraps inside its own column rather than breaking the grid.
+   */
+  columns?: LatticeColumns;
 }) {
   const present = items.filter(
     (item) => item.value !== null && item.value !== '',
@@ -1065,7 +1310,13 @@ function Notes({
   if (present.length === 0) return null;
 
   return (
-    <dl className="flex flex-col gap-3">
+    <dl
+      className={cn(
+        columns
+          ? cn('grid grid-cols-1 gap-x-6 gap-y-3', LATTICE_COLUMNS[columns])
+          : 'flex flex-col gap-3',
+      )}
+    >
       {present.map((item) => (
         <div key={item.label}>
           <dt className="text-label text-muted-foreground">{item.label}</dt>

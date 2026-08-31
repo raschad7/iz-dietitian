@@ -196,7 +196,15 @@ export function MealInspector({
             <Popover.Popup
               className={cn(
                 PLANNER_THEME,
-                'relative flex h-[min(44rem,calc(100dvh-2rem))] w-[min(29rem,calc(100vw-1.5rem))] origin-(--transform-origin) flex-col overflow-hidden rounded-lg bg-popover text-popover-foreground shadow-overlay ring-1 ring-foreground/10 outline-none max-sm:h-[min(44rem,calc(100dvh-1rem))] max-sm:w-full max-sm:rounded-b-none',
+                /*
+                  `--q-viewport-block` rather than `100dvh` in both heights: this
+                  panel carries editable fields, and `dvh` does not shrink for
+                  the keyboard on iOS — so a 44rem inspector kept its full height
+                  with a third of it behind the keys, taking its own controls
+                  with it. The token is `100dvh` less whatever the keyboard is
+                  covering; see `globals.css`.
+                */
+                'relative flex h-[min(44rem,calc(var(--q-viewport-block)-2rem))] w-[min(29rem,calc(100vw-1.5rem))] origin-(--transform-origin) flex-col overflow-hidden rounded-lg bg-popover text-popover-foreground shadow-overlay ring-1 ring-foreground/10 outline-none max-sm:h-[min(44rem,calc(var(--q-viewport-block)-1rem))] max-sm:w-full max-sm:rounded-b-none',
                 'transition-[opacity,transform,filter,clip-path] duration-(--duration-sweep) ease-(--ease-sweep)',
                 'data-ending-style:scale-95 data-ending-style:opacity-0 data-ending-style:blur-sm',
                 'data-starting-style:scale-95 data-starting-style:opacity-0 data-starting-style:blur-sm',

@@ -1,14 +1,35 @@
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { cache } from 'react';
 
 import type { Locale } from '@/i18n/routing';
 
 import { auth, REQUIRE_EMAIL_VERIFICATION, type Session, type UserRole } from './auth';
 
-/** Returns the current session, or `null` for an anonymous request. */
-export async function getSession(): Promise<Session | null> {
+/**
+ * Returns the current session, or `null` for an anonymous request.
+ *
+ * **Wrapped in React's `cache`, and it is a navigation cost rather than a
+ * correctness one.** This is a database round trip — Better Auth reads the
+ * session row and joins the user onto it — and one render of one staff screen
+ * asks for it three times over: `generateMetadata`, the area layout's
+ * `requireStaffClinic`, and the page's own. Every guard in the app funnels
+ * through here, so memoising this one function collapses all of them to a
+ * single read per request without a single call site changing.
+ *
+ * The portal has done this since it was written — see `requirePortalClient`,
+ * which caches one level higher for the same reason. The staff side simply
+ * never did, and paid for it on every navigation.
+ *
+ * `cache` is per-request, so this cannot serve one reader another's session:
+ * two concurrent requests are two separate memo tables. It also means a server
+ * action that signs someone in and then reads the session back in the same
+ * request would see the pre-sign-in value — nothing does, and the sign-in paths
+ * all end in a `redirect`, which starts a fresh request.
+ */
+export const getSession = cache(async (): Promise<Session | null> => {
   return auth.api.getSession({ headers: await headers() });
-}
+});
 
 /**
  * Guards a route area. The middleware already turns away requests with no

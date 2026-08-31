@@ -24,7 +24,10 @@ export type WhatsappTemplateKind =
   | 'appointmentSeries'
   | 'appointmentRescheduled'
   | 'appointmentCancelled'
-  | 'portalCredentials';
+  | 'portalCredentials'
+  | 'billStatement'
+  | 'billDocument'
+  | 'paymentReminder';
 
 /**
  * The language every WhatsApp message to a patient is written in.
@@ -56,10 +59,18 @@ export const PATIENT_MESSAGE_LOCALE: Locale = 'ar';
 export type WhatsappTemplateVariables = {
   clientName: string;
   clinicName: string;
-  /** Already formatted in the client's locale — see `formatLongDate`. */
-  date: string;
+  /**
+   * Already formatted in the client's locale — see `formatLongDate`.
+   *
+   * Optional because not every message is about a moment: the bill statement
+   * is about an account, and a template that needs no date should not have to
+   * invent one to satisfy this type. `renderWhatsappMessage` throws on a
+   * placeholder with no value, so a template that *does* use it is still
+   * caught here rather than at a patient's phone.
+   */
+  date?: string;
   /** Already formatted — `formatMinute`. */
-  time: string;
+  time?: string;
   /** Where a rescheduled appointment used to be. Only the reschedule uses these. */
   previousDate?: string;
   previousTime?: string;
@@ -76,6 +87,15 @@ export type WhatsappTemplateVariables = {
   count?: string;
   username?: string;
   password?: string;
+  /**
+   * What is still outstanding, already formatted as money in the patient's own
+   * locale — see `formatAmount`. Only the reminder uses it.
+   *
+   * Pre-formatted for the same reason the dates are: a template is a string
+   * with holes in it, and teaching the renderer about currency would put
+   * `Intl` in a file whose whole job is copy.
+   */
+  amount?: string;
 };
 
 /**
@@ -328,6 +348,77 @@ const COPY = {
       'You will be asked to change the password when you first sign in. Please do not share this message.',
     ],
   },
+  /*
+    The bill, sent as a PDF the subscriber keeps — this is its caption.
+
+    Short on purpose: the document under it is the statement, and a caption that
+    listed the figures would be the same account said twice, in the place where
+    it cannot be checked against anything. What the caption owes the reader is
+    what the file is and who it came from.
+  */
+  billStatement: {
+    ar: [
+      'مرحباً {clientName}،',
+      '',
+      'مرفق كشف حسابك في {clinicName}.',
+      '',
+      'لأي استفسار عن الكشف، يسعدنا ردّك على هذه الرسالة.',
+    ],
+    en: [
+      'Hello {clientName},',
+      '',
+      'Your {clinicName} account statement is attached.',
+      '',
+      'If anything on it needs explaining, reply to this message.',
+    ],
+  },
+  /*
+    One bill rather than the whole account — the same caption argument as
+    `billStatement`: the document under it carries the figures, and repeating
+    them here would be the bill said twice in the place it cannot be checked.
+  */
+  billDocument: {
+    ar: [
+      'مرحباً {clientName}،',
+      '',
+      'مرفق فاتورتك من {clinicName}.',
+      '',
+      'لأي استفسار عنها، يسعدنا ردّك على هذه الرسالة.',
+    ],
+    en: [
+      'Hello {clientName},',
+      '',
+      'Your {clinicName} bill is attached.',
+      '',
+      'If anything on it needs explaining, reply to this message.',
+    ],
+  },
+  /*
+    A nudge about an unpaid balance, and the shortest message here on purpose.
+
+    It names the figure and stops. A reminder that explains itself at length
+    reads as a demand, and this goes to somebody who is mid-course with a
+    dietitian they will see again — the clinic's relationship with them is worth
+    more than the emphasis. No document: what is owed is one number, and a PDF
+    to open before you can read it is a worse way to say it. The statement is a
+    press away on the same row when they ask for detail.
+  */
+  paymentReminder: {
+    ar: [
+      'مرحباً {clientName}،',
+      '',
+      'تذكير ودّي بأن المتبقي على حسابك في {clinicName} هو {amount}.',
+      '',
+      'لأي استفسار، يسعدنا ردّك على هذه الرسالة.',
+    ],
+    en: [
+      'Hello {clientName},',
+      '',
+      'A friendly reminder that {amount} is outstanding on your {clinicName} account.',
+      '',
+      'If you have any questions, reply to this message.',
+    ],
+  },
 } as const satisfies Record<WhatsappTemplateKind, Record<Locale, readonly string[]>>;
 
 /**
@@ -364,11 +455,22 @@ export function renderWhatsappMessage(
   kind: WhatsappTemplateKind,
   locale: Locale,
   variables: WhatsappTemplateVariables,
+  /**
+   * The clinic's own wording for this message, from the Forms tab — see
+   * `src/features/forms/`. Undefined for a clinic that has not rewritten it,
+   * which is the ordinary case and the one the copy in this file is for.
+   *
+   * Substituted for that copy and treated identically afterwards: the same
+   * placeholder pass, the same bidi isolation, the same length clamp. A clinic
+   * that leaves a placeholder out simply gets a message without it; one that
+   * names a placeholder this message cannot fill still throws below, though the
+   * editor refuses to save that in the first place.
+   */
+  override?: string,
 ): string {
   const rtl = locale === 'ar';
 
-  const body = COPY[kind][locale]
-    .join('\n')
+  const body = (override ?? COPY[kind][locale].join('\n'))
     .replace(PLACEHOLDER, (_match, name: string) => {
       const value = variables[name as keyof WhatsappTemplateVariables];
 
@@ -382,6 +484,21 @@ export function renderWhatsappMessage(
     });
 
   return body.length > MAX_BODY_LENGTH ? `${body.slice(0, MAX_BODY_LENGTH - 1)}…` : body;
+}
+
+/**
+ * The app's own body for a message, before any clinic has rewritten it.
+ *
+ * Exported for the Forms tab, which prefills its editor with it — see
+ * `src/features/forms/`. It is the *unrendered* template, placeholders and all,
+ * because what a clinic edits is the template rather than one filled-in copy of
+ * it.
+ *
+ * Reads the same `COPY` the sender does, so the words in the editor cannot
+ * drift from the words that go out.
+ */
+export function defaultMessageBody(kind: WhatsappTemplateKind, locale: Locale): string {
+  return COPY[kind][locale].join('\n');
 }
 
 /** Trims a hand-typed message to what the gateway will accept. */

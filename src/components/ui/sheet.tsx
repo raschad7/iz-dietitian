@@ -6,6 +6,7 @@ import { Dialog as SheetPrimitive } from "@base-ui/react/dialog"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Icon } from "@/components/ui/icon"
+import { SheetGrip, useSheetDrag } from "@/components/ui/dialog-drag"
 
 function Sheet({ ...props }: SheetPrimitive.Root.Props) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />
@@ -42,18 +43,47 @@ function SheetContent({
   side = "inline-end",
   showCloseButton = true,
   showOverlay = true,
+  onDismiss,
   ...props
 }: SheetPrimitive.Popup.Props & {
   side?: "top" | "bottom" | "inline-start" | "inline-end"
   showCloseButton?: boolean
   /** Non-modal workbench rails leave the underlying canvas available for drag/drop. */
   showOverlay?: boolean
+  /**
+   * Closes the sheet, and by supplying it a **bottom** sheet becomes draggable:
+   * it grows a grip and can be pushed back down to the edge it rose from. See
+   * `dialog-drag.tsx`, which is the same gesture `Dialog`'s own sheet placement
+   * arms, so a reader learns it once.
+   *
+   * Opt-in rather than derived from `side`, because this component does not own
+   * the open state — the caller's `Sheet` does, and only the caller can put it
+   * back. A bottom sheet that omits this keeps the close button and the
+   * backdrop and simply has no gesture.
+   *
+   * Ignored on the three other sides: the gesture is downward-only, which is
+   * the only direction a sheet against the block-end edge has slack in.
+   */
+  onDismiss?: () => void
 }) {
+  /*
+    The surface the gesture translates. Base UI forwards this to the popup
+    element itself, which is the box carrying the `translate` the drag writes.
+  */
+  const popupRef = React.useRef<HTMLDivElement>(null)
+  const canDrag = side === "bottom" && onDismiss !== undefined
+  const dragProps = useSheetDrag(popupRef, {
+    enabled: canDrag,
+    // Never called while `enabled` is false — the hook returns no handler.
+    onDismiss: onDismiss ?? (() => {}),
+  })
+
   return (
     <SheetPortal>
       {showOverlay ? <SheetOverlay /> : null}
       <SheetPrimitive.Popup
         data-slot="sheet-content"
+        ref={popupRef}
         data-side={side}
         className={cn(
           /*
@@ -83,6 +113,13 @@ function SheetContent({
         )}
         {...props}
       >
+        {/*
+          First child, so the pill is the first row of this flex column and the
+          header sits under it. Rendered only for a draggable bottom sheet, and
+          `display: none` from `sm` up comes from `globals.css` — the same rule
+          `Dialog`'s grip reads, so the two surfaces cannot drift apart.
+        */}
+        {canDrag ? <SheetGrip {...dragProps} /> : null}
         {children}
         {showCloseButton && (
           <SheetPrimitive.Close
@@ -109,6 +146,28 @@ function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="sheet-header"
       className={cn("flex flex-col gap-0.5 p-4", className)}
+      {...props}
+    />
+  )
+}
+
+/**
+ * The sheet's scrolling region — everything between the header and the footer.
+ *
+ * The counterpart of `DialogBody`, and the same contract: **wrap the middle of
+ * a sheet in this and it scrolls while the header and the footer stay.** The
+ * geometry lives on the `data-slot` in `globals.css` beside the dialog frame,
+ * so the two surfaces cannot drift apart.
+ *
+ * It is optional, and a sheet that omits it still cannot be cropped — the
+ * ceiling applies either way and the sheet scrolls as a whole instead. Reach
+ * for it wherever a sheet has an action a reader has to get back to.
+ */
+function SheetBody({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="sheet-body"
+      className={cn("flex flex-col gap-3 p-4", className)}
       {...props}
     />
   )
@@ -156,6 +215,7 @@ export {
   SheetClose,
   SheetContent,
   SheetHeader,
+  SheetBody,
   SheetFooter,
   SheetTitle,
   SheetDescription,

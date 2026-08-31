@@ -13,6 +13,8 @@ export type ValidationMessageKey =
   | 'tooLong'
   | 'invalidEmail'
   | 'invalidPhone'
+  /** A national part outside the nine-or-ten range — see `phoneSchema`. */
+  | 'phoneDigitCount'
   | 'invalidTime'
   | 'closingAfterOpening'
   | 'workingDayRequired'
@@ -59,6 +61,19 @@ function isTooLong(issue: { code: string }): boolean {
 }
 
 /**
+ * What went wrong with the phone, in its own words.
+ *
+ * `phoneSchema` labels its two failures — a shape `PhoneField` could not have
+ * produced, and a national part outside the nine-or-ten range — and they call
+ * for different sentences: one says "that is not a phone number", the other
+ * says how many digits to type. Reading the key off the issue keeps the two
+ * apart without this function knowing the rule.
+ */
+function phoneMessage(issue: { message: string }): ValidationMessageKey {
+  return issue.message === 'phoneDigitCount' ? 'phoneDigitCount' : 'invalidPhone';
+}
+
+/**
  * The blank pass and the schema pass both run, and the blank one wins per field.
  *
  * They used to be sequential: if *any* field was empty the function returned
@@ -85,7 +100,7 @@ function validateClinic(raw: ClinicProfileRaw['clinic']): ClinicProfileValidatio
     for (const issue of parsed.error.issues) {
       const field = issue.path[0];
       const long = isTooLong(issue);
-      if (field === 'phone') fieldErrors.clinicPhone ??= long ? 'tooLong' : 'invalidPhone';
+      if (field === 'phone') fieldErrors.clinicPhone ??= phoneMessage(issue);
       if (field === 'contactEmail') fieldErrors.contactEmail ??= long ? 'tooLong' : 'invalidEmail';
       if (field === 'name') fieldErrors.clinicName ??= long ? 'tooLong' : 'required';
       if (field === 'address') fieldErrors.address ??= long ? 'tooLong' : 'required';

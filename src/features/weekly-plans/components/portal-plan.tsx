@@ -36,16 +36,14 @@ import { dayStanding, type PlanDaySummary } from '../week';
  * no meals; nothing is invented to fill the space.
  *
  * **No completion provider of its own.** The home screen already wraps the
- * picker, today's progress ring and the meal list in one
- * `PlanDayCompletionProvider` keyed to today — see `plan-day-completion.tsx`
- * and the home page's own doc comment. Mounting a second, independent
- * provider here whenever the selected day is today would let a tick inside
- * `PortalPlan`'s meal list and the ring above it drift out of sync, each
- * holding its own copy of "which meals are done". So neither component
- * mounts one itself: `MealCheck`, rendered only when `standing === 'today'`,
- * reaches straight up to that ambient provider, which is only ever mounted
- * for today's own day — the one day `PortalPlan` can also legally be showing
- * `MealCheck` for.
+ * picker, the ring and the meal list in one `PlanDayCompletionProvider` keyed
+ * to the *open* day — see `plan-day-completion.tsx` and the home page's own
+ * doc comment. Mounting a second, independent provider here would let a tick
+ * inside `PortalPlan`'s meal list and the ring above it drift out of sync,
+ * each holding its own copy of "which meals are done". So neither component
+ * mounts one itself: `MealCheck`, rendered whenever `standing` is `'today'`
+ * or `'past'`, reaches straight up to that ambient provider, which always
+ * carries the same day this component resolves `standing` against.
  */
 /**
  * The week picker, on its own: `PlanDayStrip`, unlabelled. Split out of
@@ -67,14 +65,11 @@ export function PortalPlan({
   board,
   days,
   selectedDay,
-  completedMealIds,
   today,
 }: {
   board: Board;
   days: readonly PlanDaySummary[];
   selectedDay: number;
-  /** Which of the selected day's meals are already ticked — see `loadPlanPage`. */
-  completedMealIds: readonly string[];
   /** The clinic's own `YYYY-MM-DD`, read once per request — see `loadPlanPage`. */
   today: string;
 }) {
@@ -103,8 +98,6 @@ export function PortalPlan({
     today,
   );
 
-  const completed = new Set(completedMealIds);
-
   return (
     /*
       **An ordinary section that grows to its content.**
@@ -125,15 +118,29 @@ export function PortalPlan({
       selection with a solid olive fill and its today with a badge, so that
       restated, one section lower, the only two facts already drawn above it.
       This is a quiet label instead, the same size as the commitment heading
-      above it (`home-today.tsx`) but not white — this section sits on the
-      page's own white column, not on the home glow that heading answers to.
+      above it (`home-today.tsx`) — and, under `lg`, not white: stacked below
+      the ring card this section starts on the page's own white column rather
+      than on the home glow that heading answers to.
+
+      ⚠ **From `lg` it is white after all, and that is a layout fact rather than
+      a style preference.** This component is rendered by one screen, the portal
+      home tab, and from `lg` that screen puts it in the second column of a grid
+      beside the picker and the ring instead of below them (`(tabs)/page.tsx`).
+      The heading moves from roughly 340px down the page, where the glow has
+      already faded, to roughly 100px, where the glow is its solid fill. Grey on
+      that green is the one reading that is wrong at both ends — neither the
+      muted label it is on a phone nor the on-glow white the greeting and the
+      commitment heading already use (`portal-header.tsx`, `home-today.tsx`).
+      Move the home tab's break and move these two variants with it.
     */
     <section className="flex flex-col gap-4 text-start">
       <div className="flex items-center justify-between gap-4">
-        <p className="text-sm font-medium text-muted-foreground">{t('todayMealsHeading')}</p>
+        <p className="text-sm font-medium text-muted-foreground lg:text-white">
+          {t('todayMealsHeading')}
+        </p>
 
         {meals.length > 0 ? (
-          <span className="text-sm font-medium text-muted-foreground tabular-nums">
+          <span className="text-sm font-medium text-muted-foreground tabular-nums lg:text-white">
             {tToday('energyTodayValue', { value: totalKcal })}
           </span>
         ) : null}
@@ -148,7 +155,7 @@ export function PortalPlan({
         <ul className="space-y-2">
           {meals.map((meal) => (
             <li key={meal.id}>
-              <PortalMealCard meal={meal} standing={standing} completed={completed.has(meal.id)} />
+              <PortalMealCard meal={meal} standing={standing} />
             </li>
           ))}
         </ul>

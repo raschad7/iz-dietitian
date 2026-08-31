@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useEffect, useState, useTransition } from 'react';
 
-import { Dialog, DialogBody, DialogHeader } from '@/components/ui/dialog';
+import { Dialog, DialogHeader } from '@/components/ui/dialog';
 import { useDialogPresence } from '@/components/ui/dialog-motion';
 import { RequestForm } from '@/features/portal/components/request-form';
 import { type RequestPageData } from '@/features/portal/types';
@@ -28,10 +28,17 @@ import { getLocaleDirection, type Locale } from '@/i18n/routing';
  * `loadRequestPage` reads the clinic's hours and a month of its bookings, and
  * that read does not happen on an ordinary visit to the appointments list.
  *
- * **Closing is a navigation, but the exit animation still plays.** `close()`
- * drops the local flag first. Shared dialog presence retains this tree through
- * native close, and only then does the effect below navigate away. Sending is
- * the same story from the other end:
+ * **Closing is a navigation, and it waits for the exit animation.** `close()`
+ * only drops the local flag; the navigation is fired from an effect once
+ * `useDialogPresence` reports the dialog is gone. Firing both at once — the
+ * flag and then `router.replace` inside `startTransition` — leant on the
+ * transition holding the old tree on screen for the length of the exit, which
+ * it does when the next page needs a round trip and does not when that page is
+ * already cached. The animation was therefore played or cut depending on
+ * timing. Presence is the same clock the dialog's own exit runs on, so the two
+ * cannot disagree.
+ *
+ * Sending is the same story from the other end:
  * `requestAppointmentAction` redirects to `?sent=1`, which carries no
  * `request`, so the dialog closes itself and the page it lands on is the one
  * showing the confirmation.
@@ -61,6 +68,8 @@ export function AppointmentRequestDialog({
     closes it lands.
   */
   const [open, setOpen] = useState(true);
+
+  /** False once the surface has finished its exit and may be unmounted. */
   const dialogPresent = useDialogPresence(open);
 
   function close() {
@@ -85,30 +94,31 @@ export function AppointmentRequestDialog({
       label={title}
       dir={getLocaleDirection(locale)}
       flat
-      // `open:` rather than a bare `flex`: a `display` utility on a <dialog>
-      // outranks the UA rule that hides it while closed.
-      className="open:flex open:flex-col max-h-[90dvh] overflow-hidden"
     >
       {/*
         No corner close, matching the correction dialog: the way out is the
         backdrop, or Escape on a keyboard. §Fields — "a third exit only crowds
         the corner the title starts from".
 
-        Stated honestly, because this dialog has no footer to leave by either:
-        that makes the backdrop the *only* exit a touch client has, and it is
-        an unlabelled one. It is the shape asked for, and it is consistent
+        Stated honestly, because `RequestForm`'s own footer (`pinFooter`
+        below) holds only the submit action, not a Cancel beside it: that
+        makes the backdrop the *only* exit a touch client has, and it is an
+        unlabelled one. It is the shape asked for, and it is consistent
         across both of the portal's dialogs, which is the argument for it — a
         client who learns to dismiss one has learned to dismiss the other.
       */}
       <DialogHeader title={title} />
 
-      <DialogBody className="min-h-0 flex-1 overflow-y-auto">
-        {/* The sentence that stops this reading as a booking screen: the
-            dietitian confirms, and until they do nothing is held. */}
-        <p className="text-sm text-muted-foreground">{t(`request.description.${data.kind}`)}</p>
-
-        <RequestForm {...data} locale={locale} />
-      </DialogBody>
+      <RequestForm
+        {...data}
+        locale={locale}
+        pinFooter
+        description={
+          // The sentence that stops this reading as a booking screen: the
+          // dietitian confirms, and until they do nothing is held.
+          <p className="text-sm text-muted-foreground">{t(`request.description.${data.kind}`)}</p>
+        }
+      />
     </Dialog>
   );
 }

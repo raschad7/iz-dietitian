@@ -1,0 +1,95 @@
+# Bumps the app version when a pull request is merged into main.
+#
+# The number lives in package.json because that is what the app reads at build
+# time (src/lib/version.ts -> the settings footer). Deriving it from a git tag
+# would not survive the build, which does not get the repository's tags.
+#
+# The bump size comes from a label on the pull request, not from commit
+# messages, so it does not depend on every commit carrying a feat:/fix: prefix.
+#
+#   release:major  ->  1.2.3 becomes 2.0.0   breaking change
+#   release:minor  ->  1.2.3 becomes 1.3.0   new feature, nothing broken
+#   (no label)     ->  1.2.3 becomes 1.2.4   fixes and polish
+#
+# Add release:skip to merge without touching the version at all.
+
+name: Release
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+# Only a merged pull request releases. Closing one without merging does nothing.
+jobs:
+  release:
+    if: github.event.pull_request.merged == true && !contains(github.event.pull_request.labels.*.name, 'release:skip')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Decide how big the bump is
+        id: bump
+        env:
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ' ') }}
+        run: |
+          case " $LABELS " in
+            *" release:major "*) level=major ;;
+            *" release:minor "*) level=minor ;;
+            *)                   level=patch ;;
+          esac
+          echo "level=$level" >> "$GITHUB_OUTPUT"
+          echo "Bumping the $level number (labels: ${LABELS:-none})"
+
+      - name: Raise the number in package.json
+        id: version
+        run: |
+          npm version "${{ steps.bump.outputs.level }}" \
+            --no-git-tag-version --allow-same-version > /dev/null
+          version="$(node -p "require('./package.json').version")"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "New version: $version"
+
+      - name: Commit and tag on main
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json
+          git commit -m "chore(release): v$VERSION [skip ci]"
+          git tag -a "v$VERSION" -m "Release v$VERSION"
+          git push origin main
+          git push origin "v$VERSION"
+
+      # Without this, dev would keep shipping the previous number and the next
+      # merge would come back with a package.json conflict.
+      - name: Carry the same number back to dev
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git fetch origin dev
+          git checkout -B dev origin/dev
+          npm version "$VERSION" --no-git-tag-version --allow-same-version > /dev/null
+          if git diff --quiet -- package.json; then
+            echo "dev already carries v$VERSION"
+            exit 0
+          fi
+          git add package.json
+          git commit -m "chore(release): sync dev to v$VERSION [skip ci]"
+          git push origin dev
+
+      - name: Publish the release notes
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v$VERSION" \
+            --title "v$VERSION" \
+            --generate-notes

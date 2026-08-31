@@ -163,7 +163,16 @@ export default async function AppointmentsPage({ params, searchParams }: Appoint
         />
       ) : (
         <PortalSection icon="calendar" title={t('appointments.upcoming')} count={upcoming.length}>
-          <ul className="space-y-3">
+          {/*
+            Two to a row from `lg`, one below it. An appointment card is a date
+            tile, a reason and a time range — it settles at around 400px and
+            gains nothing after that, so a single column on a desktop was a
+            stack of 1136px-wide rows each with half a metre of card to the
+            inline-end of the last word. `items-start` keeps a card that wrapped
+            its reason onto a second line from stretching its neighbour to
+            match; these are separate appointments, not a table.
+          */}
+          <ul className="grid gap-3 lg:grid-cols-2 lg:items-start">
             {upcoming.map((appointment, index) => (
               <li key={appointment.id}>
                 <AppointmentCard
@@ -198,7 +207,10 @@ export default async function AppointmentsPage({ params, searchParams }: Appoint
     past.length === 0 ? (
       <EmptyState icon="clock" title={t('appointments.nonePast')} />
     ) : (
-      <ul className="space-y-3">
+      // The same grid the upcoming list uses, for the same reason — see the
+      // note there. History is the longer of the two lists, so it is the half
+      // that benefits most from a second column.
+      <ul className="grid gap-3 lg:grid-cols-2 lg:items-start">
         {past.map((appointment) => (
           <li key={appointment.id}>
             <AppointmentCard appointment={appointment} tone="past" />

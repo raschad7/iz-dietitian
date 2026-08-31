@@ -21,9 +21,11 @@ import { searchIngredients } from './ingredient-search';
 import {
   getClinicDishForEdit,
   getDishDetailForClinic,
+  searchDishNameSuggestions,
   searchFoodsById,
   type DishDetailView,
   type DishEditData,
+  type DishNameSuggestion,
   type FoodSearchResult,
 } from './queries';
 
@@ -182,6 +184,20 @@ export async function searchIngredientsAction(locale: string, query: string): Pr
   // The same locale that resolved the clinic also decides the result grouping —
   // there is no second language setting anywhere in this path.
   return searchIngredients(clinicId, query, parsed);
+}
+
+/**
+ * Prefix matches shown while a dietitian names a new dish. The clinic is always
+ * resolved from the session; the client supplies neither an owner nor a scope.
+ */
+export async function searchDishNamesAction(
+  locale: string,
+  query: string,
+  excludeDishId?: string,
+): Promise<DishNameSuggestion[]> {
+  const parsed = localeSchema.parse(locale);
+  const { clinicId } = await requireStaffClinic(parsed);
+  return searchDishNameSuggestions({ clinicId, query, excludeDishId });
 }
 
 /**

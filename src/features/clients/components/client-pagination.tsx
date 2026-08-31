@@ -35,20 +35,16 @@ import { cn } from '@/lib/utils';
  * page both steps are inert and the numeral reads `1`, which says "this is all
  * of them" rather more plainly than an empty space does.
  *
- * The empty register is still the exception: `ClientTable` draws its own empty
- * card there, and a pager under it would be a control for moving through
- * nothing.
+ * The empty register is still the exception: the table says so in its own body
+ * there, and a pager under it would be a control for moving through nothing.
  */
 export function ClientPagination({
   result,
   input,
-  basePath = '/app/clients',
   className,
 }: {
   result: ClientListResult;
   input: ListClientsInput;
-  /** The list this pager belongs to — the register, or the archive. */
-  basePath?: '/app/clients' | '/app/clients/archived';
   /**
    * The page positions its own pager — see the register, which pushes it to the
    * foot of the screen with `mt-auto` so it does not ride up under a short last
@@ -63,8 +59,12 @@ export function ClientPagination({
   // Every filter rides along, the sort included — page 2 of a differently
   // ordered list is not the page the reader was on.
   const query = (page: number) => ({
-    pathname: basePath,
+    pathname: '/app/clients' as const,
     query: {
+      // Which half of the register this pager is walking. The archive is this
+      // same page under `?status=archived`, so page 2 of it has to say so or
+      // the step lands in the active list.
+      ...(input.status === 'archived' ? { status: 'archived' } : {}),
       ...(input.q ? { q: input.q } : {}),
       ...(input.filterBy && input.filterValue
         ? { filterBy: input.filterBy, filterValue: input.filterValue }

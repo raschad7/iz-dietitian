@@ -3,11 +3,15 @@ import type { Metadata, Viewport } from 'next';
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
+import { DesktopScrollbars } from '@/components/layout/desktop-scrollbars';
 import { AppShell } from '@/components/layout/sidebar';
-import { type IconName } from '@/components/ui/icon';
+import { STAFF_NAV, STAFF_NAV_ICONS } from '@/components/layout/staff-nav';
+import { ZoomLock } from '@/components/layout/zoom-lock';
 import { APP_THEME_COLOR_DARK, APP_THEME_COLOR_LIGHT } from '@/features/app-pwa/brand';
 import { ServiceWorkerRegister } from '@/features/app-pwa/service-worker-register';
 import { getClinicBrand, isClinicOnboardingComplete } from '@/features/clinic-profile/queries';
+import { CommandPaletteProvider } from '@/features/command-palette/components/command-palette-provider';
+import { CommandPaletteTrigger } from '@/features/command-palette/components/command-palette-trigger';
 import { GuideLauncher } from '@/features/user-guide/guide-launcher';
 import { GuideProvider } from '@/features/user-guide/guide-provider';
 import { resolveLocale } from '@/i18n/params';
@@ -18,43 +22,17 @@ type AppLayoutProps = {
   params: Promise<{ locale: string }>;
 };
 
-/**
- * The five places a dietitian works.
+/*
+ * The rail's destinations and their glyphs live in
+ * `components/layout/staff-nav.ts` — they are a tree now rather than a flat
+ * list, and `/dev/shell` renders the same two constants so the harness cannot
+ * drift from the real thing.
  *
- * Profile, WhatsApp and security used to sit here too, which made a third of
- * the rail settings. They are behind the profile menu at its foot now — see
- * `SidebarProfile` — so this list is only the screens a working day is spent
- * on, and none of them are duplicated there.
- *
- * **Requests is deliberately not a destination.** The inbox is reached from the
- * dashboard's requests card and from the notifications feed, both of which
- * appear only when something is actually pending. A permanent rail row for it
- * was a row that said "nothing" on most days, in the one list where every item
- * is somewhere a working day is spent; the card that does have something to
- * say is the way in. See `PendingRequestsCard`.
+ * Everything the flat list here used to say is said there, billing included:
+ * الفواتير is a child of إدارة beside the register, and the note on `STAFF_NAV`
+ * covers why that does not cost a phone the extra tap the flat list was
+ * protecting.
  */
-const NAV_ITEMS = [
-  { href: '/app', labelKey: 'dashboard' },
-  { href: '/app/clients', labelKey: 'clients' },
-  { href: '/app/calendar', labelKey: 'calendar' },
-  { href: '/app/weekly-plans', labelKey: 'weeklyPlans' },
-  { href: '/app/dishes', labelKey: 'dishes' },
-] as const;
-
-/**
- * One glyph per destination. Text-only rows are hard to scan at a glance; the
- * icon is what lets someone find "Dishes" without reading the whole rail.
- *
- * `satisfies` ties this to the nav list, so adding a destination without an
- * icon is a compile error rather than a row that quietly sits misaligned.
- */
-const NAV_ICONS = {
-  dashboard: 'dashboard',
-  clients: 'clients',
-  calendar: 'calendar',
-  weeklyPlans: 'weeklyPlans',
-  dishes: 'dishes',
-} as const satisfies Record<(typeof NAV_ITEMS)[number]['labelKey'], IconName>;
 
 /**
  * PWA metadata for the staff app only — never the client portal, which has its
@@ -111,13 +89,22 @@ export async function generateMetadata({ params }: Omit<AppLayoutProps, 'childre
  * attribute attached, which is the only way to express "follow the device" in a
  * tag that is read before any stylesheet loads.
  *
- * Only `themeColor` is declared here. Next merges a nested viewport export over
- * its parent field by field, so naming any other field would silently replace
- * the app-wide one from `[locale]/layout.tsx` — `viewportFit: 'cover'` and
- * `interactiveWidget` in particular.
+ * Next merges a nested viewport export over its parent field by field, so the
+ * app-wide fields from `[locale]/layout.tsx` — `viewportFit: 'cover'` and
+ * `interactiveWidget` in particular — survive as long as nothing here restates
+ * them, and nothing here may restate them.
+ *
+ * The three scale fields are the meta-tag half of the zoom lock, and hold the
+ * dashboard at scale 1 on every mobile browser that honours them. Safari is the
+ * one that does not, so `ZoomLock` below is the other half; it carries the
+ * reasoning for the pair. Desktop browsers ignore the viewport meta tag
+ * outright, so nothing in this export reaches one.
  */
 export function generateViewport(): Viewport {
   return {
+    minimumScale: 1,
+    maximumScale: 1,
+    userScalable: false,
     themeColor: [
       { media: '(prefers-color-scheme: light)', color: APP_THEME_COLOR_LIGHT },
       { media: '(prefers-color-scheme: dark)', color: APP_THEME_COLOR_DARK },
@@ -144,7 +131,12 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
       page that manages its own scrolling — the calendar — can claim the full
       height with `h-full` and keep its toolbar fixed.
 
-      **`h-svh overflow-hidden` is what makes that true, and it was missing.**
+      **The frame is `.q-app-shell` in `globals.css` now**, not an `h-svh
+      overflow-hidden` this layout passed down — the portal needed the same
+      thing and was building it a second way, so it is stated once for every
+      shell in the product and no layout opts in. `data-slot="shell-scroll"`
+      below is how `main` claims the scrolling region.
+
       The registry's shell is `min-h-svh`, so the box grew to whatever its
       content came to and `main`'s `overflow-y-auto` had nothing to clip — the
       *document* scrolled instead, and `main` sat there as a scroll container
@@ -185,41 +177,94 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
       */}
       <ServiceWorkerRegister locale={locale} />
 
-      <AppShell
-        items={NAV_ITEMS}
-        title={t('shortName')}
-        brand={brand ?? undefined}
-        user={{ name: session.user.name, email: session.user.email, locale }}
-        icons={NAV_ICONS}
-        secondary={<GuideLauncher />}
-        className="h-svh overflow-hidden"
-      >
       {/*
-        `overflow-x-auto`, not the `overflow-x-hidden` this carried.
-
-        The clip was undocumented and it was the app's last line of defence
-        against a wide surface — but a clip plus `* { scrollbar-width: none }`
-        (globals.css) is content with neither a bar nor a gesture to reach it.
-        Anything that overflowed at a phone width was simply gone: the register
-        toolbar's "New client" was clipped exactly this way.
-
-        `auto` keeps the containment — the shell still refuses to be widened by a
-        child, which is what stops *page-level* horizontal scrolling — while
-        leaving wheel, trackpad, touch drag and keyboard able to reach anything
-        that still overflows. It also matters that nothing appears: the route
-        entrance in `.q-route-stage` animates from an 8px translate, and with a
-        clip that was invisible while with a *bar* it would flash a scrollbar on
-        every navigation. There are no bars.
-
-        This is a safety net, not a licence. Every real overflow is fixed at its
-        source with the Rearrange → Stack → Internal-scroll ladder — `TableRoot`,
-        `Tabs`, `PanelTabsList` and `.planner-week-scroll` are the precedents —
-        and `overflow-x-hidden` must not come back here or go anywhere else.
+        No `SplashScreen` here. It is mounted once from `[locale]/layout.tsx`
+        now, for the whole product — a shell is entered by a client-side
+        navigation as often as by a document load, so mounting the tile here
+        tied it to signing in rather than to the app starting, and left a
+        reloaded nested route with no tile at all. Do not add it back.
       */}
-        <main className="min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-auto p-3 md:p-5">
-          {children}
-        </main>
-      </AppShell>
+      {/*
+        The staff app's opt-in to the one visible scrollbar in the product — see
+        "The desktop scrollbar" in globals.css. It marks `<html>` rather than
+        the shell because dialogs, sheets and popups are portalled to `<body>`,
+        and the two longest scrolling surfaces in the app sit inside portalled
+        ones.
+
+        Mounted here and nowhere else: the portal renders the same `AppShell`,
+        and a bar tuned to this app's cool grey furniture would be the wrong
+        colour on the portal's palette. The rules themselves are gated on
+        `pointer: fine` and `lg`, so this attaches the intent and the media
+        query decides whether it applies.
+      */}
+      <DesktopScrollbars />
+
+      {/*
+        Pins the scale on phones and tablets: no pinch and no double-tap zoom
+        on any page of the dashboard. Mounted here for the whole staff app; the
+        portal mounts its own from `portal/layout.tsx`, and
+        the routes outside both — the marketing page, sign-in, onboarding — keep
+        ordinary browser zoom.
+
+        Like `DesktopScrollbars` it marks `<html>` from an effect and releases it
+        on unmount, which is what keeps the lock from following a staff user out
+        of the app. The component explains why a viewport meta tag alone does not
+        do this on iOS, and why nothing here reaches a desktop browser.
+      */}
+      <ZoomLock />
+
+      {/*
+        The command palette — ⌘K — and the client card it can open.
+
+        Inside `GuideProvider` because the palette offers the guided tour as one
+        of its commands and so has to be able to read that context; outside
+        `AppShell` because the rail's own trigger has to be able to read this
+        one. See `CommandPaletteProvider`.
+      */}
+      <CommandPaletteProvider locale={locale}>
+        <AppShell
+          items={STAFF_NAV}
+          title={t('shortName')}
+          brand={brand ?? undefined}
+          user={{ name: session.user.name, email: session.user.email, locale }}
+          icons={STAFF_NAV_ICONS}
+          /*
+            The rail's one control, under the logo: the command palette's field.
+
+            It replaced the solid green "New client" button that stood here — see
+            `CommandPaletteTrigger` for why. Adding a subscriber is the palette's
+            first row, and behind it are every screen and every subscriber
+            besides.
+          */
+          primary={<CommandPaletteTrigger />}
+          secondary={<GuideLauncher key="guide-launcher" />}
+        >
+        {/*
+          `overflow-x-auto`, not the `overflow-x-hidden` this carried.
+
+          The clip was undocumented and it was the app's last line of defence
+          against a wide surface — but a clip plus `* { scrollbar-width: none }`
+          (globals.css) is content with neither a bar nor a gesture to reach it.
+          Anything that overflowed at a phone width was simply gone: the register
+          toolbar's "New client" was clipped exactly this way.
+
+          `auto` keeps the containment — the shell still refuses to be widened by a
+          child, which is what stops *page-level* horizontal scrolling — while
+          leaving wheel, trackpad, touch drag and keyboard able to reach anything
+          that still overflows. It also matters that nothing appears, and nothing does:
+          the global `* { scrollbar-width: none }` in globals.css takes the bars
+          off every scroller in the app, this one included.
+
+          This is a safety net, not a licence. Every real overflow is fixed at its
+          source with the Rearrange → Stack → Internal-scroll ladder — `TableRoot`,
+          `Tabs`, `PanelTabsList` and `.planner-week-scroll` are the precedents —
+          and `overflow-x-hidden` must not come back here or go anywhere else.
+        */}
+          <main data-slot="shell-scroll" className="min-w-0 p-3 md:p-5">
+            {children}
+          </main>
+        </AppShell>
+      </CommandPaletteProvider>
     </GuideProvider>
   );
 }

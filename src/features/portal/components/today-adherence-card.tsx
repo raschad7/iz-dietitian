@@ -7,24 +7,27 @@ import { type TodayAdherence } from '@/features/portal/adherence';
 import { Link } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
 
-import { TodayRing } from './today-ring';
+import { TodayMascotFigure } from './today-mascot-figure';
 
 /**
  * "التزامك اليوم" — today's own report, read rather than written here.
  *
- * The ring is `TodayRing`, the exact one the home screen's commitment card
- * draws — same dashed track, same fill disc, same `portal-progress-*`
- * tokens — not a second design that happened to agree with it. One client
- * reading the same percentage on two screens should see it drawn the same
- * way both times. `showMealsCaption={false}`: this card already states the
- * meal count in its own encouragement line below, so the ring here carries
- * only the figure.
+ * **The character, not the ring.** `TodayRing` — the dashed track and fill
+ * disc the home screen's own commitment card still draws — is deliberately
+ * not reused here: this card reads it through `TodayMascotFigure` instead,
+ * the reactive mark beside the exact percentage rather than inside a ring
+ * around it. The two cards are allowed to disagree on the picture because
+ * they are answering different questions — the home screen's ring is a dial
+ * a client watches move meal by meal; this one is a report the client opens
+ * the tab to read once, and reads better as "here's how your character is
+ * doing today, and here's the number" than as a second dial. Both still draw
+ * from the exact same `today.fraction`, so the two screens can never disagree
+ * about the figure itself, only the way it is pictured.
  *
- * **It reads a percentage, not a score.** The number in the middle was a score
- * out of ten that only ever showed 0, 5 or 10, because a three-level `level`
- * was all it had: two meals of four and three of four both printed "5 من ١٠".
- * It now prints the exact fraction of today's meals ticked — 25%, 33%, 75% —
- * and the ring is drawn to the same number the client can count themselves.
+ * **It reads a percentage, not a score.** The number was a score out of ten
+ * that only ever showed 0, 5 or 10, because a three-level `level` was all it
+ * had: two meals of four and three of four both printed "5 من ١٠". It now
+ * prints the exact fraction of today's meals ticked — 25%, 33%, 75%.
  *
  * There used to be a three-way segmented control here — "missed" / "partial"
  * / "full" — for the client to pick themselves. It is gone: adherence is
@@ -42,54 +45,31 @@ export function TodayAdherenceCard({ today, locale }: { today: TodayAdherence | 
     <Card>
       <CardContent className="flex flex-col gap-4">
         {/*
-          Ring beside the words, and stacked under them on the narrowest phones.
+          No `countOnMount`: this used to draw the figure up from zero every
+          time the tab was opened, the same entrance the progress ring gets
+          on arrival — but unlike that ring, this card is revisited constantly
+          as a client switches tabs, and replaying a multi-second count-up on
+          every single visit reads as the app re-announcing a number it
+          already told you, not as a fresh achievement. The home screen's own
+          mascot never counts on mount either (see `TodayEnergyMascot`'s call
+          site), so leaving this at the hook's own default — paint the real
+          figure immediately, animate only when it later moves — is what
+          keeps the two screens' character in step rather than one of them
+          performing and the other not. The narrow-phone stacking is
+          `TodayMascotFigure`'s own concern now that the heading and level
+          sentence render inside it.
 
-          The ring is `size-44` — 176px — and `shrink-0`, which is right: it is
-          the figure the client opened the tab to read and it must not be
-          squeezed into an ellipse. But at 320px the card's content box is about
-          256px, so the ring and the `gap-4` took 192 of it and left 64px for
-          the heading beside it. "Today's progress" does not fit in 64px; it was
-          clipped to a couple of characters, and the encouragement line under it
-          with it.
-
-          Stacking below 400px gives both the full width in turn and loses
-          nothing — the same ring, the same heading, the same sentence, in one
-          column instead of two, centred so the ring stays the anchor. From
-          400px up, where the text column is wide enough to read, the row is
-          exactly as it was.
+          The level sentence is still the one thing here that reads the level
+          rather than the number: encouragement is a sentence, and there is no
+          way to write one per percentage. It never contradicts the figure
+          above it — both come off the same `today`.
         */}
-        <div className="flex items-center gap-4 max-[25rem]:flex-col max-[25rem]:text-center">
-          {/*
-            `countOnMount`: this figure is what the client opened the tab to
-            read, and it does not move while they are reading it — there are no
-            meals to tick on this screen. So the ring draws itself up from zero
-            on arrival instead of appearing already finished. The home screen's
-            copy deliberately does not, because a day switch remounts it there
-            and the climb would read as that day's figure having just been
-            earned — see `rising-fraction.ts`.
-          */}
-          <TodayRing
-            fraction={today?.fraction ?? null}
-            completed={today?.completedMeals ?? 0}
-            total={today?.totalMeals ?? 0}
-            locale={locale}
-            showMealsCaption={false}
-            countOnMount
-          />
-
-          <div className="min-w-0 flex-1 space-y-1">
-            <h2 className="font-heading text-lg leading-snug font-medium">{t('heading')}</h2>
-            {/*
-              The one thing on this card that still reads the level rather
-              than the number: encouragement is a sentence, and there is no
-              way to write one per percentage. It never contradicts the ring —
-              both come off the same row.
-            */}
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              {today ? t(`level.${today.level}`) : t('prompt')}
-            </p>
-          </div>
-        </div>
+        <TodayMascotFigure
+          fraction={today?.fraction ?? null}
+          locale={locale}
+          heading={t('heading')}
+          levelText={today ? t(`level.${today.level}`) : t('prompt')}
+        />
 
         {/*
           `/portal`, not `/${locale}/portal`: `Link` here is the locale-aware

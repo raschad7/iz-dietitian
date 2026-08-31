@@ -1,0 +1,1 @@
+ALTER TABLE "whatsapp_settings" ADD COLUMN "cancellations_enabled" boolean DEFAULT true NOT NULL;

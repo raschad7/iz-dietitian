@@ -9,9 +9,9 @@ import { Icon } from '@/components/ui/icon';
 import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from '@/components/ui/popover';
 import { SelectField } from '@/components/ui/select-field';
 import {
-  CLIENT_FILTERS,
+  BILLS_FILTERS,
   CLIENT_FILTER_VALUES,
-  PORTAL_ACCESS_VALUES,
+  REGISTER_FILTERS,
   type ClientFilter,
   type ListClientsInput,
 } from '@/features/clients/schema';
@@ -52,6 +52,12 @@ import { cn } from '@/lib/utils';
  * other thing a name cannot answer. So the popover is two rows again — the
  * question, then its answers — and the URL carries the pair it always carried.
  *
+ * **`plan` is the third column, and it is the flatter question underneath the
+ * second.** Whether a client has a nutrition plan on file at all, rather than
+ * how they are doing inside the one running now — the list a dietitian clears
+ * down after intake. See `PLAN_FILTER_VALUES` in the schema for why that is not
+ * the same list as `weeklyProgress`'s `noPlan`.
+ *
  * **One filter at a time, still.** Two rows here would be two filters ANDed
  * together, which is a saved-view feature and a different screen; this register
  * is read by someone looking for one thing. It also stays a popover rather than
@@ -88,31 +94,107 @@ import { cn } from '@/lib/utils';
 const COLUMN_LABEL = {
   portalAccess: 'filter.portalAccess.label',
   weeklyProgress: 'filter.weeklyProgress.label',
+  plan: 'filter.plan.label',
+  paymentStatus: 'filter.paymentStatus.label',
+  subscription: 'filter.subscription.label',
 } as const satisfies Record<ClientFilter, string>;
+
+/**
+ * Every answer's own label key, written out for the same reason the column
+ * labels above are: a template literal over two unions produces the whole
+ * product, most of which is not in the catalogue.
+ *
+ * The keys mirror `CLIENT_FILTER_VALUES` exactly — `satisfies` is what says so,
+ * so an answer added to the schema without a label here is a type error rather
+ * than an empty row in the select.
+ */
+const VALUE_LABEL = {
+  portalAccess: {
+    yes: 'filter.portalAccess.yes',
+    no: 'filter.portalAccess.no',
+  },
+  weeklyProgress: {
+    reported: 'filter.weeklyProgress.reported',
+    notReported: 'filter.weeklyProgress.notReported',
+    noPlan: 'filter.weeklyProgress.noPlan',
+  },
+  plan: {
+    has: 'filter.plan.has',
+    none: 'filter.plan.none',
+  },
+  paymentStatus: {
+    unpaid: 'filter.paymentStatus.unpaid',
+    partial: 'filter.paymentStatus.partial',
+    paid: 'filter.paymentStatus.paid',
+    none: 'filter.paymentStatus.none',
+  },
+  subscription: {
+    active: 'filter.subscription.active',
+    expired: 'filter.subscription.expired',
+    none: 'filter.subscription.none',
+  },
+} as const satisfies {
+  [K in ClientFilter]: Record<(typeof CLIENT_FILTER_VALUES)[K][number], string>;
+};
+
+/**
+ * Which screen's columns this popover offers.
+ *
+ * The two screens list the same people and are read for different reasons —
+ * see `BILLS_FILTERS` in the schema for what Bills asks and why the register's
+ * two columns are not it. A prop rather than a pathname read, matching
+ * `ClientSearch`, which is the component that knows which screen it is on.
+ */
+export type ClientFilterVariant = 'register' | 'bills';
+
+const VARIANT_COLUMNS: Record<ClientFilterVariant, readonly [ClientFilter, ...ClientFilter[]]> = {
+  register: REGISTER_FILTERS,
+  bills: BILLS_FILTERS,
+};
 
 /**
  * Whether a column asks the reader which of its answers they mean.
  *
- * Only portal access does. Weekly progress applies its first answer and shows
+ * All of them except weekly progress, which applies its first answer and shows
  * no row for it — see the ⚠ on the component above for what that means and why
  * the other two answers still exist.
  */
-function hasAnswersRow(column: ClientFilter): column is 'portalAccess' {
-  return column === 'portalAccess';
+function hasAnswersRow(column: ClientFilter): boolean {
+  return column !== 'weeklyProgress';
 }
 
-/**
- * The answer a freshly opened popover shows for a column: its first one.
- *
- * Takes the column rather than reading state, because it is called while
- * seeding — before there is any state to read — from both the initial value and
- * every reopening.
- */
-function defaultValue(column: ClientFilter | undefined): string {
-  return CLIENT_FILTER_VALUES[column ?? CLIENT_FILTERS[0]][0];
-}
+export function ClientFilterMenu({
+  input,
+  variant = 'register',
+}: {
+  input: ListClientsInput;
+  variant?: ClientFilterVariant;
+}) {
+  const columns = VARIANT_COLUMNS[variant];
 
-export function ClientFilterMenu({ input }: { input: ListClientsInput }) {
+  /**
+   * The column the URL names, if this screen offers it.
+   *
+   * One enum spans both screens — see `CLIENT_FILTERS` — so a link carrying the
+   * register's filter can land on Bills. The list under it is filtered by
+   * whatever the query says, which is right and is the register's own answer to
+   * a stale parameter; what would be wrong is this popover opening on a column
+   * it does not list, which is a select showing a value none of its options
+   * hold. It falls back to this screen's first column instead.
+   */
+  const applied = input.filterBy && columns.includes(input.filterBy) ? input.filterBy : undefined;
+
+  /**
+   * The answer a freshly opened popover shows for a column: its first one.
+   *
+   * Takes the column rather than reading state, because it is called while
+   * seeding — before there is any state to read — from both the initial value
+   * and every reopening.
+   */
+  function defaultValue(column: ClientFilter | undefined): string {
+    return CLIENT_FILTER_VALUES[column ?? columns[0]][0];
+  }
+
   const t = useTranslations('clients');
   const router = useRouter();
   const pathname = usePathname();
@@ -129,13 +211,13 @@ export function ClientFilterMenu({ input }: { input: ListClientsInput }) {
     because both controls are `<select>`s and a select with nothing chosen is a
     control with nothing to apply. Neither is read until Apply is pressed.
   */
-  const [column, setColumn] = useState<ClientFilter>(input.filterBy ?? CLIENT_FILTERS[0]);
-  const [value, setValue] = useState(input.filterValue ?? defaultValue(input.filterBy));
+  const [column, setColumn] = useState<ClientFilter>(applied ?? columns[0]);
+  const [value, setValue] = useState((applied && input.filterValue) || defaultValue(applied));
 
   function reset(next: boolean) {
     if (next) {
-      setColumn(input.filterBy ?? CLIENT_FILTERS[0]);
-      setValue(input.filterValue ?? defaultValue(input.filterBy));
+      setColumn(applied ?? columns[0]);
+      setValue((applied && input.filterValue) || defaultValue(applied));
     }
     setOpen(next);
   }
@@ -253,7 +335,7 @@ export function ClientFilterMenu({ input }: { input: ListClientsInput }) {
               value={column}
               onValueChange={chooseColumn}
               className="ps-4 text-start"
-              options={CLIENT_FILTERS.map((option) => ({
+              options={columns.map((option) => ({
                 value: option,
                 label: t(COLUMN_LABEL[option]),
               }))}
@@ -272,9 +354,11 @@ export function ClientFilterMenu({ input }: { input: ListClientsInput }) {
                 value={value}
                 onValueChange={setValue}
                 className="ps-4 text-start"
-                options={PORTAL_ACCESS_VALUES.map((option) => ({
-                  value: option,
-                  label: t(`filter.portalAccess.${option}`),
+                /* The chosen column's own answers, from the same list the query
+                   validates against — see `CLIENT_FILTER_VALUES`. */
+                options={CLIENT_FILTER_VALUES[column].map((option) => ({
+                  value: option as string,
+                  label: t(VALUE_LABEL[column][option as never]),
                 }))}
               />
             </div>

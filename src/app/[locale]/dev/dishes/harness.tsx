@@ -16,7 +16,7 @@ import { IngredientSearch } from '@/features/weekly-plans/components/food-picker
 import { refineIngredientResults, type RefinedFood } from '@/features/weekly-plans/ingredient-refine';
 import { localizedName } from '@/features/weekly-plans/food-display';
 import type { FoodPortion } from '@/features/weekly-plans/ingredient-units';
-import type { FoodSearchResult } from '@/features/weekly-plans/queries';
+import type { DishNameSuggestion, FoodSearchResult } from '@/features/weekly-plans/queries';
 
 /** A catalog fixture plus the terms a query must contain to surface it. */
 type Fixture = FoodSearchResult & { tags: string[] };
@@ -165,6 +165,23 @@ const MOCK_DISHES: (DishCardData & { clinicId: string | null })[] = [
   { id: 'd5', nameAr: 'بيض مقلي', nameEn: 'Fried eggs', mealTypes: ['breakfast'], tags: ['quick'], kcal: 180, carbs: 2, protein: 13, highProtein: true, isSystem: true, hidden: false, clinicId: null },
 ];
 
+async function mockDishNameSearch(
+  _locale: string,
+  query: string,
+  excludeDishId?: string,
+): Promise<DishNameSuggestion[]> {
+  const term = normalizeArabic(query.trim());
+  await new Promise((resolve) => setTimeout(resolve, 120));
+  return MOCK_DISHES.filter(
+    (dish) =>
+      dish.id !== excludeDishId &&
+      (normalizeArabic(dish.nameAr).startsWith(term) ||
+        normalizeArabic(dish.nameEn).startsWith(term)),
+  )
+    .slice(0, 5)
+    .map(({ id, nameAr, nameEn, clinicId }) => ({ id, nameAr, nameEn, clinicId }));
+}
+
 /**
  * A self-contained catalog demo — the real `DishFilters` toolbar and the real
  * `DishList` table over a mock list, filtered client-side, so the whole screen
@@ -210,7 +227,11 @@ function CatalogDemo({ locale }: { locale: string }) {
         owner={owner}
         showHidden={searchParams.get('hidden') === '1'}
       >
-        <AddDishButton locale={locale} search={mockSearch} />
+        <AddDishButton
+          locale={locale}
+          search={mockSearch}
+          searchDishNames={mockDishNameSearch}
+        />
       </DishFilters>
       <DishList locale={locale} items={items} filtered={filtered} />
     </section>
@@ -234,7 +255,11 @@ export function DishesHarness({ locale }: { locale: string }) {
 
       <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
         <h2 className="text-label font-semibold">Ingredient search</h2>
-        <IngredientSearch locale={locale} onPick={(food) => setPicked((prev) => [...prev, food])} search={mockSearch} />
+        <IngredientSearch
+          locale={locale}
+          onPick={(food) => setPicked((prev) => [...prev, food])}
+          search={mockSearch}
+        />
         {picked.length > 0 && (
           <ul className="mt-2 flex flex-col gap-1 border-t border-border pt-2 text-body-sm">
             {picked.map((food, index) => (
@@ -259,6 +284,7 @@ export function DishesHarness({ locale }: { locale: string }) {
         onOpenChange={setOpen}
         onSaved={() => setOpen(false)}
         search={mockSearch}
+        searchDishNames={mockDishNameSearch}
       />
     </div>
   );

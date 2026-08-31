@@ -94,6 +94,52 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 };
 
+/*
+  The captured `beforeinstallprompt` event, held at module scope rather than
+  in a `useState` inside the hook below — this is what makes it visible to
+  every surface that asks, not just whichever one happened to be mounted the
+  instant Chrome fired it.
+
+  `(secured)/(tabs)/layout.tsx` (the banner) and the settings screen live in
+  sibling route groups: navigating from a tab to Settings unmounts the tabs
+  layout entirely, including the banner's own `useInstallPrompt()` call. The
+  event fires once per page load and never again, so a `useState` there would
+  capture it, then take it into the void the moment that component unmounts —
+  the settings row, mounting fresh afterwards, would find nothing to offer
+  and report `'unavailable'` even though Chrome had already made the offer.
+  A module-level value survives every unmount for the life of the tab, so
+  whichever surface is on screen when the event fires leaves it here for
+  every surface after.
+
+  This is the *second* place the event is parked, and the two are not
+  redundant: `window[INSTALL_PROMPT_GLOBAL]` (below) is the pre-hydration
+  stash, written by a script that runs before this module is even evaluated,
+  and it is read once per mount. This is the live value every mounted surface
+  renders from. The stash answers "did it fire before React existed"; this
+  answers "what should the UI show right now".
+*/
+let capturedPrompt: BeforeInstallPromptEvent | null = null;
+
+function getPromptSnapshot(): BeforeInstallPromptEvent | null {
+  return capturedPrompt;
+}
+
+function getPromptServerSnapshot(): BeforeInstallPromptEvent | null {
+  return null;
+}
+
+/**
+ * Sets the shared prompt and tells every mounted surface at once.
+ *
+ * The broadcast goes through the same `listeners` set the persisted record
+ * uses, so a surface that mounted after the event fired still re-renders with
+ * it — that is the whole reason this is not `useState`.
+ */
+function setCapturedPrompt(next: BeforeInstallPromptEvent | null) {
+  capturedPrompt = next;
+  listeners.forEach((listener) => listener());
+}
+
 /**
  * Reads whatever the pre-hydration capture script parked on `window`.
  *
@@ -116,9 +162,16 @@ function readCapturedPrompt(): BeforeInstallPromptEvent | null {
   return captured as BeforeInstallPromptEvent;
 }
 
-/** Drops the stash once its prompt has been fired or the app is installed. */
+/**
+ * Drops the prompt once it has been fired or the app is installed.
+ *
+ * Clears *both* copies. Clearing only the shared value would leave the spent
+ * event in the stash for the next mount to adopt; clearing only the stash
+ * would leave every currently-mounted surface still showing a dead button.
+ */
 function clearCapturedPrompt() {
   (window as unknown as Record<string, unknown>)[INSTALL_PROMPT_GLOBAL] = null;
+  setCapturedPrompt(null);
 }
 
 function getStandaloneSnapshot(): boolean {
@@ -173,20 +226,21 @@ export function useInstallPrompt() {
   const persisted = useSyncExternalStore(subscribe, readState, getServerInstallState);
   const standalone = useSyncExternalStore(subscribeToNothing, getStandaloneSnapshot, getStandaloneServerSnapshot);
   const iosSafari = useSyncExternalStore(subscribeToNothing, getIosSafariSnapshot, getIosSafariServerSnapshot);
-
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  // Shared across every mounted surface — see the note above `capturedPrompt`.
+  const deferredPrompt = useSyncExternalStore(subscribe, getPromptSnapshot, getPromptServerSnapshot);
   // Captured once per mount, not read live — see the note above `subscribeToNothing`.
   const [now] = useState(() => Date.now());
 
   useEffect(() => {
     const onBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
-      setDeferredPrompt(event as BeforeInstallPromptEvent);
+      setCapturedPrompt(event as BeforeInstallPromptEvent);
     };
 
     const onAppInstalled = () => {
+      // Notifies every subscriber, including this hook's own `deferredPrompt`
+      // snapshot — one shared broadcast, not two.
       clearCapturedPrompt();
-      setDeferredPrompt(null);
       writeState({ ...readState(), installed: true });
     };
 
@@ -200,7 +254,7 @@ export function useInstallPrompt() {
     */
     const onCaptured = () => {
       const captured = readCapturedPrompt();
-      if (captured) setDeferredPrompt(captured);
+      if (captured) setCapturedPrompt(captured);
     };
 
     window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
@@ -250,18 +304,21 @@ export function useInstallPrompt() {
     const { outcome } = await deferredPrompt.userChoice;
 
     /*
-      A `beforeinstallprompt` event may only be prompted once. Clearing the
-      stash as well as the state matters because the two are separate copies of
-      the same event: without this, a client who dismissed the native dialog
-      and then navigated between portal tabs would remount this hook, adopt the
-      spent prompt out of the stash again, and get an install button whose
-      `prompt()` rejects.
+      Spent either way — Chrome does not allow a captured prompt to be
+      replayed, and a rejected one will not fire again this page load. Clearing
+      the stash as well as the shared value matters because the two are
+      separate copies of the same event: without this, a client who dismissed
+      the native dialog and then navigated between portal tabs would remount
+      this hook, adopt the spent prompt out of the stash again, and get an
+      install button whose `prompt()` rejects.
     */
     clearCapturedPrompt();
-    setDeferredPrompt(null);
 
     if (outcome === 'accepted') {
+      // Notifies every subscriber, including the cleared prompt above.
       writeState({ ...readState(), installed: true });
+    } else {
+      listeners.forEach((listener) => listener());
     }
   }, [deferredPrompt]);
 

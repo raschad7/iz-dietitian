@@ -103,7 +103,20 @@ export function dayKey(dayOfWeek: number): DayKey {
 
 export const dayOfWeekSchema = z.coerce.number().int().min(0).max(6);
 
+/**
+ * An absent or empty form field, as `undefined`.
+ *
+ * `null` as well as `''`: `FormData.get` returns `null` for a field the form
+ * does not render at all, and every schema downstream of this spells "not
+ * given" as `.optional()`, which accepts `undefined` and rejects `null`. So a
+ * control that is removed from a form — the generate door's goal select, for
+ * one — would fail the whole parse rather than falling back to its default,
+ * and the caller would see "unexpected error" for a field it deliberately
+ * stopped sending.
+ */
 function blankToUndefined(value: unknown): unknown {
+  if (value === null) return undefined;
+
   return typeof value === 'string' && value.trim() === '' ? undefined : value;
 }
 
@@ -239,6 +252,31 @@ export const setServingsSchema = z.object({
   servings: z.coerce.number().min(MIN_SERVINGS).max(MAX_SERVINGS),
 });
 
+/**
+ * One ingredient's amount inside one meal.
+ *
+ * `quantityGrams` is what the server stores and computes from; the portion pair
+ * beside it records the unit the dietitian was counting in, and is accepted only
+ * together — a unit with no count, or a count with no unit, describes nothing.
+ *
+ * The upper bound matches `MAX_INGREDIENT_GRAMS`, and is a guard on form input
+ * rather than a clinical limit. The mutation re-checks it: this schema protects
+ * the action, and the mutation protects everything that is not this action.
+ */
+export const setMealIngredientSchema = z
+  .object({
+    ...editBase,
+    mealId: mealIdSchema,
+    foodId: z.uuid(),
+    quantityGrams: z.coerce.number().positive().max(2000),
+    portionId: z.uuid().nullish(),
+    portionQuantity: z.coerce.number().positive().nullish(),
+  })
+  .refine(
+    (value) => (value.portionId == null) === (value.portionQuantity == null),
+    'a portion and its count must be given together',
+  );
+
 export const mealEditSchema = z.object({ ...editBase, mealId: mealIdSchema });
 
 export const addMealSchema = z.object({
@@ -268,6 +306,46 @@ export const addWeekMealSchema = z.object({
 export const removeWeekMealSchema = z.object({
   ...editBase,
   slotKey: mealSlotSchema.shape.slotKey,
+});
+
+/**
+ * Puts a removed slot back, with the dishes it was carrying.
+ *
+ * The undo half of `removeWeekMealSchema`, and it needs its own shape because
+ * `addWeekMealSchema` cannot express it: adding a slot to the week creates
+ * seven *empty* cells, and what was removed was seven cells with dishes in
+ * them. The client sends back what it had on screen a moment ago, which is the
+ * only place that information still exists once the rows are deleted.
+ *
+ * `days` arrives as JSON in a form field, so it is parsed here rather than
+ * trusted: every dish id is re-checked against the clinic's catalog by
+ * `restoreMealToWeek` before anything is written.
+ */
+export const restoreWeekMealSchema = z.object({
+  ...editBase,
+  slotKey: mealSlotSchema.shape.slotKey,
+  label: mealSlotSchema.shape.label,
+  timeOfDay: timeOfDaySchema,
+  days: z.preprocess(
+    (value) => {
+      if (typeof value !== 'string') return value;
+      try {
+        return JSON.parse(value);
+      } catch {
+        return undefined;
+      }
+    },
+    z
+      .array(
+        z.object({
+          dayOfWeek: dayOfWeekSchema,
+          dishId: z.uuid().nullable(),
+          servings: z.number().positive().max(20),
+          budgetKcal: z.number().min(0).max(20000),
+        }),
+      )
+      .max(7),
+  ),
 });
 
 export const moveMealSchema = z.object({

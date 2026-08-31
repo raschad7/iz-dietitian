@@ -2,8 +2,9 @@
 
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
+import { BrandMark } from '@/components/layout/brand-logo';
 import { LocaleSwitcher } from '@/components/layout/locale-switcher';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -54,6 +55,27 @@ import { cn } from '@/lib/utils';
  * two figures at the table in frame when a 16:9 illustration is shown in a tall
  * panel.
  *
+ * ## It has an entrance
+ *
+ * The screen opens in two beats: the picture widens out of a strip standing
+ * against the outer edge of the window, and once it is ~85% open the form
+ * column walks up beside it a row at a time — brand bar, heading, role switch,
+ * fields, footer. Four classes — `q-auth-stage`, `q-auth-reveal`,
+ * `q-auth-hero`, `q-auth-enter` (plus `-2` … `-5` for the stagger's positions)
+ * — and every number, curve and direction behind them is at the foot of
+ * `globals.css`, under "The sign-in screen's entrance".
+ *
+ * ⚠ **Two of the five parts are not in this file.** The heading and the role
+ * switch are written in `AuthScreen` and arrive here as one opaque `header`
+ * node, so their position classes live there. Renumbering the stagger means
+ * editing both files.
+ *
+ * Two things there are worth knowing before touching any of it: the entrance
+ * holds itself at its first frame while the launch screen is in the document,
+ * because otherwise it plays underneath a full-screen tile and is never seen;
+ * and the picture's offset and its scale are a single decision, not two
+ * numbers. Both are written up beside the rules.
+ *
  * ## Layout behavior
  *
  * - **Mobile and Tablet** (below `lg`): the picture is not rendered (`hidden lg:flex`).
@@ -99,15 +121,43 @@ import { cn } from '@/lib/utils';
 const HERO_IMAGE_SRC = '/images/auth-hero.png';
 
 /**
- * The brand lockup, in two files.
+ * What to paint while the photograph is still arriving.
  *
- * The supplied artwork draws the wordmark in #266805, which vanishes into the
- * app's dark surfaces, so `logo-full-dark.svg` repaints that one path in n-25
- * and leaves the green disc alone. Swapping the file is the whole dark-mode
- * story — no filter, no `invert`, which would have taken the green with it.
+ * A 16px-wide WebP of the artwork itself, inlined — about 150 bytes, so it costs
+ * one extra line of HTML and no request at all. Next generates one of these
+ * automatically for a *statically imported* image; this one is loaded from a
+ * runtime path (see `HERO_IMAGE_SRC` above, and why it is a path), so the
+ * placeholder has to be supplied by hand. Regenerate it with sharp if the
+ * artwork is ever replaced:
+ *
+ *     sharp('public/images/auth-hero.png').resize(16).webp({ quality: 45 })
  */
-const LOGO_LIGHT_SRC = '/images/logo-full.svg';
-const LOGO_DARK_SRC = '/images/logo-full-dark.svg';
+const HERO_BLUR_DATA_URL =
+  'data:image/webp;base64,UklGRmYAAABXRUJQVlA4IFoAAADwAQCdASoQAAkAAwBSJZQAD48MokY6DLgA/uiqaukbjb1AKNlShSldakyNwCLxX1XsznHGGRwp5+YK8cSZnmk5rwnkfefpGuNOI77SdzD6SDDo303sUwbIAAA=';
+
+/**
+ * How wide a crop the browser should ask the optimiser for.
+ *
+ * ⚠ **This is not the panel's width, and it must not be set to it.** The panel
+ * is portrait and the artwork is 16:9, so `object-cover` scales the image until
+ * its *height* fills the panel and lets the sides fall outside — which means the
+ * rendered image is far wider than the box it is seen through. Sizing this to
+ * `48vw` (what the panel measures) hands the browser a candidate roughly half
+ * the resolution it actually paints, and the result is the visible softness that
+ * `unoptimized` was once reached for to hide.
+ *
+ * `100vw` is deliberately generous rather than exact. The true figure is
+ * `panel-height × 16/9`, which depends on the viewport's *height* — something no
+ * `sizes` expression can read — and on a tall narrow desktop window it exceeds
+ * `100vw` outright. Over-asking costs a little bandwidth on wide short screens;
+ * under-asking is the pixelation, so the error is taken in the safe direction.
+ *
+ * The `1px` branch is the mobile one, and it is load-bearing: the panel is
+ * `hidden` below `lg`, but a `display: none` image is still fetched, so this
+ * sends the browser to the smallest candidate in the srcset rather than to a
+ * desktop crop nothing will ever show.
+ */
+const HERO_SIZES = '(min-width: 1024px) 100vw, 1px';
 
 type AuthSplitCardProps = {
   /**
@@ -137,16 +187,103 @@ type AuthSplitCardProps = {
   };
 };
 
+/**
+ * ms the form area stays clipped after a swap finishes.
+ *
+ * The height transition and the fade run together, so for a moment the incoming
+ * form is at its full natural size inside a box that is still travelling toward
+ * that size — and without clipping, a taller form spills over the footer while
+ * it fades up. This is `--duration-arc` (the height) plus a frame or two of
+ * slack.
+ *
+ * ⚠ A timer, and **not** `transitionend`. Two of the three faces can be the same
+ * height as each other, and a `block-size` that does not change fires no
+ * transition at all — so an event-driven version would clip once and then never
+ * unclip, which quietly swallows every focus ring on the screen.
+ */
+const CLIP_MS = 260;
+
 export function AuthSplitCard({ header, contentVisible, children, switcher }: AuthSplitCardProps) {
   const tApp = useTranslations('app');
 
-  /* The fields' own fade — out fast, in a shade slower, so the form always
-     arrives the same way. */
+  /*
+   * The form's measured height, driven onto the box around it so the box can
+   * *travel* between two forms instead of snapping.
+   *
+   * `null` until the first measurement, which leaves the box at `auto` — so the
+   * server renders the form at its natural height, the client hydrates to the
+   * same thing, and the first measurement writes back the number it already had.
+   * Nothing moves on load, and there is no style attribute to mismatch.
+   */
+  const fieldsRef = useRef<HTMLDivElement>(null);
+  const [fieldsHeight, setFieldsHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fields = fieldsRef.current;
+    if (!fields) return;
+
+    /*
+     * A ResizeObserver rather than a measurement per swap: the form's height
+     * also changes for reasons that are not a swap — a validation error opening
+     * under a field, the password field's caps-lock notice — and those deserve
+     * the same travel rather than a jump.
+     */
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) setFieldsHeight(entry.borderBoxSize?.[0]?.blockSize ?? entry.contentRect.height);
+    });
+    observer.observe(fields);
+    return () => observer.disconnect();
+  }, []);
+
+  /*
+   * Whether to clip the form area right now — see `CLIP_MS`. It goes on the
+   * moment a swap starts and comes off on a timer once the height has arrived.
+   *
+   * ⚠ **It must come off.** `overflow-hidden` here is otherwise exactly the bug
+   * the file header warns about: a focus ring is drawn outside its control's
+   * box, and a clipped one is a missing one. It is only safe during the swap
+   * because the swap has just replaced the DOM, so nothing inside is focused.
+   */
+  const [clipHeld, setClipHeld] = useState(false);
+  const [wasVisible, setWasVisible] = useState(contentVisible);
+
+  /*
+   * Adjusted during render rather than in an effect. `clipHeld` is derived from
+   * a prop changing, and an effect that sets state synchronously to track a prop
+   * renders twice for every swap — React documents this comparison-with-previous
+   * pattern for exactly this case, and the lint rule enforces it.
+   */
+  if (wasVisible !== contentVisible) {
+    setWasVisible(contentVisible);
+    if (!contentVisible) setClipHeld(true);
+  }
+
+  /* The release. Only ever fires from inside the timer, so the effect itself
+     sets no state. */
+  useEffect(() => {
+    if (!contentVisible || !clipHeld) return;
+    const timer = window.setTimeout(() => setClipHeld(false), CLIP_MS);
+    return () => window.clearTimeout(timer);
+  }, [contentVisible, clipHeld]);
+
+  const clipped = !contentVisible || clipHeld;
+
+  /*
+   * The fields' own fade — out fast, in a shade slower, so the form always
+   * arrives the same way.
+   *
+   * The 4px of travel is vertical on purpose. A horizontal slide would have to
+   * pick a direction, and the direction that reads correctly is the reading one,
+   * which inverts between Arabic and English — so it would need either a
+   * `:dir()` rule or the locale threaded down here. Vertical means the same
+   * thing in both scripts: the old form settles, the new one rises into place.
+   */
   const fade = cn(
-    'transition-opacity ease-(--ease-sweep)',
+    'transition-[opacity,translate] ease-(--ease-sweep) motion-reduce:transition-none',
+    'motion-reduce:translate-y-0',
     contentVisible
-      ? 'opacity-100 duration-(--duration-label)'
-      : 'opacity-0 duration-(--duration-reverse)',
+      ? 'translate-y-0 opacity-100 duration-(--duration-label)'
+      : 'translate-y-1 opacity-0 duration-(--duration-reverse)',
   );
 
   return (
@@ -155,7 +292,14 @@ export function AuthSplitCard({ header, contentVisible, children, switcher }: Au
      * ground in dark. v5.html hardcodes #ffffff on three nested elements; one
      * token on the outermost is the same picture and themes itself.
      */
-    <div className="flex min-h-dvh w-full bg-background">
+    /*
+     * `q-auth-stage` carries no style of its own — only the entrance's
+     * durations and curves, as custom properties, so the picture opening and
+     * the form rising are timed against one source. See the section at the foot
+     * of `globals.css`; the hand-off between the two is a derived number and
+     * cannot be nudged in one place alone.
+     */
+    <div className="q-auth-stage flex min-h-dvh w-full bg-background">
       {/*
         The form column. v5.html's `.invisible-form-box`: it takes whatever the
         picture leaves, and spaces its three rows apart — the top bar, the form,
@@ -191,32 +335,76 @@ export function AuthSplitCard({ header, contentVisible, children, switcher }: Au
         whose winner depends on which media query Tailwind emits last, which is
         not something to leave to chance in a layout whose whole job is to fit.
       */}
-      <div className="flex min-w-0 flex-1 flex-col justify-between px-4 py-6 sm:px-6 lg:px-12 short:py-3 shorter:py-2">
+      {/*
+        ⚠ **The entrance is not on this element.** The second beat — the column
+        rising once the picture beside it is most of the way open — is carried by
+        the five parts *inside* the column, each with its own position in the
+        stagger: the brand bar here, the heading and the role switch over in
+        `AuthScreen`'s `header`, then the fields and the footer below. See
+        `q-auth-enter` in `globals.css`.
+
+        It sat on this box for one revision and moved the whole column as a
+        slab. Putting it on the rows is what gives the column an order to be read
+        in; putting it back here would flatten it again.
+
+        The rows may be animated independently because none of them is measured
+        against another: `translate` and `opacity` are both off the layout, so
+        `mt-auto` still resolves against a column whose boxes never moved.
+      */}
+      <div className="flex min-w-0 flex-1 flex-col px-4 py-6 sm:px-6 lg:px-12 short:py-3 shorter:py-2">
         {/*
-          The top bar: the language control at the inline-start, the logo at the
+          The top bar: the brand at the inline-start, the language control at the
           inline-end. Both mirror with the locale — see the note at the top of
           the file.
+
+          **The brand leads and the utility follows**, which is the other way
+          round from how this row was first built. The two were swapped because
+          the order was being read, not just seen: in Arabic the inline-start is
+          the *right*, so the old arrangement put a language dropdown in the
+          first place the eye lands and the product's own mark last — and the
+          lockup is itself drawn right-to-left, so it was sitting at the wrong
+          end of its own reading direction.
 
           `max-w-[440px] mx-auto` on all three rows, not `items-center` on the
           column: the bar has to line its two ends up with the *form's* edges,
           which means sharing the form's width rather than merely being centred
           in the same column.
         */}
-        <div className="mx-auto mb-2 flex w-full max-w-110 short:mb-0 items-center justify-between gap-3">
+        {/* First of the five, and no position class: it is the top of the
+            column and the top of the stagger. */}
+        <div className="q-auth-enter mx-auto mb-2 flex w-full max-w-110 short:mb-0 items-center justify-between gap-3">
+          <BrandMark aria-hidden={false} role="img" aria-label={tApp('shortName')} className="size-9 shorter:size-8" />
           <LocaleSwitcher variant="dropdown" />
-          <BrandLogo alt={tApp('shortName')} />
         </div>
 
         {/*
-          The form. `my-auto` centres it in the space the bar and the footer
-          leave; nothing here scrolls on its own, which is the point — see
-          "`min-h-dvh`, never `h-dvh`".
+          The form, anchored below the bar rather than centred between it and the
+          footer.
+
+          ⚠ **This row used to be `my-auto` inside a `justify-between` column,
+          and that is what made the role switch jump.** Centring measures the
+          whole block — heading, tagline, switch *and* fields — so every time the
+          fields changed height the block re-centred and dragged the controls
+          above them along with it. Measured at 1280×720 the switch sat 136px
+          further down on the client form than on sign-up, which is a control
+          moving out from under the pointer that just clicked it.
+
+          Anchoring costs the vertical centring on a tall screen, and the fixed
+          offset below is what buys most of it back: it is roughly where centring
+          put the default form, so the common case looks unchanged and the other
+          two faces no longer drag the header around. Growth now goes downward
+          only, into the slack `mt-auto` holds above the footer.
         */}
-        {/* No block padding of its own. `my-auto` is what centres this row, and
-            padding on top of that was 32px spent twice — once here and again in
-            the column's own `py-*`. It is the first thing that went when the
-            footer started landing under the fold. */}
-        <div className="mx-auto my-auto w-full max-w-110">
+        {/*
+          The offset is a compromise between the two faces, and it is chosen
+          against the *tallest* one. Sign-up is five fields deep and already the
+          form that decides whether this screen scrolls — every pixel spent here
+          comes off its bottom margin first. 48px is roughly where centring used
+          to put the default form on a 900px screen, so the common case looks
+          unchanged, and it leaves sign-up within a few pixels of where it was.
+          The height variants take it down further on the laptops that need it.
+        */}
+        <div className="mx-auto mt-12 w-full max-w-110 short:mt-4 shorter:mt-2">
           {header}
           {/*
             `q-auth-fields` is the scoped field theme from globals.css: it fills
@@ -230,7 +418,36 @@ export function AuthSplitCard({ header, contentVisible, children, switcher }: Au
             staff sign-in, staff sign-up, client sign-in — pick it up without
             each having to remember to.
           */}
-          <div className={cn('q-auth-fields', fade)}>{children}</div>
+          {/*
+            The sizer. Two elements, and they cannot be one: the outer box is
+            what *travels* between the two heights, and the inner one has to stay
+            at its own natural height for the ResizeObserver to have anything to
+            measure. Collapsing them would make the observer read back the
+            animated height it had just written, one frame at a time.
+          */}
+          {/*
+            Fourth of the five. The entrance goes on the *sizer* and not on the
+            `q-auth-fields` box inside it, which is already carrying the swap
+            crossfade — two things writing `opacity` and `translate` on one
+            element, one a transition and one an animation, is a handover with
+            nothing to gain from it. Here they are simply on different boxes.
+
+            Nothing is disturbed by animating this element: the ResizeObserver
+            watches the child, and `translate` does not change a border box.
+          */}
+          <div
+            className={cn(
+              'q-auth-enter q-auth-enter-4',
+              'transition-[block-size] duration-(--duration-arc) ease-(--ease-sweep)',
+              'motion-reduce:transition-none',
+              clipped && 'overflow-hidden',
+            )}
+            style={fieldsHeight === null ? undefined : { blockSize: fieldsHeight }}
+          >
+            <div ref={fieldsRef} className={cn('q-auth-fields', fade)}>
+              {children}
+            </div>
+          </div>
         </div>
 
         {/*
@@ -246,8 +463,20 @@ export function AuthSplitCard({ header, contentVisible, children, switcher }: Au
           none — so that the form above it stays put instead of dropping half a
           line when the card turns over. `min-h-6` is one line of it.
         */}
-        <div className={cn('mx-auto min-h-6 w-full max-w-110 pt-4 text-center short:pt-2', fade)}>
-          {switcher ? <SwitchLink switcher={switcher} /> : null}
+        {/* `mt-auto` is what pins it now that the column is no longer
+            `justify-between` — see the note on the form row above. */}
+        {/*
+          Last of the five, which is also where it belongs in the reading.
+
+          Two boxes for the same reason the fields row has two: the entrance and
+          the swap crossfade both write `opacity` and `translate`, so they are
+          kept on separate elements rather than handed between an animation and a
+          transition on one. The outer box keeps every layout class — `mt-auto`
+          has to stay on the flex child — and the inner one does nothing but
+          fade.
+        */}
+        <div className="q-auth-enter q-auth-enter-5 mx-auto mt-auto min-h-6 w-full max-w-110 pt-4 text-center short:pt-2">
+          <div className={fade}>{switcher ? <SwitchLink switcher={switcher} /> : null}</div>
         </div>
       </div>
 
@@ -263,14 +492,60 @@ export function AuthSplitCard({ header, contentVisible, children, switcher }: Au
           'lg:sticky lg:top-0 lg:h-dvh',
         )}
       >
-        <div className="relative w-full overflow-hidden rounded-xl bg-muted">
+        {/*
+          `q-auth-reveal` is the first beat: this surface is clipped to a strip
+          against the outer edge of the window on first paint and opens inward
+          toward the form.
+
+          The clip goes here, on the surface, and the counter-motion goes on the
+          image inside it — they cannot share an element, because a `translate`
+          on this box would carry the window along with the picture instead of
+          the picture moving through it.
+
+          `rounded-xl` and the animation's radius are the same value stated
+          twice; the note beside the class says which token, and they have to
+          agree or the corners pop when the clip is dropped at the end.
+        */}
+        <div className="q-auth-reveal relative w-full overflow-hidden rounded-xl bg-muted">
+          {/*
+            ⚠ **No `unoptimized`.** It was here to cure a soft, pixelated
+            illustration, and it did — by switching the whole image pipeline off
+            and shipping the 2.2MB source PNG to every visitor, unresized and
+            unconverted, on the one screen that is somebody's first impression of
+            the product.
+
+            The pixelation was never the optimiser's doing. It was `sizes`
+            describing the *panel* while `object-cover` painted something much
+            wider, so the browser dutifully picked a candidate about half the
+            resolution it needed — see `HERO_SIZES`, which is where that is fixed
+            properly. With it correct the optimiser serves AVIF at the width this
+            panel actually paints, which is a fraction of the PNG and sharper
+            than it was.
+
+            `priority` stays: this is the largest thing on the screen and the
+            thing the layout is built around, so it is the LCP element and has no
+            business waiting behind anything.
+          */}
           <Image
             src={HERO_IMAGE_SRC}
             alt=""
             fill
             priority
-            unoptimized
-            className="object-cover object-center"
+            sizes={HERO_SIZES}
+            placeholder="blur"
+            blurDataURL={HERO_BLUR_DATA_URL}
+            /*
+              `q-auth-hero` is the picture's own travel during the reveal —
+              toward the closing edge, so it slides right-to-left in Arabic and
+              left-to-right in English, and settles as the panel finishes
+              opening.
+
+              ⚠ It starts oversized as well as offset, and the two figures are
+              one decision: the scale is exactly what keeps the leading edge
+              flush against the panel while the offset unwinds. Read the note
+              beside the class before touching either.
+            */
+            className="q-auth-hero object-cover object-center"
           />
         </div>
       </div>
@@ -278,35 +553,22 @@ export function AuthSplitCard({ header, contentVisible, children, switcher }: Au
   );
 }
 
-/**
- * The brand lockup, at v5.html's 40px.
+/*
+ * The local `BrandLogo` that used to live here is gone, and with it two files
+ * and two network requests.
  *
- * A plain `<img>`, not `next/image`: the file is an SVG, which the image
- * optimiser refuses without `dangerouslyAllowSVG` and would have nothing to do
- * with anyway — it is already resolution-independent and 2KB. `sidebar.tsx`
- * takes the same exemption for the same reason.
+ * It drew the full lockup as a pair of `<img>` elements — `logo-full.svg` and
+ * `logo-full-dark.svg` — both always in the markup, one hidden by CSS, because
+ * the supplied artwork paints its wordmark in a green that disappears against a
+ * dark surface and there is no way to repaint one path inside a file behind
+ * `<img src>`.
  *
- * Two elements rather than one with a filter. `brightness-0 invert` would have
- * turned the whole lockup white, disc included; painting the wordmark alone
- * means shipping a second file, and a second file means a second `<img>`. The
- * pair is CSS-switched, so there is no flash of the wrong one on load and no
- * theme read during render.
+ * `BrandMark` has no wordmark to repaint, and it is inline SVG, so its fills
+ * read `--brand-leaf` / `--brand-seed` straight from the stylesheet: one element,
+ * no second file, and the dark theme handled by the same tokens as everything
+ * else. See `@/components/layout/brand-logo` for why this screen wants the mark
+ * alone rather than the lockup.
  */
-function BrandLogo({ alt }: { alt: string }) {
-  return (
-    <>
-      {/* eslint-disable-next-line @next/next/no-img-element -- an SVG has nothing for the image optimizer to do. */}
-      <img src={LOGO_LIGHT_SRC} alt={alt} className="block h-10 w-auto shorter:h-8 dark:hidden" />
-      {/*
-        `alt=""` on the second copy: both are in the markup at all times and only
-        one is painted, so naming them both would announce the brand twice to a
-        screen reader, which does not read `display`.
-      */}
-      {/* eslint-disable-next-line @next/next/no-img-element -- see above. */}
-      <img src={LOGO_DARK_SRC} alt="" className="hidden h-10 w-auto shorter:h-8 dark:block" />
-    </>
-  );
-}
 
 /**
  * "Already have an account? **Sign in**" — a line of text with one word in it

@@ -1,10 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Icon } from '@/components/ui/icon';
-import { formatMediumDate } from '@/features/booking/format';
 import { ClientVisitRecord } from '@/features/booking/components/client-visit-record';
-import { type ClientVisitEntry, type ClientVisitSummary } from '@/features/booking/queries';
+import { type ClientVisitEntry } from '@/features/booking/queries';
 import { ClientNutrition } from '@/features/clients/components/client-nutrition';
 import { ClientProfilePanel } from '@/features/clients/components/client-profile-panel';
 import { ClientProfileTabs } from '@/features/clients/components/client-profile-tabs';
@@ -16,11 +13,11 @@ import { type ClientDetail } from '@/features/clients/queries';
 import { type ClientDayMeal, type ClientWeekProgress } from '@/features/clients/progress';
 import { type ClientIntakeValues } from '@/features/clients/types';
 import { ClientPlansCard } from '@/features/weekly-plans/components/client-plans-card';
+import type { BillEntry } from '@/features/billing/bill';
+import { ClientExpensesPanel } from '@/features/billing/components/client-expenses-panel';
+import type { ServicePrices } from '@/features/billing/services';
 import { type PlanListEntry } from '@/features/weekly-plans/queries';
-import { PLAN_STATUSES } from '@/features/weekly-plans/schema';
-import { Link } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
-import { isMember } from '@/lib/enum';
 import { type IsoDate } from '@/lib/iso-date';
 
 /**
@@ -38,7 +35,7 @@ import { type IsoDate } from '@/lib/iso-date';
  *
  * | Template | Here |
  * |---|---|
- * | Account — projects table + activity timeline | What is next for this client, and their whole visit record under it |
+ * | Account — projects table + activity timeline | This client's whole visit record: what the attendance adds up to, what is booked, what has happened |
  * | Security — password, 2FA, devices | The portal sign-in: issuing, reissuing, revoking |
  * | Billing &amp; Plans — plan, invoices | The weekly plans: the live week, and every week before it |
  *
@@ -85,9 +82,14 @@ export type ClientProfileProps = {
   /** Which view to open on, from `?tab=`. See `ClientProfileTabs`. */
   defaultTab: ProfileTab;
   visits: {
-    /** The next appointment, which the Account view leads with. */
-    summary: ClientVisitSummary;
-    /** The whole history, for the Account view's visit record and the panel's count. */
+    /**
+     * The whole history: the Visits view's record, and the count of past
+     * appointments the identity panel states.
+     *
+     * It sat beside a `summary` — the next appointment, read by its own query —
+     * until the trail card that used it left this screen. Nothing reads a
+     * pre-computed summary now, so the page no longer pays for one.
+     */
     entries: ClientVisitEntry[];
   };
   plans: PlanListEntry[];
@@ -106,6 +108,18 @@ export type ClientProfileProps = {
   progressWeeks: PlanListEntry[];
   /** The selected week's plan meals by day of week, for the Progress view's per-meal detail. */
   mealsByDay: Map<number, ClientDayMeal[]>;
+  /**
+   * The money, for the Expenses view: this subscriber's ledger, the clinic's
+   * current price list, and whether a consultation is already on the account.
+   *
+   * Read on the page beside everything else rather than inside the panel, so a
+   * record opens with one round of reads however many views it has.
+   */
+  billing: {
+    entries: BillEntry[];
+    prices: ServicePrices;
+    consulted: boolean;
+  };
   portal: {
     /** What they already sign in with, or null when there is no account. */
     username: string | null;
@@ -130,6 +144,7 @@ export async function ClientProfile({
   progress,
   progressWeeks,
   mealsByDay,
+  billing,
   portal,
   canSendWhatsapp,
 }: ClientProfileProps) {
@@ -141,6 +156,7 @@ export async function ClientProfile({
     progress: t('profile.tabs.progress'),
     security: t('profile.tabs.security'),
     billing: t('profile.tabs.billing'),
+    expenses: t('profile.tabs.expenses'),
   };
 
   return (
@@ -153,11 +169,31 @@ export async function ClientProfile({
       filling a phone's viewport with a 500px identity panel leaves a scroll port
       too short to read anything in.
 
-      `17.5rem` and not a fraction: the panel holds label/value pairs at a fixed
+      `23rem` and not a fraction: the panel holds label/value pairs at a fixed
       type size, and a percentage track re-wraps every one of those rows at every
       window width.
+
+      ⚠ **Every pixel it has gained over the original `17.5rem` belongs to the
+      detail list, and all of it went into one gap.** That list is a two-column
+      grid whose labels are as wide as `البريد الإلكتروني`; the values begin
+      after them, and how far in they sit is the gap and nothing else. The
+      binding constraint is the widest value on the panel — a phone number, about
+      115px of tabular digits — so at 17.5rem there were only about 11px of slack
+      and opening the gap broke a phone number across two lines. The track has
+      been widened three times to buy that room: 17.5 → 19 → 21 → 23rem, against
+      `gap-x-6` → `gap-x-10` → `gap-x-18` → `gap-x-24` in `ClientProfilePanel`.
+
+      ⚠ **Stop here.** At 23rem the values start about 201px in and have roughly
+      135px left to render 115px of phone number. The next step does not belong
+      in this file: widening the track again charges the record's own views for a
+      gap inside a sidebar, and 88px is already the most that trade is worth. See
+      the note on the detail grid in `ClientProfilePanel` for the structural
+      change that lifts the ceiling instead.
+
+      The views column pays the 88px. It holds a spine of full-width rows whose
+      lattices reflow on their own, so it is the side that can absorb it.
     */
-    <div className="flex flex-col gap-3 lg:grid lg:h-full lg:min-h-0 lg:grid-cols-[17.5rem_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
+    <div className="flex flex-col gap-3 lg:grid lg:h-full lg:min-h-0 lg:grid-cols-[23rem_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
       <ClientProfilePanel
         client={client}
         locale={locale}
@@ -171,15 +207,25 @@ export async function ClientProfile({
         defaultTab={defaultTab}
         nutritionGaps={intakeGaps(intake).length}
         panels={{
-          account: (
-            <AccountView
-              client={client}
-              locale={locale}
-              today={today}
-              visits={visits}
-              plans={plans}
-            />
-          ),
+          /*
+            The visit record, and nothing wrapped around it. It brings its own
+            facts, its own two views and its own empty state — see
+            `ClientVisitRecord` — and it is built to fill a bounded box and
+            scroll its own history inside it, which is exactly what the panel
+            hands it.
+
+            ⚠ **There was a "المسار" card above it and it is deliberately
+            gone.** Two rows — the next visit and the live plan — each a link to
+            the screen that changes it. It cost about 210px of a panel whose
+            height is fixed by the window, and it spent that on facts this tab
+            already states: the next visit is a row of the record's own facts
+            list, and the current plan is what the Plans tab *is*. On a laptop
+            768px tall that 210px was the difference between a visit list and a
+            card collapsed behind its own scrollbar, which is what a reader
+            actually came to this tab for. Do not reinstate it here without
+            finding the height somewhere else first.
+          */
+          account: <ClientVisitRecord visits={visits.entries} locale={locale} today={today} />,
           nutrition: <ClientNutrition intake={intake} locale={locale} />,
           progress: (
             <ClientProgressPanel
@@ -208,193 +254,20 @@ export async function ClientProfile({
               locale={locale}
             />
           ),
+          expenses: (
+            <ClientExpensesPanel
+              locale={locale}
+              clientId={client.id}
+              clientName={client.fullName}
+              phone={client.phone}
+              today={today}
+              entries={billing.entries}
+              prices={billing.prices}
+              consulted={billing.consulted}
+            />
+          ),
         }}
       />
     </div>
-  );
-}
-
-/* ── Account ─────────────────────────────────────────────────────────────── */
-
-/**
- * What is about to happen, and the whole record of what already has.
- *
- * The template's account tab is a table of the user's projects above a timeline
- * of their activity. What leads here is the pair of facts that are genuinely
- * *ahead* of the reader — the next visit and the live plan — each of them a link
- * to the screen that changes it, so an empty row is somewhere to go rather than
- * a sentence saying no.
- *
- * **Under it is the visit record, entire.** It was a view of its own on the bar
- * for one release, and before that a route; it is here because this is the tab
- * that answers "how is this person doing", and a visit history is most of that
- * answer. What it replaced was first a merged run of appointments, plans and the
- * registration date — three kinds of entry on one rail, so every row had to name
- * its own kind before it said anything — and then a six-entry window on the
- * visits with a link to the rest. The window was the right subject and the wrong
- * size: a link that says "there is more of this elsewhere" is worth less than
- * the more itself, once "elsewhere" is a tab the reader now has to hunt for.
- *
- * `ClientVisitRecord` brings its own facts strip, its own three views and its
- * own empty state, so nothing here wraps it: a card around it would be a card
- * around two cards.
- */
-async function AccountView({
-  client,
-  locale,
-  today,
-  visits,
-  plans,
-}: {
-  client: ClientDetail;
-  locale: Locale;
-  today: IsoDate;
-  visits: ClientProfileProps['visits'];
-  plans: PlanListEntry[];
-}) {
-  const [t, tPlans] = await Promise.all([
-    getTranslations('clients'),
-    getTranslations('weeklyPlans'),
-  ]);
-
-  // Newest week first is already the read's order — see `listPlans` — so the
-  // head of the list *is* the current plan.
-  const [currentPlan] = plans;
-
-  return (
-    /*
-      The trail holds its natural height and the record takes what is left: from
-      `lg` up this panel is a bounded box, and the visit record is built to fill
-      one and scroll its own history inside it.
-    */
-    <div className="flex flex-col gap-3 lg:h-full lg:min-h-0">
-      <Card className="shrink-0">
-        <CardHeader>
-          <CardTitle as="h2" icon="history" size="sm">
-            {t('trail.title')}
-          </CardTitle>
-        </CardHeader>
-
-        <CardContent className="flex flex-col">
-          <TrailRow
-            icon="bookAppointment"
-            label={t('nextVisit')}
-            value={visits.summary.next ? formatMediumDate(locale, visits.summary.next.date) : null}
-            emptyText={t('noUpcomingVisit')}
-            note={visits.summary.next?.reason ?? null}
-            /*
-              Into the calendar, on the day itself. It used to point at the Visit
-              history tab, which is the panel directly below this row now — a
-              link to what you are already looking at.
-            */
-            href={
-              visits.summary.next
-                ? `/app/calendar/day?date=${visits.summary.next.date}`
-                : '/app/calendar/day'
-            }
-            emptyAction={t('trail.bookVisit')}
-          />
-
-          <div aria-hidden className="h-px bg-border" />
-
-          <TrailRow
-            icon="mealPlans"
-            label={t('trail.currentPlan')}
-            value={
-              currentPlan
-                ? tPlans('weekOf', { date: formatMediumDate(locale, currentPlan.weekStartDate) })
-                : null
-            }
-            emptyText={t('trail.noPlan')}
-            note={
-              currentPlan && isMember(PLAN_STATUSES, currentPlan.status)
-                ? tPlans(`status.${currentPlan.status}`)
-                : null
-            }
-            href={`/app/weekly-plans/${client.id}`}
-            emptyAction={t('trail.createPlan')}
-          />
-        </CardContent>
-      </Card>
-
-      <ClientVisitRecord visits={visits.entries} locale={locale} today={today} />
-    </div>
-  );
-}
-
-/**
- * Something that is about to happen, and the way to change it.
- *
- * The whole row is the link, so an empty one is somewhere to go rather than a
- * dead end. `emptyAction` names what the click will do — a row reading "no plan
- * yet" is only useful next to the word "create".
- */
-function TrailRow({
-  icon,
-  label,
-  value,
-  emptyText,
-  note,
-  href,
-  emptyAction,
-}: {
-  icon: 'bookAppointment' | 'mealPlans';
-  label: string;
-  value: string | null;
-  emptyText: string;
-  note: string | null;
-  href: string;
-  emptyAction: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="group/row flex items-center gap-3 py-3 no-underline outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo"
-    >
-      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-muted">
-        <Icon name={icon} className="size-4 text-muted-foreground" />
-      </span>
-
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span className="text-label text-muted-foreground">{label}</span>
-        {value === null ? (
-          <span className="text-body-md text-muted-foreground">{emptyText}</span>
-        ) : (
-          // No `dir="ltr"` anywhere near this: the value is a *formatted* date,
-          // and `auto` is what keeps "7 أغسطس 2026" in the right order.
-          <span className="text-body-md font-semibold text-foreground" dir="auto">
-            {value}
-          </span>
-        )}
-        {note ? (
-          <span className="truncate text-body-sm text-muted-foreground" dir="auto">
-            {note}
-          </span>
-        ) : null}
-      </span>
-
-      {/*
-        The row's call to action — "Book visit", "Create plan" — revealed on
-        hover and on keyboard focus.
-
-        ⚠ **Visible from the start on a touch screen**, because there is no
-        third state there: a finger has no hover, and the focus ring arrives
-        only *after* the tap that has already navigated. On a phone or a tablet
-        this label was painted at `opacity-0` for its whole life, so a row whose
-        only purpose is to offer the action showed nothing but a chevron, and
-        the offer was invisible on exactly the devices that cannot discover it
-        any other way.
-
-        `pointer-coarse:opacity-100` rather than dropping the reveal: on a mouse
-        the fade is doing real work — a column of permanent olive labels down a
-        record that mostly has values already is noise — and that reading holds
-        wherever a pointer can hover. The variant asks the one question that
-        actually separates the two cases.
-      */}
-      <span className="shrink-0 text-body-sm font-semibold text-secondary-foreground opacity-0 transition-opacity group-hover/row:opacity-100 group-focus-visible/row:opacity-100 pointer-coarse:opacity-100">
-        {value === null ? emptyAction : null}
-      </span>
-      <Icon name="chevronEnd" className="size-4 shrink-0 text-muted-foreground" />
-    </Link>
   );
 }

@@ -3,6 +3,7 @@
 import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
+import { resetSheetDrag, SheetGrip, useSheetDrag } from '@/components/ui/dialog-drag';
 import { isCurrentDialogEvent } from '@/components/ui/dialog-event';
 import { DIALOG_NATIVE_CLOSE_DELAY_MS } from '@/components/ui/dialog-motion';
 import { Icon } from '@/components/ui/icon';
@@ -74,10 +75,12 @@ type DialogProps = {
   flat?: boolean;
   /**
    * `wide` is for a dialog whose content is a row of choices rather than a
-   * form — the default 28rem forces three columns into one. It stays a full
-   * bottom sheet on a phone like every other dialog.
+   * form — the default 28rem forces three columns into one. `page` is between
+   * them, for content with a width of its own: the bill editor draws an A4
+   * sheet, and a card wider than the sheet is empty either side of it. Both
+   * stay a full bottom sheet on a phone like every other dialog.
    */
-  size?: 'default' | 'wide';
+  size?: 'default' | 'page' | 'wide';
   /**
    * Where the surface sits on a phone. From `sm` up both are the same centred
    * card, so this only decides what happens below that.
@@ -131,11 +134,31 @@ function Dialog({
    */
   const [container, setContainer] = React.useState<HTMLDialogElement | null>(null);
 
+  /*
+    Swipe-down-to-dismiss, and the band that advertises it. Armed only for a
+    sheet — a centred card has no edge to be pushed back to — and only where
+    dismissal is allowed at all, so a dialog guarding a submission in flight is
+    as un-pushable as it is un-escapable. The hook asks the width itself at
+    `pointerdown`; see `dialog-drag.tsx` for why that is where the question
+    belongs.
+  */
+  const canDrag = placement === 'sheet' && dismissible;
+  const dragProps = useSheetDrag(ref, { enabled: canDrag, onDismiss: onClose });
+
   React.useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
 
     if (open) {
+      /*
+        The drag state survives `close()` — both the attribute and the custom
+        property are still on the element — so a sheet that was pushed away and
+        then reopened would arrive already translated off the bottom of the
+        screen. Cleared on the way in rather than on the way out, because the
+        dismissing slide has to hold its end state until the native close
+        actually happens.
+      */
+      resetSheetDrag(dialog);
       dialog.removeAttribute('data-closing');
       if (!dialog.open) dialog.showModal();
       return;
@@ -148,6 +171,7 @@ function Dialog({
     const timeout = window.setTimeout(() => {
       if (dialog.open) dialog.close();
       dialog.removeAttribute('data-closing');
+      resetSheetDrag(dialog);
     }, reduceMotion ? 0 : DIALOG_NATIVE_CLOSE_DELAY_MS);
 
     return () => window.clearTimeout(timeout);
@@ -244,7 +268,9 @@ function Dialog({
               'q-dialog-centered m-auto rounded-lg',
               size === 'wide'
                 ? 'w-[min(64rem,calc(100vw-4rem))]'
-                : 'w-[min(28rem,calc(100vw-2rem))]',
+                : size === 'page'
+                  ? 'w-[min(46rem,calc(100vw-3rem))]'
+                  : 'w-[min(28rem,calc(100vw-2rem))]',
             ]
           : [
               // The sheet: full width, pinned to the block-end edge, only its
@@ -253,7 +279,9 @@ function Dialog({
               'sm:m-auto sm:rounded-lg',
               size === 'wide'
                 ? 'sm:w-[min(64rem,calc(100vw-4rem))]'
-                : 'sm:w-[min(28rem,calc(100vw-2rem))]',
+                : size === 'page'
+                  ? 'sm:w-[min(46rem,calc(100vw-3rem))]'
+                  : 'sm:w-[min(28rem,calc(100vw-2rem))]',
             ],
 
         'bg-popover text-popover-foreground ring-1',
@@ -268,6 +296,14 @@ function Dialog({
       )}
     >
       <DialogContainerContext.Provider value={container}>
+        {/*
+          First child, so the pill is the first row of the flex column the frame
+          in `globals.css` makes of this element and the header sits under it.
+          `display: none` from `sm` up lives in that stylesheet rather than
+          behind a media hook here, so the server's markup and the client's
+          first pass are the same.
+        */}
+        {canDrag ? <SheetGrip {...dragProps} /> : null}
         {children}
       </DialogContainerContext.Provider>
     </dialog>
@@ -285,6 +321,7 @@ function Dialog({
  */
 function DialogHeader({
   title,
+  titleClassName,
   description,
   onClose,
   closeLabel,
@@ -292,6 +329,18 @@ function DialogHeader({
   children,
 }: {
   title: React.ReactNode;
+  /**
+   * Overrides the title's own type, for a dialog whose header is the whole of
+   * its chrome.
+   *
+   * `text-heading-sm font-semibold` is right for a dialog that asks one short
+   * question above a paragraph of its own. It is not right for a workspace —
+   * the dish builder is a header, a step rail and 500px of work, and there the
+   * title is the name of the room rather than the question in it: larger, and
+   * lighter, so it reads as a place and does not compete with the rail beside
+   * it.
+   */
+  titleClassName?: string;
   description?: React.ReactNode;
   onClose?: () => void;
   /** Required with `onClose` — the button is icon-only and carries no other name. */
@@ -302,7 +351,7 @@ function DialogHeader({
   return (
     <header data-slot="dialog-header" className={cn('flex items-start gap-2 px-4 pt-4', className)}>
       <div className="min-w-0 flex-1">
-        <h2 className="truncate text-heading-sm font-semibold" dir="auto">
+        <h2 className={cn('truncate text-heading-sm font-semibold', titleClassName)} dir="auto">
           {title}
         </h2>
         {description ? (

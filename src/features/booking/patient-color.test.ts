@@ -76,8 +76,11 @@ describe('patient palette', () => {
   test('has no near-neutrals: every colour is a colour', () => {
     // A grey is easy to place far from everything else and reads as nobody's
     // colour. Chroma floors differ per theme because the gamut does.
-    for (const tone of paletteTones('light')) expect(tone.c).toBeGreaterThanOrEqual(0.075);
-    for (const tone of paletteTones('dark')) expect(tone.c).toBeGreaterThanOrEqual(0.05);
+    // Lowered with the muting — see the note on the chroma floor in
+    // `patient-color.ts`. The distance check above is what still holds these
+    // to being ten colours rather than ten greys.
+    for (const tone of paletteTones('light')) expect(tone.c).toBeGreaterThanOrEqual(0.045);
+    for (const tone of paletteTones('dark')) expect(tone.c).toBeGreaterThanOrEqual(0.038);
   });
 
   test('stays clear of the just-noticeable difference by a margin', () => {

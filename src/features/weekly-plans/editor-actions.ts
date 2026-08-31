@@ -19,6 +19,9 @@ import {
   placeDish,
   removeMeal,
   removeMealFromWeek,
+  resetMealIngredients,
+  restoreMealToWeek,
+  setMealIngredient,
   setMealServings,
 } from './editor-mutations';
 import type { NewWeekState, PlanActionState } from './form-state';
@@ -30,6 +33,8 @@ import {
   moveMealSchema,
   placeDishSchema,
   removeWeekMealSchema,
+  restoreWeekMealSchema,
+  setMealIngredientSchema,
   setServingsSchema,
   startEmptyWeekSchema,
   startWeekFromPlanSchema,
@@ -278,6 +283,71 @@ export async function setServingsAction(
   );
 }
 
+/**
+ * Moves one ingredient inside one meal — more chicken, one spoon less rice.
+ *
+ * The door the `−/+` beside a primary ingredient goes through. Everything that
+ * makes it interesting happens in `setMealIngredient`: the first call copies the
+ * whole meal down at its current amounts and retires the dish multiplier.
+ *
+ * `portionId` and `portionQuantity` arrive as empty strings from a form field that
+ * was not filled, which is not the same as absent — `null` before parsing keeps
+ * the schema's "both or neither" rule reading the truth rather than the encoding.
+ */
+export async function setMealIngredientAction(
+  _previousState: PlanActionState,
+  formData: FormData,
+): Promise<PlanActionState> {
+  const locale = readLocale(formData);
+  const { clinicId } = await requireStaffClinic(locale);
+
+  const parsed = setMealIngredientSchema.safeParse({
+    planId: formData.get('planId'),
+    mealId: formData.get('mealId'),
+    foodId: formData.get('foodId'),
+    quantityGrams: formData.get('quantityGrams'),
+    portionId: formData.get('portionId') || null,
+    portionQuantity: formData.get('portionQuantity') || null,
+  });
+
+  if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
+
+  const clientId = await planClientId(clinicId, parsed.data.planId);
+  if (!clientId) return { status: 'error', messageKey: 'errors.planNotFound' };
+
+  return runEdit(locale, clientId, () =>
+    setMealIngredient(clinicId, parsed.data.planId, parsed.data.mealId, {
+      foodId: parsed.data.foodId,
+      quantityGrams: parsed.data.quantityGrams,
+      portionId: parsed.data.portionId ?? null,
+      portionQuantity: parsed.data.portionQuantity ?? null,
+    }),
+  );
+}
+
+/** Puts a meal back on its dish's recipe, discarding amounts set by hand. */
+export async function resetMealIngredientsAction(
+  _previousState: PlanActionState,
+  formData: FormData,
+): Promise<PlanActionState> {
+  const locale = readLocale(formData);
+  const { clinicId } = await requireStaffClinic(locale);
+
+  const parsed = mealEditSchema.safeParse({
+    planId: formData.get('planId'),
+    mealId: formData.get('mealId'),
+  });
+
+  if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
+
+  const clientId = await planClientId(clinicId, parsed.data.planId);
+  if (!clientId) return { status: 'error', messageKey: 'errors.planNotFound' };
+
+  return runEdit(locale, clientId, () =>
+    resetMealIngredients(clinicId, parsed.data.planId, parsed.data.mealId),
+  );
+}
+
 export async function clearMealAction(
   _previousState: PlanActionState,
   formData: FormData,
@@ -436,6 +506,50 @@ export async function moveMealAction(
  * week-wide removal from an accidental one, and the seven meals it drops take
  * whatever dishes were in them with them.
  */
+/**
+ * Puts a removed slot back, dishes and all — the Undo on the removal toast.
+ *
+ * A separate action rather than `addWeekMealAction` with more fields: adding a
+ * slot and restoring one are different writes with different shapes, and one
+ * action doing both would make the empty-slot case carry a `days` payload it
+ * has no use for.
+ */
+export async function restoreWeekMealAction(
+  _previousState: PlanActionState,
+  formData: FormData,
+): Promise<PlanActionState> {
+  const locale = readLocale(formData);
+  const { clinicId } = await requireStaffClinic(locale);
+
+  const parsed = restoreWeekMealSchema.safeParse({
+    planId: formData.get('planId'),
+    slotKey: formData.get('slotKey'),
+    label: formData.get('label'),
+    timeOfDay: formData.get('timeOfDay'),
+    days: formData.get('days'),
+  });
+
+  if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
+
+  const clientId = await planClientId(clinicId, parsed.data.planId);
+  if (!clientId) return { status: 'error', messageKey: 'errors.planNotFound' };
+
+  return runEdit(locale, clientId, async () => {
+    const restored = await restoreMealToWeek(
+      clinicId,
+      parsed.data.planId,
+      {
+        slotKey: parsed.data.slotKey,
+        label: parsed.data.label,
+        timeOfDay: parsed.data.timeOfDay,
+      },
+      parsed.data.days,
+    );
+
+    return restored > 0;
+  });
+}
+
 export async function removeWeekMealAction(
   _previousState: PlanActionState,
   formData: FormData,

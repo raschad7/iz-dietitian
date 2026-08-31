@@ -30,6 +30,11 @@ const checkbox = z.preprocess((value) => value === 'on' || value === 'true' || v
 export const automationSettingsSchema = z.object({
   remindersEnabled: checkbox,
   confirmationsEnabled: checkbox,
+  reschedulesEnabled: checkbox,
+  /* Deletions are their own answer rather than part of confirmations — see the
+     column's own note in `src/db/schema/whatsapp.ts`. */
+  cancellationsEnabled: checkbox,
+  paymentRemindersEnabled: checkbox,
 });
 
 export type AutomationSettingsInput = z.infer<typeof automationSettingsSchema>;

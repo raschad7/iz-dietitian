@@ -112,21 +112,15 @@ export function RequestsDialogTrigger({
               flat
               size="wide"
               className={cn(
-                // `open:` and not a bare `flex`: a `display` utility on a
-                // <dialog> outranks the UA rule that hides it while closed.
-                'open:flex open:flex-col max-h-[90dvh] overflow-hidden',
+                // Height, flex column and clip all come from the responsive
+                // dialog frame in `globals.css` now. Only the widths below are
+                // this surface's own.
                 // Wider than the app's ordinary dialog and narrower than the
                 // page: the inbox's own column is `max-w-3xl`, and a request
                 // row is a name, a badge and two buttons — at the dialog's
                 // default 28rem the buttons wrap under the message on every
                 // row.
                 'sm:w-[min(48rem,calc(100vw-2rem))]',
-                // The same measure again, for the tablet bottom sheet. The
-                // `(pointer: coarse)` block in `globals.css` is unlayered and
-                // would otherwise replace the width above with the `size="wide"`
-                // default of 64rem — so this dialog was 48rem under a mouse and
-                // 64rem under a thumb. See `--q-dialog-sheet-width` there.
-                '[--q-dialog-sheet-width:min(48rem,calc(100vw-2rem))]',
               )}
             >
               <DialogHeader
@@ -166,8 +160,17 @@ export function RequestsDialogTrigger({
                   that bar, and a card starting flush against it read as part of
                   the heading rather than as the first of a stack. */}
               <ScrollWindow
+                /*
+                  Named as the dialog's body, so the responsive frame in
+                  `globals.css` is what states this surface's geometry — the
+                  header pinned, this box growing into what is left and clipping
+                  the dialog around it. It was previously an anonymous `div`
+                  carrying `min-h-0 flex-1`, which describes the same shape to a
+                  reader and a different one to WebKit; see `ScrollWindow`.
+                */
+                data-slot="dialog-body"
                 visible={VISIBLE_REQUESTS}
-                className="min-h-0 flex-1 px-4 pt-4 pb-4 sm:px-5 sm:pb-5"
+                className="px-4 pt-4 pb-4 sm:px-5 sm:pb-5"
               >
                 {inbox}
               </ScrollWindow>

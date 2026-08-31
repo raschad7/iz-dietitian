@@ -13,6 +13,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import { ExportBillsDialog } from '@/features/billing/components/export-bills-dialog';
 import { ClientFilterMenu } from '@/features/clients/components/client-filter';
 import { ClientFormTrigger } from '@/features/clients/components/client-form-trigger';
 import { type ListClientsInput } from '@/features/clients/schema';
@@ -73,12 +74,37 @@ const SEARCH_DEBOUNCE_MS = 300;
  * splits by width: the page is server-rendered, and reading the viewport on the
  * client would flash the wrong toolbar on first paint.
  */
-export function ClientSearch({ input, locale }: { input: ListClientsInput; locale: Locale }) {
+/**
+ * Which register this toolbar is standing over.
+ *
+ * The two screens list the same people and want different things done to
+ * them. On the register you reach for the archive and for a new patient; on
+ * Bills you reach for the money, and neither of those belongs in that row — an
+ * archive toggle on a billing screen swaps the table under a reader who came
+ * to export it, and "New patient" is the register's own action, offered there.
+ *
+ * A prop rather than a pathname read, so the screens are told apart by the one
+ * that knows which it is.
+ */
+export type ClientSearchVariant = 'register' | 'bills';
+
+export function ClientSearch({
+  input,
+  locale,
+  variant = 'register',
+}: {
+  input: ListClientsInput;
+  locale: Locale;
+  variant?: ClientSearchVariant;
+}) {
   const t = useTranslations('clients');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
+
+  /** Which half of the register is on screen — the archive toggle's state. */
+  const archived = input.status === 'archived';
 
   const [q, setQ] = useState(input.q ?? '');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -127,6 +153,29 @@ export function ClientSearch({ input, locale }: { input: ListClientsInput; local
     startTransition(() => {
       router.replace(`${pathname}?${next.toString()}`);
     });
+  }
+
+  /**
+   * The archive toggle's destination.
+   *
+   * The archive is a view of this page rather than a page of its own — see the
+   * register's own note — so the control adds or removes one parameter and
+   * leaves everything else in the address bar exactly where it was: the term
+   * you have typed, the filter you have set and the column you are sorted by
+   * all survive the switch, which is the point of the two lists sharing a
+   * screen.
+   *
+   * `page` is dropped, because page 3 of the register is not page 3 of the
+   * archive.
+   */
+  function statusHref(next: 'active' | 'archived') {
+    const params = new URLSearchParams(searchParams);
+    if (next === 'archived') params.set('status', 'archived');
+    else params.delete('status');
+    params.delete('page');
+
+    const query = params.toString();
+    return query ? `${pathname}?${query}` : pathname;
   }
 
   function handleChange(value: string) {
@@ -278,7 +327,12 @@ export function ClientSearch({ input, locale }: { input: ListClientsInput; local
             behaviour on this side, so the panel is exactly the field and the
             button tall and the register stays visible above it.
           */}
-          <SheetContent side="bottom" className="gap-0 rounded-t-lg p-4">
+          <SheetContent
+            side="bottom"
+            // Pushable back down to the edge it rose from — see `onDismiss`.
+            onDismiss={() => setSearchOpen(false)}
+            className="gap-0 rounded-t-lg p-4"
+          >
             <SheetTitle className="font-heading text-body-md font-semibold">
               {t('searchAction')}
             </SheetTitle>
@@ -387,10 +441,51 @@ export function ClientSearch({ input, locale }: { input: ListClientsInput; local
           gone — the default size is `h-12 px-5`, which without text is a 48px
           control with 40px of empty padding in it.
         */}
+        {/*
+          Bills: the filter, then the export.
+
+          The export is this screen's one green control, and it sits at the
+          **inline-end** — the left in Arabic, the right in English — which is
+          where the register puts its own green control, "New client", a few
+          lines below. Bills used to be the single screen holding its primary
+          action at the inline-start, so the two toolbars disagreed about which
+          end of a row a decision lives at. They agree now.
+
+          The order is the DOM's, not a physical property's: `flex-row` lays
+          these out along the inline axis, so one list of children mirrors
+          itself and neither locale needs a rule of its own. An `order` or an
+          `ms-auto` here would have pinned the arrangement to one direction and
+          broken the other — see `docs/design-system.md`.
+
+          The filter takes the slot the archive holds on the register, which is
+          the right company for it either way: both answer "which records am I
+          looking at".
+        */}
+        {variant === 'bills' ? (
+          <>
+            <ClientFilterMenu input={input} variant={variant} />
+            <ExportBillsDialog locale={locale} />
+          </>
+        ) : (
+          <>
         <Link
-          href="/app/clients/archived"
+          href={statusHref(archived ? 'active' : 'archived')}
+          /*
+            A toggle, not a way somewhere else. It used to link to
+            `/app/clients/archived`, which took the reader off the register to a
+            second screen listing the same people — and took their search and
+            their filter with it. It now swaps which half of the register the
+            table below is showing, and pressing it again swaps back.
+
+            `aria-pressed` is what says so to a screen reader: this is one
+            control with two states, and the state it is in is the list on
+            screen. The state is drawn with `soft` — the quiet olive fill — so
+            the toggle looks held down while the archive is up without becoming
+            a second solid button beside "New client".
+          */
+          aria-pressed={archived}
           className={cn(
-            buttonVariants({ variant: 'neutral' }),
+            buttonVariants({ variant: archived ? 'soft' : 'neutral' }),
             'flex-1 max-sm:px-0 lg:flex-none',
           )}
         >
@@ -398,10 +493,15 @@ export function ClientSearch({ input, locale }: { input: ListClientsInput; local
           <span className="sr-only sm:not-sr-only">{t('archive.title')}</span>
         </Link>
 
-        <ClientFilterMenu input={input} />
+            <ClientFilterMenu input={input} variant={variant} />
+          </>
+        )}
 
         {/* Opens the client card over the list, matching the empty state's copy
             of this button. */}
+        {/* Register only: adding a patient is not what a billing screen is
+            for, and the register is one press away. */}
+        {variant === 'register' && (
         <ClientFormTrigger
           locale={locale}
           /* The guided tour's "how to add a new client" step points here. */
@@ -414,6 +514,7 @@ export function ClientSearch({ input, locale }: { input: ListClientsInput; local
           <Icon name="addClient" />
           <span className="sr-only sm:not-sr-only">{t('new')}</span>
         </ClientFormTrigger>
+        )}
       </div>
     </div>
   );

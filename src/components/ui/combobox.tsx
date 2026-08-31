@@ -57,16 +57,36 @@ function ComboboxInput({
   focusTone = "brand",
   showTrigger = true,
   showClear = false,
+  unclippedTextClassName,
   ...props
 }: ComboboxPrimitive.Input.Props & {
   showTrigger?: boolean
   showClear?: boolean
   focusTone?: "brand" | "neutral" | "borderless"
+  /**
+   * Typography and alignment for the Arabic text layer `Input` paints over the
+   * native control — see `unclippedText` in `input.tsx`.
+   *
+   * **Any caller restyling the input's text must pass the same here.** On an
+   * Arabic page the visible text is not the input's own: the input is painted
+   * transparent and a mirrored span draws the value on top of it. Styling only
+   * the input (`[&_input]:text-center`, a different face, a different size)
+   * moves the invisible half and leaves the visible half where it was, and the
+   * two come apart the moment anything makes the native text paint again —
+   * selecting it, which is the first thing clicking a combobox does. The value
+   * then appears twice, in two places, in two sizes.
+   */
+  unclippedTextClassName?: string
 }) {
   return (
     <InputGroup focusTone={focusTone} className={cn("w-auto", className)}>
       <ComboboxPrimitive.Input
-        render={<InputGroupInput disabled={disabled} />}
+        render={
+          <InputGroupInput
+            disabled={disabled}
+            unclippedTextClassName={unclippedTextClassName}
+          />
+        }
         {...props}
       />
       <InputGroupAddon align="inline-end">

@@ -14,8 +14,7 @@ import { addDays, toIsoDate } from '@/features/booking/date';
 import { ensurePractitioner } from '@/features/booking/mutations';
 import { createClient, saveIntake } from '@/features/clients/mutations';
 import { DEFAULT_MEAL_SCHEDULE } from '@/features/clients/nutrition';
-import { issuePortalCredentials } from '@/features/clients/portal-credentials';
-import { suggestUsername } from '@/features/clients/transliterate';
+import { issuePortalCredentials, suggestPortalUsername } from '@/features/clients/portal-credentials';
 import { defaultClinicScheduleRows } from '@/features/clinic-profile/default-schedule';
 import { auth } from '@/lib/auth';
 import { paletteColorAt } from '@/lib/avatar-color';
@@ -208,7 +207,8 @@ async function seed(): Promise<void> {
   const [, second] = created;
   const secondInput = SEED_CLIENTS[1]?.client;
   if (second && secondInput) {
-    const result = await issuePortalCredentials(clinicId, second.id, suggestUsername(secondInput.fullName));
+    const username = await suggestPortalUsername(secondInput);
+    const result = await issuePortalCredentials(clinicId, second.id, username);
     if (result.ok) {
       console.info(`portal credentials: ${result.username} / ${result.temporaryPassword}`);
     }

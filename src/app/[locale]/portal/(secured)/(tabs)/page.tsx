@@ -2,7 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
 import { EmptyState } from '@/components/ui/empty-state';
-import { HomeToday, type HomeTodayMeal } from '@/features/portal/components/home-today';
+import { HomeToday } from '@/features/portal/components/home-today';
 import { loadPlanPage } from '@/features/portal/page-data';
 import { planSearchSchema } from '@/features/portal/schema';
 import { requirePortalClient } from '@/features/portal/session';
@@ -97,14 +97,10 @@ export default async function PortalPage({ params, searchParams }: PortalPagePro
   // `PortalPlan` renders meals for below it.
   const selectedBoardDay = plan?.board.days.find((candidate) => candidate.dayOfWeek === plan.selectedDay);
 
-  // The strip's own row for the open day, read for `isToday` — the same flag
-  // `PlanDayPicker` marks its today cell with.
-  const selectedDaySummary = plan?.days.find((candidate) => candidate.dayOfWeek === plan.selectedDay);
-
   // Only the shape `HomeToday` draws crosses into its client bundle — the
   // dish, options and rationale on each `BoardMeal` stay server-side, same
   // reasoning `portal-plan.tsx` documents for the plan section itself.
-  const selectedMeals: HomeTodayMeal[] = (selectedBoardDay?.meals ?? []).map((meal) => ({
+  const selectedMeals = (selectedBoardDay?.meals ?? []).map((meal) => ({
     id: meal.id,
     slotKey: meal.slotKey,
     label: meal.label,
@@ -148,36 +144,73 @@ export default async function PortalPage({ params, searchParams }: PortalPagePro
         mealIds={selectedMeals.map((meal) => meal.id)}
         initialCompletedMealIds={plan?.completedMealIds ?? []}
       >
-        {plan ? <PlanDayPicker days={plan.days} selectedDay={plan.selectedDay} /> : null}
-
         {/*
-          The ring counts up from zero on arrival — but only while the day it
-          is drawing is today's. Stepping to another day re-navigates and
-          remounts this whole subtree (see the `key` above), so an unconditional
-          entrance would replay the climb on every tap of the strip and delay
-          the very figure the tap asked for. `isToday` comes off the same
-          `PlanDaySummary` the picker marks its own cell with, so the two can
-          never disagree about which day that is.
-        */}
-        <HomeToday
-          meals={selectedMeals}
-          countOnMount={selectedDaySummary?.isToday ?? false}
-        />
+          ── The desktop face: what chooses a day beside what that day holds ──
 
-        {plan ? (
-          <PortalPlan
-            board={plan.board}
-            days={plan.days}
-            selectedDay={plan.selectedDay}
-            completedMealIds={plan.completedMealIds}
-            today={plan.today}
-          />
-        ) : (
-          <div className="space-y-6">
-            <h2 className="font-heading text-2xl font-semibold tracking-tight">{t('plan.title')}</h2>
-            <EmptyState icon="myPlan" title={t('plan.noneTitle')} description={t('plan.none')} />
+          On a phone this is one column and the order is the argument: pick a
+          day, read how much of it you have done, then work down its meals. The
+          same stack on a 1440px screen is that phone held up in the middle of a
+          monitor — a 176px ring alone on a 1136px-wide card, five meal rows
+          each with half a metre of nothing to their inline-end.
+
+          From `lg` the first two become an aside. The strip goes back to
+          roughly the width it was designed against — seven cells across 20rem
+          rather than across the whole screen, where each would have been 158px
+          of air around a day name — and the ring sits under it, both inside the
+          band the glow covers. The day's meals take the rest.
+
+          `lg` and not `md`: this is the same line the rail arrives on and the
+          tab bar leaves on. See `features/portal/layout.ts`.
+
+          `lg:items-start` so the aside is its own height rather than being
+          stretched down a long meal list. **Not `lg:sticky`**, which is the
+          obvious next thought and is wrong here: `HomeToday`'s heading is white
+          because it is drawn on the glow, and the glow is painted into the page
+          rather than pinned to the viewport (`portal/layout.tsx`). Pinning the
+          aside would slide that heading off the green and onto the page's own
+          white, where it is white on white.
+        */}
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:items-start lg:gap-6">
+          <div className="flex min-w-0 flex-col gap-4">
+            {plan ? <PlanDayPicker days={plan.days} selectedDay={plan.selectedDay} /> : null}
+
+            {/*
+              No count-up on arrival. This subtree remounts on every visit —
+              the `key` above forces it whenever the open day changes, and a
+              fresh navigation back to this tab (switching tabs, reopening the
+              app) remounts it anyway — so an entrance animation here would
+              replay on every one of those instead of only when a meal is
+              actually ticked. `TodayEnergyMascot` already draws its real
+              figure on first paint by default and animates solely when the
+              number later moves; see `useRisingFraction`.
+            */}
+            <HomeToday />
           </div>
-        )}
+
+          {/*
+            `min-w-0`: the meal rows inside carry long dish names, and a grid
+            track defaults to `min-content` rather than shrinking — without this
+            a single unbroken name would push the column past its share and take
+            the aside's width with it.
+          */}
+          <div className="min-w-0">
+            {plan ? (
+              <PortalPlan
+                board={plan.board}
+                days={plan.days}
+                selectedDay={plan.selectedDay}
+                today={plan.today}
+              />
+            ) : (
+              <div className="space-y-6">
+                <h2 className="font-heading text-2xl font-semibold tracking-tight">
+                  {t('plan.title')}
+                </h2>
+                <EmptyState icon="myPlan" title={t('plan.noneTitle')} description={t('plan.none')} />
+              </div>
+            )}
+          </div>
+        </div>
       </PlanDayCompletionProvider>
     </div>
   );

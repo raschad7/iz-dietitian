@@ -30,7 +30,10 @@ export async function generateMetadata({ params }: ProgressPageProps): Promise<M
  * one should not have to read the other's numbers to find it.
  *
  * Three sections, in the order a client asks them: how today went (and the
- * one place to say so), how many days running, and the longer four-week arc.
+ * one place to say so), how many days running, and the longer four-week arc —
+ * each one a wider window than the last. The week's own journey card — the
+ * mascot and the week-average fraction — used to sit between the first two;
+ * it is gone from this screen, kept only on the home tab.
  */
 export default async function ProgressPage({ params }: ProgressPageProps) {
   const locale = await resolveLocale(params);
@@ -39,7 +42,27 @@ export default async function ProgressPage({ params }: ProgressPageProps) {
   const { today, streak, continuity, monthlyTrend } = await loadProgressPage(context);
 
   return (
-    <div className="space-y-4">
+    /*
+      ── The desktop face ──
+
+      Three cards down one column is the phone reading, and it is the right one
+      there: today, then the run of days, then the month. On a desktop it is
+      three full-width bands, each with a chart squeezed into the middle of a
+      1136px card and nothing either side of the figures.
+
+      From `lg` the two compact cards pair off and the streak takes the whole
+      width underneath. That is the way round it has to be: the streak card's
+      plot is a six-point curve that stretches to whatever it is given and
+      carries a callout pinned to its inline-end corner, so width is the thing
+      it actually uses — while the ring is a fixed 176px disc and the trend is
+      four bars, both of which only gain air from a wider box.
+
+      **The reading order does not change.** `order` is set at `lg` only, so a
+      phone still gets today → streak → month in source order; from `lg` the
+      trend is pulled up beside today and the streak drops below both. Reading
+      it as a grid, that is left-to-right then down, which is the same sequence.
+    */
+    <div className="grid gap-4 lg:grid-cols-2">
       <TodayAdherenceCard today={today} locale={locale} />
 
       {/*
@@ -57,9 +80,22 @@ export default async function ProgressPage({ params }: ProgressPageProps) {
         its value and the ring has no crisp end to key off. Both start at zero;
         neither can be late.
       */}
-      <AdherenceStreakCard streak={streak} continuity={continuity} />
+      <div className="lg:order-3 lg:col-span-2">
+        <AdherenceStreakCard streak={streak} continuity={continuity} />
+      </div>
 
-      <AdherenceTrendCard weeks={monthlyTrend} />
+      {/*
+        `lg:grid` on the wrapper, so the card inside it is stretched to the row
+        rather than sitting at the top of a box the taller "today" card set the
+        height of. A single-item grid stretches that item on both axes by
+        default; the card's own `flex-1` chain (see `adherence-trend-card.tsx`)
+        is what turns the extra height into taller bars instead of a gap under
+        short ones. Below `lg` this is an ordinary block wrapper and the card is
+        its own height.
+      */}
+      <div className="lg:order-2 lg:grid">
+        <AdherenceTrendCard weeks={monthlyTrend} />
+      </div>
     </div>
   );
 }

@@ -39,6 +39,8 @@
   "nav": {
     "dashboard": "لوحة التحكم",
     "clients": "المشتركون",
+    "subscriber": "المشترك",
+    "bills": "الفواتير",
     "calendar": "التقويم",
     "plans": "الخطط الغذائية",
     "appointments": "المواعيد",
@@ -52,10 +54,41 @@
     "security": "الأمان",
     "weeklyPlans": "الخطط الأسبوعية",
     "dishes": "كتالوج الأطباق",
+    "management": "إدارة",
+    "newClient": "مشترك جديد",
+    "day": "يوم",
+    "week": "أسبوع",
+    "month": "شهر",
     "whatsapp": "واتساب",
     "notifications": "الإشعارات",
     "openNavigation": "فتح التنقل",
-    "closeNavigation": "إغلاق التنقل"
+    "closeNavigation": "إغلاق التنقل",
+    "expandSidebar": "توسيع الشريط الجانبي",
+    "collapseSidebar": "طي الشريط الجانبي"
+  },
+  "commandPalette": {
+    "label": "بحث وأوامر",
+    "trigger": "ابحث",
+    "placeholder": "ابحث عن مشترك أو أمر…",
+    "pickClient": "اختر مشتركاً…",
+    "searching": "جارٍ البحث…",
+    "empty": "لا نتائج مطابقة لبحثك.",
+    "groupActions": "إجراءات سريعة",
+    "newWeeklyPlan": "خطة أسبوعية جديدة",
+    "groupRecent": "مفتوحة مؤخراً",
+    "groupClients": "المشتركون",
+    "groupSettings": "الإعدادات والمزيد",
+    "groupNavigation": "الانتقال إلى",
+    "groupCommands": "أوامر",
+    "switchLanguage": "التبديل إلى {language}",
+    "language": {
+      "ar": "العربية",
+      "en": "English"
+    },
+    "hintNavigate": "تنقّل",
+    "hintOpen": "فتح",
+    "hintBack": "رجوع",
+    "hintClose": "إغلاق"
   },
   "settingsWorkspace": {
     "title": "الإعدادات",
@@ -65,6 +98,7 @@
     "tabs": {
       "profile": "الملف الشخصي",
       "clinic": "العيادة",
+      "forms": "النماذج",
       "whatsapp": "واتساب",
       "security": "الأمان"
     },
@@ -74,22 +108,17 @@
       "staffMember": "عضو في فريق العيادة",
       "active": "نشط",
       "formTitle": "المعلومات المهنية",
-      "formDescription": "حدّث البيانات التي تعرّف بك داخل فريق العيادة.",
       "accountEmail": "البريد الإلكتروني للحساب",
-      "accountEmailHint": "تتم إدارة هذا البريد من خلال حساب تسجيل الدخول.",
       "identityTitle": "الحساب",
-      "languageTitle": "اللغة المفضلة",
-      "languageDescription": "اللغة التي تُعرض بها هذه المساحة."
+      "languageTitle": "اللغة المفضلة"
     },
     "clinic": {
       "title": "العيادة",
       "description": "بيانات التواصل وساعات العمل المستخدمة في الحجز والتواصل مع المشتركين.",
       "formTitle": "بيانات العيادة",
-      "formDescription": "بيانات التواصل الأساسية التي يعتمد عليها الفريق والمشتركون.",
       "hoursTitle": "ساعات العمل",
       "hoursDescription": "حدّد الأيام والأوقات المتاحة لحجز المواعيد.",
       "identityTitle": "هوية العيادة",
-      "identityDescription": "الشعار والاسم اللذان يظهران للمشتركين.",
       "hoursSummaryLabel": "أيام وأوقات العمل"
     },
     "whatsapp": {
@@ -132,7 +161,7 @@
     "namePlaceholder": "اسمك",
     "firstNamePlaceholder": "اسمك الأول",
     "lastNamePlaceholder": "اسمك الأخير",
-    "usernamePlaceholder": "اسم المستخدم الخاص بك",
+    "usernamePlaceholder": "رقم الهاتف أو اسم المستخدم",
     "submit": "دخول",
     "showPassword": "إظهار كلمة المرور",
     "hidePassword": "إخفاء كلمة المرور",
@@ -160,7 +189,16 @@
     "setPasswordHeading": "اختر كلمة مرور جديدة",
     "setPasswordDescription": "كلمة المرور التي حصلت عليها مؤقتة. اختر واحدة خاصة بك للمتابعة.",
     "setPasswordSubmit": "حفظ ومتابعة",
-    "clientPasswordHint": "{count, number, integer} أحرف على الأقل.",
+    "ruleLength": "{count, number, integer} أحرف على الأقل",
+    "ruleLetter": "حرف واحد على الأقل",
+    "ruleDigit": "رقم واحد على الأقل",
+    "ruleChecklistLabel": "شروط كلمة المرور",
+    "ruleMet": "مستوفى",
+    "ruleUnmet": "غير مستوفى بعد",
+    "passwordsMatch": "كلمتا المرور متطابقتان",
+    "confirmPasswordRequired": "أعد كتابة كلمة المرور مرة ثانية.",
+    "clientPasswordHint": "{count, number, integer} أحرف على الأقل، مع حروف وأرقام.",
+    "clientPasswordTooWeak": "استخدم حروفًا وأرقامًا معًا.",
     "genericError": "تعذّر تسجيل الدخول. تحقّق من البيانات وحاول مجددًا.",
     "emailTaken": "هذا البريد الإلكتروني مسجّل مسبقًا.",
     "passwordMismatch": "كلمتا المرور غير متطابقتين.",
@@ -233,7 +271,6 @@
     "monthOther": "أخرى {count, number, integer}",
     "hiddenBelow": "+{count, number, integer} أخرى",
     "hiddenBelowAction": "انزل إلى {count, number, integer} مواعيد أخرى في هذا اليوم",
-    "monthReadOnly": "عرض الشهر للاطّلاع فقط. انقر على أي يوم للحجز أو التعديل.",
     "nav": {
       "today": "اليوم",
       "previous": "السابق",
@@ -521,12 +558,31 @@
         "reported": "سجّل هذا الأسبوع",
         "notReported": "لم يسجّل شيئًا بعد",
         "noPlan": "لا توجد خطة سارية"
+      },
+      "plan": {
+        "label": "الخطة الغذائية",
+        "has": "لديه خطة",
+        "none": "لا توجد خطة"
+      },
+      "paymentStatus": {
+        "label": "حالة الدفع",
+        "unpaid": "غير مدفوع",
+        "partial": "مدفوع جزئياً",
+        "paid": "مدفوع",
+        "none": "لا توجد فواتير"
+      },
+      "subscription": {
+        "label": "الاشتراك",
+        "active": "ساري",
+        "expired": "منتهٍ",
+        "none": "لم يشترك من قبل"
       }
     },
     "resultCount": "{total, number, integer} مشترك",
     "notFound": "المشترك غير موجود",
     "notFoundDescription": "قد يكون هذا المشترك قد حُذف، أو أنّ الرابط غير صحيح.",
     "backToList": "العودة إلى قائمة المشتركين",
+    "backToBills": "العودة إلى صفحة الفواتير",
     "notProvided": "غير مُدخل",
     "yearsOld": "{count, number, integer} سنة",
     "openPlanner": "لوحة الخطط",
@@ -556,7 +612,8 @@
         "nutrition": "التغذية",
         "progress": "التقدم",
         "security": "البوابة",
-        "billing": "الخطط"
+        "billing": "الخطط",
+        "expenses": "المصاريف"
       }
     },
     "progress": {
@@ -746,7 +803,7 @@
       "confirmDeleteTitle": "حذف السجل نهائيًا؟",
       "confirmDelete": "سيُحذف سجل «{name}» نهائيًا مع حسابه في البوابة، ولا يمكن التراجع.",
       "confirmArchiveTitle": "أرشفة هذا العميل؟",
-      "confirmArchive": "سيُزال من السجل، ويمكنك استعادته في أي وقت من صفحة الأرشيف."
+      "confirmArchive": "سيُزال من السجل، ويمكنك استعادته في أي وقت من قائمة المؤرشفين."
     },
     "plan": {
       "published": "خطة نشطة",
@@ -765,7 +822,7 @@
       "stateActive": "مُفعّل",
       "stateNone": "غير مُفعّل",
       "username": "اسم المستخدم",
-      "usernameHint": "يستخدمه المشترك للدخول. حروف لاتينية وأرقام.",
+      "usernameHint": "يستخدمه المشترك للدخول — رقم هاتفه، إلا إذا غيّرته.",
       "issue": "إنشاء بيانات الدخول",
       "reissue": "إصدار كلمة مرور جديدة",
       "confirmReissueTitle": "إصدار كلمة مرور جديدة؟",
@@ -830,6 +887,11 @@
       "allergenHint": "الخانات أعلاه هي وحدها ما يستبعد الأطباق من الكتالوج.",
       "dailyTarget": "الهدف اليومي",
       "bmi": "مؤشر كتلة الجسم",
+      "bmiScale": "موضع المؤشر على السلّم",
+      "dismissWarning": "إخفاء هذا التنبيه",
+      "sectionEmpty": "لا توجد بيانات مسجّلة بعد.",
+      "fillSection": "إضافة بيانات هذا القسم",
+      "foodFrequency": "تكرار الأطعمة",
       "sectionsLabel": "أقسام بيانات التغذية",
       "hasContent": "يحتوي على بيانات",
       "allergyDetailPlaceholder": "حساسية خفيفة من الجوز دون اللوز",
@@ -859,8 +921,6 @@
       "complete": "كل الحقول مُدخلة",
       "completeness": "اكتمال السجل",
       "filledOf": "{filled} من {total} حقلاً مُدخلة",
-      "sectionEmpty": "لا توجد بيانات مسجّلة بعد.",
-      "gapsHeading": "أكمل بيانات المريض من هذه الأقسام",
       "kcalMismatch": "الهدف اليدوي بعيد عن المحسوب",
       "kcalMismatchDetail": "أُدخل {manual} kcal يدويًا، بينما القياسات والهدف يعطيان {computed} kcal. راجعي الرقم أو احذفيه ليُحسب تلقائيًا.",
       "bmiValueText": "{value} — {category}",
@@ -873,10 +933,7 @@
       "removeAllergen": "حذف {name}",
       "goalLine": "الهدف",
       "activityLine": "النشاط",
-      "completeShort": "مكتمل",
       "editRecord": "تعديل السجل",
-      "scheduleSummary": "{count, plural, one {وجبة واحدة} two {وجبتان} few {# وجبات} many {# وجبة} other {# وجبة}} على {kcal} سعرة",
-      "gapsPrompt": "{count, plural, =0 {كل الحقول مُدخلة} one {حقل واحد بلا بيانات} two {حقلان بلا بيانات} few {# حقول بلا بيانات} many {# حقلاً بلا بيانات} other {# حقل بلا بيانات}}",
       "allergyLine": "الحساسية",
       "privateBadge": "خاص بالعيادة",
       "notesDivider": "ملاحظات",
@@ -942,6 +999,292 @@
         "label": "طرق عرض سجل الزيارات",
         "upcoming": "القادمة",
         "past": "السابقة"
+      }
+    }
+  },
+  "forms": {
+    "edit": "تغيير",
+    "custom": "مخصّصة",
+    "default": "الصيغة الافتراضية",
+    "bill": {
+      "title": "نص الفاتورة",
+      "description": "عدّل نموذج الفاتورة التي تصل المريض — ترتيبها وكل كلمة فيها.",
+      "edit": "تعديل نموذج الفاتورة",
+      "reset": "استعادة فاتورة التطبيق",
+      "clinicName": "الاسم المطبوع على الفاتورة",
+      "addHere": "إضافة سطر هنا",
+      "hiddenHere": "مُزال:",
+      "customItem": "سطر خاص بك",
+      "removeItem": "إزالة من الفاتورة",
+      "moveItem": "اسحبه إلى أي مكان، أو استخدم مفاتيح الأسهم",
+      "resize": "تغيير الحجم من الزاوية، أو بسهمي الأعلى والأسفل",
+      "sampleAddress": "عنوان العيادة",
+      "zone": {
+        "header": "أعلى الصفحة",
+        "details": "المشترك والتاريخ"
+      },
+      "item": {
+        "logo": "الشعار",
+        "clinicName": "اسم العيادة",
+        "doctorName": "اسم الأخصائي",
+        "clinicPhone": "هاتف العيادة",
+        "clinicAddress": "عنوان العيادة",
+        "docTitle": "عنوان المستند",
+        "billNo": "رقم الفاتورة",
+        "subscriberLabel": "عنوان المشترك",
+        "subscriberValue": "اسم المشترك",
+        "issuedLabel": "عنوان التاريخ",
+        "issuedValue": "تاريخ الإصدار"
+      },
+      "logo": "الشعار",
+      "totals": "المجاميع",
+      "totalsMove": "اسحب لليسار أو الوسط أو اليمين",
+      "sampleDoctor": "اسم الأخصائي",
+      "sampleSubscriber": "اسم المشترك",
+      "sampleCharge": "زيارة متابعة",
+      "samplePayment": "دفعة — نقداً"
+    },
+    "messages": {
+      "reset": "استعادة رسالة التطبيق",
+      "title": "الرسائل التلقائية",
+      "description": "ما يصل المريض عند حجز موعد، وقبل حلوله، وعند نقله أو حذفه، وعند تذكيره بالمتبقي على حسابه. تُعتمد الرسالة المحفوظة من الرسالة التالية فصاعداً.",
+      "appointmentConfirmation": "حجز موعد",
+      "appointmentConfirmationHelp": "تُرسل عند حجز الموعد.",
+      "appointmentReminder": "تذكير بالموعد",
+      "appointmentReminderHelp": "تُرسل قبل الموعد، وفق التوقيت المحدّد في تبويب واتساب.",
+      "appointmentRescheduled": "تغيير موعد",
+      "appointmentRescheduledHelp": "تُرسل عند نقل الموعد إلى يوم أو وقت آخر.",
+      "appointmentCancelled": "حذف موعد",
+      "appointmentCancelledHelp": "تُرسل عند حذف الحجز. ولا تُرسل أبداً عن زيارة انتهت.",
+      "paymentReminder": "تذكير بالمستحقات",
+      "paymentReminderHelp": "تُرسل عندما يختار الفريق تذكير المشترك بالمبلغ المتبقي عليه."
+    },
+    "errors": {
+      "invalid": "لا يوجد ما يُحفظ.",
+      "tooLong": "النص أطول مما يسمح به واتساب. اختصره ثم أعد المحاولة.",
+      "unknownPlaceholder": "هذه الرسالة لا يمكنها تعبئة {placeholder}. استخدم إحدى الكلمات المذكورة أسفل الصندوق.",
+      "unexpected": "حدث خطأ ما. حاول مرة أخرى."
+    }
+  },
+  "billing": {
+    "title": "الفواتير",
+    "subtitle": "ما استُحق على كل مشترك، وما دفعه، وما بقي عليه.",
+    "empty": "لا يوجد مشتركون بعد.",
+    "emptyFiltered": "لا يوجد مشترك يطابق هذا البحث.",
+    "clearFilters": "مسح عوامل التصفية",
+    "fields": {
+      "name": "الاسم الكامل",
+      "subscription": "المتبقي",
+      "totalPrice": "إجمالي المبلغ",
+      "remaining": "الدين",
+      "balance": "الرصيد",
+      "totalPayment": "إجمالي المدفوع",
+      "status": "حالة الدفع",
+      "actions": "إجراءات"
+    },
+    "subscription": {
+      "remaining": "{days, plural, one {يوم} two {يومان} few {# أيام} many {# يومًا} other {# يوم}}",
+      "finished": "{days, plural, one {منتهٍ منذ يوم} two {منتهٍ منذ يومين} few {منتهٍ منذ # أيام} many {منتهٍ منذ # يومًا} other {منتهٍ منذ # يوم}}"
+    },
+    "status": {
+      "none": "لا توجد فواتير",
+      "unpaid": "غير مدفوع",
+      "partial": "مدفوع جزئيًا",
+      "paid": "مدفوع",
+      "credit": "له رصيد"
+    },
+    "prices": {
+      "title": "الخدمات والأسعار",
+      "description": "ما تتقاضاه العيادة مقابل كل خدمة. تغيير السعر هنا لا يغيّر فاتورة سُجّلت من قبل.",
+      "unpriced": "لا يوجد سعر بعد",
+      "rowLabel": "أسعار الخدمات",
+      "edit": "تغيير",
+      "save": "حفظ التغييرات",
+      "saving": "جارٍ الحفظ…",
+      "saved": "حُفظت الأسعار"
+    },
+    "services": {
+      "monthly": "اشتراك شهر واحد",
+      "quarterly": "اشتراك ثلاثة أشهر",
+      "consultation": "استشارة"
+    },
+    "methods": {
+      "cash": "نقدًا",
+      "transfer": "حوالة بنكية",
+      "card": "بطاقة",
+      "other": "أخرى"
+    },
+    "recordPayment": {
+      "title": "تسجيل دفعة",
+      "open": "تسجيل دفعة",
+      "openFor": "تسجيل دفعة لـ {name}",
+      "forSubscriber": "مبلغ مستلم من {name}.",
+      "amount": "المبلغ",
+      "amountHint": "بالشيكل. أدخلي مبلغًا سالبًا لتسجيل استرجاع.",
+      "owed": "المتبقي {amount}.",
+      "overOwed": "هذا المبلغ أكبر من {amount} المتبقية.",
+      "method": "طريقة الدفع",
+      "paidOn": "تاريخ الفاتورة",
+      "datePlaceholder": "YYYY-MM-DD",
+      "openDatePicker": "فتح منتقي التاريخ",
+      "note": "ملاحظة",
+      "submit": "تسجيل الدفعة",
+      "saving": "جارٍ التسجيل…",
+      "cancel": "إلغاء",
+      "close": "إغلاق",
+      "addedBalance": "الرصيد المضاف",
+      "details": "التاريخ وملاحظة",
+      "saved": "سُجّلت الدفعة"
+    },
+    "recordCharge": {
+      "title": "إضافة فاتورة",
+      "open": "إضافة فاتورة",
+      "openFor": "إضافة فاتورة لـ {name}",
+      "forSubscriber": "ما سيُحتسب على {name}.",
+      "chargedOn": "تاريخ الخدمة",
+      "service": "الخدمة",
+      "datePlaceholder": "YYYY-MM-DD",
+      "openDatePicker": "فتح منتقي التاريخ",
+      "saving": "جارٍ الإضافة…",
+      "close": "إغلاق",
+      "submit": "إضافة الفاتورة",
+      "addedTotal": "يُضاف إلى إجمالي المبلغ",
+      "noPrice": "لا يوجد سعر لهذه الخدمة بعد. حدّديه في الإعدادات ← العيادة.",
+      "firstFree": "الاستشارة الأولى مجانية.",
+      "saved": "أُضيفت الفاتورة"
+    },
+    "errors": {
+      "genericError": "تعذّر الحفظ. حاول مرة أخرى.",
+      "amountRequired": "أدخل المبلغ.",
+      "invalidAmount": "أدخل مبلغًا مثل ٢٧٠ أو ٢٧٠٫٥٠.",
+      "amountZero": "لا يمكن أن تكون الدفعة صفرًا.",
+      "amountNegative": "لا يمكن أن يكون مبلغ الفاتورة سالبًا. سجّل المبلغ المُعاد كدفعة.",
+      "amountTooLarge": "المبلغ كبير جدًا.",
+      "invalidDate": "اختر تاريخًا صحيحًا.",
+      "noteTooLong": "الملاحظة طويلة جدًا.",
+      "descriptionRequired": "اذكر بند الفاتورة.",
+      "descriptionTooLong": "البند طويل جدًا.",
+      "invalidClient": "هذا المشترك ليس ضمن قائمة العيادة.",
+      "invalidService": "هذه الخدمة ليست من الخدمات المتاحة في العيادة.",
+      "subscriptionActive": "هذا المشترك على اشتراك ساري. سجّلي الاشتراك التالي بعد انتهائه.",
+      "paymentExceedsBalance": "هذا المبلغ أكبر مما تبقّى على المشترك.",
+      "billNotSent": "تعذّر الإرسال عبر واتساب. لم يُرسل شيء — أرسله بطريقة أخرى، وراجع الإعدادات ← واتساب.",
+      "nothingOutstanding": "لا يوجد مبلغ متبقٍ على هذا المشترك، فلا شيء يُذكَّر به.",
+      "paymentRemindersOff": "تذكير المستحقات مُعطّل لهذه العيادة. فعّله من الإعدادات ← واتساب.",
+      "whatsappNotConnected": "واتساب غير مرتبط. لم يُرسل شيء — اربط رقم العيادة من الإعدادات ← واتساب.",
+      "clientHasNoPhone": "لا يوجد رقم هاتف في سجل هذا المشترك، فلا مكان للإرسال إليه.",
+      "clientNotOnWhatsapp": "هذا الرقم غير مسجّل على واتساب. لم يُرسل شيء — تحقّق من الرقم في سجله."
+    },
+    "print": {
+      "statement": "طباعة كل الفواتير",
+      "statementFor": "طباعة كل فواتير {name}",
+      "bills": "الفواتير",
+      "billsFor": "فواتير {name}",
+      "billNumbered": "طباعة الفاتورة {number}",
+      "noBills": "لا توجد فواتير بعد",
+      "bill": "طباعة هذه الفاتورة",
+      "print": "طباعة",
+      "close": "إغلاق",
+      "failed": "تعذّرت طباعة الفاتورة. حاول مرة أخرى.",
+      "exportBills": "تصدير الفواتير"
+    },
+    "bills": {
+      "billTitle": "فاتورة",
+      "statementTitle": "كشف حساب",
+      "billNo": "رقم الفاتورة",
+      "issuedOn": "تاريخ الإصدار",
+      "subscriber": "المشترك",
+      "date": "التاريخ",
+      "description": "البيان",
+      "amount": "المبلغ",
+      "charge": "مبلغ مستحق",
+      "payment": "دفعة",
+      "emptyLedger": "لم يُسجَّل أي مبلغ على هذا الحساب.",
+      "footer": "سجل لما طالبت به العيادة وما استلمته."
+    },
+    "ledger": {
+      "billNo": "رقم الفاتورة",
+      "date": "التاريخ",
+      "amount": "المبلغ",
+      "method": "طريقة الدفع",
+      "note": "ملاحظة",
+      "actions": "إجراءات",
+      "chargeKind": "مبلغ مستحق",
+      "batchNo": "رقم الدفعة",
+      "resetColumns": "إعادة ترتيب الأعمدة"
+    },
+    "expenses": {
+      "title": "المصاريف والفواتير",
+      "empty": "لا يوجد شيء على هذا الحساب بعد. أضيفي فاتورة أو سجّلي دفعة لبدء السجل."
+    },
+    "sendBill": {
+      "sendAll": "إرسال كل الفواتير",
+      "bill": "إرسال هذه الفاتورة عبر واتساب",
+      "confirmTitle": "إرسال هذا الكشف؟",
+      "confirmBody": "سيصل {name} كشف حسابه عبر واتساب. الرسالة المُرسلة لا يمكن التراجع عنها.",
+      "confirmAllTitle": "إرسال كل الفواتير؟",
+      "confirmAllBody": "سيصل {name} مستند واحد يضم كل فواتير حسابه. الرسالة المُرسلة لا يمكن التراجع عنها.",
+      "confirmOneTitle": "إرسال هذه الفاتورة؟",
+      "confirmOneBody": "سيصل {name} الفاتورة رقم {number} عبر واتساب. الرسالة المُرسلة لا يمكن التراجع عنها.",
+      "sent": "أُرسل كشف الحساب عبر واتساب.",
+      "sentBill": "أُرسلت الفاتورة عبر واتساب.",
+      "lastBill": "إرسال آخر فاتورة",
+      "confirmLastTitle": "إرسال آخر فاتورة؟",
+      "confirmLastBody": "ستصل {name} آخر فاتورة له عبر واتساب. الرسالة المُرسلة لا يمكن التراجع عنها."
+    },
+    "pagination": {
+      "previous": "السابق",
+      "next": "التالي",
+      "page": "صفحة {page, number, integer}"
+    },
+    "rowMenu": {
+      "more": "خدمات أخرى",
+      "reminder": "تذكير واتساب",
+      "reminderNothing": "لا يوجد متبقٍ",
+      "confirmTitle": "إرسال تذكير بالدفع؟",
+      "confirmBody": "سيُذكَّر {name} عبر واتساب بالمبلغ المتبقي {amount} على حسابه. الرسالة المُرسلة لا يمكن التراجع عنها.",
+      "sent": "أُرسل التذكير عبر واتساب.",
+      "printAll": "طباعة كل الفواتير",
+      "printAllFor": "طباعة كل فواتير حساب {name}"
+    },
+    "export": {
+      "action": "تصدير",
+      "title": "تصدير الفواتير",
+      "description": "كل المشتركين في النظام، للمدة التي تختارها.",
+      "fileName": "الفواتير",
+      "sheetName": "الفواتير",
+      "empty": "لا فواتير في هذه المدة.",
+      "submit": "تنزيل",
+      "kindCharge": "فاتورة",
+      "kindPayment": "دفعة",
+      "columns": {
+        "client": "المريض",
+        "phone": "الهاتف",
+        "kind": "النوع",
+        "description": "التفاصيل",
+        "date": "التاريخ",
+        "amount": "المبلغ",
+        "entries": "الفواتير"
+      },
+      "level": {
+        "label": "مستوى التفصيل",
+        "detailed": "مفصّل",
+        "detailedHint": "كل فاتورة في سطر، فيتكرر اسم المريض بعدد فواتيره.",
+        "summary": "غير مفصّل",
+        "summaryHint": "سطر واحد لكل مريض، مع إجمالياته في المدة."
+      },
+      "format": {
+        "label": "صيغة الملف"
+      },
+      "duration": {
+        "label": "المدة",
+        "thisMonth": "هذا الشهر",
+        "last3": "آخر 3 أشهر",
+        "thisYear": "هذه السنة",
+        "all": "كل المدة",
+        "custom": "مخصص",
+        "from": "من",
+        "to": "إلى"
       }
     }
   },
@@ -1078,8 +1421,6 @@
       "emptyDayHint": "ترك أخصائي التغذية هذا اليوم مفتوحًا. اختر يومًا آخر من الأعلى.",
       "kcalValue": "{value} kcal",
       "markEaten": "تحديد {meal} كوجبة تم تناولها",
-      "wasEaten": "{meal} — تم تناولها",
-      "wasNotEaten": "{meal} — لم تُسجَّل كوجبة تم تناولها",
       "totalGrams": "≈ {value} غ",
       "mealQuantity": "كمية الوجبة",
       "orInstead": "يمكنك بدلاً منها:",
@@ -1143,7 +1484,7 @@
       "outsideWindow": "يمكنك طلب موعد خلال الشهر القادم فقط.",
       "alreadyRequested": "لديك طلب سابق بهذا الشأن، وسيردّ عليه أخصائي التغذية قريبًا.",
       "pastAppointment": "هذا الموعد قد انتهى بالفعل.",
-      "dayLocked": "يمكنك تحديد وجبات اليوم فقط.",
+      "dayLocked": "لا يمكنك تحديد وجبات يوم لم يحن بعد.",
       "unexpected": "حدث خطأ غير متوقع. حاول مجددًا."
     },
     "emptyToday": "لا يوجد شيء مخطّط بعد.",
@@ -1215,6 +1556,14 @@
           "missed": "لا بأس، غدًا فرصة جديدة.",
           "partial": "خطوة جيدة نحو خطتك.",
           "full": "التزام رائع اليوم!"
+        },
+        "energy": {
+          "empty": "ابدأ يومك الصحي!",
+          "starting": "بداية رائعة!",
+          "halfway": "أنت في منتصف الطريق!",
+          "strong": "أحسنت! اقتربت من إكمال يومك.",
+          "completeTitle": "مكتمل اليوم!",
+          "complete": "أحسنت! أكملت جميع وجباتك."
         }
       },
       "week": {
@@ -1236,7 +1585,9 @@
           "future": "{day}: لم يأتِ بعد"
         },
         "celebration": {
-          "title": "كسبتَ شعلة اليوم!",
+          "title": "أنجزتَها!",
+          "subtitle": "سجّلتَ كل وجبة اليوم.",
+          "mealsCompleted": "{completed, number, integer} من {total, number, integer} {total, plural, one {وجبة} two {وجبتين} few {وجبات} many {وجبة} other {وجبة}} مكتملة",
           "claim": "احصل على شعلة اليوم",
           "claimed": "تم تأكيد شعلة اليوم."
         }
@@ -1267,6 +1618,34 @@
         "thisWeek": "هذا الأسبوع"
       }
     },
+    "journey": {
+      "title": "رحلتك",
+      "subtitle": "هذا الأسبوع",
+      "barLabel": "التزامك بالخطة هذا الأسبوع",
+      "message": {
+        "empty": "سجّل وجبة من خطتك لتبدأ رحلتك.",
+        "start": "كل رحلة تبدأ بوجبة واحدة. أنت قادر.",
+        "building": "بداية طيبة — أنت تبني عادة.",
+        "consistent": "استمراريتك واضحة، واصل.",
+        "progressing": "تقدّم حقيقي هذا الأسبوع!",
+        "closer": "اقتربت — أسبوع قوي حتى الآن.",
+        "almost": "أسبوع شبه مثالي، بقي القليل!",
+        "complete": "التزمتَ بخطتك طوال الأسبوع! 🎉"
+      }
+    },
+    "mascot": {
+      "welcome": "أهلاً بعودتك إلى رحلتك.",
+      "mealReminder": "هناك وجبة قادمة في خطة اليوم.",
+      "missedMeal": "لا تزال وجبة سابقة اليوم غير مسجّلة — سجّلها متى استطعت.",
+      "streakAtRisk": "سلسلتك ما زالت مفتوحة اليوم — تسجيل سريع يبقيها مستمرة.",
+      "streakLost": "انقطعت سلسلتك — كل رحلة فيها بداية جديدة.",
+      "backOnTrack": "جميل أن تعود للتسجيل. واصل.",
+      "milestone25": "ربع الأسبوع مضى — بداية جيدة.",
+      "milestone50": "منتصف الأسبوع. واصل.",
+      "milestone75": "ثلاثة أرباع الطريق — كدت تكمل الأسبوع.",
+      "goalComplete": "التزمتَ بخطتك طوال الأسبوع! 🎉",
+      "consistency": "استمرارية حقيقية في أيامك الأخيرة."
+    },
     "header": {
       "notifications": "الإشعارات",
       "notificationsWaiting": "الإشعارات، {count, number, integer} طلب بانتظار الردّ",
@@ -1281,6 +1660,7 @@
     },
     "notifications": {
       "title": "الإشعارات",
+      "seeAll": "عرض كل الإشعارات",
       "empty": {
         "title": "لا توجد إشعارات جديدة",
         "body": "ستظهر هنا تذكيرات المواعيد، وتحديثات خطتك، وردود العيادة، أولًا بأول."
@@ -1292,6 +1672,10 @@
         },
         "appointmentReminder": {
           "title": "تذكير بموعدك",
+          "body": "موعدك يوم {date} الساعة {time}."
+        },
+        "appointmentBooked": {
+          "title": "تم حجز موعدك",
           "body": "موعدك يوم {date} الساعة {time}."
         },
         "planUpdate": {
@@ -1326,6 +1710,13 @@
       "notifications": {
         "title": "الإشعارات",
         "description": "اختر ما تحبّ أن تصلك رسائل بشأنه.",
+        "device": {
+          "label": "الإشعارات على هذا الجهاز",
+          "description": "تصلك التنبيهات على هذا الجهاز حتى والتطبيق مغلق.",
+          "blocked": "الإشعارات محظورة في إعدادات المتصفح. اسمح بها لهذا الموقع ثم أعد المحاولة.",
+          "needsInstall": "أضف التطبيق إلى الشاشة الرئيسية أولًا لتصلك الإشعارات. اضغط هنا لمعرفة الطريقة.",
+          "unsupported": "هذا المتصفح لا يدعم الإشعارات."
+        },
         "appointmentReminder": {
           "label": "تذكير الموعد",
           "description": "رسالة قبل موعدك في العيادة."
@@ -1464,7 +1855,8 @@
   "errors": {
     "notFound": "الصفحة غير موجودة",
     "notFoundDescription": "الرابط الذي فتحته غير صحيح أو تم نقله.",
-    "notFoundCta": "الذهاب إلى الصفحة الرئيسية",
+    "notFoundCtaDashboard": "الذهاب إلى لوحة التحكم",
+    "notFoundCtaHome": "الذهاب إلى الصفحة الرئيسية",
     "unexpected": "حدث خطأ غير متوقع",
     "unexpectedBody": "لم يُحفظ أي شيء أدخلته. أعد المحاولة، أو ابدأ من الصفحة الرئيسية.",
     "screen": {
@@ -1510,7 +1902,24 @@
       "updated": "آخر تعديل"
     },
     "history": "الخطط السابقة",
+    "previousDays": "أيام الأسبوع السابقة",
+    "nextDays": "أيام الأسبوع التالية",
     "moreActions": "المزيد من إجراءات الخطة",
+    "export": {
+      "title": "تنزيل هذا الأسبوع",
+      "pdf": "PDF",
+      "word": "Word",
+      "hint": "الأسبوع كاملاً في صفحة واحدة، جاهز للطباعة أو للتسليم.",
+      "failed": "تعذر تجهيز الملف. حاول مرة أخرى."
+    },
+    "print": {
+      "alternatives": "أو بدلاً منها:",
+      "draftNote": "خطة مسودة — لا يستطيع العميل رؤية هذا الأسبوع بعد."
+    },
+    "deletePlan": "حذف هذه الخطة",
+    "deletePlanConfirmTitle": "حذف هذه الخطة؟",
+    "deletePlanConfirmMessage": "سيُحذف أسبوع {date} بكل وجباته نهائيًا، ولا يمكن التراجع.",
+    "deletePlanPublishedNote": "هذه الخطة منشورة والمشترك يطّلع عليها الآن، وحذفها يحذف نسخته أيضًا.",
     "weekOf": "أسبوع {date}",
     "generatedBy": "النموذج المستخدم",
     "kcalValue": "{value} kcal",
@@ -1532,7 +1941,7 @@
     "saving": "جارٍ الحفظ…",
     "saved": "تم الحفظ",
     "emptySlot": "وجبة غير محددة",
-    "unfilledWarning": "{count} وجبة لم يتم تعبئتها — املأها قبل النشر",
+    "unfilledWarning": "{count, plural, one {وجبة واحدة ما زالت فارغة — املأها قبل النشر} two {وجبتان ما زالتا فارغتين — املأهما قبل النشر} few {# وجبات ما زالت فارغة — املأها قبل النشر} other {# وجبة ما زالت فارغة — املأها قبل النشر}}",
     "dailyTarget": "الهدف اليومي",
     "proteinTarget": "بروتين {value} غ",
     "goal": "الهدف",
@@ -1553,9 +1962,17 @@
     "profileSubtitle": "بيانات {name} التي تُبنى عليها الخطة",
     "planningSnapshot": "ملخص سريع للتخطيط",
     "planningNotes": "ملاحظات التخطيط",
+    "notesTargets": "الأهداف اليومية",
+    "notesBody": "بيانات الجسم",
+    "notesWritten": "ملاحظات مكتوبة",
+    "notesNothingWritten": "لا توجد ملاحظات مكتوبة.",
+    "notesUnwritten": "لم تُسجَّل: {fields}",
     "dishCatalog": "كتالوج الأطباق",
     "dishCatalogHint": "اسحب طبقًا إلى وجبة. يُغلق الكتالوج عند بدء السحب.",
+    "catalogNeedsPlan": "أنشئ أسبوعًا أولاً",
+    "catalogNeedsPlanHint": "لا توجد خطة لهذا المشترك بعد، فلا مكان تضع فيه طبقًا. أنشئ أسبوعًا، ثم اسحب من هنا.",
     "allergiesMissing": "لم تُسجّل معلومات الحساسية. تأكد منها قبل نشر الخطة.",
+    "allergiesMissingShort": "لم تُسجّل بعد",
     "suggested": "المقترح: {value}",
     "shareTotal": "مجموع النسب {value}%",
     "addSlot": "إضافة وجبة",
@@ -1563,23 +1980,55 @@
     "allergenHint": "تُستخدم هذه الخيارات لتصفية الكتالوج قبل إرساله للذكاء الاصطناعي، فلا يمكن اقتراح طبق يحتويها.",
     "permanentInstructionsHint": "تعليمات تُرسل مع كل توليد، مثل: سكري نوع 2 — تجنّب السكريات المضافة.",
     "scheduleHint": "النسبة هي حصة الوجبة من سعرات اليوم. لا يلزم أن يكون المجموع 100 بالضبط.",
-    "weekInstructions": "تعليمات هذا الأسبوع",
+    "weekInstructions": "ملاحظات لهذا الأسبوع",
+    "weekInstructionsHint": "اختياري. يأخذها الذكاء الاصطناعي بعين الاعتبار.",
     "instructionPlaceholder": "تحضير أسهل، تكلفة أقل، وجبات قابلة للنقل…",
-    "generate": "توليد خطة بالذكاء الاصطناعي",
-    "generating": "جارٍ التوليد…",
-    "generatingHint": "توليد أسبوع كامل يستغرق نحو دقيقة. لا تُغلق الصفحة.",
+    "generate": "أنشئ خطة الأسبوع",
+    "generating": "جارٍ الإنشاء…",
+    "generatingHint": "إنشاء أسبوع كامل يستغرق نحو دقيقة. لا تُغلق الصفحة.",
+    "planGenerated": "تم إنشاء الخطة بنجاح",
+    "planRegenerated": "تمت إعادة إنشاء الخطة بنجاح",
     "generationLoading": {
       "title": "جارٍ إعداد الأسبوع الجديد",
       "regenerateTitle": "جارٍ إعادة إعداد هذا الأسبوع",
-      "description": "يطابق الذكاء الاصطناعي أهداف المشترك وتعليماته مع الأطباق الموجودة في الكتالوج المعتمد.",
-      "elapsed": "انقضت {seconds, plural, zero {# ثانية} one {ثانية واحدة} two {ثانيتان} few {# ثوانٍ} many {# ثانية} other {# ثانية}}",
-      "activity": {
-        "targets": "جارٍ قراءة أهداف المشترك وتعليمات الأسبوع…",
-        "catalog": "جارٍ مطابقة الأطباق المناسبة من الكتالوج المعتمد…",
-        "balance": "جارٍ موازنة الوجبات على أيام الأسبوع السبعة…",
-        "draft": "جارٍ إعداد مسودة لمراجعتك…"
-      },
-      "review": "ستبقى النتيجة مسودة إلى أن تراجعها وتنشرها."
+      "announce": "المرحلة {current} من {total}: {stage}",
+      "stages": {
+        "gather": {
+          "name": "جمع المعلومات",
+          "description": "نقرأ ملف المشترك وأهدافه والقيود المسجّلة عليه.",
+          "points": {
+            "profile": "الملف الصحي",
+            "goals": "الأهداف والوزن المستهدف",
+            "limits": "الحساسية والقيود"
+          }
+        },
+        "analyse": {
+          "name": "تحليل الاحتياج",
+          "description": "نحسب السعرات اليومية وتوزيع المغذيات على الوجبات.",
+          "points": {
+            "calories": "السعرات اليومية",
+            "macros": "توزيع المغذيات",
+            "meals": "عدد الوجبات ونمطها"
+          }
+        },
+        "build": {
+          "name": "بناء الخطة",
+          "points": {
+            "dishes": "اختيار الأطباق",
+            "days": "توزيع الأيام السبعة",
+            "portions": "ضبط أحجام الحصص"
+          }
+        },
+        "review": {
+          "name": "المراجعة والاعتماد",
+          "description": "نفحص التوازن ونجهّز المسودة لمراجعتك.",
+          "points": {
+            "balance": "فحص توازن المغذيات",
+            "restrictions": "مطابقة القيود",
+            "draft": "تجهيز المسودة"
+          }
+        }
+      }
     },
     "regenerate": "إعادة التوليد",
     "regenerateDay": "إعادة توليد هذا اليوم",
@@ -1674,22 +2123,22 @@
     },
     "newWeek": "أسبوع جديد",
     "createWeek": "إنشاء أسبوع",
-    "newWeekTitle": "إعداد أسبوع جديد",
-    "newWeekSubtitle": "اختر طريقة البدء لتخطيط الوجبات لهذا الأسبوع.",
+    "newWeekTitle": "ابدأ أسبوعًا جديدًا",
+    "newWeekSubtitle": "اختر كيف تبدأ خطة هذا الأسبوع.",
     "weekStartLabel": "تاريخ بداية الأسبوع",
     "weekStartHint": "تبدأ الخطة من هذا اليوم وتستمر سبعة أيام.",
     "newWeekGenerate": {
-      "create": "توليد بالذكاء الاصطناعي",
-      "regenerate": "إعادة التوليد بالذكاء الاصطناعي"
+      "create": "أنشئ الخطة بالذكاء الاصطناعي",
+      "regenerate": "أعِد إنشاء الخطة بالذكاء الاصطناعي"
     },
     "newWeekGenerateHint": {
-      "create": "يبني أسبوعاً جديداً من أهداف المشترك وكتالوج الأطباق المعتمد.",
-      "regenerate": "يستبدل المسودة المعروضة. لم يطّلع عليها أحد، فلا شيء يُفقد."
+      "create": "يختار وجبات الأسبوع من أطباقك المعتمدة، بما يناسب أهداف المشترك.",
+      "regenerate": "يستبدل المسودة المعروضة. لم يرَها المشترك بعد، فلن يضيع شيء."
     },
-    "regenerateWeek": "إعادة توليد هذا الأسبوع",
+    "regenerateWeek": "أعِد إنشاء هذا الأسبوع",
     "newWeekCopy": "انسخ خطة سابقة",
     "newWeekFrom": "ابدأ من خطة {date}",
-    "newWeekFromHint": "ينسخ أطباق ذلك الأسبوع إلى جدول وجبات المشترك الحالي.",
+    "newWeekFromHint": "ينقل أطباق ذلك الأسبوع إلى جدول وجبات المشترك الحالي.",
     "newWeekEmpty": "أسبوع فارغ",
     "newWeekEmptyHint": "خانة فارغة لكل وجبة في جدول المشترك.",
     "newWeekEmptyAction": "ابدأ أسبوعاً فارغاً",
@@ -1742,9 +2191,25 @@
     "addMeal": "إضافة وجبة",
     "addMealHint": "تُضاف الوجبة إلى أيام الأسبوع السبعة. يمكنك حذفها من يوم بعينه لاحقاً.",
     "addMealLabel": "اسم الوجبة",
-    "addMealPlaceholder": "سناك مسائي",
     "addMealTime": "الوقت",
     "addMealIcon": "اختر أيقونة طعام",
+    "addMealTaken": "مضافة",
+    "mealNameSuggestions": {
+      "suhoor": "سحور",
+      "breakfast": "فطور",
+      "secondBreakfast": "فطور ثانٍ",
+      "morningSnack": "سناك صباحي",
+      "brunch": "فطور متأخر",
+      "lunch": "غداء",
+      "preWorkout": "قبل التمرين",
+      "afternoonSnack": "سناك عصر",
+      "iftar": "إفطار رمضان",
+      "postWorkout": "بعد التمرين",
+      "dinner": "عشاء",
+      "eveningSnack": "سناك مسائي",
+      "beforeSleep": "قبل النوم"
+    },
+    "addMealNamePlaceholder": "اختر وجبة",
     "mealIconChoices": {
       "tea": "كوب شاي",
       "hotDrink": "مشروب ساخن",
@@ -1755,12 +2220,16 @@
       "plate": "طبق عشاء",
       "chefMinimal": "اختيار الطاهي"
     },
+    "slotRemoved": "تم حذف {slot}",
+    "slotRemovedHint": "أُزيلت الوجبة من أيام الأسبوع السبعة.",
     "removeSlotConfirm": "حذف {slot} من أيام الأسبوع السبعة؟ ستُحذف الأطباق الموضوعة فيها.",
     "restoreSlot": "أعد {slot} إلى هذا اليوم",
     "removeMeal": "حذف الوجبة",
     "clearMeal": "إفراغ الخانة",
-    "morePortion": "كمية أكبر",
-    "lessPortion": "كمية أصغر",
+    "moreIngredient": "زيادة هذا المكوّن",
+    "lessIngredient": "تقليل هذا المكوّن",
+    "alsoContains": "يحتوي أيضًا",
+    "backToRecipe": "إرجاع الكميات الأصلية",
     "budgetHint": "ميزانية هذه الوجبة {value} kcal",
     "overBudget": "أكبر من الميزانية",
     "underBudget": "أقل من الميزانية",
@@ -1778,9 +2247,7 @@
     "weekTargets": "أهداف هذا الأسبوع",
     "kcalTargetLabel": "السعرات اليومية",
     "proteinTargetLabel": "البروتين اليومي (غ)",
-    "goalLabel": "هدف هذا الأسبوع",
-    "targetsHint": "تنطبق على هذه الخطة فقط. الملف الغذائي للمشترك لا يتغير.",
-    "useProfile": "حسب الملف الغذائي",
+    "targetsHint": "اتركها فارغة لتتبع الملف الغذائي. تخص هذه الخطة وحدها.",
     "days": {
       "sunday": "الأحد",
       "monday": "الاثنين",
@@ -1808,7 +2275,6 @@
   },
   "dishes": {
     "title": "كتالوج الأطباق",
-    "subtitle": "{count} طبقاً معتمداً — هذه وحدها ما يختار منه الذكاء الاصطناعي",
     "addDish": "إضافة طبق",
     "empty": "لا توجد أطباق في الكتالوج بعد",
     "emptyHint": "تظهر هنا الأطباق المعتمدة بعد إضافتها.",
@@ -1816,14 +2282,13 @@
     "emptyFilteredHint": "جرّب اسماً آخر، أو وقت وجبة مختلفاً.",
     "searchPlaceholder": "ابحث باسم الطبق",
     "clearFilters": "مسح الفلاتر",
-    "filters": "الفلاتر",
     "filtersReset": "إعادة تعيين",
     "allMealTypes": "الكل",
     "count": "{count, plural, =0 {لا أطباق} one {طبق واحد} two {طبقان} few {# أطباق} many {# طبقاً} other {# طبق}}",
     "moreTags": "+{count, number, integer}",
     "notFoundPrompt": "لم تجد الطبق الذي تبحث عنه؟",
     "ownerFilter": {
-      "label": "عرض الأطباق",
+      "label": "المصدر",
       "all": "الكل",
       "system": "مشتركة",
       "clinic": "أطباقي"
@@ -1853,8 +2318,10 @@
       "ingredients": "المكوّنات",
       "actions": "إجراءات"
     },
-    "hiddenBadge": "مخفي",
-    "showHidden": "إظهار المخفية",
+    "showHidden": "المخفية فقط",
+    "showHiddenHint": "اعرض ما أخفيته وحده لتتمكن من إعادته",
+    "tagSearchPlaceholder": "ابحث عن خاصية",
+    "noTagMatches": "لا توجد خاصية بهذا الاسم",
     "ownership": {
       "system": "مشترك",
       "clinic": "أضيف بواسطتي"
@@ -1899,13 +2366,8 @@
     "foodPicker": {
       "label": "ابحث عن مكوّن",
       "placeholder": "ابحث عن مكوّن…",
-      "searching": "جارٍ البحث…",
       "kcalPer100g": "{kcal} سعرة / 100غ",
-      "startSearching": "ابحث عن مكوّن، أو أضف مكوّناً خاصاً",
       "noResults": "لم نجد \"{name}\".",
-      "noResultTitle": "لم نجد مكوّناً مطابقاً",
-      "addNew": "إضافة مكوّن جديد",
-      "addNewShort": "لم تجده؟ أضف مكوّناً جديداً",
       "addCustom": "إضافة مكوّن خاص",
       "addNamed": "إضافة \"{name}\" كمكوّن جديد",
       "moreResults": "عرض المزيد",
@@ -1943,30 +2405,27 @@
     },
     "editor": {
       "pageTitle": "إضافة طبق",
-      "pageSubtitle": "أضف طبقاً إلى قائمة العيادة المعتمدة",
-      "nameAr": "اسم الطبق",
+      "nameAr": "الاسم بالعربية",
       "nameArPlaceholder": "مثال: مقلوبة دجاج",
       "nameEn": "الاسم بالإنجليزية",
-      "nameEnPlaceholder": "مثال: Chicken Maqluba",
-      "additionalDetails": "تفاصيل إضافية",
-      "baseServingLabel": "تسمية الحصة الأساسية",
-      "baseServingHint": "تظهر للمشترك كوحدة هذا الطبق، مثل \"حصة\" أو \"طبق\".",
+      "nameEnPlaceholder": "Chicken Maqluba",
+      "existingMatchesTitle": "أطباق موجودة تبدأ بهذا الاسم",
+      "exactMatchTitle": "هذا الاسم مستخدم بالفعل",
+      "exactMatch": "مطابقة تامة",
       "mealTypesLegend": "وقت الوجبة",
       "labelsLegend": "خصائص الطبق",
-      "labelsHint": "لون كل خاصية يرافق الطبق في الكتالوج وفي الخطة الأسبوعية.",
       "allergensLegend": "مسببات الحساسية",
-      "allergensHint": "يستثنى هذا الطبق من خطط المشتركين الذين لديهم حساسية مطابقة.",
+      "labelGroups": {
+        "preparation": "التحضير",
+        "cost": "التكلفة والتنقّل",
+        "nature": "طبيعة الطبق"
+      },
       "ingredientsHeading": "المكوّنات",
-      "addIngredient": "إضافة مكوّن",
       "removeIngredient": "إزالة المكوّن",
-      "noIngredientsYet": "ابحث بالأعلى لإضافة مكوّنات الطبق.",
       "ingredientCount": "{count, plural, =0 {لا مكوّنات} one {مكوّن واحد} two {مكوّنان} few {# مكوّنات} many {# مكوّناً} other {# مكوّن}}",
-      "pickFoodHint": "ابحث عن طعام لإضافته إلى هذا المكوّن",
-      "changeFood": "تغيير الطعام",
       "amount": "الكمية",
       "unitAria": "الوحدة",
-      "rowKcal": "{kcal} سعرة",
-      "rowGrams": "= {grams} غرام",
+      "rowGrams": "{grams} غرام",
       "units": {
         "g": "غرام",
         "piece": "حبة",
@@ -1976,11 +2435,8 @@
         "tbsp": "ملعقة كبيرة",
         "tsp": "ملعقة صغيرة"
       },
-      "liveNutrition": "القيم الغذائية لكل حصة أساسية",
       "nutritionTitle": "القيم الغذائية",
       "nutritionEmpty": "أضف مكوّنات لعرض القيم الغذائية.",
-      "perServing": "لكل {unit}",
-      "energyShare": "الأشرطة تُظهر نسبة كل عنصر من سعرات الطبق.",
       "categories": {
         "high_protein": "غني بالبروتين",
         "high_carb": "غني بالكربوهيدرات",
@@ -1988,7 +2444,8 @@
         "balanced": "متوازن"
       },
       "errors": {
-        "nameRequired": "اسم الطبق مطلوب",
+        "nameRequired": "الاسم بالعربية مطلوب",
+        "nameEnRequired": "الاسم بالإنجليزية مطلوب",
         "mealTypeRequired": "اختر وقت وجبة واحداً على الأقل",
         "ingredientRequired": "أضف مكوّناً واحداً على الأقل بطعام وكمية موجبة"
       },
@@ -1996,16 +2453,31 @@
       "saveChanges": "حفظ التعديلات",
       "submitting": "جارٍ الحفظ…",
       "editTitle": "تعديل الطبق",
-      "editSubtitle": "تحديث هذا الطبق في قائمة عيادتك",
       "unsavedTitle": "تجاهل التغييرات؟",
       "unsavedMessage": "لديك تغييرات غير محفوظة ستُفقد إذا أغلقت.",
       "discard": "تجاهل",
-      "keepEditing": "متابعة التعديل"
+      "keepEditing": "متابعة التعديل",
+      "next": "التالي",
+      "back": "رجوع",
+      "steps": {
+        "define": "التعريف",
+        "ingredients": "المكوّنات",
+        "review": "المراجعة"
+      },
+      "recipeEmptyTitle": "لا مكوّنات بعد",
+      "columnIngredient": "المكوّن",
+      "columnGrams": "بالغرام",
+      "columnKcal": "سعرة",
+      "awaitingAmount": "الكمية؟",
+      "perServingShort": "للحصة",
+      "gramsPerServing": "{grams} غرام للحصة",
+      "kcalPer100g": "{kcal} سعرة / 100غ",
+      "suggested": "مقترح",
+      "saveAndAddAnother": "حفظ وإضافة آخر"
     }
   },
   "whatsapp": {
     "title": "واتساب",
-    "description": "اربط رقم العيادة على واتساب لإرسال تذكيرات المواعيد وتأكيداتها تلقائيًا.",
     "disabled": "ميزة واتساب غير مفعّلة على هذا التثبيت. اضبط WHATSAPP_ENABLED ومتغيّرات البوّابة في .env.local ثم أعد تشغيل الخدمة.",
     "gatewayUnreachable": "لم تستجب بوّابة واتساب. تأكد من أنها تعمل ثم أعد المحاولة.",
     "connection": {
@@ -2041,8 +2513,14 @@
       "title": "الرسائل التلقائية",
       "reminders": "تذكير قبل الموعد",
       "remindersHelp": "رسالة واحدة لكل موعد، تُرسل قبله بيوم واحد ومرة واحدة فقط.",
-      "confirmations": "تأكيد عند حجز الموعد",
-      "confirmationsHelp": "تُرسل عند الحجز، وتُرسل مرة أخرى إذا تغيّر الموعد.",
+      "confirmations": "تأكيد عند حجز موعد",
+      "confirmationsHelp": "تُرسل لحظة إتمام الحجز.",
+      "reschedules": "إشعار عند نقل الموعد",
+      "reschedulesHelp": "تُرسل عند تغيير الحجز إلى يوم أو وقت آخر.",
+      "cancellations": "إشعار عند حذف الموعد",
+      "cancellationsHelp": "تُرسل عند حذف الحجز. ولا تُرسل أبداً عن زيارة انتهت.",
+      "paymentReminders": "تذكير بالمستحقات",
+      "paymentRemindersHelp": "يتيح للفريق تذكير المشترك بالمتبقي عليه من صفحة الفواتير.",
       "leadFixed": "يُرسل التذكير قبل الموعد بيوم واحد.",
       "save": "حفظ",
       "saved": "تم حفظ الإعدادات."
@@ -2112,6 +2590,8 @@
     },
     "clinicName": "اسم العيادة",
     "clinicPhone": "هاتف العيادة",
+    "phoneCountry": "رمز الدولة",
+    "phonePlaceholder": "الرقم دون رمز الدولة",
     "email": "البريد الإلكتروني للتواصل",
     "address": "عنوان العيادة",
     "fullName": "الاسم الكامل",
@@ -2171,6 +2651,7 @@
       "tooLong": "الحد الأقصى {max} حرفًا. اختصر النص قليلًا.",
       "invalidEmail": "أدخل بريدًا إلكترونيًا صحيحًا، مثل name@clinic.com.",
       "invalidPhone": "أدخل رقم هاتف صحيحًا.",
+      "phoneDigitCount": "أدخل {min, number, integer} أو {max, number, integer} أرقام دون رمز الدولة.",
       "invalidTime": "اختر وقتًا صحيحًا بفواصل 15 دقيقة.",
       "closingAfterOpening": "يجب أن يكون وقت الإغلاق بعد وقت الافتتاح.",
       "workingDayRequired": "اختر يوم عمل واحدًا على الأقل.",
@@ -2185,9 +2666,9 @@
     },
     "logo": "شعار العيادة",
     "logoUpload": "اختر صورة",
+    "logoHint": "PNG أو JPG أو WebP. يُصغَّر تلقائيًا إلى 256×256.",
     "logoReplace": "استبدل الصورة",
     "logoRemove": "أزل الشعار",
-    "logoHint": "PNG أو JPG أو WebP. يُصغَّر تلقائيًا إلى 256×256.",
     "logoPreviewAlt": "شعار العيادة",
     "closed": "مغلق"
   },
@@ -2209,67 +2690,67 @@
     "steps": {
       "welcome": {
         "title": "جولة سريعة في عيادتك",
-        "body": "يمرّ هذا الدليل على أقسام الشريط الجانبي الخمسة، من لوحة التحكم حتى كتالوج الأطباق، ويوضّح من أين يبدأ عمل كل يوم. لا يغيّر الدليل أي بيانات — هو يعرّفك بالمكان فقط. اضغط «تخطّي الدليل» للخروج في أي وقت."
+        "body": "جولة سريعة على أقسام الشريط الجانبي الخمسة. لا تُغيّر أي بيانات، ويمكنك الخروج منها في أي وقت."
       },
       "navigation": {
         "title": "الشريط الجانبي هو طريقك بين الأقسام",
-        "body": "لوحة التحكم، والمشتركون، والتقويم، والخطط الأسبوعية، وكتالوج الأطباق — بالترتيب الذي يسير عليه يوم العمل عادةً. وعلى الهاتف والجهاز اللوحي تختفي التسميات وتبقى الأيقونات."
+        "body": "الأقسام الخمسة بالترتيب الذي يسير عليه يوم العمل. وعلى الهاتف تختفي التسميات وتبقى الأيقونات."
       },
       "dashboardStats": {
         "title": "الشريط الذي تقرؤه أولًا",
-        "body": "المشتركون الجدد هذا الشهر ومواعيد اليوم، ولكلٍّ منهما مؤشّر اتجاهه أسفله، وبجانبهما كل ما ينتظر ردّك من المشتركين. ثلاث بطاقات بارتفاع واحد، فلا يتغيّر شكل الصف."
+        "body": "المشتركون الجدد هذا الشهر ومواعيد اليوم، ولكلٍّ منهما مؤشّر اتجاهه، وبجانبهما ما ينتظر ردّك."
       },
       "dashboardRequests": {
         "title": "طلبات المشتركين تصل إلى هنا",
-        "body": "هذه بطاقة طلبات المشتركين. كل ما يطلبه المشترك من بوابته — موعد جديد، أو تغيير موعد، أو إلغاؤه، أو تعديل في ملفه — ينتظر هنا، ويمكنك قبوله أو رفضه دون مغادرة لوحة التحكم. ويفتح «كل الطلبات» صندوق الوارد كاملًا في نافذة فوق هذه الصفحة، بما في ذلك ما أجبت عنه سابقًا."
+        "body": "كل ما يطلبه المشترك من بوابته — موعد أو تغييره أو إلغاؤه أو تعديل في ملفه — ينتظر هنا لتقبله أو ترفضه. و«كل الطلبات» يفتح صندوق الوارد كاملًا."
       },
       "dashboardAgenda": {
         "title": "مواعيد هذا الأسبوع",
-        "body": "جدول الأيام المحيطة باليوم، مع تمييز الموعد الجاري والإشارة إلى الموعد التالي. افتح أي صف للوصول إلى ملف المشترك."
+        "body": "جدول الأيام المحيطة باليوم، مع تمييز الموعد الجاري. افتح أي صف للوصول إلى ملف المشترك."
       },
       "clientsRegister": {
         "title": "كل المشتركين لديك",
-        "body": "السجل: الاسم والعمر ووسيلة التواصل والحالة، مع إمكانية الترتيب حسب أي عمود. افتح أي صف لترى ملف المشترك كاملًا — قياساته وخططه وسجلّه."
+        "body": "الاسم والعمر ووسيلة التواصل والحالة، مع الترتيب حسب أي عمود. افتح أي صف لترى الملف كاملًا."
       },
       "clientsSearch": {
         "title": "البحث والتصفية والأرشيف",
-        "body": "ابحث بالاسم أو رقم الهاتف، وضيّق القائمة حسب الحالة أو أي حقل آخر، ومن هنا تصل إلى أرشيف المشتركين غير النشطين. الأرشيف هو مكان المشترك حين يتوقف عن الحضور؛ ولا يُحذف شيء."
+        "body": "ابحث بالاسم أو رقم الهاتف، وضيّق القائمة حسب الحالة، ومن هنا تصل إلى الأرشيف. ولا يُحذف شيء."
       },
       "clientsNew": {
         "title": "كيف تضيف مشتركًا جديدًا",
-        "body": "اضغط «مشترك جديد» هنا. تُفتح بطاقة فوق السجل تحتوي بياناته وقياساته وأهدافه — املأها واحفظ، فيظهر في القائمة مباشرة. والبطاقة نفسها هي طريقة تعديل بيانات أي مشترك لاحقًا، فلا تكلّفك الإضافة أو التصحيح مكانك في السجل."
+        "body": "اضغط «مشترك جديد»، فتُفتح بطاقة بياناته وقياساته وأهدافه. والبطاقة نفسها هي طريقة تعديل أي مشترك لاحقًا."
       },
       "calendarToolbar": {
         "title": "تحديد ما تنظر إليه",
-        "body": "تنقّل بين الأيام والأسابيع بالسهمين، وانتقل إلى تاريخ محدّد من زر التاريخ، وبدّل بين عرض اليوم والأسبوع والشهر. ويجد البحث الموعد باسم المشترك."
+        "body": "تنقّل بالسهمين، وانتقل إلى تاريخ محدّد من زر التاريخ، وبدّل بين عرض اليوم والأسبوع والشهر."
       },
       "calendarBooking": {
         "title": "كيف تحجز موعدًا",
-        "body": "اسحب على الشبكة عبر الوقت الذي تريده في اليوم الذي تريده. وعند رفع يدك يُفتح المحدِّد: اختر المشترك، وحدّد مدة الموعد، وكرّره أسبوعيًا إن كان موعدًا ثابتًا. وإن لم يكن الشخص في قائمتك بعد، فيمكنك إضافته من داخل المحدِّد نفسه. ولنقل الموعد لاحقًا، اسحب الكتلة إلى وقتها الجديد."
+        "body": "اسحب على الشبكة عبر الوقت الذي تريده، فيُفتح المحدِّد: اختر المشترك والمدة، وكرّره أسبوعيًا إن كان ثابتًا. ولنقله لاحقًا، اسحب الكتلة إلى وقتها الجديد."
       },
       "plannerPicker": {
         "title": "كيف تنشئ خطة أسبوعية",
-        "body": "ابدأ باختيار المشترك الذي تخطّط أسبوعه. ابحث هنا، أو اختر أحد المشتركين المقترحين في الأسفل — وهم أصحاب الخطط الأقرب إلى الانتهاء."
+        "body": "ابدأ باختيار المشترك: ابحث هنا، أو اختر من المقترحين أسفله — وهم أصحاب الخطط الأقرب إلى الانتهاء."
       },
       "plannerBoard": {
         "title": "الأسبوع، وجبةً وجبة",
-        "body": "بعد اختيار المشترك تظهر لوحته: سبعة أيام عرضًا، ووجبات كل يوم تحته. املأ أي خانة من كتالوج الأطباق المجاور، أو ولِّد الأسبوع كاملًا ثم عدّل ما ينتج. ويعرض كل يوم مقارنة سعراته وبروتينه بهدف المشترك، ويُرسل النشر الخطة إلى بوابته."
+        "body": "سبعة أيام عرضًا، ووجبات كل يوم تحته. املأ الخانات من الكتالوج المجاور، أو ولِّد الأسبوع كاملًا ثم عدّله. والنشر يُرسل الخطة إلى بوابة المشترك."
       },
       "dishesCatalog": {
         "title": "ما تعتمد عليه الخطط",
-        "body": "كل الأطباق المتاحة لخططك الأسبوعية، مع السعرات والكربوهيدرات والبروتين على البطاقة. والأطباق الموسومة بأنها أطباق النظام تأتي مع التطبيق، وما عداها من إنشاء عيادتك."
+        "body": "كل الأطباق المتاحة لخططك، بسعراتها وعناصرها الغذائية على البطاقة. والموسومة بأطباق النظام تأتي مع التطبيق."
       },
       "dishesFilters": {
         "title": "تضييق الكتالوج",
-        "body": "ابحث بالاسم، أو صفِّ حسب نوع الوجبة والوسم والقيمة الغذائية. ويمكنك أيضًا التبديل بين أطباق عيادتك والأطباق التي جاءت مع التطبيق."
+        "body": "ابحث بالاسم، أو صفِّ حسب نوع الوجبة والوسم والقيمة الغذائية، أو بدّل بين أطباق عيادتك وأطباق النظام."
       },
       "dishesAdd": {
         "title": "كيف تضيف طبقًا جديدًا",
-        "body": "اضغط «إضافة طبق». يُفتح المُنشئ بجانب الكتالوج: سمِّ الطبق بالعربية والإنجليزية، وأضف مكوّناته ومقاديرها، فتُحسب السعرات والعناصر الغذائية أولًا بأول. احفظه ليصبح متاحًا في كل خطة أسبوعية بعد ذلك."
+        "body": "يُفتح المُنشئ بجانب الكتالوج: سمِّ الطبق بالعربية والإنجليزية، وأضف مكوّناته، فتُحسب قيمه أولًا بأول."
       },
       "finish": {
         "title": "بهذا تنتهي الجولة",
-        "body": "يمكنك تشغيلها من جديد من «دليل الاستخدام» أسفل الشريط الجانبي متى شئت. ولكل قسم أيضًا تلميحاته ورسائله التي تظهر حين يكون هناك ما يستحق الشرح."
+        "body": "يمكنك تشغيلها من جديد من «دليل الاستخدام» أسفل الشريط الجانبي متى شئت."
       }
     }
   }

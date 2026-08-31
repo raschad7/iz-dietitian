@@ -68,6 +68,25 @@ export type PhoneFieldProps = {
    */
   maxDigits?: number;
   /**
+   * Draw the two halves left-to-right whatever the page direction, so the dial
+   * code sits at the **left** of the digits in Arabic as well as in English.
+   *
+   * Off by default, which lays the row out along the page: in Arabic the code
+   * takes the inline-start and therefore the right, which is where the client
+   * dialog has always had it.
+   *
+   * On, the pair reads the way a written phone number does — `+970` then the
+   * rest, left to right — which is the international convention and the order
+   * the digits themselves are already pinned to. The clinic's own number is
+   * entered this way; see `ClinicInformationFields`.
+   *
+   * It sets `dir` on the row and nothing else. The digits box keeps deciding
+   * its own direction (the placeholder is a sentence and follows the locale;
+   * a typed number is always `ltr`), and the country popup is portalled out of
+   * this subtree, so neither is disturbed.
+   */
+  codeOnLeft?: boolean;
+  /**
    * Applied to both halves — a compound field has to carry any styling across
    * the whole row or it reads as two fields that happen to be adjacent.
    */
@@ -87,6 +106,7 @@ export function PhoneField({
   disabled,
   required,
   maxDigits,
+  codeOnLeft = false,
   className,
   'aria-invalid': ariaInvalid,
 }: PhoneFieldProps) {
@@ -152,7 +172,7 @@ export function PhoneField({
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2" dir={codeOnLeft ? 'ltr' : undefined}>
       {/*
         The field the form actually submits. The two visible controls carry no
         `name`, so a server action goes on reading one `phone` value and needs
@@ -206,6 +226,23 @@ export function PhoneField({
             sideOffset={4}
             align="start"
             className="z-50"
+            /*
+              The two hooks `globals.css` reshapes an anchored popup by on a
+              coarse pointer. This field builds its list out of raw Base UI
+              primitives rather than `components/ui/select`, so it does not
+              inherit the `data-slot`s that component sets — and without them it
+              was the one list in the app that stayed anchored to its trigger on
+              a phone while every other select rose from the block-end edge.
+
+              That mattered for more than consistency. The coarse-pointer rule
+              pins the sheet clear of `--q-keyboard-inset` and caps it against
+              `--q-viewport-block`; an anchored popup is measured with
+              `--available-height`, which Base UI derives from the *layout*
+              viewport and which therefore knows nothing about a software
+              keyboard on iOS. Opening the country list from a phone field whose
+              keyboard is already up drew it behind the keys.
+            */
+            data-slot="select-positioner"
             alignItemWithTrigger={false}
             /*
               **Inside a dialog the list has to position itself `fixed`.**
@@ -225,6 +262,8 @@ export function PhoneField({
             positionMethod={container ? 'fixed' : undefined}
           >
             <Select.Popup
+              /* The other half of the pair above — see the positioner. */
+              data-slot="select-content"
               className={cn(
                 /*
                   `max-h-(--available-height)` rather than a flat `max-h-72`:

@@ -7,6 +7,8 @@ import { requireStaffClinic } from '@/lib/session';
 
 import { PageHeader } from '@/components/layout/page-header';
 
+import { getClinicBrand } from '@/features/clinic-profile/queries';
+
 import { ContextPanel } from '@/features/weekly-plans/components/context-panel';
 import { EmptyPlanBoard } from '@/features/weekly-plans/components/empty-plan-board';
 import { PlanBoard } from '@/features/weekly-plans/components/plan-board';
@@ -51,9 +53,12 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
 
   const { clinicId } = await requireStaffClinic(locale);
 
-  const [clients, context, t] = await Promise.all([
+  const [clients, context, clinic, t] = await Promise.all([
     listPlannableClients(clinicId),
     getClientContext(clinicId, clientId),
+    // Only for the head of the printed plan. It rides in this round rather than
+    // in one of its own so it costs the page no extra wait.
+    getClinicBrand(clinicId),
     getTranslations('weeklyPlans'),
   ]);
 
@@ -173,6 +178,7 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
             usage={usage}
             previous={previous}
             locale={locale}
+            clinicName={clinic?.name ?? null}
             history={history}
             newWeek={newWeek}
           >

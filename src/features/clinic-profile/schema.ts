@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { splitPhone } from '@/lib/phone-format';
+
 const requiredText = (minimum: number, maximum: number) => z.string().trim().min(minimum).max(maximum);
 
 /**
@@ -15,7 +17,14 @@ const requiredText = (minimum: number, maximum: number) => z.string().trim().min
  */
 export const FIELD_LIMITS = {
   clinicName: 50,
-  /** Both the required digit count and the character ceiling — see `phoneSchema`. */
+  /**
+   * The most digits the *national* part of the clinic phone may carry — the
+   * part after the calling code. Not a character count; see `phoneSchema`. It
+   * is the number `PhoneField` caps typing at, so the eleventh digit never
+   * lands rather than being refused after the fact.
+   *
+   * Its floor is {@link MIN_CLINIC_PHONE_DIGITS}.
+   */
   clinicPhone: 10,
   contactEmail: 254,
   address: 120,
@@ -31,24 +40,65 @@ export const FIELD_LIMITS = {
 } as const;
 
 /**
- * Exactly ten digits, and nothing else.
+ * The fewest digits the clinic phone's national part may carry.
  *
- * It used to accept 7–40 characters of digits, spaces, brackets, dots, dashes
- * and an optional leading `+`, which let one clinic store `+970 59 123 4567`
- * and another `0599123456` for the same line. A single fixed shape is what
- * makes the number comparable, dialable and printable without a normaliser at
- * every call site.
+ * Its ceiling is `FIELD_LIMITS.clinicPhone`, and unlike that one this cannot be
+ * enforced at the keystroke: a number is short on the way to being long, so a
+ * field that refused the eighth digit would refuse every number as it was being
+ * typed. It is checked on submit, and `validation.phoneDigitCount` names both
+ * ends of the range in one sentence.
  *
- * ⚠ Separators are rejected rather than stripped. The field's counter reads
- * "n of 10", so the count the reader is watching has to be the count the rule
- * applies to — accepting `059 587 2094` while showing 12/10 would be a control
- * arguing with itself. `FIELD_LIMITS.clinicPhone` is therefore both the digit
- * count and the character ceiling.
+ * Outside `FIELD_LIMITS` because that object is documented as the ceilings the
+ * form draws, and this is a floor.
+ */
+export const MIN_CLINIC_PHONE_DIGITS = 9;
+
+/**
+ * The number as the form submits it: `+<calling code><digits>`.
+ *
+ * **The same rule `clientPhoneSchema` applies, for the same reason.** This was
+ * "exactly ten digits, no `+`", which is a Palestinian number with the country
+ * silently assumed — a clinic anywhere else could not state its own code, and
+ * what got stored was ambiguous enough that the portal's link builder had to
+ * guess one from the environment before it could dial.
+ *
+ * The shape is guaranteed by `PhoneField`, which recombines its two halves
+ * through `joinPhone`, so this is not asking anyone to type a format — it is
+ * refusing to store anything that did not come from that control.
+ *
+ * ⚠ The length is measured on the **national part**, read back out with
+ * `splitPhone`. A flat cap on the whole string would spend four of its
+ * characters on `+1876` and leave a Jamaican number shorter than a Palestinian
+ * one. `FIELD_LIMITS.clinicPhone` is that national ceiling now, not a character
+ * count and no longer an exact length.
+ *
+ * ⚠ **Numbers stored under the old rule still read.** `splitPhone` takes a
+ * leading trunk zero as "this country, no code given", so `0599123456` opens
+ * the field on Palestine with the digits in place and is rewritten into the
+ * international form the next time the clinic is saved. Nothing migrates it in
+ * place, and nothing needs to: `normalizePhone` has always read both shapes.
+ *
+ * ⚠ **Nine or ten national digits, and the range is deliberately not
+ * per-country.** Asked for as a flat rule, and it is the shape of the numbers
+ * this clinic's region actually uses. It is stricter than a general
+ * international field would be — a Gulf mobile runs to eight national digits
+ * and would be refused here — so if the product ever sells outside that region,
+ * this is the rule to widen, and `phone-countries.ts` is where a per-country
+ * length would have to live.
  */
 const phoneSchema = z
   .string()
   .trim()
-  .regex(new RegExp(`^\\d{${FIELD_LIMITS.clinicPhone}}$`));
+  .regex(/^\+\d+$/, 'invalidPhone')
+  .refine(
+    (value) => {
+      const digits = splitPhone(value).national.length;
+      return digits >= MIN_CLINIC_PHONE_DIGITS && digits <= FIELD_LIMITS.clinicPhone;
+    },
+    // One message for both ends: the box asks for "9 or 10 digits", so being
+    // outside that is one fact, not two. `validation.ts` reads this key.
+    'phoneDigitCount',
+  );
 
 /**
  * The clinic mark, as a `data:` URI.

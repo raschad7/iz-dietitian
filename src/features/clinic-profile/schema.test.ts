@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { PROFESSIONAL_TITLE_OPTIONS, SPECIALTY_OPTIONS } from './professional-options';
 import {
   FIELD_LIMITS,
+  MIN_CLINIC_PHONE_DIGITS,
   clinicInformationSchema,
   professionalProfileSchema,
   weeklyScheduleSchema,
@@ -26,41 +27,71 @@ describe('clinicInformationSchema', () => {
   test('normalizes required clinic contact information', () => {
     expect(
       clinicInformationSchema.parse({
-        name: '  Qiwam Clinic  ',
-        phone: '  0599123456  ',
-        contactEmail: '  TEAM@QIWAM.TEST ',
+        name: '  Enzyme Clinic  ',
+        phone: '  +970599123456  ',
+        contactEmail: '  TEAM@ENZYME.TEST ',
         address: '  Ramallah, Main Street  ',
       }),
     ).toEqual({
-      name: 'Qiwam Clinic',
-      phone: '0599123456',
-      contactEmail: 'team@qiwam.test',
+      name: 'Enzyme Clinic',
+      phone: '+970599123456',
+      contactEmail: 'team@enzyme.test',
       address: 'Ramallah, Main Street',
     });
   });
 
-  test('requires the phone to be exactly ten digits', () => {
-    const base = { name: 'Qiwam Clinic', contactEmail: 'team@qiwam.test', address: 'Ramallah' };
+  test('takes the shape PhoneField writes, and nothing a person typed freehand', () => {
+    const base = { name: 'Enzyme Clinic', contactEmail: 'team@enzyme.test', address: 'Ramallah' };
     const accepts = (phone: string) => clinicInformationSchema.safeParse({ ...base, phone }).success;
 
-    expect(accepts('0599123456')).toBe(true);
-    expect(accepts('059912345')).toBe(false); // nine
-    expect(accepts('05991234567')).toBe(false); // eleven
+    expect(accepts('+970599123456')).toBe(true);
 
-    // Separators are rejected rather than stripped, so the counter the reader
-    // watches ("n of 10") counts the same characters the rule does.
-    expect(accepts('059 912 3456')).toBe(false);
-    expect(accepts('+970599123456')).toBe(false);
-    expect(accepts('059-912-3456')).toBe(false);
+    // The calling code is required — a bare national number is ambiguous, which
+    // is the whole reason the picker is there.
+    expect(accepts('0599123456')).toBe(false);
+    expect(accepts('599123456')).toBe(false);
+
+    // Separators are rejected rather than stripped: silently rewriting a
+    // clinic's number is worse than refusing it.
+    expect(accepts('+970 59 912 3456')).toBe(false);
+    expect(accepts('+970-599-123456')).toBe(false);
     expect(accepts('abcdefghij')).toBe(false);
+
+    // A code and no number at all — what a field left alone would submit if
+    // `joinPhone` did not already return an empty string for it.
+    expect(accepts('+970')).toBe(false);
+  });
+
+  test('takes nine or ten national digits, and nothing either side of that', () => {
+    const base = { name: 'Enzyme Clinic', contactEmail: 'team@enzyme.test', address: 'Ramallah' };
+    const national = (count: number) =>
+      clinicInformationSchema.safeParse({ ...base, phone: `+970${'9'.repeat(count)}` }).success;
+
+    expect(national(MIN_CLINIC_PHONE_DIGITS)).toBe(true); // nine
+    expect(national(FIELD_LIMITS.clinicPhone)).toBe(true); // ten
+
+    expect(national(MIN_CLINIC_PHONE_DIGITS - 1)).toBe(false); // eight
+    expect(national(FIELD_LIMITS.clinicPhone + 1)).toBe(false); // eleven
+    expect(national(1)).toBe(false);
+  });
+
+  test('counts the national part, not the whole string', () => {
+    const base = { name: 'Enzyme Clinic', contactEmail: 'team@enzyme.test', address: 'Ramallah' };
+    const accepts = (phone: string) => clinicInformationSchema.safeParse({ ...base, phone }).success;
+
+    // Ten national digits behind a four-digit code is 15 characters, and fine.
+    // A flat ceiling on the string would have spent four of them on `+1876`,
+    // leaving a Jamaican clinic four digits short of the rule.
+    expect(accepts(`+1876${'9'.repeat(FIELD_LIMITS.clinicPhone)}`)).toBe(true);
+    expect(accepts(`+1876${'9'.repeat(FIELD_LIMITS.clinicPhone + 1)}`)).toBe(false);
   });
 
   test('rejects a missing required clinic field', () => {
     expect(
       clinicInformationSchema.safeParse({
-        name: 'Qiwam Clinic',
+        name: 'Enzyme Clinic',
         phone: '',
-        contactEmail: 'team@qiwam.test',
+        contactEmail: 'team@enzyme.test',
         address: 'Ramallah',
       }).success,
     ).toBe(false);
@@ -105,7 +136,8 @@ describe('FIELD_LIMITS', () => {
     // The ceiling on what "أخرى" lets someone type.
     expect(FIELD_LIMITS.professionalTitle).toBe(50);
     expect(FIELD_LIMITS.specialty).toBe(50);
-    // Both the digit count and the character ceiling for the clinic phone.
+    // The most digits the clinic phone's *national* part may carry — the part
+    // after the calling code, and the cap `PhoneField` stops typing at.
     expect(FIELD_LIMITS.clinicPhone).toBe(10);
   });
 
@@ -132,7 +164,7 @@ describe('FIELD_LIMITS', () => {
   });
 
   test('the schemas actually enforce them', () => {
-    const base = { phone: '0599123456', contactEmail: 'a@b.com', address: 'Ramallah' };
+    const base = { phone: '+970599123456', contactEmail: 'a@b.com', address: 'Ramallah' };
 
     expect(clinicInformationSchema.safeParse({ ...base, name: 'ع'.repeat(50) }).success).toBe(true);
     expect(clinicInformationSchema.safeParse({ ...base, name: 'ع'.repeat(51) }).success).toBe(false);

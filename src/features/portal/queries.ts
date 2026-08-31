@@ -16,7 +16,9 @@ import {
   practitioners,
   weeklyPlanMealCompletions,
 } from '@/db/schema';
+import { wallClockIn } from '@/features/booking/completed';
 import { type ExistingAppointment } from '@/features/booking/validation';
+import { DISPLAY_TIME_ZONE } from '@/lib/format';
 
 import { type AdherenceRow } from './adherence';
 import { type CheckInRow } from './check-ins';
@@ -358,6 +360,7 @@ export async function listPortalAppointments(clientId: string): Promise<PortalAp
       startMinute: appointments.startMinute,
       durationMinutes: appointments.durationMinutes,
       reason: appointments.reason,
+      createdAt: appointments.createdAt,
     })
     .from(appointments)
     .where(eq(appointments.clientId, clientId))
@@ -382,7 +385,12 @@ export async function listPortalAppointments(clientId: string): Promise<PortalAp
 
   const pending = new Set(openRequests.map((row) => row.appointmentId));
 
-  return rows.map((row) => ({ ...row, hasOpenRequest: pending.has(row.id) }));
+  return rows.map(({ createdAt, ...row }) => ({
+    ...row,
+    hasOpenRequest: pending.has(row.id),
+    // Converted here, not in `./notifications.ts` — see `PortalAppointment.bookedDate`.
+    bookedDate: wallClockIn(DISPLAY_TIME_ZONE, createdAt).date,
+  }));
 }
 
 /** One appointment, only if it belongs to this client. Null is "not yours" and "gone" alike. */
@@ -397,12 +405,16 @@ export async function getPortalAppointment(
       startMinute: appointments.startMinute,
       durationMinutes: appointments.durationMinutes,
       reason: appointments.reason,
+      createdAt: appointments.createdAt,
     })
     .from(appointments)
     .where(and(eq(appointments.id, appointmentId), eq(appointments.clientId, clientId)))
     .limit(1);
 
-  return row ? { ...row, hasOpenRequest: false } : null;
+  if (!row) return null;
+
+  const { createdAt, ...rest } = row;
+  return { ...rest, hasOpenRequest: false, bookedDate: wallClockIn(DISPLAY_TIME_ZONE, createdAt).date };
 }
 
 /** Everything this client has asked for, newest first. */

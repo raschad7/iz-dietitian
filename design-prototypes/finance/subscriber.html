@@ -1,0 +1,502 @@
+<!doctype html>
+<!--
+  Standalone prototype — no production code is touched.
+  The subscriber's financial file. Production route would be
+  /{locale}/app/finance/[clientId], composed from shared primitives.
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>إنزيم — الملف المالي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Readex+Pro:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="finance.css" />
+</head>
+<body>
+
+<!--
+  Shared icon sprite. Every page inlines this block verbatim — these are
+  standalone files with no build step, so there is nothing to include with.
+  Glyphs are the Lucide shapes the app already uses through `src/lib/icons.ts`.
+-->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <g id="i-dash" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></g>
+  <g id="i-users" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></g>
+  <g id="i-calendar" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></g>
+  <g id="i-plans" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H9a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1Z"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M8 12h8M8 16h5"/></g>
+  <g id="i-dish" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h1a2 2 0 0 0 2-2V2M6 2v20"/><path d="M18 2v20M18 12c2 0 3-1.5 3-4V2"/></g>
+  <g id="i-wallet" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5"/><path d="M17 13h.01"/></g>
+  <g id="i-settings" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.35.4.65.73.85"/></g>
+  <g id="i-trend" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m22 7-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/></g>
+  <g id="i-clock" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></g>
+  <g id="i-alert" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></g>
+  <g id="i-wa" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.5 8.5 0 0 1-3.9-.9L3 20.5l1.5-4.5A8.4 8.4 0 0 1 3.6 11.5a8.4 8.4 0 0 1 8.4-8.4 8.4 8.4 0 0 1 9 8.4Z"/></g>
+  <g id="i-plus" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></g>
+  <g id="i-check" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></g>
+  <g id="i-search" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></g>
+  <g id="i-moon" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></g>
+  <g id="i-receipt" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2.5-1.5L9 22l2.5-1.5L14 22l2.5-1.5L19 22V2l-2.5 1.5L14 2l-2.5 1.5L9 2 6.5 3.5 4 2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></g>
+  <g id="i-cash" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></g>
+  <g id="i-chev" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></g>
+  <g id="i-back" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></g>
+  <g id="i-info" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></g>
+  <g id="i-package" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></g>
+  <g id="i-trash" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></g>
+  <g id="i-refresh" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></g>
+  <g id="i-inbox" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/></g>
+</defs></svg>
+
+<div class="shell">
+
+  <nav class="rail" aria-label="التنقل الرئيسي">
+    <div class="rail-head">
+      <svg class="rail-mark" viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M16 3c7 0 13 5.6 13 12.5S23 28 16 28 3 22.4 3 15.5 9 3 16 3Z" fill="#75CF48"/>
+        <circle cx="12" cy="14" r="2.1" fill="#266805"/><circle cx="19" cy="18" r="2.1" fill="#266805"/>
+      </svg>
+      <span class="rail-word">إنزيم</span>
+    </div>
+    <div class="rail-nav">
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-dash"/></svg><span data-en="Dashboard">لوحة التحكم</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-users"/></svg><span data-en="Clients">العملاء</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-calendar"/></svg><span data-en="Calendar">التقويم</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-plans"/></svg><span data-en="Weekly plans">الخطط الأسبوعية</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-dish"/></svg><span data-en="Dish catalog">كتالوج الأطباق</span></a>
+      <a class="rail-item" href="index.html" aria-current="page">
+        <svg viewBox="0 0 24 24"><use href="#i-wallet"/></svg>
+        <span data-en="Finance">الأمور المالية</span>
+        <em class="rail-count" style="font-style:normal">2</em>
+      </a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-inbox"/></svg><span data-en="Requests">الطلبات</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-settings"/></svg><span data-en="Settings">الإعدادات</span></a>
+    </div>
+    <div class="rail-foot">
+      <div class="rail-user">
+        <span class="avatar">د</span>
+        <span class="stack">
+          <span class="t-label" data-en="Dr. Duaa">د. دعاء</span>
+          <span class="t-caption" data-en="Dietitian">أخصائية تغذية</span>
+        </span>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main">
+
+    <div class="topbar">
+      <a class="btn btn--neutral-ghost btn--sm btn--icon" href="index.html"
+         aria-label="رجوع إلى الأمور المالية" data-en-label="Back to finance">
+        <svg viewBox="0 0 24 24"><use href="#i-back"/></svg>
+      </a>
+      <span class="t-label muted">
+        <a href="index.html" data-en="Finance">الأمور المالية</a>
+        <span aria-hidden="true"> / </span>
+        <span data-en="Suha Najjar">سُهى النجار</span>
+      </span>
+      <span class="grow"></span>
+      <div class="segmented" role="tablist" aria-label="اللغة">
+        <button data-locale-btn="ar" role="tab" aria-selected="true">ع</button>
+        <button data-locale-btn="en" role="tab" aria-selected="false">EN</button>
+      </div>
+      <button class="btn btn--neutral btn--icon btn--sm" data-theme-toggle
+              aria-label="الوضع الداكن" data-en-label="Dark mode">
+        <svg viewBox="0 0 24 24"><use href="#i-moon"/></svg>
+      </button>
+    </div>
+
+    <main class="page">
+
+      <div class="page-head">
+        <div class="row grow" style="flex-wrap:nowrap;align-items:flex-start">
+          <span class="avatar avatar--lg">س</span>
+          <div class="stack" style="min-inline-size:0">
+            <h1 class="t-h-lg" data-en="Suha Najjar">سُهى النجار</h1>
+            <div class="row gap-2 mt-1">
+              <span class="badge badge--medical" data-en="Overdue">متأخر</span>
+              <span class="t-caption" dir="ltr">+970 59 812 4470</span>
+            </div>
+          </div>
+        </div>
+        <div class="page-actions">
+          <a class="btn btn--neutral" href="#"
+             data-en="Clinical profile">الملف السريري</a>
+          <button class="btn btn--neutral" data-open="dlg-remind">
+            <svg viewBox="0 0 24 24"><use href="#i-wa"/></svg>
+            <span data-en="Remind">تذكير</span>
+          </button>
+          <button class="btn btn--default" data-open="dlg-payment">
+            <svg viewBox="0 0 24 24"><use href="#i-cash"/></svg>
+            <span data-en="Record payment">تسجيل دفعة</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="callout callout--medical">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><use href="#i-alert"/></svg>
+        <div data-en="150 ₪ has been outstanding since 5 August — 18 days. One reminder was sent on 14 August.">
+          150 ₪ متبقية منذ 5 آب — 18 يوماً. أُرسل تذكير واحد في 14 آب.
+        </div>
+      </div>
+
+      <div class="split section" style="margin-block-start:18px">
+
+        <!-- ── The subscription itself ──────────────────────────────── -->
+        <div class="stack gap-4">
+
+          <div class="card card--flagged">
+            <div class="card-head">
+              <div class="grow">
+                <h2 class="t-h-sm" data-en="Current subscription">الاشتراك الحالي</h2>
+                <p class="t-caption mt-1" data-en="Monthly · 5 Aug – 4 Sep 2026">شهري · 5 آب – 4 أيلول 2026</p>
+              </div>
+              <span class="badge badge--medical" data-en="Overdue">متأخر</span>
+            </div>
+
+            <div class="card-body">
+
+              <div class="row-between" style="align-items:flex-end">
+                <div class="stack">
+                  <span class="t-caption" data-en="Outstanding balance">المبلغ المتبقي</span>
+                  <span class="big-money" style="color:var(--status-medical-fg)">150<span class="unit">₪</span></span>
+                </div>
+                <div class="stack text-end">
+                  <span class="t-caption" data-en="Agreed price">السعر المتفق</span>
+                  <span class="t-body-lg">
+                    <span class="money-was">180</span><b class="money">150 ₪</b>
+                  </span>
+                  <span class="t-caption" data-en="30 ₪ student discount">خصم طالبة 30 ₪</span>
+                </div>
+              </div>
+
+              <div class="progress progress--medical mt-4" role="img"
+                   aria-label="مدفوع 0 من 150 شيكل" data-en-label="0 of 150 ₪ paid">
+                <i style="inline-size:0%"></i>
+              </div>
+              <div class="row-between mt-1">
+                <span class="t-caption" data-en="Paid 0 ₪">مدفوع 0 ₪</span>
+                <span class="t-caption" data-en="of 150 ₪">من 150 ₪</span>
+              </div>
+
+              <div class="divider"></div>
+
+              <dl style="margin:0">
+                <div class="kv">
+                  <dt data-en="Payment due">استحقاق الدفع</dt>
+                  <dd style="color:var(--status-medical-fg)">5 آب <span class="t-caption" style="color:inherit" data-en="· 18 days ago">· قبل 18 يوماً</span></dd>
+                </div>
+                <div class="kv">
+                  <dt data-en="Visits used">الزيارات المستهلكة</dt>
+                  <dd>
+                    <span class="row gap-2" style="justify-content:flex-end">
+                      <span class="pips"><i class="pip used"></i><i class="pip used"></i><i class="pip used"></i><i class="pip next"></i></span>
+                      3 / 4
+                    </span>
+                  </dd>
+                </div>
+                <div class="kv">
+                  <dt data-en="Plans published">الخطط المنشورة</dt>
+                  <dd>3 / 4</dd>
+                </div>
+                <div class="kv">
+                  <dt data-en="Subscription ends">ينتهي الاشتراك</dt>
+                  <dd>4 أيلول <span class="t-caption" data-en="· in 12 days">· بعد 12 يوماً</span></dd>
+                </div>
+              </dl>
+
+              <p class="hint mt-3" data-en="The visit counter follows completed appointments in the calendar — it is not typed in here.">
+                عدّاد الزيارات يتبع المواعيد المكتملة في التقويم — لا يُكتب هنا يدوياً.
+              </p>
+            </div>
+
+            <div class="card-foot">
+              <button class="btn btn--sm btn--default" data-open="dlg-payment" data-en="Record payment">تسجيل دفعة</button>
+              <button class="btn btn--sm btn--neutral" data-open="dlg-remind">
+                <svg viewBox="0 0 24 24"><use href="#i-wa"/></svg><span data-en="Remind">تذكير</span>
+              </button>
+              <button class="btn btn--sm btn--neutral-ghost" data-en="Edit subscription">تعديل الاشتراك</button>
+            </div>
+          </div>
+
+          <!-- ── Ledger tabs ────────────────────────────────────────── -->
+          <div class="card">
+            <div class="ptabs" data-tabs role="tablist" aria-label="سجلات المشترك" style="padding-inline:20px">
+              <button data-tab="tab-payments" role="tab" aria-selected="true" data-en="Payments">الدفعات</button>
+              <button data-tab="tab-reminders" role="tab" aria-selected="false" data-en="Reminders">التذكيرات</button>
+              <button data-tab="tab-history" role="tab" aria-selected="false" data-en="Past subscriptions">اشتراكات سابقة</button>
+            </div>
+
+            <!-- Payments -->
+            <div class="card-body" id="tab-payments" role="tabpanel">
+              <div class="empty">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><use href="#i-receipt"/></svg>
+                <p class="t-body" data-en="No payment on this subscription yet.">لا توجد دفعة على هذا الاشتراك بعد.</p>
+                <p class="t-caption" data-en="The full 150 ₪ is still outstanding.">كامل الـ 150 ₪ ما زالت متبقية.</p>
+                <button class="btn btn--sm btn--soft mt-2" data-open="dlg-payment" data-en="Record the first payment">تسجيل أول دفعة</button>
+              </div>
+            </div>
+
+            <!-- Reminders -->
+            <div class="card-body" id="tab-reminders" role="tabpanel" hidden>
+              <div class="timeline">
+                <div class="tl-item">
+                  <div class="tl-rail"><span class="tl-mark tl-mark--wa"><svg viewBox="0 0 24 24"><use href="#i-wa"/></svg></span></div>
+                  <div class="tl-body">
+                    <div class="row-between">
+                      <span class="t-label" data-en="Reminder sent">أُرسل تذكير</span>
+                      <span class="t-caption">14 آب · 10:24</span>
+                    </div>
+                    <span class="t-caption" data-en="By Dr. Duaa · delivered">بواسطة د. دعاء · وصلت</span>
+                    <div class="wa-preview mt-2" dir="rtl">مرحباً سُهى 🌿
+تذكير ودّي من عيادة إنزيم للتغذية.
+
+الاشتراك: اشتراك شهري
+المتبقي: 150 ₪
+تاريخ الاستحقاق: 5 آب
+مرّ على تاريخ الاستحقاق 9 أيام.
+
+يسعدنا استلام الدفعة في زيارتك القادمة، أو عبر التحويل البنكي.
+شكراً لكِ 💚</div>
+                  </div>
+                </div>
+              </div>
+              <p class="hint mt-3" data-en="The exact wording of every reminder is kept, so a later dispute can be read rather than remembered.">
+                يُحفظ نص كل تذكير كما أُرسل، فيمكن قراءته لاحقاً بدل تذكّره.
+              </p>
+            </div>
+
+            <!-- Past subscriptions -->
+            <div class="card-body" id="tab-history" role="tabpanel" hidden>
+              <div class="table-root">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th data-en="Period">الفترة</th>
+                      <th data-en="Package">الباقة</th>
+                      <th class="num" data-en="Price">السعر</th>
+                      <th class="num" data-en="Paid">المدفوع</th>
+                      <th data-en="Visits">الزيارات</th>
+                      <th data-en="Status">الحالة</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>4 تموز – 3 آب</td>
+                      <td data-en="Monthly">شهري</td>
+                      <td class="num"><span class="money">180</span></td>
+                      <td class="num"><span class="money">180</span></td>
+                      <td>4 / 4</td>
+                      <td><span class="badge badge--onTrack" data-en="Settled">مسدَّد</span></td>
+                    </tr>
+                    <tr>
+                      <td>2 حزيران – 1 تموز</td>
+                      <td data-en="Monthly">شهري</td>
+                      <td class="num"><span class="money">180</span></td>
+                      <td class="num"><span class="money">180</span></td>
+                      <td>4 / 4</td>
+                      <td><span class="badge badge--onTrack" data-en="Settled">مسدَّد</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p class="hint mt-3" data-en="Each row keeps the price it was sold at. Changing the package price today does not reach them.">
+                كل صف يحتفظ بالسعر الذي بيع به. تغيير سعر الباقة اليوم لا يصل إليها.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Side rail ────────────────────────────────────────────── -->
+        <div class="stack gap-4">
+
+          <div class="card">
+            <div class="card-head"><h2 class="t-h-sm grow" data-en="Lifetime">الإجمالي التراكمي</h2></div>
+            <div class="card-body">
+              <dl style="margin:0">
+                <div class="kv"><dt data-en="Subscriptions">اشتراكات</dt><dd>3</dd></div>
+                <div class="kv"><dt data-en="Paid to date">مدفوع حتى اليوم</dt><dd>360 ₪</dd></div>
+                <div class="kv"><dt data-en="Outstanding">متبقٍ</dt><dd class="money money--late">150 ₪</dd></div>
+                <div class="kv"><dt data-en="Visits attended">زيارات حضرتها</dt><dd>11</dd></div>
+                <div class="kv"><dt data-en="Client since">عميلة منذ</dt><dd>2 حزيران 2026</dd></div>
+              </dl>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h2 class="t-h-sm grow" data-en="Activity">النشاط</h2></div>
+            <div class="card-body">
+              <div class="timeline">
+                <div class="tl-item">
+                  <div class="tl-rail"><span class="tl-mark tl-mark--visit"><svg viewBox="0 0 24 24"><use href="#i-calendar"/></svg></span><span class="tl-line"></span></div>
+                  <div class="tl-body">
+                    <span class="t-label" data-en="Visit 3 of 4">الزيارة 3 من 4</span>
+                    <div class="t-caption" data-en="19 Aug · completed in the calendar">19 آب · اكتملت في التقويم</div>
+                  </div>
+                </div>
+                <div class="tl-item">
+                  <div class="tl-rail"><span class="tl-mark tl-mark--wa"><svg viewBox="0 0 24 24"><use href="#i-wa"/></svg></span><span class="tl-line"></span></div>
+                  <div class="tl-body">
+                    <span class="t-label" data-en="Payment reminder">تذكير بالدفع</span>
+                    <div class="t-caption" data-en="14 Aug · sent by Dr. Duaa">14 آب · أرسلتها د. دعاء</div>
+                  </div>
+                </div>
+                <div class="tl-item">
+                  <div class="tl-rail"><span class="tl-mark tl-mark--visit"><svg viewBox="0 0 24 24"><use href="#i-calendar"/></svg></span><span class="tl-line"></span></div>
+                  <div class="tl-body">
+                    <span class="t-label" data-en="Visit 2 of 4">الزيارة 2 من 4</span>
+                    <div class="t-caption" data-en="12 Aug · completed">12 آب · اكتملت</div>
+                  </div>
+                </div>
+                <div class="tl-item">
+                  <div class="tl-rail"><span class="tl-mark tl-mark--visit"><svg viewBox="0 0 24 24"><use href="#i-calendar"/></svg></span><span class="tl-line"></span></div>
+                  <div class="tl-body">
+                    <span class="t-label" data-en="Visit 1 of 4">الزيارة 1 من 4</span>
+                    <div class="t-caption" data-en="5 Aug · completed">5 آب · اكتملت</div>
+                  </div>
+                </div>
+                <div class="tl-item">
+                  <div class="tl-rail"><span class="tl-mark"><svg viewBox="0 0 24 24"><use href="#i-package"/></svg></span></div>
+                  <div class="tl-body">
+                    <span class="t-label" data-en="Subscription created">أُنشئ الاشتراك</span>
+                    <div class="t-caption" data-en="5 Aug · Monthly at 150 ₪ (30 ₪ discount)">5 آب · شهري بـ 150 ₪ (خصم 30 ₪)</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ══ Dialog: record a payment ══════════════════════════════════════ -->
+<dialog id="dlg-payment" aria-labelledby="dlg-payment-title" data-due="150">
+  <form class="dlg" id="payment-form" method="dialog">
+    <div class="dlg-head">
+      <span class="avatar">س</span>
+      <div class="grow">
+        <h2 class="t-h-sm" id="dlg-payment-title" data-en="Record a payment">تسجيل دفعة</h2>
+        <p class="t-caption" data-en="Suha Najjar · Monthly">سُهى النجار · شهري</p>
+      </div>
+    </div>
+
+    <div class="dlg-body">
+      <div class="card card--tile">
+        <div class="card-body" style="padding:14px 16px">
+          <dl style="margin:0">
+            <div class="kv"><dt data-en="Agreed price">السعر المتفق</dt><dd>150 ₪</dd></div>
+            <div class="kv"><dt data-en="Paid so far">المدفوع حتى الآن</dt><dd>0 ₪</dd></div>
+            <div class="kv"><dt data-en="Balance now">المتبقي الآن</dt><dd class="money money--late">150 ₪</dd></div>
+          </dl>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="pay-amount" data-en="Amount (₪)">المبلغ (₪)</label>
+        <div class="row gap-2" style="flex-wrap:nowrap">
+          <input class="input num grow" id="pay-amount" type="number" min="1" max="150" step="1"
+                 inputmode="numeric" placeholder="0" required />
+          <button class="btn btn--neutral" type="button" data-pay-all data-en="Full balance">كامل المتبقي</button>
+        </div>
+        <p class="hint" data-en="Partial payments are fine — the balance is recalculated, never overwritten.">
+          الدفعة الجزئية مقبولة — المتبقي يُعاد حسابه ولا يُكتب فوقه.
+        </p>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="pay-date" data-en="Payment date">تاريخ الدفع</label>
+          <input class="input" id="pay-date" type="date" value="2026-08-23" />
+        </div>
+        <div class="field">
+          <label for="pay-method" data-en="Method">الطريقة</label>
+          <select class="select" id="pay-method">
+            <option data-en="Cash">نقداً</option>
+            <option data-en="Bank transfer">تحويل بنكي</option>
+            <option data-en="Wallet">محفظة إلكترونية</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="pay-ref" data-en="Reference (optional)">المرجع (اختياري)</label>
+        <input class="input mono" id="pay-ref" placeholder="4471" />
+      </div>
+
+      <div class="field">
+        <label for="pay-note" data-en="Note (optional)">ملاحظة (اختياري)</label>
+        <textarea class="textarea" id="pay-note" rows="2" placeholder="استلمتها في الزيارة"></textarea>
+      </div>
+
+      <div class="callout">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><use href="#i-info"/></svg>
+        <div>
+          <span data-en="Balance after this payment:">المتبقي بعد هذه الدفعة:</span>
+          <b class="money money--due" data-bind-after>150 ₪</b>
+          <div class="t-caption mt-1" data-bind-settles hidden
+               data-en="This settles the subscription — its status becomes Settled.">
+            بهذه الدفعة يُسدَّد الاشتراك بالكامل وتتحوّل حالته إلى «مسدَّد».
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dlg-foot">
+      <button class="btn btn--neutral" type="button" data-close data-en="Cancel">إلغاء</button>
+      <button class="btn btn--default" type="submit" data-en="Save payment">حفظ الدفعة</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ══ Dialog: WhatsApp reminder ═════════════════════════════════════ -->
+<dialog id="dlg-remind" aria-labelledby="dlg-remind-title">
+  <div class="dlg">
+    <div class="dlg-head">
+      <span class="avatar">س</span>
+      <div class="grow">
+        <h2 class="t-h-sm" id="dlg-remind-title" data-en="Payment reminder">تذكير بالدفع</h2>
+        <p class="t-caption">سُهى النجار · WhatsApp</p>
+      </div>
+    </div>
+    <div class="dlg-body">
+      <div class="callout callout--attention">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><use href="#i-clock"/></svg>
+        <div data-en="A reminder already went out on 14 August. This would be the second.">
+          سبق أن أُرسل تذكير في 14 آب. هذا سيكون الثاني.
+        </div>
+      </div>
+      <div class="field">
+        <span class="t-label" data-en="Message preview">معاينة الرسالة</span>
+        <div class="wa-preview" dir="rtl">مرحباً سُهى 🌿
+تذكير ودّي من عيادة إنزيم للتغذية.
+
+الاشتراك: اشتراك شهري
+المتبقي: 150 ₪
+تاريخ الاستحقاق: 5 آب
+مرّ على تاريخ الاستحقاق 18 يوماً.
+
+يسعدنا استلام الدفعة في زيارتك القادمة، أو عبر التحويل البنكي.
+شكراً لكِ 💚</div>
+        <p class="hint">
+          <span data-en="Edit the default wording in">لتعديل الصيغة الافتراضية:</span>
+          <a href="packages.html" style="color:var(--green-700);font-weight:600"
+             data-en="Packages &amp; messages">الباقات والرسائل</a>
+        </p>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn btn--neutral" data-close data-en="Cancel">إلغاء</button>
+      <button class="btn btn--default" data-send-reminder>
+        <svg viewBox="0 0 24 24"><use href="#i-wa"/></svg>
+        <span data-en="Send on WhatsApp">إرسال عبر واتساب</span>
+      </button>
+    </div>
+  </div>
+</dialog>
+
+<script src="finance.js"></script>
+</body>
+</html>

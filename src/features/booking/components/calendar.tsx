@@ -27,8 +27,9 @@ import {
   formatMinute,
   formatWeekday,
 } from '../format';
-import { hasEnded, isCompleted, localWallClock } from '../completed';
+import { hasEnded, localWallClock, type WallClock } from '../completed';
 import { PX_PER_SLOT, minuteToY } from '../geometry';
+import { covers, loadedRangeFor, rangeFor } from '../range';
 import { type CalendarView, type NewClientInput } from '../schema';
 import { type ActionErrorKey, type CalendarAppointment, type CalendarClient } from '../types';
 import { useCalendarClock } from '../use-calendar-clock';
@@ -38,6 +39,7 @@ import { isWorkingDay, type ClinicHours, type ExistingAppointment } from '../val
 import { AppointmentDialog } from './appointment-dialog';
 import { CalendarToolbar } from './calendar-toolbar';
 import { CalendarViewGuard } from './calendar-view-guard';
+import { rememberCalendar } from './calendar-snapshot-store';
 import { ClientPicker, type PendingBooking } from './client-picker';
 import { DayColumn } from './day-column';
 import { MonthView } from './month-view';
@@ -185,6 +187,21 @@ function verticalScrollbarWidth(): number {
  *
  * Keep the inline halves in step with the layout's padding.
  */
+/**
+ * `PrefetchKind.FULL`, written out rather than imported.
+ *
+ * Next's enum for this lives at
+ * `next/dist/client/components/router-reducer/router-reducer-types` and is
+ * exported from no public entry point, so importing it would pin this file to
+ * an internal path that can move in a patch release. The runtime value is the
+ * string below — the enum is a string enum — and the cast is only what
+ * TypeScript needs to accept a literal where it wants the enum member.
+ *
+ * See `prefetchView`, the one caller, for why the default `auto` kind is not
+ * enough here.
+ */
+const FULL_PREFETCH = 'full' as never;
+
 const FULL_BLEED = '-mx-3 h-full md:-mx-5';
 
 /**
@@ -195,9 +212,32 @@ const FULL_BLEED = '-mx-3 h-full md:-mx-5';
  */
 const TOOLBAR_INSET = 'px-3 md:px-5';
 
+/** The clinic-wide calendar's own address — `basePath`'s default. */
+const CLINIC_CALENDAR_PATH = '/app/calendar';
+
 export type CalendarProps = {
   locale: Locale;
   view: CalendarView;
+  /**
+   * The clinic’s wall clock at the moment the page was rendered.
+   *
+   * What makes a finished appointment arrive finished. The shared clock
+   * cannot: it reports `null` until the browser has hydrated and subscribed,
+   * so every block drew itself live on the first paint and a morning’s worth
+   * of them then went grey at once — the reader saw a calendar assert
+   * something and take it back.
+   *
+   * A `WallClock` and not a `Date`, and that is the whole reason this is safe
+   * to render on the server. `{ date, minute }` means the same thing wherever
+   * it is read; a `Date` would be turned into hours by `localWallClock` using
+   * whichever zone the reader is sitting in, which is not the zone the clinic
+   * books in and not the one the server used — two different answers from one
+   * instant, which is a hydration mismatch.
+   *
+   * It is a starting point, not the clock. The moment the real one ticks it
+   * takes over — see `completedIds`.
+   */
+  serverClock: WallClock;
   /** The date the view is built around, `YYYY-MM-DD`. */
   anchorDate: string;
   hours: ClinicHours;
@@ -231,6 +271,18 @@ export type CalendarProps = {
    * several levels up and is not its to reclaim.
    */
   fullBleed?: boolean;
+  /**
+   * Whether this is a redraw of a calendar that is on its way out, rather than
+   * the calendar itself — see `CalendarSnapshot`.
+   *
+   * Frozen, the component draws and does nothing else: it does not record
+   * itself as the frame to redraw next time (it *is* that frame), and it leaves
+   * `CalendarViewGuard` off, because a guard that answers a too-narrow screen
+   * with `router.replace` would be a placeholder navigating on the reader's
+   * behalf while they wait. The snapshot is `inert` as well, so nothing inside
+   * it can be reached; this is about the effects it would run unasked.
+   */
+  frozen?: boolean;
 };
 
 type OptimisticAction =
@@ -244,20 +296,33 @@ type PendingMove = { appointment: CalendarAppointment; next: BookingRequest };
 export function Calendar({
   locale,
   view,
+  serverClock,
   anchorDate,
   hours,
   appointments,
   clients,
-  basePath = '/app/calendar',
+  basePath = CLINIC_CALENDAR_PATH,
   allowNewClient: allowNewClientProp,
   hideSearch = false,
   fullBleed = true,
+  frozen = false,
 }: CalendarProps) {
   const t = useTranslations('booking');
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [isPending, startTransition] = useTransition();
+  /*
+    Only the setter is taken. The pending flag used to dim the grid a tenth
+    while a navigation was in flight; a view change redraws the panel from the
+    appointments in hand now (see `canDrawPending`), before any navigation is
+    in flight to dim for, and a date change is not worth a flicker, so
+    nothing reads it. The transition itself still matters — it is what lets
+    `applyOptimistic` hold while an appointment write is in flight — those
+    callbacks `await` the action, so the transition is pending for as long as
+    the write is. It is not what moves the view thumb; see `requestedView` for
+    why that could never have worked.
+  */
+  const [, startTransition] = useTransition();
   const now = useCalendarClock();
 
   /**
@@ -302,6 +367,112 @@ export function Calendar({
     },
   );
 
+  /**
+   * The view that has been asked for and has not arrived yet, or null.
+   *
+   * Day, week and month are one route told apart by `?view=`, so switching is a
+   * same-route navigation: this component stays mounted, the server re-runs and
+   * hands back the new `view` prop. Something has to stand in for that prop in
+   * the meantime, or pressing a tab does nothing at all until the server
+   * answers.
+   *
+   * ⚠ **This was `useOptimistic`, and `useOptimistic` could not work here.** An
+   * optimistic value only holds while the transition it was set in is pending,
+   * and `startTransition(() => router.push(href))` is pending for no time at
+   * all: the callback hands the navigation to the router and returns, so React
+   * ends the transition in the same tick and the value snaps back before the
+   * browser paints. Measured on a switch whose server render took 1707ms:
+   * `isPending` was `false` and the optimistic view was still `week` for the
+   * whole of it. Nothing on screen moved — not the thumb, not the grid — which
+   * is why pressing a tab read as the app having ignored you.
+   *
+   * (The `useOptimistic` beside this one, for appointment writes, is fine and
+   * must stay: those transitions wrap an `await`ed server action, so they are
+   * genuinely pending for the length of the write.)
+   *
+   * Plain state has no such dependency. It records the view asked for *and* the
+   * one it was asked from, and `pendingRequest` below reads the second of those
+   * to know when the request has expired — so nothing has to clear it.
+   */
+  const [requestedView, setRequestedView] = useState<{
+    target: CalendarView;
+    from: CalendarView;
+    /**
+     * The date the request carries. The same anchor for a tab press — a view
+     * switch moves how much you see, not when — but the month's own "open this
+     * day" moves both at once, and the panel below has to draw the day that was
+     * clicked rather than the one the month happened to be anchored to.
+     */
+    date: string;
+  } | null>(null);
+
+  /**
+   * The request still in flight, or null once the screen has answered it.
+   *
+   * The request records which view it was made *from*, and that is what expires
+   * it: the moment `view` is anything other than that, the request is history
+   * and this is null. No effect clears it and there is nothing to reset — which
+   * is the point, because a `useEffect` calling `setState` is a cascading render
+   * and the lint rule that forbids it is right.
+   *
+   * Keying on the origin rather than on the destination is what makes the
+   * awkward case correct too: `CalendarViewGuard` can answer a request for the
+   * month with the day, on a screen too narrow for a month grid. The request
+   * still expires, because `view` still moved.
+   */
+  const pendingRequest =
+    requestedView !== null && requestedView.from === view && requestedView.target !== view
+      ? requestedView
+      : null;
+
+  /**
+   * ── Why a view switch waits for nothing ──
+   *
+   * The span the server reads does not depend on the view: it is the month grid
+   * around the anchor whichever of the three is on, and that grid holds every
+   * day and every week inside it — see `loadedRangeFor`. So `appointments`
+   * already contains everything a day, a week *or* a month at this anchor would
+   * draw, and moving between them is a re-arrangement of rows in hand rather
+   * than a question for the server.
+   *
+   * This is what that fact is worth in code: the panel steps to the requested
+   * view on the press, complete, with no placeholder and nothing missing. The
+   * navigation still runs behind it — the URL stays shareable, the data still
+   * refreshes, `generateMetadata` still retitles the tab — but by the time it
+   * lands the reader has been looking at the answer for a third of a second and
+   * it changes nothing on screen.
+   *
+   * ⚠ The check is real, not decoration. It is what makes stepping ahead
+   * *correct* rather than merely hopeful: step only where the appointments in
+   * hand cover the span being asked for. With the span the loader reads that is
+   * true of every view switch — and a change that narrowed it would make this
+   * false and fall back to waiting for the server, which is slower and is the
+   * right way to be wrong.
+   */
+  const loadedRange = useMemo(() => loadedRangeFor(anchorDate), [anchorDate]);
+
+  const canDrawPending =
+    pendingRequest !== null && covers(loadedRange, rangeFor(pendingRequest.target, pendingRequest.date));
+
+  /**
+   * The view the screen is speaking about — the one that was asked for if it can
+   * be drawn, otherwise the one that is here.
+   *
+   * The toolbar's thumb reads this, so it moves on the press; the panel draws
+   * it, so the grid moves with the thumb rather than a navigation later.
+   */
+  const shownView = canDrawPending && pendingRequest !== null ? pendingRequest.target : view;
+
+  /**
+   * The date the screen is speaking about, on the same terms.
+   *
+   * All but one of the ways to change view keep the date — you are choosing how
+   * much of it to see, not when. The exception is clicking a day in the month
+   * grid, which asks for a different view *and* a different date; that day is
+   * inside the grid that was loaded, so it too is drawn on the click.
+   */
+  const shownAnchorDate = canDrawPending && pendingRequest !== null ? pendingRequest.date : anchorDate;
+
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   /** The freshly created booking, highlighted briefly. Creating never opens the dialog. */
@@ -341,14 +512,21 @@ export function Calendar({
    * The column floor the view on screen draws with — a week gives its up on a
    * tablet so seven columns fit the width. See `WEEK_DAY_MIN_WIDTH`.
    */
-  const dayMinWidth = view === 'week' ? WEEK_DAY_MIN_WIDTH : DAY_MIN_WIDTH;
+  const dayMinWidth = shownView === 'week' ? WEEK_DAY_MIN_WIDTH : DAY_MIN_WIDTH;
 
-  /** The days this view draws. */
+  /**
+   * The days the panel draws — read off `shownView`, not `view`.
+   *
+   * Everything the reader looks at is keyed to the view being *asked for*, so
+   * that a press changes the whole screen at once instead of moving the tab
+   * thumb now and the grid under it a round trip later. See `canDrawPending`
+   * for why the appointments in hand can always be cut into these columns.
+   */
   const days = useMemo(() => {
-    if (view === 'day') return [anchorDate];
-    if (view === 'week') return eachDay(startOfWeek(anchorDate), 7);
+    if (shownView === 'day') return [shownAnchorDate];
+    if (shownView === 'week') return eachDay(startOfWeek(shownAnchorDate), 7);
     return [];
-  }, [anchorDate, view]);
+  }, [shownAnchorDate, shownView]);
 
   /** The rule inputs: every appointment currently loaded, in validator shape. */
   const existing: ExistingAppointment[] = useMemo(
@@ -366,10 +544,19 @@ export function Calendar({
 
   const existingByDate = useCallback((date: string) => existing.filter((row) => row.date === date), [existing]);
 
-  /** Derived every render from the one shared clock — never stored. */
+  /**
+   * Derived every render — never stored.
+   *
+   * The browser’s clock once it is running, and the clinic’s wall clock as
+   * the page was served until then. Both are a `WallClock`, so the first
+   * paint and the first tick answer the same question the same way and the
+   * only thing that changes between them is the passage of time.
+   */
+  const completedClock = nowClock ?? serverClock;
+
   const completedIds = useMemo(
-    () => new Set(optimisticAppointments.filter((row) => isCompleted(row, now)).map((row) => row.id)),
-    [now, optimisticAppointments],
+    () => new Set(optimisticAppointments.filter((row) => hasEnded(row, completedClock)).map((row) => row.id)),
+    [completedClock, optimisticAppointments],
   );
 
   /** Search dims rather than hides, so the day's shape stays recognisable. */
@@ -392,15 +579,120 @@ export function Calendar({
   const matchId = useScrollToMatch(query, optimisticAppointments, days);
 
   /**
-   * Day, week and month are separate routes, so switching view is a navigation,
-   * not a query-string flip. The date rides along as a search param because it
-   * is a position within a view rather than a different page.
+   * Day, week and month are one route now, told apart by `?view=`, so switching
+   * view is a query-string flip on the same address rather than a jump to
+   * another page — which is what keeps this component mounted across the change,
+   * holding the appointments that let it redraw itself on the press. The date
+   * rides along as the other search param, a position within a view.
+   *
+   * The navigation is what keeps the address shareable and the data fresh. It
+   * is not what puts the new view on screen; `pendingRequest` is, one render
+   * earlier.
    */
-  function navigate(next: { view?: CalendarView; date?: string }): void {
+  function viewHref(next: { view?: CalendarView; date?: string }): string {
     const params = new URLSearchParams(searchParams.toString());
-    params.set('date', next.date ?? anchorDate);
-    router.push(`${basePath}/${next.view ?? view}?${params.toString()}`);
+    params.set('date', next.date ?? shownAnchorDate);
+    params.set('view', next.view ?? shownView);
+    return `${basePath}?${params.toString()}`;
   }
+
+  /**
+   * A view switch the appointments in hand already cover, done without asking
+   * the server anything.
+   *
+   * `canDrawPending` establishes that the grid for *any* of the three at this
+   * anchor is already drawable — the loader reads the month around it, and a
+   * month holds every day and week inside itself. So a view-only press has
+   * nothing to fetch, and the `router.push` behind it was spending a round
+   * trip, a `loading.tsx` and a re-render of the whole page to arrive at the
+   * screen the reader was already looking at. Pressed twice, it did it twice.
+   *
+   * The address still has to move, or a reload lands on the wrong view and
+   * the link in the URL bar is a lie. `history.replaceState` moves it without
+   * a navigation, which is what Next supports it for.
+   *
+   * Built from `window.location` rather than from `viewHref`, which returns a
+   * path with no locale on it — the i18n router adds that. Editing the two
+   * params on the address that is actually shown cannot get the prefix wrong.
+   *
+   * **What this gives up.** The push also refreshed the data and let
+   * `generateMetadata` retitle the tab. Neither is worth a re-render here:
+   * the appointments are already loaded for the whole month, and every write
+   * in the app ends in `revalidatePath`, so nothing goes stale by not asking
+   * again while somebody toggles between two views of one day.
+   */
+  function replaceViewInAddress(target: CalendarView): void {
+    const url = new URL(window.location.href);
+    url.searchParams.set('date', shownAnchorDate);
+    url.searchParams.set('view', target);
+    window.history.replaceState(null, '', url);
+  }
+
+  function navigate(next: { view?: CalendarView; date?: string }): void {
+    const href = viewHref(next);
+
+    /*
+      A request expires when `view` moves off the one it was made from — see
+      `pendingRequest`. A covered switch no longer moves `view` at all, so the
+      press back to the view the page was served with has to clear the request
+      itself. Without this it never expires: the guard below reads
+      `next.view !== view`, which is false for exactly that press, and the
+      stale request kept drawing the view the reader was trying to leave.
+    */
+    if (next.view === view) {
+      setRequestedView(null);
+    } else if (next.view) {
+      setRequestedView({ target: next.view, from: view, date: next.date ?? shownAnchorDate });
+    }
+
+    /* Only a view change, and only when the data for it is in hand. A date
+       change moves outside what was loaded and is a real question for the
+       server; so is a view whose span the loaded range does not cover, which
+       is the same check `canDrawPending` makes before drawing one. */
+    if (
+      next.view !== undefined &&
+      next.date === undefined &&
+      covers(loadedRange, rangeFor(next.view, shownAnchorDate))
+    ) {
+      replaceViewInAddress(next.view);
+      return;
+    }
+
+    router.push(href);
+  }
+
+  /**
+   * Fetch a view before it is asked for, while the pointer is still on its tab.
+   *
+   * ⚠ This no longer has anything to do with how fast the switch feels. The
+   * grid *is* re-cut on the client now — every view at this anchor is drawn
+   * from appointments already loaded (see `loadedRangeFor`), so the press is
+   * answered in its own frame whether this ran or not. What the navigation
+   * behind it still does is refresh the data and retitle the tab, and warming
+   * it on hover keeps that from being a request in flight while the reader
+   * works.
+   *
+   * `kind: 'full'` and not the default. An `auto` prefetch of a dynamic route —
+   * and every staff screen is one — stops at the nearest `loading.tsx`, which
+   * for this route is a grid of grey columns. Prefetching the skeleton would
+   * warm exactly the thing the reader is not waiting for.
+   *
+   * Nothing is prefetched up front. Warming all three views on arrival would be
+   * three renders of a page to serve one, repeated on every press of the date
+   * arrows; hover asks only for the view someone is actually reaching for.
+   * Next dedupes and caches the result, so sweeping across the track fetches
+   * each view once, not once per frame.
+   */
+  const prefetchView = useCallback(
+    (next: CalendarView) => {
+      if (next === shownView) return;
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('date', shownAnchorDate);
+      params.set('view', next);
+      router.prefetch(`${basePath}?${params.toString()}`, { kind: FULL_PREFETCH });
+    },
+    [shownAnchorDate, basePath, router, searchParams, shownView],
+  );
 
   /**
    * The same move, without a history entry — for the view guard.
@@ -416,16 +708,23 @@ export function Calendar({
   const replaceView = useCallback(
     (next: CalendarView) => {
       const params = new URLSearchParams(searchParams.toString());
-      params.set('date', anchorDate);
-      router.replace(`${basePath}/${next}?${params.toString()}`);
+      params.set('date', shownAnchorDate);
+      params.set('view', next);
+      setRequestedView({ target: next, from: view, date: shownAnchorDate });
+      router.replace(`${basePath}?${params.toString()}`);
     },
-    [anchorDate, basePath, router, searchParams],
+    [shownAnchorDate, basePath, router, searchParams, view],
   );
 
-  const step = view === 'month' ? 'month' : view === 'week' ? 7 : 1;
+  const step = shownView === 'month' ? 'month' : shownView === 'week' ? 7 : 1;
 
   function shift(direction: 1 | -1): void {
-    navigate({ date: step === 'month' ? addMonths(anchorDate, direction) : addDays(anchorDate, step * direction) });
+    navigate({
+      date:
+        step === 'month'
+          ? addMonths(shownAnchorDate, direction)
+          : addDays(shownAnchorDate, step * direction),
+    });
   }
 
   /** A create gesture finished. Open the picker; write nothing yet. */
@@ -506,14 +805,35 @@ export function Calendar({
     const preview = gestures.dragPreview;
     if (!preview) return optimisticAppointments;
 
+    /*
+      ── A move preview does not move anything here ──
+
+      It used to: the dragged row was rewritten to the candidate date and slot,
+      and the grid drew the card in its new place while a transform carried the
+      few pixels between one slot and the next.
+
+      Those two halves are applied by different machines on different clocks —
+      the transform during the pointer event, the position whenever React
+      commits — and near a slot boundary they routinely landed in different
+      frames. Each of those frames showed one half without the other, which is a
+      displacement of a whole slot, and a finger resting on a boundary crosses it
+      many times a second. That was the shake, and its amplitude was exactly
+      `pxPerSlot`.
+
+      So while a move is in flight the grid leaves the card where it started and
+      the transform is the whole of the movement — one value, one clock. A resize
+      is a different gesture and keeps its preview: it changes the block's
+      *height*, which no transform is carrying and which cannot disagree with
+      itself.
+
+      What the reader loses is the card sitting in the target column mid-gesture;
+      what they get instead is the chip on the card, which names the time and day
+      it would land on, and the drop tint that says whether it may. Both come
+      from this same preview.
+    */
     return optimisticAppointments.map((row) =>
-      row.id === preview.id
-        ? {
-            ...row,
-            date: preview.date,
-            startMinute: preview.startMinute,
-            durationMinutes: preview.durationMinutes,
-          }
+      row.id === preview.id && row.durationMinutes !== preview.durationMinutes
+        ? { ...row, durationMinutes: preview.durationMinutes }
         : row,
     );
   }, [gestures.dragPreview, optimisticAppointments]);
@@ -532,6 +852,23 @@ export function Calendar({
   const [datesBelowFold, setDatesBelowFold] = useState<readonly { date: string; count: number }[]>(
     [],
   );
+
+  /**
+   * ── There is no view-change animation ──
+   *
+   * The panel below used to play a short fade-and-rise each time the view
+   * changed, driven from here with the Web Animations API. It is gone, and the
+   * grid now simply *is* the new view on the frame the tab is pressed.
+   *
+   * It was there to cover a wait. A switch cost a server round trip, so
+   * something had to happen on the press or the app read as having ignored you,
+   * and a fade is what you reach for when the alternative is a placeholder
+   * appearing out of nothing. Take the round trip away — see `loadedRangeFor`,
+   * which reads the widest span every time, so all three views are already in
+   * hand — and the animation is the only latency left in the interaction: 180ms
+   * of watching the answer arrive instead of having it. A control that responds
+   * in the same frame does not need to be told that it responded.
+   */
 
   /**
    * How wide the timeline's own vertical scrollbar is, in pixels.
@@ -686,10 +1023,14 @@ export function Calendar({
       node.removeEventListener('scroll', schedule);
       observer.disconnect();
     };
-    // `view` alone: the listeners follow the timeline coming and going, and
-    // nothing else. Everything `read` needs arrives through `readInputs`,
+    // `shownView` alone: the listeners follow the timeline coming and going,
+    // and nothing else. It is the *shown* view rather than the loaded one
+    // because that is what decides whether the timeline is on screen — a switch
+    // covered by the appointments in hand mounts the grid on the press, a whole
+    // navigation before `view` catches up, and listeners keyed to `view` would
+    // still be waiting. Everything `read` needs arrives through `readInputs`,
     // precisely so that data changing cannot tear this down and rebuild it.
-  }, [view]);
+  }, [shownView]);
 
   /**
    * Refresh what `read` sees, and ask for a fresh measurement.
@@ -707,6 +1048,24 @@ export function Calendar({
     readInputs.current = { days, previewedAppointments, openMinute: hours.openMinute, pxPerSlot };
     scheduleRead.current();
   });
+
+  /**
+   * Hands the frame to `calendar-snapshot-store`, so the next arrival on this
+   * route redraws the calendar instead of a grey grid. See `CalendarSnapshot`.
+   *
+   * The server's `appointments` rather than `optimisticAppointments`: an
+   * optimistic block is a write that has not been confirmed, and a redraw is
+   * the last thing that should be showing one as though it had been.
+   *
+   * Only the clinic-wide calendar is remembered. The same component is mounted
+   * inside a client's Visit History tab under its own `basePath`, and that
+   * calendar holds one person's appointments — redrawn on `/app/calendar` it
+   * would be a clinic's day with almost everybody missing from it.
+   */
+  useEffect(() => {
+    if (frozen || basePath !== CLINIC_CALENDAR_PATH) return;
+    rememberCalendar({ locale, view, serverClock, anchorDate, hours, appointments, clients });
+  }, [frozen, basePath, locale, view, serverClock, anchorDate, hours, appointments, clients]);
 
   const belowFold = useMemo(
     () => new Map(datesBelowFold.map((entry) => [entry.date, entry.count])),
@@ -952,11 +1311,21 @@ export function Calendar({
    *
    * `days` already is that span for day and week; the month view draws no
    * columns, so its range comes from the anchor's own month.
+   *
+   * ⚠ Read off `shownView`, like everything else the reader looks at. It used
+   * to come from `view`, and that is what made a tab press read as broken: the
+   * thumb slid to Month on the press while the date between the chevrons went
+   * on saying `23 August – 29 August` for the length of the round trip, then
+   * snapped to `1 August – 31 August` when the server answered. Two halves of
+   * one control disagreeing, and then a word changing on its own a third of a
+   * second after the thing that caused it — which reads as a fault rather than
+   * as a wait. The anchor does not move on a view switch, so this span is
+   * knowable on the press; there was never anything to wait for.
    */
   const visibleRange =
-    view === 'month'
-      ? { from: startOfMonth(anchorDate), to: endOfMonth(anchorDate) }
-      : { from: days[0] ?? anchorDate, to: days[days.length - 1] ?? anchorDate };
+    shownView === 'month'
+      ? { from: startOfMonth(shownAnchorDate), to: endOfMonth(shownAnchorDate) }
+      : { from: days[0] ?? shownAnchorDate, to: days[days.length - 1] ?? shownAnchorDate };
 
   /**
    * The picker's label: the first day on screen and the last, both in full.
@@ -976,8 +1345,8 @@ export function Calendar({
    * ends would say the same thing twice.
    */
   const rangeLabel =
-    view === 'day'
-      ? formatLongDate(locale, anchorDate)
+    shownView === 'day'
+      ? formatLongDate(locale, shownAnchorDate)
       : formatLongDateRange(locale, visibleRange.from, visibleRange.to);
 
   return (
@@ -1037,20 +1406,31 @@ export function Calendar({
         `replaceView` rather than `navigate`, so a view the screen cannot show
         never becomes a history entry the Back button bounces off.
       */}
-      <CalendarViewGuard view={view} onFallback={replaceView} />
+      {/* `shownView`, not `view`: a covered switch moves the address without a
+          navigation, so the server prop no longer tracks what is on screen. The
+          guard corrects the grid a reader is *looking at*. */}
+      {frozen ? null : <CalendarViewGuard view={shownView} onFallback={replaceView} />}
 
       <div data-guide="calendar-toolbar" className={cn('pt-4 md:pt-6', contentInset)}>
         <CalendarToolbar
           locale={locale}
-          view={view}
+          // Every part of this row follows the view being *asked for*, so the
+          // whole toolbar moves on the press: the thumb slides, and the date
+          // between the chevrons names the new span at the same moment rather
+          // than changing its mind when the server answers. See `shownView`
+          // and the ⚠ on `visibleRange`.
+          view={shownView}
           rangeLabel={rangeLabel}
-          anchorDate={anchorDate}
+          anchorDate={shownAnchorDate}
           range={visibleRange}
           today={today}
           query={query}
           onQueryChange={setQuery}
           hideSearch={hideSearch}
           onViewChange={(next) => navigate({ view: next })}
+          // Fetch the view under the pointer before it is chosen — see
+          // `prefetchView` for why hover is where this belongs.
+          onViewHover={prefetchView}
           onPrevious={() => shift(-1)}
           onNext={() => shift(1)}
           // Picking a date keeps the current view and moves it there — the
@@ -1089,16 +1469,33 @@ export function Calendar({
         visibly empty, and clicking one to book is the same gesture whether
         there is anything on it or not.
 
-        The month view's note stays, because it says something the grid cannot:
-        that nothing here can be edited.
+        **And the month gets no note.** There was a "this view is read-only,
+        click a day to book" line above the month grid. It was the last piece of
+        furniture that moved: the placeholder below it had no such line, so the
+        whole grid dropped a row when the month landed and rose again on the way
+        out. The line is gone rather than merely moved, because the grid already
+        says it — nothing on it can be dragged, every cell opens the day when
+        clicked — and a caption explaining a view is a thing you read once and
+        then step over on every visit afterwards.
       */}
-      {view === 'month' && (
-        <p className={cn('text-sm text-muted-foreground', contentInset)}>{t('monthReadOnly')}</p>
-      )}
+      {/*
+        One panel, and no placeholder inside it.
 
-      {view === 'month' ? (
+        Every view at this anchor is drawn from the appointments already loaded
+        (see `loadedRangeFor`), so there is nothing to wait for and nothing to
+        stand in for what is coming: pressing a tab re-arranges rows the browser
+        is holding, in the same frame as the press. `CalendarGridSkeleton` is
+        still what `app/calendar/loading.tsx` draws — arriving at the screen
+        from elsewhere is a real wait — but a switch between the three is not.
+
+        A single persistent element rather than keyed content: the timeline's
+        scroll listeners and measurements hang off the grid inside it, and
+        remounting that subtree on every switch would throw away work.
+      */}
+      <div className="flex min-h-0 flex-1 flex-col gap-3">
+        {shownView === 'month' ? (
         <MonthView
-          anchorDate={anchorDate}
+          anchorDate={shownAnchorDate}
           locale={locale}
           hours={hours}
           appointments={optimisticAppointments}
@@ -1137,8 +1534,13 @@ export function Calendar({
             //
             // `relative` on top of that is the positioning context for the
             // overflow cue pinned to this panel's bottom edge.
+            // `isPending` used to dim this by a tenth while a switch was in
+            // flight. A switch redraws this outright, on the press and from the
+            // appointments already loaded — see `canDrawPending` — so the only
+            // thing left for the dim to cover was a date change, where a
+            // barely-visible fade on a grid that is about to shift its range one
+            // week said nothing worth the flicker.
             'relative flex min-h-0 flex-1 flex-col overflow-hidden border-t border-border',
-            isPending && 'opacity-90',
           )}
         >
           {/*
@@ -1233,7 +1635,7 @@ export function Calendar({
                     where there is room to work. The day view's own header is
                     left inert: it would navigate to the page it is already on.
                   */
-                  return view === 'week' ? (
+                  return shownView === 'week' ? (
                     <button
                       key={date}
                       type="button"
@@ -1354,7 +1756,7 @@ export function Calendar({
                         style={{ top: minuteToY(minute, hours.openMinute, pxPerSlot) }}
                         dir="auto"
                       >
-                        {formatHour(locale, anchorDate, minute)}
+                        {formatHour(locale, shownAnchorDate, minute)}
                       </span>
                     );
                   })}
@@ -1382,7 +1784,7 @@ export function Calendar({
                         matchId={matchId}
                         dimmedIds={dimmedIds}
                         completedIds={completedIds}
-                        compactAppointments={view === 'week'}
+                        compactAppointments={shownView === 'week'}
                         pending={gestures.pending}
                         isClosed={closed}
                         isPast={today !== null && date < today}
@@ -1390,10 +1792,24 @@ export function Calendar({
                         onSelect={setSelectedId}
                         onOpen={openAppointment}
                         onMovePointerDown={gestures.beginMovePointerDown}
+                        holdingId={gestures.holdingId}
                         onResizePointerDown={gestures.beginResizePointerDown}
                         dragging={
                           gestures.dragPreview
-                            ? { id: gestures.dragPreview.id, valid: gestures.dragPreview.valid }
+                            ? {
+                                id: gestures.dragPreview.id,
+                                valid: gestures.dragPreview.valid,
+                                /*
+                                  Where it would land. The card itself no longer
+                                  travels in the layout, so this is the only
+                                  thing on screen saying what the drop means —
+                                  which makes the chip part of the gesture
+                                  rather than a decoration on it.
+                                */
+                                date: gestures.dragPreview.date,
+                                startMinute: gestures.dragPreview.startMinute,
+                                durationMinutes: gestures.dragPreview.durationMinutes,
+                              }
                             : null
                         }
                       />
@@ -1456,6 +1872,7 @@ export function Calendar({
           </div>
         </div>
       )}
+      </div>
 
       {pendingBooking && (
         <ClientPicker
@@ -1479,7 +1896,7 @@ export function Calendar({
             calendar still overrides this outright — see `allowNewClient` on
             `CalendarProps`.
           */
-          allowNewClient={allowNewClientProp ?? view !== 'month'}
+          allowNewClient={allowNewClientProp ?? shownView !== 'month'}
           onPick={book}
           // The repeat chosen in the picker travels with the slot, so stepping
           // aside to add the person does not quietly reset it.
@@ -1514,8 +1931,8 @@ export function Calendar({
           onSave={(next) => {
             // Changing the date must move the view too, or the appointment
             // vanishes from a calendar still showing the old week.
-            if (next.date !== anchorDate && view === 'day') navigate({ date: next.date });
-            else if (!days.includes(next.date) && view === 'week') navigate({ date: next.date });
+            if (next.date !== shownAnchorDate && shownView === 'day') navigate({ date: next.date });
+            else if (!days.includes(next.date) && shownView === 'week') navigate({ date: next.date });
             save(next);
           }}
           // Closes the editor and hands the decision to the confirmation below,

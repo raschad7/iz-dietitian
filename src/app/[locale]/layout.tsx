@@ -11,9 +11,12 @@ import {
 } from 'next/font/google';
 import type { ReactNode } from 'react';
 
+import { NavigationProgress } from '@/components/layout/navigation-progress';
 import { DirectionProvider } from '@/components/ui/direction';
+import { KeyboardInset } from '@/components/ui/keyboard-inset';
 import { Toaster } from '@/components/ui/toast';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { SplashLaunchGate } from '@/features/brand/splash-launch-gate';
 import { InstallPromptCapture } from '@/features/pwa/install-prompt-capture';
 import { resolveLocale } from '@/i18n/params';
 import { getLocaleDirection, routing } from '@/i18n/routing';
@@ -27,9 +30,22 @@ const ibmPlexSans = IBM_Plex_Sans({
   display: 'swap',
 });
 
+/*
+ * The default UI face for *both* locales — `--script-ui-font` at `:root`, which
+ * `:lang(ar)` then overrides with Almarai. So English body text is this, and
+ * Arabic falls back to it while Almarai swaps in.
+ *
+ * 300 is loaded for the same one line Almarai's is: the auth screen's brand
+ * tagline. Without it `font-light` there would match the 400 face on the English
+ * locale and quietly render at normal weight — the class would be a no-op rather
+ * than an error, which is the kind of difference nobody notices until the two
+ * languages are put side by side. Nothing else in the type scale asks for 300;
+ * a browser only fetches the weights a page actually paints, so the file rides
+ * along on the auth screen and nowhere else.
+ */
 const ibmPlexSansArabic = IBM_Plex_Sans_Arabic({
   subsets: ['arabic', 'latin'],
-  weight: ['400', '500', '600', '700'],
+  weight: ['300', '400', '500', '600', '700'],
   variable: '--font-ibm-plex-sans-arabic',
   display: 'swap',
 });
@@ -43,20 +59,26 @@ const ibmPlexSansArabic = IBM_Plex_Sans_Arabic({
  * block in globals.css, so an English page neither downloads it nor
  * references it.
  *
- * **Two real weights, and they cover four.** Almarai ships static 400/700/800
- * files and no variable axis; 500 and 600 have no file of their own, but the
- * CSS font-matching algorithm doesn't fake them — it picks the nearest
- * *already-loaded* face instead. Desired weights at or below 500 search
+ * **Three real weights, and they cover five.** Almarai ships static
+ * 300/400/700/800 files and no variable axis; 500 and 600 have no file of their
+ * own, but the CSS font-matching algorithm doesn't fake them — it picks the
+ * nearest *already-loaded* face instead. Desired weights at or below 500 search
  * downward first, so `font-medium` (500) resolves to the real 400 outlines;
  * desired weights above 500 search upward first, so `font-semibold` (600)
- * resolves to the real 700 outlines. `font-normal` and `font-bold` are exact
- * matches. Nothing is synthesised — see "Synthesised bold" below for why that
- * distinction matters. 800 is not loaded: nothing in the type scale asks for
- * it, so shipping it would be dead weight.
+ * resolves to the real 700 outlines. `font-light` (300), `font-normal` and
+ * `font-bold` are exact matches. Nothing is synthesised — see "Synthesised bold"
+ * below for why that distinction matters. 800 is not loaded: nothing in the type
+ * scale asks for it, so shipping it would be dead weight.
+ *
+ * ⚠ **300 is for atmosphere, never for instruction.** It was added for the auth
+ * screen's brand tagline, which is one decorative line above a form. Arabic
+ * letterforms carry more of their identity in stroke contrast than Latin ones
+ * do, so a 300 face at body sizes gives up real legibility — do not reach for
+ * `font-light` on a label, a field, an error or anything a reader has to act on.
  */
 const almarai = Almarai({
   subsets: ['arabic', 'latin'],
-  weight: ['400', '700'],
+  weight: ['300', '400', '700'],
   variable: '--font-almarai',
   display: 'swap',
   // The Arabic fallback already in the stack, so the swap-in is not a reflow.
@@ -307,6 +329,35 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
       */}
       <body suppressHydrationWarning className="min-h-dvh">
         {/*
+          The launch screen, mounted once for the whole product.
+
+          It used to be mounted three times — both shells and the landing page —
+          which meant it was tied to *where* the reader was rather than to the
+          app starting. A document is loaded on whatever route was last open, so
+          reloading a nested route under `/app` played nothing, while every
+          sign-in and sign-out replayed it because those land on a route that
+          mounts a shell.
+
+          Here it is neither. This layout is the highest thing in either app and
+          it survives every client-side navigation within a locale, so no route
+          change, sign-in or sign-out can replay it, and every route — at any
+          depth, and the installed PWA — is covered without knowing about it.
+
+          `SplashLaunchGate` rather than `SplashScreen` directly: whether a
+          given document load plays the tile at all is decided on the server,
+          from the request's own cache headers, because that is the only place a
+          hard reload can be told apart from a quick one. It renders nothing on
+          the loads that should stay quiet. ⚠ It reads `headers()`, so it makes
+          every route dynamic — see the component, which explains the trade.
+
+          Outside `DirectionProvider` and the theme wrappers deliberately: it is
+          a full-screen `position: fixed` tile that reads `dir` off <html> and
+          paints in brand green in every theme, so it needs nothing either of
+          them provide, and being above them keeps it above the portal's
+          `isolate` stacking context too.
+        */}
+        <SplashLaunchGate locale={locale} />
+        {/*
           Renders nothing. It is mounted from the root layout so that its module
           — which attaches the `beforeinstallprompt` listener at chunk-evaluation
           time, before hydration — is in the initial bundle for every page in
@@ -315,6 +366,30 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
           component for why the tag could not stay.
         */}
         <InstallPromptCapture />
+        {/*
+          Also renders nothing, and mounted here for the same reason: the
+          keyboard inset it publishes is read by `globals.css` on behalf of
+          every dialog, sheet and coarse-pointer popup in both apps, so it has
+          to be above all of them. It writes one custom property on <html> and
+          only ever while a software keyboard is actually open — see the
+          component for why `interactiveWidget: 'resizes-content'` in the
+          viewport export above does not cover iOS.
+        */}
+        <KeyboardInset />
+        {/*
+          Renders nothing at rest, and the third of this group for a reason of
+          its own: it is the one thing on the page that has to survive every
+          navigation in the product, because it is the thing reporting them.
+          Mounted anywhere lower — either shell, a template — it would be
+          unmounted and remounted by the very navigation it was drawing, and the
+          bar would vanish halfway across.
+
+          It watches the address bar and hands the bar to nprogress, which
+          appends `#nprogress` to <body> only for navigations slow enough to be
+          worth reporting. Styled in `globals.css`; armed by the wrapped `Link`
+          and `useRouter` in `@/i18n/navigation`.
+        */}
+        <NavigationProgress />
         {/*
           No floating locale switcher here. The switcher lives in the app bar
           (`Header`) and on the login screens, which is the only place it should

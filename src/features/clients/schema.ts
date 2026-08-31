@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { defaultLocale, locales } from '@/i18n/routing';
+import { type FitRowsBounds } from '@/lib/fit-rows';
 import { isIsoDate, toIsoDate } from '@/lib/iso-date';
 import { splitPhone } from '@/lib/phone-format';
 
@@ -29,8 +30,20 @@ import {
  */
 export const CLIENT_STATUSES = ['active', 'archived'] as const;
 export const CLIENT_SEXES = ['female', 'male'] as const;
-export const CLIENT_GOALS = ['weight_loss', 'weight_gain', 'maintenance', 'medical', 'sports'] as const;
-export const CLIENT_ACTIVITY_LEVELS = ['sedentary', 'light', 'moderate', 'active', 'very_active'] as const;
+export const CLIENT_GOALS = [
+  'weight_loss',
+  'weight_gain',
+  'maintenance',
+  'medical',
+  'sports',
+] as const;
+export const CLIENT_ACTIVITY_LEVELS = [
+  'sedentary',
+  'light',
+  'moderate',
+  'active',
+  'very_active',
+] as const;
 
 export type ClientStatus = (typeof CLIENT_STATUSES)[number];
 export type ClientSex = (typeof CLIENT_SEXES)[number];
@@ -289,10 +302,7 @@ export const intakeSchema = z.object({
       .max(HEIGHT_CM_RANGE.max, 'heightOutOfRange'),
   ),
   goal: z.preprocess(blankToEmpty, z.enum(CLIENT_GOALS, { error: 'required' })),
-  activityLevel: z.preprocess(
-    blankToEmpty,
-    z.enum(CLIENT_ACTIVITY_LEVELS, { error: 'required' }),
-  ),
+  activityLevel: z.preprocess(blankToEmpty, z.enum(CLIENT_ACTIVITY_LEVELS, { error: 'required' })),
 
   /**
    * Current weight, from `client_nutrition_profiles`.
@@ -316,7 +326,8 @@ export const intakeSchema = z.object({
    * is why this coerces before parsing.
    */
   allergenTags: z.preprocess(
-    (value) => (value === undefined || value === null ? [] : Array.isArray(value) ? value : [value]),
+    (value) =>
+      value === undefined || value === null ? [] : Array.isArray(value) ? value : [value],
     z.array(z.enum(ALLERGENS)),
   ),
   /**
@@ -330,7 +341,8 @@ export const intakeSchema = z.object({
    */
   customAllergens: z.preprocess(
     (value) => {
-      const list = value === undefined || value === null ? [] : Array.isArray(value) ? value : [value];
+      const list =
+        value === undefined || value === null ? [] : Array.isArray(value) ? value : [value];
 
       const seen = new Set<string>();
 
@@ -456,14 +468,16 @@ export type ClientSort = (typeof CLIENT_SORTS)[number];
  * thing.
  *
  * **`status` is not one of them any more.** It was in here as a filter value —
- * "Status → All" — which is how an archived client used to be found. Archived
- * clients have their own page now (`/app/clients/archived`), and a *place* is a
- * better answer than a filter for a list you either are or are not looking at:
- * it can be linked to, it can say what it is at the top, and it puts Restore in
- * front of you instead of leaving you to spot which rows are grey. Leaving the
- * filter in as well would be two answers to the same question, and it would let
- * the register mix the two states in one list, where the status column it
- * needed has just been removed for saying "active" on every row.
+ * "Status → All" — which is how an archived client used to be found. It has its
+ * own control now: the toggle in the toolbar, which swaps the whole list
+ * between the register and the archive (`?status=archived`) rather than mixing
+ * the two states into one. That is a better answer than a filter value for a
+ * list you either are or are not looking at — it says what it is in the page
+ * title and it puts Restore in front of you, instead of leaving you to spot
+ * which rows are grey. Leaving the filter in as well would be two answers to
+ * the same question, and it would let the register mix the two states in one
+ * list, where the status column it needed has just been removed for saying
+ * "active" on every row.
  *
  * **`phone` and `email` are not here either, and that leaves one.** They were
  * substring matches on two columns nobody searches a register by: a dietitian
@@ -472,11 +486,11 @@ export type ClientSort = (typeof CLIENT_SORTS)[number];
  * to carry a text input for them and a chooser for the fixed-choice one, and the
  * two branches were most of the control.
  *
- * What is left is two columns, and both answer a question a name cannot: who
- * has a portal login, and where each client stands in the plan period they are
- * currently on. The chooser the popover dropped when this was down to one column
- * is back for exactly the reason it was kept as an array — see
- * `ClientFilterMenu`.
+ * What is left are columns that answer a question a name cannot: who has a
+ * portal login, whether a client has a nutrition plan at all, and where each
+ * client stands in the plan period they are currently on. The chooser the
+ * popover dropped when this was down to one column is back for exactly the
+ * reason it was kept as an array — see `ClientFilterMenu`.
  *
  * ⚠ **One column at a time, still.** The second filter is a second *answer* to
  * "which question am I asking", not a second row stacked under the first. A pair
@@ -487,7 +501,50 @@ export type ClientSort = (typeof CLIENT_SORTS)[number];
  * An old link carrying `filterBy=phone` fails the enum and `.catch()` drops it,
  * which shows the register unfiltered rather than erroring.
  */
-export const CLIENT_FILTERS = ['portalAccess', 'weeklyProgress'] as const;
+/**
+ * The register's own columns — who this person is to the clinic.
+ *
+ * Neither of them is a question about money, which is why Bills does not offer
+ * them: see {@link BILLS_FILTERS}.
+ */
+export const REGISTER_FILTERS = ['portalAccess', 'weeklyProgress', 'plan'] as const;
+
+/**
+ * The Bills screen's columns, and only its columns.
+ *
+ * Bills lists the same people as the register and is read for a different
+ * reason, so it filters on different things. Portal access and weekly progress
+ * are not questions anyone asks of a ledger, and the two columns on that table
+ * a reader *does* narrow by are the two non-numeric ones:
+ *
+ * - `paymentStatus` — the chip closing every row: paid, part-paid, unpaid, or
+ *   nothing billed yet. The screen's whole question is who owes
+ *   what, and this is the column that answers it.
+ * - `subscription` — where their term stands, which is the other column on that
+ *   table carrying a state rather than a figure, and the one a renewal chase
+ *   starts from.
+ *
+ * The three money columns are deliberately absent. A filter over an amount is a
+ * *range* — "owing more than", "between" — which is a second control, a number
+ * to type and a unit to get wrong, and the table already sorts by every one of
+ * them: a reader after the largest debts sorts on Debt and reads down the page.
+ * `paymentStatus` is the useful part of that question with nothing to type.
+ *
+ * The name is not here either, for the reason it never is: it is the search
+ * field beside this control.
+ */
+export const BILLS_FILTERS = ['paymentStatus', 'subscription'] as const;
+
+/**
+ * Every column any register-shaped screen can filter on.
+ *
+ * One enum, because one URL: both screens are `listClients` with the same
+ * parameters, and a link carrying a Bills filter should fail the same way a
+ * link carrying a dead one does — `.catch()` drops it and the list shows
+ * unfiltered — rather than throwing on the screen that does not offer it.
+ * Which subset each screen *shows* is the popover's business, not the schema's.
+ */
+export const CLIENT_FILTERS = [...REGISTER_FILTERS, ...BILLS_FILTERS] as const;
 export type ClientFilter = (typeof CLIENT_FILTERS)[number];
 
 /** What `portalAccess` filters on: the client has a portal login, or has not. */
@@ -519,11 +576,107 @@ export const PORTAL_ACCESS_VALUES = ['yes', 'no'] as const;
 export const WEEKLY_PROGRESS_VALUES = ['reported', 'notReported', 'noPlan'] as const;
 export type WeeklyProgressFilterValue = (typeof WEEKLY_PROGRESS_VALUES)[number];
 
+/**
+ * What `paymentStatus` filters on — the chip the Bills row ends with.
+ *
+ * Four of the five values `paymentStatus` in `features/billing/money.ts`
+ * produces, in the order a reader wants them rather than the order that module
+ * declares them: the two that are owed money lead, because that is what the
+ * screen is opened for, and `none` — nothing billed yet — comes last as the
+ * absence it is.
+ *
+ * ⚠ `credit` — paid past what was charged — is the fifth, and this filter does
+ * not offer it. The chip still draws it, because a row in credit has to say so;
+ * what the select loses is an answer nobody opens this screen to ask. The
+ * ledger is read for who owes. A URL naming `credit` filters nothing, the same
+ * way any other unknown value does.
+ *
+ * ⚠ Spelled out here rather than imported from `money.ts` so the register's
+ * schema does not depend on the billing feature; `filter.paymentStatus.*` in
+ * the catalogues has to cover every one of them, and `BILLS_FILTER_VALUES`
+ * below is checked against the union that module exports at the one place that
+ * reads both.
+ */
+export const PAYMENT_STATUS_VALUES = ['unpaid', 'partial', 'paid', 'none'] as const;
+export type PaymentStatusFilterValue = (typeof PAYMENT_STATUS_VALUES)[number];
+
+/**
+ * What `subscription` filters on: inside a term, past one, or never on one.
+ *
+ * The Bills column's own three states — see `SubscriptionState` — and `none` is
+ * offered here even though the table draws it as an em-dash rather than a chip.
+ * "Who has never been on a subscription" is a list worth asking for; that it is
+ * drawn as a blank is a reason to give the reader another way to find it, not a
+ * reason to leave it out.
+ */
+export const SUBSCRIPTION_FILTER_VALUES = ['active', 'expired', 'none'] as const;
+export type SubscriptionFilterValue = (typeof SUBSCRIPTION_FILTER_VALUES)[number];
+
+/**
+ * What `plan` filters on: the client has a nutrition plan on file, or has none.
+ *
+ * **This is not `weeklyProgress` asked twice.** That column is about *now* — the
+ * plan period covering today and what has been logged inside it — so its
+ * `noPlan` answer also returns everyone whose plan ran out last month. This one
+ * is about whether the work has ever been done: a client with no plan at all is
+ * someone the clinic has taken on and not yet written for, and that is the list
+ * a dietitian clears down. A plan that ended is not on it.
+ *
+ * A draft counts as having one. The question is whether a plan exists for this
+ * client, and a plan being written is a plan; an archived one does not, which is
+ * what archiving means and matches the plan status the register's own cell
+ * reads.
+ */
+export const PLAN_FILTER_VALUES = ['has', 'none'] as const;
+export type PlanFilterValue = (typeof PLAN_FILTER_VALUES)[number];
+
 /** The answers each filter column offers, in the order the popover lists them. */
 export const CLIENT_FILTER_VALUES = {
   portalAccess: PORTAL_ACCESS_VALUES,
   weeklyProgress: WEEKLY_PROGRESS_VALUES,
+  plan: PLAN_FILTER_VALUES,
+  paymentStatus: PAYMENT_STATUS_VALUES,
+  subscription: SUBSCRIPTION_FILTER_VALUES,
 } as const satisfies Record<ClientFilter, readonly [string, ...string[]]>;
+
+/**
+ * How many subscribers one page of the register holds — as a range, not a
+ * number, because it is a property of the screen rather than of the register.
+ *
+ * It was a single constant (`CLIENTS_PAGE_SIZE`, nine) chosen so that a page
+ * fit "a laptop" without the list needing a scrollbar of its own. Nine fits the
+ * screen it was measured on and no other: a 1366×768 laptop, a 1080p panel at
+ * 125% scaling and a browser at 110% zoom all fit fewer, and on each of them the
+ * pager — the only way through the register — went below the fold or off the
+ * frame entirely.
+ *
+ * So the register measures instead of guessing. The browser reports how many
+ * rows the bounded frame can hold and this range is what that answer is clamped
+ * into:
+ *
+ * - `min` is the shortest usable page. Under it the frame simply overflows and
+ *   the shell scrolls, which is the honest outcome for a window too short to
+ *   hold a register at all.
+ * - `max` caps what a tall monitor asks the database for.
+ * - `fallback` is what the first paint draws with, before any browser has
+ *   measured anything — the old nine, unchanged, so a cookie-less first visit
+ *   looks exactly as it did.
+ *
+ * The Bills screen pages the same register through the same query and therefore
+ * uses this same range. See `FitRows` for how the measurement travels.
+ */
+export const CLIENTS_ROWS = { min: 4, max: 14, fallback: 9 } as const satisfies FitRowsBounds;
+
+/**
+ * The name the register's measured row count is stored under.
+ *
+ * The register and Bills are the *same* list — the same query, the same
+ * toolbar, the same pager, one screen showing people and the other showing what
+ * they owe — drawn in the same frame at the same widths, so a row count measured
+ * on one is the right answer on the other. Sharing the name shares the cookie,
+ * and walking between the two costs no second measurement and no second refresh.
+ */
+export const CLIENTS_FIT_LIST = 'clients';
 
 /**
  * List filters. Every field uses `.catch()` so a hand-edited query string
@@ -537,19 +690,43 @@ export const CLIENT_FILTER_VALUES = {
 export const listClientsSchema = z.object({
   q: z.preprocess(blankToUndefined, z.string().trim().max(120).optional()),
   /**
-   * Which half of the register this is.
+   * Which half of the register this is: the active list, or the archive.
    *
-   * Set by the route, not by the reader: `/app/clients` is `active` and
-   * `/app/clients/archived` is `archived`, and both pass it explicitly. It is
-   * still parsed from the same object because both pages share one schema and
-   * one query — the only thing that differs between them is this value.
+   * It comes off the query string now. The archive was a route of its own and
+   * is a view of `/app/clients` — `?status=archived` — so the toolbar's toggle
+   * swaps this one parameter and leaves the search, the filter and the sort
+   * where they are. `.catch('active')` is what makes anything else in the
+   * parameter show the register rather than throw.
    */
   status: z.enum(CLIENT_STATUSES).catch('active'),
   filterBy: z.preprocess(blankToUndefined, z.enum(CLIENT_FILTERS).optional().catch(undefined)),
-  filterValue: z.preprocess(blankToUndefined, z.string().trim().max(120).optional().catch(undefined)),
+  filterValue: z.preprocess(
+    blankToUndefined,
+    z.string().trim().max(120).optional().catch(undefined),
+  ),
   sort: z.enum(CLIENT_SORTS).catch('createdAt'),
   dir: z.enum(['asc', 'desc']).catch('desc'),
   page: z.coerce.number().int().min(1).max(10_000).catch(1),
+  /**
+   * How many rows one page of the register holds.
+   *
+   * **Not from the query string.** It is the browser's answer to "how many rows
+   * fit the frame", measured on the screen the register is being read on and
+   * carried in a cookie — see `FitRows`. It is a field of this schema anyway
+   * because it is an input to the same query as the page number, and because
+   * `.catch()` is the same protection a hand-edited value needs here as
+   * anywhere else on this object.
+   *
+   * The bounds are `CLIENTS_ROWS`, so a value from an older cookie or a
+   * different build is clamped into the range this register can actually draw
+   * rather than becoming a `LIMIT` nobody chose.
+   */
+  pageSize: z.coerce
+    .number()
+    .int()
+    .min(CLIENTS_ROWS.min)
+    .max(CLIENTS_ROWS.max)
+    .catch(CLIENTS_ROWS.fallback),
 });
 
 export type ListClientsInput = z.infer<typeof listClientsSchema>;

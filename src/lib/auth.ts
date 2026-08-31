@@ -16,6 +16,7 @@ import { sendMail } from '@/lib/mail';
 import {
   EMAIL_VERIFICATION_TTL_SECONDS,
   PASSWORD_RESET_TTL_SECONDS,
+  SESSION_COOKIE_CACHE_SECONDS,
   SESSION_REFRESH_AGE_SECONDS,
   SESSION_TTL_SECONDS,
 } from './auth-constants';
@@ -300,6 +301,34 @@ export const auth = betterAuth({
   session: {
     expiresIn: SESSION_TTL_SECONDS,
     updateAge: SESSION_REFRESH_AGE_SECONDS,
+    /*
+      A signed copy of the session in a cookie, so that reading it costs nothing
+      for a minute at a time.
+
+      Every guarded route in both apps opens with `getSession`, and until this
+      existed each one was a query against `sessions` joined to `users` that the
+      page could not start without. `getSession` is memoised per request (see
+      `lib/session.ts`), so a single render already only paid once — but every
+      *navigation* is a fresh request, and a dietitian moving between the rail's
+      five sections paid five times for a fact that had not changed.
+
+      Better Auth signs the session into the cookie and verifies that signature
+      instead of the database, so the row is only read once the copy is older
+      than `SESSION_COOKIE_CACHE_SECONDS`. The signature is what makes it safe:
+      a tampered cookie fails verification and falls through to a real read.
+
+      ⚠ **It is a cache, so it can be stale.** Revoking a session, changing a
+      role or moving an account to another clinic is not seen until the copy
+      expires. Signing out is not affected — that clears the cookie outright —
+      and neither is expiry, which is inside the signed payload. The window is
+      set and argued in `auth-constants.ts`; anything that must take effect
+      immediately has to invalidate the session rather than rely on the next
+      read noticing.
+    */
+    cookieCache: {
+      enabled: true,
+      maxAge: SESSION_COOKIE_CACHE_SECONDS,
+    },
     additionalFields: {
       locale: {
         type: 'string',
@@ -378,9 +407,13 @@ export const auth = betterAuth({
       maxUsernameLength: 60,
       /**
        * The plugin's own default (`/^[a-zA-Z0-9_.]+$/`) rejects hyphens — but
-       * `suggestUsername` (`src/features/clients/transliterate.ts`) joins
-       * transliterated name parts with hyphens, and that suggestion is exactly
-       * what a dietitian issues unedited most of the time. Without this override
+       * `suggestPortalUsername` (`src/features/clients/portal-credentials.ts`)
+       * separates a base from what distinguishes it with one: the second person
+       * on a shared phone is `0599123456-2`, and a client with no phone at
+       * all falls back to a name and a code (`ahmd-h7kp`), which also keeps the
+       * hyphen inside a name that already carries one (`o-brien`).
+       * That suggestion is exactly what a dietitian issues unedited most of the
+       * time. Without this override
        * every hyphenated username fails at `signInUsername`, which is checked
        * against the same validator, locking the client out of an account that
        * was just created for them. Matches `clients.errors.usernameInvalid`.

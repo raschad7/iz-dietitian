@@ -61,6 +61,10 @@ export type CatalogExpectation = {
   portions: number;
   dishes: number;
   dishIngredients: number;
+  /** Lines a dietitian adjusts by hand. Zero of these means the −/+ never appears. */
+  primaryIngredients: number;
+  /** Lines counted in a household unit rather than weighed. */
+  unitIngredients: number;
 };
 
 /**
@@ -99,6 +103,14 @@ export function readExpectation(): CatalogExpectation {
     portions: foods.reduce((total, food) => total + food.portions.length, 0),
     dishes: dishes.length,
     dishIngredients: dishes.reduce((total, dish) => total + dish.ingredients.length, 0),
+    primaryIngredients: dishes.reduce(
+      (total, dish) => total + dish.ingredients.filter((line) => line.primary).length,
+      0,
+    ),
+    unitIngredients: dishes.reduce(
+      (total, dish) => total + dish.ingredients.filter((line) => line.unit).length,
+      0,
+    ),
   };
 }
 
@@ -266,6 +278,65 @@ export async function checkCatalogReadiness(): Promise<Check[]> {
     problem:
       crossedClinics > 0
         ? `${crossedClinics} dish ingredient(s) use a clinic-owned food from a different clinic (or a shared dish uses a private food)`
+        : null,
+  });
+
+  // 8. The marking survived the seed. A dish loses its controls silently: the board
+  //    still renders, the amounts are still right, and the −/+ is simply not there
+  //    — which looks like a missing feature rather than a missing column.
+  const primary = await count(sql`
+    select count(*)::int as n from dish_ingredients where is_primary
+  `);
+  checks.push({
+    name: `dish ingredients carry all ${expected.primaryIngredients} adjustable lines`,
+    problem:
+      primary === expected.primaryIngredients
+        ? null
+        : `${primary} of ${expected.primaryIngredients} adjustable ingredients are marked`,
+    fix: 'bun run db:seed:dishes',
+  });
+
+  // 9. And so did the units. A line that lost its portion falls back to grams,
+  //    which is safe and readable but steps in tens instead of by the loaf.
+  const withUnit = await count(sql`
+    select count(*)::int as n from dish_ingredients where portion_id is not null
+  `);
+  checks.push({
+    name: `dish ingredients keep all ${expected.unitIngredients} household units`,
+    problem:
+      withUnit === expected.unitIngredients
+        ? null
+        : `${withUnit} of ${expected.unitIngredients} ingredients kept the unit they were authored in`,
+    fix: 'bun run db:seed:dishes',
+  });
+
+  // 10. A hand-set meal amount states a portion and a count together or neither.
+  //     Half of the pair is a line the reader cannot state in any unit.
+  const halfPairs = await count(sql`
+    select count(*)::int as n
+    from weekly_plan_meal_ingredients
+    where (portion_id is null) <> (portion_quantity is null)
+  `);
+  checks.push({
+    name: 'hand-set meal amounts state a unit and a count together',
+    problem:
+      halfPairs > 0
+        ? `${halfPairs} meal ingredient(s) carry a unit without a count, or the reverse`
+        : null,
+  });
+
+  // 11. And it belongs to the food it is on, the same rule dish recipes obey.
+  const crossedMealPortions = await count(sql`
+    select count(*)::int as n
+    from weekly_plan_meal_ingredients mi
+    join catalog_food_portions p on p.id = mi.portion_id
+    where p.food_id <> mi.catalog_food_id
+  `);
+  checks.push({
+    name: 'every hand-set amount uses a portion of its own food',
+    problem:
+      crossedMealPortions > 0
+        ? `${crossedMealPortions} meal ingredient(s) reference a portion belonging to a different food`
         : null,
   });
 

@@ -1,8 +1,13 @@
+"use client"
+
 import * as React from "react"
 import { Input as InputPrimitive } from "@base-ui/react/input"
+import { useLocale } from "next-intl"
 
 import { Icon, type IconName } from "@/components/ui/icon"
 import { cn } from "@/lib/utils"
+
+const ARABIC_SCRIPT = /\p{Script=Arabic}/u
 
 /**
  * The box, the shape, the focus treatment and every state live in `.q-field`
@@ -21,37 +26,119 @@ type InputProps = React.ComponentProps<"input"> & {
    */
   icon?: IconName
   /**
-   * Paints controlled text in an ordinary text layer while retaining the
-   * native input for focus, selection, keyboard input and accessibility.
+   * Paints controlled or uncontrolled text in an ordinary text layer while
+   * retaining the native input for focus, selection, keyboard input and
+   * accessibility.
    *
    * Almarai contains Arabic glyph ink below the descent declared in its font
    * metrics. Chromium clips that ink inside native inputs, which can remove
-   * the lower dots from letters such as ي. Enable this only for affected
-   * Arabic text/search fields and mirror the field's inline padding through
+   * the lower dots from letters such as ي. The repair is automatic for Arabic
+   * text/search fields and for localized credential placeholders. Set this to
+   * false only when a composite control supplies its own ordinary text layer.
+   * Mirror non-default field typography or padding through
    * `unclippedTextClassName`.
    */
   unclippedText?: boolean
   unclippedTextClassName?: string
   unclippedTextDirection?: React.HTMLAttributes<HTMLSpanElement>["dir"]
+  inputShellClassName?: string
 }
 
 function Input({
   className,
   type,
   icon,
-  unclippedText = false,
+  unclippedText = true,
   unclippedTextClassName,
   unclippedTextDirection = "auto",
+  inputShellClassName,
   style,
   value,
+  defaultValue,
   placeholder,
+  onChange,
+  ref,
+  lang,
   ...props
 }: InputProps) {
-  const visibleText = value === undefined || value === "" ? placeholder : String(value)
+  const locale = useLocale()
+  const normalizedType = type?.toLowerCase() ?? "text"
+  const mirrorsValue = unclippedText && (normalizedType === "text" || normalizedType === "search")
+  const mirrorsPlaceholder =
+    unclippedText &&
+    !mirrorsValue &&
+    Boolean(placeholder) &&
+    ["email", "password", "tel", "url"].includes(normalizedType)
+  const overlayMode = mirrorsValue ? "value" : mirrorsPlaceholder ? "placeholder" : undefined
+  const usesArabicTextLayer = overlayMode !== undefined && (lang ?? locale).startsWith("ar")
+  const controlled = value !== undefined
+  const [uncontrolledText, setUncontrolledText] = React.useState(() =>
+    defaultValue === undefined || defaultValue === null || defaultValue === ""
+      ? ""
+      : mirrorsValue
+        ? String(defaultValue)
+        : "present"
+  )
+  const inputRef = React.useRef<HTMLInputElement | null>(null)
+
+  const setInputRef = React.useCallback(
+    (node: HTMLInputElement | null) => {
+      inputRef.current = node
+
+      if (typeof ref === "function") ref(node)
+      else if (ref) ref.current = node
+    },
+    [ref]
+  )
+
+  React.useEffect(() => {
+    const input = inputRef.current
+    const form = input?.form
+
+    if (!form || controlled || !overlayMode) return
+
+    let resetTimer: ReturnType<typeof setTimeout> | undefined
+    const handleReset = () => {
+      resetTimer = setTimeout(
+        () => setUncontrolledText(mirrorsValue ? input.value : input.value === "" ? "" : "present"),
+        0
+      )
+    }
+
+    form.addEventListener("reset", handleReset)
+
+    return () => {
+      form.removeEventListener("reset", handleReset)
+      if (resetTimer) clearTimeout(resetTimer)
+    }
+  }, [controlled, mirrorsValue, overlayMode])
+
+  const currentText = mirrorsValue ? (controlled ? String(value ?? "") : uncontrolledText) : ""
+  const hasContent = controlled ? value !== null && value !== "" : uncontrolledText !== ""
+  const visibleText =
+    overlayMode === "placeholder"
+      ? placeholder
+      : !hasContent
+        ? placeholder
+        : currentText
+  const showsPlaceholder = overlayMode === "placeholder" || !hasContent
+  /*
+   * Keep Latin text native even on an Arabic page. The browser's bidi input
+   * algorithm keeps that text and its caret together; hiding only the native
+   * text would leave the mirrored LTR value at the left while the real RTL
+   * caret stayed at the right. Only Arabic glyphs need the Almarai repair.
+   */
+  const showsTextLayer =
+    usesArabicTextLayer &&
+    (overlayMode === "value" || !hasContent) &&
+    typeof visibleText === "string" &&
+    ARABIC_SCRIPT.test(visibleText)
   const field = (
     <InputPrimitive
+      ref={setInputRef}
       type={type}
       data-slot="input"
+      data-unclipped-input={overlayMode}
       className={cn(
         // 48px and 20px of padding, matching the default button: a field and
         // the button that submits it sit in the same row and must be the same
@@ -68,12 +155,12 @@ function Input({
         // The well below is 48px, so the text starts where a field with no icon
         // would have its 20px of padding, plus the glyph and a gap.
         icon && "ps-12",
-        unclippedText && "placeholder:text-transparent",
+        showsTextLayer && "placeholder:text-transparent",
         className
       )}
       style={{
         ...style,
-        ...(unclippedText
+        ...(showsTextLayer
           ? {
               color: "transparent",
               WebkitTextFillColor: "transparent",
@@ -91,12 +178,22 @@ function Input({
         ...(props["aria-invalid"] ? { borderColor: "var(--destructive)" } : null),
       }}
       value={value}
+      defaultValue={defaultValue}
       placeholder={placeholder}
+      lang={lang}
+      onChange={(event) => {
+        if (!controlled && overlayMode) {
+          setUncontrolledText(
+            mirrorsValue ? event.target.value : event.target.value === "" ? "" : "present"
+          )
+        }
+        onChange?.(event)
+      }}
       {...props}
     />
   )
 
-  if (!icon && !unclippedText) return field
+  if (!icon && !usesArabicTextLayer) return field
 
   /*
     ⚠ **With an `icon` or `unclippedText`, the field is no longer the outer
@@ -111,13 +208,16 @@ function Input({
     `flex-1` or `min-w-*` passed here lands on the wrong box and silently does
     nothing.
 
-    Put layout on a wrapper around this component instead. `DishFilters` is the
-    call site that hit it and carries the worked example; `dish-catalog.tsx` is
-    unaffected because its parent is a block, where `display: block` already
-    fills the line.
+    The shared shell fills ordinary form rows. Composite controls that need it
+    to participate as a flex or grid item pass `inputShellClassName`; classes
+    describing the actual control still belong in `className`.
   */
   return (
-    <span className="relative block">
+    <span
+      className={cn("relative block w-full min-w-0", inputShellClassName)}
+      data-unclipped-shell={overlayMode}
+      lang={lang}
+    >
       {icon ? (
         <span
           aria-hidden
@@ -127,12 +227,13 @@ function Input({
         </span>
       ) : null}
       {field}
-      {unclippedText ? (
+      {showsTextLayer ? (
         <span
           aria-hidden
           className={cn(
             "pointer-events-none absolute inset-y-0 start-0 end-0 flex min-w-0 items-center overflow-visible whitespace-nowrap",
             icon ? "ps-12 pe-5" : "px-5",
+            showsPlaceholder ? "text-body-sm text-placeholder" : "text-body-md text-foreground",
             unclippedTextClassName,
           )}
         >

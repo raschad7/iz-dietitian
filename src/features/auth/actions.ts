@@ -20,6 +20,11 @@ import {
   type AttemptKind,
 } from './rate-limit';
 import { resolveSafeRedirect } from './redirect';
+import {
+  firstSetPasswordMessage,
+  readSetPasswordForm,
+  setPasswordFieldErrors,
+} from './set-password-validation';
 import { firstSignUpMessage, readSignUpForm, signUpFieldErrors } from './signup-validation';
 import {
   changePasswordSchema,
@@ -286,15 +291,15 @@ export async function signInToPortal(
  * Which of the client password rules a value tripped.
  *
  * `clientPasswordSchema` puts the message key on the issue itself — too short,
- * too common, or long enough but a single character class — so the three keep
- * their own advice instead of collapsing into "too short", which is what a
- * client typing `aaaaaa` used to be told.
+ * too common, or long enough without both required character classes — so the
+ * three keep their own advice instead of collapsing into "too short", which is
+ * what a client typing `aaaaaa` used to be told.
  */
 function passwordIssueKey(
   issues: readonly string[] | undefined,
-): 'passwordTooShort' | 'passwordTooCommon' | 'passwordTooWeak' {
+): 'passwordTooShort' | 'passwordTooCommon' | 'clientPasswordTooWeak' {
   const issue = issues?.[0];
-  if (issue === 'passwordTooCommon' || issue === 'passwordTooWeak') return issue;
+  if (issue === 'passwordTooCommon' || issue === 'clientPasswordTooWeak') return issue;
   return 'passwordTooShort';
 }
 
@@ -302,18 +307,18 @@ export async function setPortalPassword(
   _previousState: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
-  const parsed = setPasswordSchema.safeParse({
-    password: formData.get('password'),
-    confirmPassword: formData.get('confirmPassword'),
-    locale: formData.get('locale'),
-  });
+  const input = readSetPasswordForm(formData);
+  const parsed = setPasswordSchema.safeParse(input);
 
   if (!parsed.success) {
-    const fieldErrors = z.flattenError(parsed.error).fieldErrors;
-    if (fieldErrors.confirmPassword) return { status: 'error', messageKey: 'passwordMismatch' };
-    // Whichever rule the value tripped: too short, or long enough but a single
-    // character class — `clientPasswordSchema` carries the key on the issue.
-    return { status: 'error', messageKey: passwordIssueKey(fieldErrors.password) };
+    /*
+      The same reader the form itself uses, so a value that slipped past the
+      client's check is answered with the identical sentence rather than a
+      second opinion. `set-password-validation.ts` is where the priority between
+      the two fields is decided, and deciding it in one place is the point.
+    */
+    const messageKey = firstSetPasswordMessage(setPasswordFieldErrors(input));
+    return { status: 'error', messageKey: messageKey ?? 'genericError' };
   }
 
   const { password, locale } = parsed.data;
@@ -326,6 +331,29 @@ export async function setPortalPassword(
     console.error('[auth] portal password change failed', error);
     return { status: 'error', messageKey: 'genericError' };
   }
+
+  /*
+    The flag is clear in `users` now, and the signed session copy in the cookie
+    has not heard about it — see `session.cookieCache` in `lib/auth.ts`. Reading
+    the session with the cache disabled forces the row to be read again and
+    rewrites that copy, so the very next request already knows this client owes
+    nothing. Without it the copy keeps accusing them for up to
+    `SESSION_COOKIE_CACHE_SECONDS`.
+
+    The result is deliberately discarded: this is called for the cookie it
+    sets, not the session it returns. `nextCookies()` is what lets a server
+    action set that cookie at all.
+
+    The guard in `portal/(secured)/layout.tsx` no longer depends on this — it
+    confirms an accusing session against the database itself, which is what
+    makes the flow correct whatever the cookie says. This is what keeps it
+    cheap, by making the accusation stop immediately rather than a minute from
+    now.
+  */
+  await auth.api.getSession({
+    headers: await headers(),
+    query: { disableCookieCache: true },
+  });
 
   // Outside the try/catch — `redirect` signals by throwing.
   redirect(`/${locale}/portal`);

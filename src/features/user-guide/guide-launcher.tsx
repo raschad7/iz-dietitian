@@ -9,6 +9,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from '@/components/ui/sidebar';
 
 import { useGuide } from './guide-context';
@@ -25,9 +26,19 @@ import { useGuide } from './guide-context';
  * things, one of which goes nowhere — and would have put an action in the one
  * list where every entry answers "where am I".
  *
- * So it sits in its own group, separated by the space `mt-auto` leaves rather
- * than by a rule. It is the last thing before the account row, which is the
- * other control down there that is about the app rather than about a patient.
+ * So it sits in its own group, directly under the destinations, drawn one step
+ * quieter than them — `size="sm"` and `--sidebar-label`, the heading ink — so
+ * that the column reads as six places and then a piece of help, rather than as
+ * seven equal rows one of which goes nowhere.
+ *
+ * ## Why it is no longer pinned to the foot
+ *
+ * It was `mt-auto`, against the account row. Six destinations end about a third
+ * of the way down a laptop's rail, so that left ~400px of empty column with one
+ * row floating at the bottom of it — a gap that reads as content that failed to
+ * load, and an orphan with nothing to belong to. Under the list it belongs to
+ * the list's foot, and the empty space collects where empty space is meant to,
+ * which is above the account row and below everything.
  *
  * ## Why it renders nothing without a provider
  *
@@ -39,6 +50,30 @@ import { useGuide } from './guide-context';
 export function GuideLauncher() {
   const guide = useGuide();
   const t = useTranslations('userGuide');
+  const { compact, state, toggleSidebar, isMobile, openMobile, setOpenMobile } = useSidebar();
+
+  /**
+   * Starts the tour, and puts the rail away first if the rail is covering the
+   * screen the tour is about.
+   *
+   * Only where the rail is a *layer*: the tablet's overlaid column, and the
+   * phone's drawer. Both are drawn on top of the page, so the first thing the
+   * reader would see of a tour of that page is most of it hidden behind the
+   * control they started it with. A desktop rail is a column beside the page
+   * and hides nothing, so it is left exactly as they had it — closing it there
+   * would be the tour rearranging a screen it is supposed to be explaining.
+   *
+   * The fold and the tour start in the same press rather than one waiting for
+   * the other. The rail's 300ms is a width transition and the spotlight is read
+   * on an animation frame for as long as a step is showing (see
+   * `use-guide-anchor.ts`), so the hole tracks the rail on its way in instead
+   * of landing where the rail used to be.
+   */
+  const start = () => {
+    if (isMobile && openMobile) setOpenMobile(false);
+    else if (compact && state === 'expanded') toggleSidebar();
+    guide?.start();
+  };
 
   if (guide === null) return null;
 
@@ -46,12 +81,12 @@ export function GuideLauncher() {
 
   return (
     /*
-      `mt-auto` pushes the group to the bottom of the rail's content area,
-      against the account footer. `SidebarContent` is a flex column, so this is
-      the whole of what separates the tour from the destinations — no rule, no
-      heading. A hairline here would read as a second section of navigation.
+      No `mt-auto` and no rule. `SidebarGroup`'s own padding is the whole of what
+      separates the tour from the destinations above it — a hairline here would
+      read as a second section of navigation, and a heading would name a group
+      of one.
     */
-    <SidebarGroup className="mt-auto">
+    <SidebarGroup>
       <SidebarGroupContent>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -71,11 +106,21 @@ export function GuideLauncher() {
               type="button"
               /* Where focus returns when the tour closes — see `GuideOverlay`. */
               data-guide-launcher=""
+              /*
+                One step under a destination, in both axes that carry rank here:
+                32px instead of 40, and the headings' `--sidebar-label` instead
+                of the rows' `--sidebar-icon`. Dressed identically to the six
+                links above it, this read as a seventh place to go — the one
+                thing in a column of addresses that has no address.
+              */
+              size="sm"
+              className="text-sidebar-label"
               tooltip={label}
               isActive={guide.active}
-              onClick={guide.start}
+              onClick={start}
             >
-              {/* 20px, explicitly — see the note on the nav rows in `sidebar.tsx`. */}
+              {/* 20px even at `sm`, because folded this is a glyph in the same
+                  56px column as the destinations and has to line up with them. */}
               <Icon name="guide" className="size-5" />
               <span>{label}</span>
             </SidebarMenuButton>

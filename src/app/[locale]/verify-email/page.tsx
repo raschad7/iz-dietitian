@@ -43,7 +43,7 @@ export default async function VerifyEmailPage({ params }: VerifyEmailPageProps) 
   if (!REQUIRE_EMAIL_VERIFICATION && session) redirect(`/${locale}/app`);
 
   return (
-    <main className="q-route-stage mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6 py-16">
+    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6 py-16">
       <VerifyEmailNotice
         locale={locale}
         email={session?.user.email}

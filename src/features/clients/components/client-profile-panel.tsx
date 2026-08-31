@@ -1,15 +1,16 @@
+import { Fragment } from 'react';
+
 import { getFormatter, getTranslations } from 'next-intl/server';
 
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Icon } from '@/components/ui/icon';
 import { Separator } from '@/components/ui/separator';
 import { patientToneStyle } from '@/features/booking/patient-color';
 import { ClientRecordActions } from '@/features/clients/components/client-record-actions';
 import { calculateAge } from '@/features/clients/age';
 import { type ClientDetail } from '@/features/clients/queries';
-import { CLIENT_GOALS, CLIENT_SEXES } from '@/features/clients/schema';
+import { CLIENT_SEXES } from '@/features/clients/schema';
 import { type Locale } from '@/i18n/routing';
 import { isMember } from '@/lib/enum';
 import { cn } from '@/lib/utils';
@@ -73,7 +74,6 @@ export async function ClientProfilePanel({
 }) {
   const [t, format] = await Promise.all([getTranslations('clients'), getFormatter()]);
 
-  const goal = isMember(CLIENT_GOALS, client.goal) ? client.goal : null;
   const sex = isMember(CLIENT_SEXES, client.sex) ? client.sex : null;
   const age = client.dateOfBirth ? calculateAge(client.dateOfBirth) : null;
   const archived = client.status === 'archived';
@@ -111,14 +111,19 @@ export async function ClientProfilePanel({
       finger apart on a tall screen. `self-start` shrank the card to its content
       and left the gap under it, which made the column look half-drawn beside a
       full-height views panel. This fills the row and gives the whole surplus to
-      one gap — `mt-auto` on the actions — so the facts stay at the panel's own
-      tight rhythm and the buttons sit at its floor, which is where a panel's
-      action belongs anyway.
+      the scroll port, so the facts stay at the panel's own tight rhythm and the
+      actions sit at its floor, which is where a panel's action belongs anyway.
 
-      `min-h-0` plus the scrolling content is the other direction: a long name or
-      a short viewport makes this column taller than the row, and without it the
-      card would grow past the record shell's floor and take the page's own
-      scrollbar with it.
+      **The card is the flex column and it has exactly two children**: the facts,
+      which take the free height and scroll inside it, and the actions, which are
+      `shrink-0` and therefore always on screen. The surplus — and the deficit —
+      both land on the first one. See the note above the actions for what this
+      arrangement replaced and why `mt-auto` could not do it.
+
+      `min-h-0` is what allows the deficit: a long name or a short viewport makes
+      this column want to be taller than the row, and without it the card would
+      grow past the record shell's floor and take the page's own scrollbar with
+      it instead of scrolling its own facts.
     */
     <Card size="sm" className="lg:flex lg:min-h-0 lg:flex-col">
       <CardContent className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain">
@@ -138,18 +143,27 @@ export async function ClientProfilePanel({
           </h2>
 
           {/*
-            The goal, where the template puts the user's role — and only when
-            there is one, because a chip reading "—" is a chip with nothing to
-            say. An archived record shows that instead: it is a state a reader
-            has to notice before editing anything, and it outranks the goal.
+            Archived, and nothing else.
+
+            **The goal used to sit here too**, where the template puts the user's
+            role, shown whenever the record was not archived. It is a tile on the
+            Nutrition card now — beside النشاط, and beside the calorie target the
+            two of them produce, which is the one place on the record where a
+            goal explains something rather than just being stated.
+
+            ⚠ The cost is real and worth knowing: the goal appeared beside *every*
+            view from here, and it now appears on one. Open Progress or Visits
+            and the record no longer says what this client is working towards.
+            That was the deliberate trade — it was the same fact drawn twice on
+            one screen — but if it is wanted back, this is where it went.
+
+            Archived stays, and stays a badge: it is a state a reader has to
+            notice before editing anything, which is exactly what this system
+            spends a filled pill on.
           */}
           {archived ? (
             <Badge variant="muted" className="mt-1.5">
               {t('status.archived')}
-            </Badge>
-          ) : goal ? (
-            <Badge variant="muted" className="mt-1.5">
-              {t(`goal.${goal}`)}
             </Badge>
           ) : null}
         </div>
@@ -165,31 +179,35 @@ export async function ClientProfilePanel({
           rounded muted fill, its own padding, no elevation. See
           docs/design-system.md on nesting.
 
-          The glyph is bare on that fill rather than on a disc, and it is a
-          neutral: olive marks what you can act on, and the only thing in this
-          panel you can press is the button at its foot.
+          **Label over figure, and no glyph.** Each tile carried a calendar or a
+          meal-plan mark above its number; two tiles that differ only in a 18px
+          neutral outline are told apart by reading the caption anyway, so the
+          glyph was decoration paid for in height. Dropping it leaves the tile
+          saying the two things it is for, and putting the caption first means
+          the eye meets the question before the answer — a bare `0` under an
+          icon is a number with nothing attached to it until you look further
+          down.
         */}
         <div className="flex gap-3">
           {[
-            { icon: 'calendar' as const, label: t('profile.visitsSoFar'), value: visitCount },
-            { icon: 'mealPlans' as const, label: t('profile.plansWritten'), value: planCount },
+            { label: t('profile.visitsSoFar'), value: visitCount },
+            { label: t('profile.plansWritten'), value: planCount },
           ].map((figure) => (
             <Card
               key={figure.label}
               variant="tile"
               className="min-w-0 flex-1 items-center gap-0.5 p-2.5 text-center"
             >
-              <Icon name={figure.icon} className="size-[1.125rem] text-muted-foreground" />
+              <span className="max-w-full truncate text-caption text-muted-foreground">
+                {figure.label}
+              </span>
               {/* The figure is isolated LTR so digits keep their order inside
-                  Arabic, while the label under it stays in the page's direction. */}
+                  Arabic, while the label over it stays in the page's direction. */}
               <span
                 dir="ltr"
                 className="font-heading text-heading-sm font-semibold tabular-nums"
               >
                 {figure.value}
-              </span>
-              <span className="max-w-full truncate text-caption text-muted-foreground">
-                {figure.label}
               </span>
             </Card>
           ))}
@@ -199,10 +217,61 @@ export async function ClientProfilePanel({
           <h3 className="text-body-sm font-semibold">{t('profile.details')}</h3>
           <Separator />
 
-          <dl className="flex flex-col gap-1.5">
+          {/*
+            ⚠ **A two-column grid, not a row per fact.**
+
+            Each row used to be its own `flex justify-between`, which pushed the
+            value to the *far* edge of that row — so every value hung off the
+            panel's opposite margin and the column they formed was aligned by
+            the panel's edge rather than by anything to do with the values. A
+            two-word answer like 'ذكر' ended up a long way from the label naming
+            it, with nothing in between.
+
+            `grid-cols-[auto_minmax(0,1fr)]` gives the labels a column exactly as
+            wide as the longest of them and the values everything after it, so
+            **both columns have a straight edge** and every value begins at the
+            same place — beside its label rather than across the panel from it.
+            `text-start` is what puts the value at the reading edge of its own
+            column: right in Arabic, left in English, from one class.
+
+            `dt`/`dd` are the grid items directly. A `div` per row would make the
+            row the grid item and put the two columns back inside it, which is
+            the arrangement being replaced.
+
+            `mt-1.5` on top of the wrapper's `gap-2`, so the rule under
+            'التفاصيل' clears the first row by 14px rather than 8. The heading
+            and its rule are one unit and belong close together; the list under
+            them is a different thing and was sitting as near the rule as the
+            rule sat to the heading, which made the three read as one stack
+            instead of a titled section.
+
+            ⚠ **`gap-x-24` is the only lever on how far in the values sit**, and
+            it is measured rather than chosen for looking round. The label column
+            is `auto`, so it is exactly as wide as the longest label —
+            `البريد الإلكتروني` — and a value cannot begin before that ends. The
+            gap is therefore the whole of the adjustment.
+
+            **It is also why the panel's track is `23rem` and not the `17.5rem`
+            it started at.** The binding constraint is the widest value,
+            `+9705435435454`, at about 115px of tabular digits. On the original
+            280px track the values had roughly 11px of slack, so every step out
+            broke a phone number across two lines; the track has been widened
+            three times — 17.5 → 19 → 21 → 23rem — and every pixel of it went
+            into this gap, which has gone 12 → 40 → 72 → 96px. The values now sit
+            96px clear of the labels with about 135px left to render in.
+
+            **This is the last step this approach has in it.** Widening the track
+            again to buy another 24px starts charging the record's own views for
+            a gap in a sidebar. If the values must go further left, the fix is
+            structural: give `phone` and `email` their own full-width rows, label
+            above value, and the binding constraint drops from a 115px phone
+            number to a 75px date — which frees far more than another `gap-x`
+            step ever will.
+          */}
+          <dl className="mt-1.5 grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-24 gap-y-1.5">
             {rows.map((row) => (
-              <div key={row.label} className="flex items-baseline justify-between gap-3">
-                <dt className="shrink-0 text-body-sm text-muted-foreground">{row.label}</dt>
+              <Fragment key={row.label}>
+                <dt className="text-body-sm text-muted-foreground">{row.label}</dt>
 
                 {/*
                   `<bdi>` isolates the value's own direction rather than `dir` on
@@ -214,20 +283,11 @@ export async function ClientProfilePanel({
                 */}
                 <dd
                   className={cn(
-                    'flex min-w-0 items-center justify-end gap-2 text-end text-body-sm font-medium',
+                    'flex min-w-0 items-center gap-2 text-start text-body-sm font-medium',
                     row.numeric && 'tabular-nums',
                     row.value === null && 'font-normal text-muted-foreground',
                   )}
                 >
-                  {row.status ? (
-                    <span
-                      aria-hidden
-                      className={cn(
-                        'size-2 shrink-0 rounded-full',
-                        archived ? 'bg-muted-foreground' : 'bg-primary',
-                      )}
-                    />
-                  ) : null}
                   {/*
                     ⚠ **`wrap-anywhere`, not `truncate`.**
 
@@ -250,30 +310,77 @@ export async function ClientProfilePanel({
                     flex item and its automatic minimum would otherwise be the
                     string's own width.
                   */}
+                  {/*
+                    ⚠ **The status dot leads the word — it is the first child,
+                    so in Arabic it sits to the right of 'نشِط' and is read
+                    first.** Flex order follows the document direction, which is
+                    what makes one child order correct in both languages: the
+                    mark comes before the word it marks in Arabic and in English
+                    alike, with nothing about it pinned to a physical side.
+
+                    It was briefly trailing, to keep the column's text edge dead
+                    straight — a leading dot costs this one row 16px of indent
+                    that the other six do not pay. That was the wrong thing to
+                    optimise: a status mark that arrives after the status has
+                    already been read is decoration, and one pixel-perfect edge
+                    is not worth it.
+
+                    `aria-hidden`, because the word beside it already says
+                    'active'; an unlabelled dot announced next to it would be
+                    saying so twice.
+                  */}
+                  {row.status ? (
+                    <span
+                      aria-hidden
+                      className={cn(
+                        'size-2 shrink-0 rounded-full',
+                        archived ? 'bg-muted-foreground' : 'bg-primary',
+                      )}
+                    />
+                  ) : null}
+
                   <bdi className="min-w-0 wrap-anywhere">{row.value ?? t('notProvided')}</bdi>
                 </dd>
-              </div>
+              </Fragment>
             ))}
           </dl>
         </div>
+      </CardContent>
 
-        {/*
-          Edit and the overflow menu, at the foot of the column they act on. They
-          were on the breadcrumb line a row above the tab bar, which put the two
-          controls that change a record as far from the record as the page
-          allows. What was here instead was a link to the plan board — a good
-          button on the wrong panel; see `ClientRecordActions`.
-        */}
+      {/*
+        ⚠ **Edit and the overflow menu are outside the scroll port, on purpose.**
+
+        They were the last children *inside* it, held down by `lg:mt-auto`. That
+        works only while everything above them fits: from `lg` up this panel is a
+        bounded box and its content scrolls, so as soon as the facts were taller
+        than the column the buttons went under the fold with them. `mt-auto`
+        cannot pin anything to a viewport — it pushes to the bottom of the
+        *content*, and the content is precisely what had grown too tall.
+
+        **Browser zoom is what makes it certain rather than occasional.** Zooming
+        in shrinks the layout viewport in CSS pixels while every row keeps its
+        size in them, so the same panel that fitted at 100% overflows at 150% —
+        and the record's only primary action was clipped by the card's own
+        `overflow-hidden`, or gone entirely. A control that disappears when a
+        reader makes the text bigger is an accessibility failure, not a
+        cosmetic one.
+
+        As a sibling of the scrolling `CardContent` it is a flex child of the
+        card itself: `shrink-0`, so it keeps its height whatever happens above,
+        and always on screen. The facts scroll under it.
+
+        The hairline is `lg` only — it marks the edge of the scroll port, and
+        below `lg` there is no scroll port to mark, just a column at its natural
+        height.
+      */}
+      <div className="shrink-0 px-(--card-spacing) lg:border-t lg:border-border lg:pt-4">
         <ClientRecordActions
           clientId={client.id}
           clientName={client.fullName}
           archived={archived}
           locale={locale}
-          /* The panel's floor from `lg` up; below it the column is at natural
-             height and `mt-auto` would push nothing anywhere. */
-          className="lg:mt-auto"
         />
-      </CardContent>
+      </div>
     </Card>
   );
 }

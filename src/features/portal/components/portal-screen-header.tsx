@@ -4,7 +4,9 @@ import { useTranslations } from 'next-intl';
 import type { MouseEvent } from 'react';
 
 import { Icon } from '@/components/ui/icon';
+import { PORTAL_COLUMN, PORTAL_COLUMN_NARROW } from '@/features/portal/layout';
 import { Link, useRouter } from '@/i18n/navigation';
+import { cn } from '@/lib/utils';
 
 /**
  * The top of a pushed screen: the way back, what this is, and at most one
@@ -41,12 +43,26 @@ export function PortalScreenHeader({
   title,
   fallbackHref,
   action,
+  width = 'wide',
 }: {
   title: string;
   /** Where back goes when there is no history to return to. */
   fallbackHref: '/portal' | '/portal/profile' | '/portal/settings';
   /** The trailing control. `settings` is the only one so far; screens with none pass nothing. */
   action?: 'settings';
+  /**
+   * Which of the two portal measures the screen underneath uses.
+   *
+   * It has to be told: this bar cannot see the page it belongs to, and the back
+   * control has to start where that page's content starts. A `wide` bar over a
+   * `narrow` screen leaves the arrow ~190px outside the card it leads away
+   * from, which reads as two pieces of chrome borrowed from different screens.
+   *
+   * `wide` is the default because most account screens now lay out in columns
+   * from `lg`. `features/portal/layout.ts` says which are which, and why a
+   * wider cap is not automatically an improvement.
+   */
+  width?: 'wide' | 'narrow';
 }) {
   const t = useTranslations('portal.screen');
   const router = useRouter();
@@ -66,7 +82,12 @@ export function PortalScreenHeader({
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur-sm">
-      <div className="mx-auto flex w-full max-w-3xl items-center gap-1 px-2 py-2 md:px-4">
+      <div
+        className={cn(
+          'flex items-center gap-1 px-2 py-2 md:px-4',
+          width === 'wide' ? PORTAL_COLUMN : PORTAL_COLUMN_NARROW,
+        )}
+      >
         <Link
           href={fallbackHref}
           onClick={goBack}

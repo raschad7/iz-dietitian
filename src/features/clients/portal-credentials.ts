@@ -1,9 +1,12 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, like, or } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { account, clients, session, user } from '@/db/schema';
 import { generateTemporaryPassword } from '@/features/auth/password-policy';
+import { defaultCountryCode } from '@/features/whatsapp/config';
 import { auth } from '@/lib/auth';
+
+import { pickPortalUsername, portalUsernameBase } from './portal-username';
 
 /**
  * Portal credentials, issued by a dietitian.
@@ -28,6 +31,47 @@ import { auth } from '@/lib/auth';
  */
 export function syntheticEmail(username: string): string {
   return `${username}@portal.invalid`;
+}
+
+/**
+ * The username the issue form opens with: **the client's own phone number**,
+ * checked against the names already in use. See `./portal-username` for why a
+ * phone number and not a name.
+ *
+ * **Deliberately not scoped to a clinic.** `users.username` carries one unique
+ * index across the whole table, so a name taken by another clinic's client — or
+ * by a staff account — is taken here too, and a clinic-scoped read would
+ * cheerfully suggest it. `issuePortalCredentials` below has always checked the
+ * same column unscoped for the same reason. Nothing clinic-owned is read: the
+ * query returns usernames already in use that begin with this one base, which
+ * is precisely what the caller must not propose.
+ *
+ * A number belonging to another clinic's client therefore comes back as taken,
+ * and the suggestion moves to `-2`. That is the right outcome and not a leak —
+ * it says a username is unavailable, which the unique index would say anyway
+ * the moment the button was pressed.
+ *
+ * ⚠ **A suggestion, and still only a suggestion.** It is computed when the card
+ * renders and issued whenever the dietitian presses the button, so another
+ * clinic can take the name in between; the unique index stays the arbiter and
+ * `username_taken` stays a reachable outcome.
+ */
+export async function suggestPortalUsername(client: {
+  fullName: string;
+  phone?: string | null;
+}): Promise<string> {
+  const base = portalUsernameBase(client, defaultCountryCode());
+
+  // `base.value` is `[a-z0-9-]` by construction — digits for a phone number,
+  // a slug for a name — so it carries no LIKE wildcard of its own; there is no
+  // `%` or `_` here to escape.
+  const rows = await db
+    .select({ username: user.username })
+    .from(user)
+    .where(or(eq(user.username, base.value), like(user.username, `${base.value}-%`)));
+
+  const taken = new Set(rows.flatMap((row) => (row.username ? [row.username] : [])));
+  return pickPortalUsername(base, taken);
 }
 
 export type IssueFailureCode = 'not_found' | 'already_issued' | 'username_taken';
@@ -189,6 +233,34 @@ export async function replacePortalPassword(userId: string, newPassword: string)
 
     await tx.update(user).set({ mustChangePassword: false }).where(eq(user.id, userId));
   });
+}
+
+/**
+ * Whether the *database* still says this client owes a password change.
+ *
+ * The same fact rides on the session object, and reading it there is free — so
+ * that is what the portal guard checks first, and for all but one moment of a
+ * client's life the two agree. The moment they do not is the one that matters:
+ * the session is served from a signed cookie copy for up to
+ * `SESSION_COOKIE_CACHE_SECONDS` (see `session.cookieCache` in `lib/auth.ts`),
+ * and `replacePortalPassword` above writes to `users`, which that copy knows
+ * nothing about. For the next minute the cookie keeps saying the client still
+ * owes a password they have already chosen.
+ *
+ * Believing it costs a lockout: the guard bounces them back to `set-password`,
+ * where they set a password that saves correctly and bounces them back again —
+ * a form that appears to do nothing at all. So the guard asks here before it
+ * turns anybody away, and only a client the cookie already accuses pays for the
+ * read. Everyone else never reaches it.
+ */
+export async function isPortalPasswordChangePending(userId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ mustChangePassword: user.mustChangePassword })
+    .from(user)
+    .where(eq(user.id, userId))
+    .limit(1);
+
+  return row?.mustChangePassword ?? false;
 }
 
 /**

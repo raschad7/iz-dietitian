@@ -1,4 +1,4 @@
-import { type NavItem } from '@/components/layout/sidebar';
+import { type NavItem, type NavSection } from '@/components/layout/sidebar';
 import { type IconName } from '@/components/ui/icon';
 
 /**
@@ -49,3 +49,20 @@ export const PORTAL_NAV_ICONS = {
   progress: 'progressOutline',
   profile: 'profileOutline',
 } as const satisfies Record<PortalLabelKey, IconName>;
+
+/**
+ * The same four destinations, as the sidebar wants them.
+ *
+ * `AppShell` takes bands rather than a flat list — the staff rail is three
+ * headed sections and an unheaded one — and the portal has nothing to divide:
+ * four tabs, one band, no heading. Omitting `labelKey` is what makes it
+ * unheaded, so the rail draws exactly the column it drew before sections
+ * existed.
+ *
+ * A `const` rather than the wrapper written at the two call sites, so both
+ * portal layouts pass the same array *identity* and the rail's `useMemo`s are
+ * not invalidated on every render of a layout that changed nothing.
+ */
+export const PORTAL_NAV_SECTIONS = [
+  { id: 'portal', children: PORTAL_NAV },
+] as const satisfies readonly NavSection[];

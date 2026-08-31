@@ -77,6 +77,12 @@ export type CalendarToolbarProps = {
   query: string;
   onQueryChange: (query: string) => void;
   onViewChange: (view: CalendarView) => void;
+  /**
+   * The pointer has landed on a view, or focus has reached it. The calendar
+   * prefetches that view so the click that usually follows is served from the
+   * router cache instead of a round trip. See `Segmented`'s `onOptionHover`.
+   */
+  onViewHover?: (view: CalendarView) => void;
   onPrevious: () => void;
   onNext: () => void;
   onDateChange: (date: string) => void;
@@ -98,6 +104,7 @@ export function CalendarToolbar({
   query,
   onQueryChange,
   onViewChange,
+  onViewHover,
   onPrevious,
   onNext,
   onDateChange,
@@ -166,28 +173,23 @@ export function CalendarToolbar({
           left: a phone belongs on the day.
         */}
         {/*
-          Day / week / month, with the selected one in the light gray surface
-          rather than in the primary olive `Segmented` draws by default.
+          Day / week / month, as the `contained` shape: a white card lifted out
+          of a sunken grey well, not the primary olive `Segmented` draws by
+          default. It is the same control the sign-in role switch and the
+          settings tabs use, so the raised card **slides** between the three
+          views rather than blinking on in place — which is navigation reading as
+          one continuous move rather than three separate lights.
 
-          `bg-muted text-foreground` — the sunken neutral from globals.css,
-          paired with the body text colour so the label keeps full contrast.
           Which view you are in is load-bearing state, but it is *navigation*,
-          not the action of the page; a quiet gray fill marks the current
+          not the action of the page; a quiet raised card marks the current
           segment without competing with the buttons beside it or with the grid
-          underneath.
+          underneath — which is why it is `contained` and not the olive `default`.
 
-          Local to this call site rather than a change to `Segmented`'s default:
-          the login role switch and the portal's upcoming/past filter are also
-          segmented controls and keep the primary fill.
-
-          The unselected segments do not answer the pointer at all. `Segmented`
-          normally tints them olive on hover, which put a *third* fill in a
-          three-item control — the grey of the current view, the olive of the one
-          under the pointer, and nothing on the third — and at a glance the olive
-          one read as the selected view. The two states this switch has to show
-          are "here" and "not here"; a hover fill that looks like a selection is
-          the one thing it cannot afford. The focus ring is untouched, so a
-          keyboard still says where it is.
+          The unselected segments do not answer the pointer with a fill: the
+          track *is* a fill, so a second one on hover would read as a half that
+          has half-selected itself. Only the label darkens, which leaves the
+          sliding card as the one thing that ever marks the view. The focus ring
+          is untouched, so a keyboard still says where it is.
         */}
         <Segmented
           label={t('nav.view')}
@@ -195,7 +197,21 @@ export function CalendarToolbar({
           shape="contained"
           value={view}
           onChange={onViewChange}
-          className="hidden md:inline-flex"
+          onOptionHover={onViewHover}
+          /*
+            ⚠ `max-md:hidden`, **not** `hidden md:inline-flex`. Both hide the
+            switch below `md`, but the second one also *sets the display* at
+            `md` and up — and `contained` lays its segments out as an
+            `inline-grid` of equal columns, which is what the travelling thumb's
+            equal-thirds arithmetic depends on. Forcing it back to flex made the
+            segments size to their own labels ("يوم" is far shorter than "أسبوع")
+            while the thumb kept landing on thirds, so the raised card sat across
+            the wrong segment and hung off the end of the track.
+
+            This variant only ever writes `display: none`, below `md`, and leaves
+            the component to own its layout everywhere else.
+          */
+          className="max-md:hidden"
           options={CALENDAR_VIEWS.map((candidate) => ({
             value: candidate,
             label: t(`nav.${candidate}`),

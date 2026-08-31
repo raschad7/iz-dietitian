@@ -66,6 +66,34 @@ export type DragPreview = {
   valid: boolean;
 };
 
+/**
+ * The custom properties the free part of a drag is written to, straight onto the
+ * card's own element.
+ *
+ * ## Why this is not React state
+ *
+ * It was, for one revision, and it stuttered. A pointer frame that goes through
+ * `setState` re-renders the calendar: seven columns, every block on them, the
+ * preview memo, and the validity check over every appointment on screen — sixty
+ * times a second, for a value whose only job is to move one card a few pixels.
+ * The grid could not keep up with the finger, which is exactly the "it got
+ * stuck" that a drag must never do.
+ *
+ * So the two halves of the drag are split by how often they change. The
+ * *snapped* half — the slot, the day, whether the drop is legal — is React
+ * state, and it changes once per slot crossed, which is rare enough to render
+ * properly. The *free* half is these two custom properties, written directly to
+ * the element and read by `.calendar-dragging` in `globals.css`. No render, no
+ * diff, no reconciliation: a composited transform and nothing else.
+ *
+ * React never sets them, which is what keeps the two from fighting. A re-render
+ * for a snap change leaves whatever the pointer last wrote untouched, so the
+ * card cannot flick back to a stale offset for a frame at the very moment it
+ * crosses a slot boundary.
+ */
+const DRAG_X = '--drag-x';
+const DRAG_Y = '--drag-y';
+
 type CreateGesture = {
   date: string;
   gridTop: number;
@@ -149,12 +177,92 @@ const HOLD_TO_PAINT_MS = 450;
 /** How far a finger may drift during the hold and still be holding still. */
 const HOLD_TOLERANCE_PX = 10;
 
+/**
+ * How long a finger must rest on an appointment before it is carrying it.
+ *
+ * ## Why a hold, and why the grip is gone
+ *
+ * Moving a booking on glass used to mean finding a 28px strip down the block's
+ * leading edge — the one surface on the card that could claim
+ * `touch-action: none`, because the block itself cannot: it fills a grid that
+ * has to stay pannable, and a week that cannot be scrolled is one screen of
+ * day. So the gesture was reserved by a piece of chrome, and on a 30-minute
+ * booking that chrome took a quarter of the card away from the client's name.
+ *
+ * The planner already answered this — see `.planner-holding` and
+ * `HOLD_TO_DRAG_MS` in `board-dnd.tsx` — and the answer is that a hold needs no
+ * strip. A finger resting still is not scrolling anything, so nothing has to be
+ * taken from the browser until the hold is met; from that moment
+ * `preventDefault()` on `touchmove` keeps the gesture, exactly as it does for a
+ * range painted on empty canvas. The whole card is the handle, which is what
+ * the request "hold on the appointment to move it" describes and what a finger
+ * expects of a card it can move.
+ *
+ * The same 450ms as {@link HOLD_TO_PAINT_MS}, and deliberately the same number
+ * rather than a shared constant: these are two gestures on one grid that a
+ * reader will compare by feel, and if either is ever tuned it should be tuned
+ * on its own evidence.
+ *
+ * A mouse and a pen are untouched — the block has always been draggable outright
+ * on both, and making a pointer that cannot be confused with a scroll wait
+ * 450ms would be a regression invented for no one.
+ */
+const HOLD_TO_DRAG_MS = 450;
+
 type MoveGesture = {
   appointment: CalendarAppointment;
   mode: 'move' | 'resize';
   gridTop: number;
   originClientY: number;
   originClientX: number;
+  /**
+   * Whether this gesture may move the appointment yet. `true` from the outset
+   * for a mouse or a pen; on a finger only the hold turns it on.
+   */
+  armed: boolean;
+  /** `'mouse' | 'pen' | 'touch'`, as reported by the originating event. */
+  pointerType: string;
+  /**
+   * Whether `pointercancel` has already ended this gesture's pointer stream, so
+   * the rest of it has to run on the touch events. Same iOS behaviour
+   * `beginCreate` documents at length on its own `pointerCancelled`.
+   */
+  pointerCancelled: boolean;
+  /** The last point this gesture actually saw, for the release to fall back on. */
+  lastClientX: number;
+  lastClientY: number;
+  /**
+   * The card being dragged, so the free part of the movement can be written
+   * straight to it — see {@link DRAG_X}. Held rather than looked up each frame:
+   * a `querySelector` per pointer event is the kind of work this whole split
+   * exists to avoid.
+   *
+   * ⚠ **It does not survive a change of day**, which is why nothing may assume
+   * it is still the card on screen — see {@link cardOf}.
+   */
+  element: HTMLElement | null;
+  /**
+   * The snapped position last pushed to React, as one comparable string. What
+   * keeps a drag inside a single slot from re-rendering the grid sixty times.
+   */
+  previewKey: string | null;
+  /**
+   * The element the press landed on, and the pointer that made it — what
+   * `captureOnce` needs, kept because capture is now taken later than the event
+   * that carries them.
+   */
+  origin: HTMLElement;
+  pointerId: number;
+  /** Whether capture has already been taken, so it is taken exactly once. */
+  captured: boolean;
+  /**
+   * The timeline's own box and the card's resting box, both measured at
+   * pointer-down, so the free movement can be held inside the grid — see
+   * `paintDrag`. Measured once: they cannot change mid-gesture without a scroll,
+   * and stopping the scroll is the point.
+   */
+  bounds: DOMRect | null;
+  cardRect: DOMRect | null;
   /**
    * Every day column on screen, so a move can work out which day the pointer is
    * over. Measured rather than computed, which means RTL needs no special case:
@@ -200,6 +308,12 @@ export function useCalendarGestures({
 }: CalendarGesturesOptions) {
   const [pending, setPending] = useState<PendingRange | null>(null);
   const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
+  /**
+   * The appointment under a finger that is mid-hold, so the block can answer the
+   * press while it is being made. State rather than a ref precisely because it
+   * has to re-render: the whole point is that the card moves.
+   */
+  const [holdingId, setHoldingId] = useState<string | null>(null);
 
   const createRef = useRef<CreateGesture | null>(null);
   const moveRef = useRef<MoveGesture | null>(null);
@@ -580,6 +694,73 @@ export function useCalendarGestures({
         return [{ date, start: rect.left, end: rect.right }];
       });
 
+      /**
+       * The scrollers this gesture is sitting inside, held still for as long as
+       * it lasts.
+       *
+       * ## Why `preventDefault` is not the whole answer
+       *
+       * `handleTouchMove` stops the scroll on every move from the first one, and
+       * on WebKit that is enough. It is not enough everywhere: a compositor is
+       * entitled to decide a touch belongs to a scroller from `touchstart` and
+       * the element's `touch-action` alone, before a single `touchmove` has been
+       * delivered to anybody — and a scroll decided there cannot be prevented
+       * afterwards. That is a pan starting under a card the reader is holding,
+       * which is the one thing a hold must not allow.
+       *
+       * So the property is set on the scrollers themselves, which is the only
+       * statement made early enough to be binding. Both are needed and neither
+       * is redundant: this one keeps the gesture from ever being claimed, and
+       * `preventDefault` keeps the browser from acting on it if it was.
+       *
+       * Every scrollable ancestor, not the timeline alone: the week sits in a
+       * horizontal scroller inside a vertical one, and a lock on one of the two
+       * would leave a booking dragged across days sliding the columns under
+       * itself.
+       *
+       * Restored from what was actually there rather than to an empty string, so
+       * a scroller that had its own inline value keeps it.
+       */
+      const locked: { element: HTMLElement; touchAction: string; overscroll: string }[] = [];
+
+      const lockScrollers = (from: HTMLElement | null) => {
+        for (let node = from; node && node !== document.body; node = node.parentElement) {
+          const { overflowX, overflowY } = getComputedStyle(node);
+          const scrolls = /auto|scroll/.test(overflowX) || /auto|scroll/.test(overflowY);
+          if (!scrolls) continue;
+
+          locked.push({
+            element: node,
+            touchAction: node.style.touchAction,
+            overscroll: node.style.overscrollBehavior,
+          });
+
+          node.style.touchAction = 'none';
+          // A locked scroller must not hand the gesture to the one above it —
+          // or to the browser's own pull-to-refresh, which is the same swipe
+          // downwards a booking is dragged with.
+          node.style.overscrollBehavior = 'contain';
+        }
+      };
+
+      const unlockScrollers = () => {
+        for (const entry of locked) {
+          entry.element.style.touchAction = entry.touchAction;
+          entry.element.style.overscrollBehavior = entry.overscroll;
+        }
+        locked.length = 0;
+      };
+
+      /*
+        A finger has to hold before it carries anything; a mouse and a pen are
+        armed from the outset, which is what the grid has always done. A resize
+        is exempt: that grip is a few pixels of the block's own bottom edge, it
+        claims `touch-action: none` for itself, and it is not somewhere anybody
+        starts a scroll — so there is no gesture to be confused with and nothing
+        to wait for.
+      */
+      const isFinger = event.pointerType === 'touch' && mode === 'move';
+
       moveRef.current = {
         appointment,
         mode,
@@ -588,7 +769,50 @@ export function useCalendarGestures({
         originClientX: event.clientX,
         columns,
         moved: false,
+        armed: !isFinger,
+        pointerType: event.pointerType,
+        pointerCancelled: false,
+        lastClientX: event.clientX,
+        lastClientY: event.clientY,
+        /*
+          The card itself, not whatever part of it the press landed on: the grips
+          and the block share this handler, and the transform belongs to the
+          block. `closest` rather than `currentTarget` for exactly that reason.
+        */
+        element: (event.currentTarget as HTMLElement).closest<HTMLElement>('[data-appointment-id]'),
+        previewKey: null,
+        origin: event.currentTarget as HTMLElement,
+        pointerId: event.pointerId,
+        captured: false,
+        bounds: column.closest('[data-timeline]')?.getBoundingClientRect() ?? null,
+        cardRect:
+          (event.currentTarget as HTMLElement)
+            .closest<HTMLElement>('[data-appointment-id]')
+            ?.getBoundingClientRect() ?? null,
       };
+
+      /*
+        The press, made visible. A hold that gives nothing back until it fires
+        is a gesture nobody discovers and nobody trusts — the finger is down,
+        the grid is still, and there is no telling whether this card does that
+        at all. The block settles under the finger for exactly the length of the
+        hold; see `.calendar-holding`.
+      */
+      if (isFinger) {
+        setHoldingId(appointment.id);
+        /*
+          From the press, not from the hold. The decision this forestalls is
+          made at `touchstart`, so a lock applied 450ms later would be applied
+          after the only moment it could have mattered — and by then the grid is
+          already sliding under a finger that meant to hold a card still.
+
+          It is lifted the instant the gesture ends, which includes the drift
+          teardown: a finger that was scrolling all along loses the first few
+          pixels of its swipe and has the week back from there. That is the same
+          touch slop every scroller on the platform already spends.
+        */
+        lockScrollers(column as HTMLElement);
+      }
 
       /**
        * Takes the gesture as an argument rather than reading `moveRef`.
@@ -638,23 +862,266 @@ export function useCalendarGestures({
         };
       };
 
-      const handleMove = (moveEvent: PointerEvent) => {
+      /**
+       * How far the pointer has travelled beyond what the snap has already
+       * moved the card — see {@link DragPreview.offsetX}.
+       *
+       * Both axes are the same subtraction: the pointer's own delta, less the
+       * delta the snapped preview accounts for. Vertically that is the
+       * difference in start times, in pixels at the scale currently on screen;
+       * horizontally it is the distance between the two columns' leading edges,
+       * measured rather than computed, so RTL needs no special case — the
+       * browser laid the week out and the rects say where it put it.
+       *
+       * A resize moves nothing, so it carries no remainder: the block's start
+       * stays where it is and only its height follows the pointer.
+       */
+      /**
+       * The element the card is *currently* drawn as.
+       *
+       * ## Why this cannot just be the one the press landed on
+       *
+       * A block lives inside its day's column, so the moment a drag crosses into
+       * the next day React unmounts it from the column it came from and mounts a
+       * new element in the one it went to. Same appointment, same key, different
+       * node — and the node the gesture was holding is now detached from the
+       * document.
+       *
+       * Everything kept working except the one thing that mattered: the free
+       * offset was being written to a node nobody could see, so the card stopped
+       * following the finger the instant it left its own column and sat there
+       * snapping from slot to slot. Which is exactly "it got stuck when I move
+       * the appointment to the next column".
+       *
+       * So the held element is a cache, checked for being connected and
+       * re-acquired when it is not. The query runs on the frame after a day
+       * change and no others — a `querySelector` sixty times a second is the
+       * work this whole split exists to avoid, and once per column crossed is
+       * nothing.
+       */
+
+      /**
+       * Capture the pointer on the element the gesture started from.
+       *
+       * ## Why this is not done at pointer-down
+       *
+       * ⚠ **It was, and it broke the client's name.** The name on a block is a
+       * link to the record, and clicking it on a desktop did nothing at all.
+       * Chromium dispatches the `click` that follows a captured pointer to the
+       * *capturing* element rather than to the one under the cursor — so the
+       * click landed on the `<article>`, the anchor inside it never received one,
+       * and the browser never navigated. Nothing in the anchor's own handler was
+       * at fault, which is why it looked like a routing bug.
+       *
+       * Capture exists for the drag, and a click is not a drag. So it is taken at
+       * the first moment the gesture actually becomes one — past the threshold on
+       * a mouse, at the hold on a finger — and by then there is no click left to
+       * misdeliver: a press that travels far enough to capture is a press the
+       * browser will not report as a click on the link anyway.
+       *
+       * What capture is *for*: without it the browser may reinterpret a
+       * travelling finger as a pan and cancel the move halfway through; with it,
+       * every subsequent event for this pointer is delivered here until release.
+       * `preventDefault()` on `touchmove` is the other half — capture decides
+       * where the events go, that decides whether the browser competes for them.
+       *
+       * Wrapped because capture throws if the pointer has already been released,
+       * a race a fast gesture can win. Losing it is not fatal — the window
+       * listeners carry the drag regardless — so it must not take the gesture
+       * down with it.
+       */
+      const captureOnce = (gesture: MoveGesture) => {
+        if (gesture.captured) return;
+        gesture.captured = true;
+
+        try {
+          gesture.origin.setPointerCapture(gesture.pointerId);
+        } catch {
+          // Nothing to do: the gesture proceeds uncaptured, as it always did.
+        }
+      };
+
+      const cardOf = (gesture: MoveGesture): HTMLElement | null => {
+        if (gesture.element?.isConnected) return gesture.element;
+
+        gesture.element = document.querySelector<HTMLElement>(
+          `[data-appointment-id="${appointment.id}"]`,
+        );
+
+        return gesture.element;
+      };
+
+      const paintDrag = (clientX: number, clientY: number, gesture: MoveGesture) => {
+        if (gesture.mode === 'resize') return;
+
+        const card = cardOf(gesture);
+        if (!card) return;
+
+        /*
+          The pointer's own travel, whole and unmodified.
+
+          ⚠ It used to be the travel *minus* whatever the snapped re-render had
+          already moved the card by, and that is what shook. The two halves were
+          applied by different machines on different clocks: this style write
+          lands during the event, and the `top` it was compensating for lands
+          whenever React commits. Whenever those fell in different frames — which
+          near a slot boundary is most of them — the card was drawn for a frame
+          with one half applied and not the other, which is a jump of a whole
+          slot, and a finger resting on a boundary flips across it many times a
+          second. Hence a shake whose amplitude was exactly `pxPerSlot`.
+
+          There is nothing to subtract now, because the card no longer moves in
+          the layout at all while it is being dragged: the grid keeps drawing it
+          where it started and this transform is the entire movement. One value,
+          one clock, no second opinion — see `previewedAppointments` in
+          `./components/calendar`, which is what stopped repositioning it.
+        */
+        /*
+          ── Held inside the grid, sideways ──
+
+          ⚠ A transform counts towards its scroller's **scrollable overflow**.
+          The timeline sits in a horizontal scroller, so a card translated past
+          the last column grew that scroller's content: the week slid under the
+          hand, and the time gutter — which is `sticky start-0` against exactly
+          that scroller (see the note on the gutter in `./components/calendar`) —
+          slid with it. The frame of the calendar is not supposed to move at all
+          while a booking is being carried, and it was moving the wrong way,
+          because what the reader was actually seeing was the page scrolling
+          itself towards the card.
+
+          Clamping the card to the timeline's own box removes the cause rather
+          than the symptom: it can never translate to a place there is no grid,
+          so the scrollable area never grows and there is nothing to slide.
+
+          On the day view this is also the whole of the sideways travel — one
+          column, as wide as the timeline, so a card that must stay inside it
+          barely moves across. That is the honest drawing of what a sideways drag
+          does there, which is nothing.
+
+          Only the inline axis is clamped. The block axis scrolls a grid that is
+          already taller than its port, so the card is moving *within* existing
+          content and grows nothing — and pinning it to the visible top and
+          bottom would tear it away from the pointer at both edges of an
+          ordinary drag.
+        */
+        const dx = clientX - gesture.originClientX;
+        const { bounds, cardRect } = gesture;
+
+        const heldX =
+          bounds && cardRect
+            ? Math.min(Math.max(dx, bounds.left - cardRect.left), bounds.right - cardRect.right)
+            : dx;
+
+        card.style.setProperty(DRAG_X, `${heldX}px`);
+        card.style.setProperty(DRAG_Y, `${clientY - gesture.originClientY}px`);
+      };
+
+      /**
+       * Detach everything this gesture registered and forget it.
+       *
+       * One function, for the same reason `beginCreate` has one: the listeners
+       * come in two families now, and a release path that forgot the `touchmove`
+       * one would leave a live `preventDefault()` on the window — which is a
+       * calendar that has stopped scrolling.
+       */
+      function teardown() {
+        window.removeEventListener('pointermove', handleMove);
+        window.removeEventListener('pointerup', handleUp);
+        window.removeEventListener('pointercancel', handleCancel);
+        window.removeEventListener('touchmove', handleTouchMove);
+        window.removeEventListener('touchend', handleTouchEnd);
+        window.removeEventListener('touchcancel', handleTouchCancel);
+        if (holdTimer !== null) window.clearTimeout(holdTimer);
+
+        // The week scrolls again the moment nothing is being held.
+        unlockScrollers();
+
+        /*
+          The card lands by the offset going away. Cleared here rather than left
+          to React, which never set these and so would never think to remove
+          them — and a card that kept the last frame's offset would sit a few
+          pixels off its own slot until something else re-rendered it.
+        */
+        const gesture = moveRef.current;
+        const card = gesture ? cardOf(gesture) : null;
+        if (card) {
+          card.style.removeProperty(DRAG_X);
+          card.style.removeProperty(DRAG_Y);
+        }
+
+        moveRef.current = null;
+        setDragPreview(null);
+        setHoldingId(null);
+      }
+
+      /**
+       * Advance the gesture to a point, whichever stream that point came from.
+       *
+       * A `function` declaration so it is hoisted above `handleTouchMove`, which
+       * is defined first and calls it.
+       */
+      function advance(clientX: number, clientY: number) {
         const gesture = moveRef.current;
         if (!gesture) return;
+
+        gesture.lastClientX = clientX;
+        gesture.lastClientY = clientY;
+
+        /*
+          Before the hold is met, travel means the finger was scrolling the week
+          all along: drop the hold and let the browser have the gesture, exactly
+          as an unarmed create gesture does.
+        */
+        if (!gesture.armed) {
+          const drift = Math.hypot(clientX - gesture.originClientX, clientY - gesture.originClientY);
+          if (drift > HOLD_TOLERANCE_PX) teardown();
+          return;
+        }
 
         // Distance in *either* axis, not just vertical. A drag straight across
         // to the next day changes no y at all, and a vertical-only threshold
         // would never let that gesture start.
         const travelled = Math.max(
-          Math.abs(moveEvent.clientY - gesture.originClientY),
-          Math.abs(moveEvent.clientX - gesture.originClientX),
+          Math.abs(clientY - gesture.originClientY),
+          Math.abs(clientX - gesture.originClientX),
         );
 
         if (!gesture.moved && travelled < DRAG_THRESHOLD_PX) return;
         gesture.moved = true;
 
-        const next = compute(moveEvent.clientY, moveEvent.clientX, gesture);
+        // Past the threshold this is a drag, and a drag is what capture is for.
+        captureOnce(gesture);
 
+        const next = compute(clientY, clientX, gesture);
+
+        // The free half of the drag: a style write on one element, every frame.
+        paintDrag(clientX, clientY, gesture);
+
+        /*
+          The snapped half, and only when it has actually changed.
+
+          This used to run on every frame, and it is what made the drag stick: a
+          `setState` here re-renders seven columns, every block on them, the
+          preview memo and a validity check over the whole day — work the finger
+          then has to wait for. Between one slot and the next none of that
+          produces a different pixel, because the card's position in those frames
+          is the custom properties above and nothing else.
+
+          Keyed on the three fields that are rendered from, so a gesture that
+          wanders around inside one slot renders once, and crossing into the next
+          one renders once more.
+        */
+        const key = `${next.date}|${next.startMinute}|${next.durationMinutes}`;
+        if (key === gesture.previewKey) return;
+        gesture.previewKey = key;
+
+        /*
+          Nothing here moves the card any more — this render changes the times on
+          its chip and whether it is drawn as a legal drop, and that is all. The
+          re-parenting dance a day change used to require is gone with it: the
+          block stays mounted in the column it started in for the whole gesture,
+          so there is no element to lose and none to re-acquire mid-drag.
+        */
         setDragPreview({
           id: appointment.id,
           ...next,
@@ -663,41 +1130,164 @@ export function useCalendarGestures({
           // date that has gone and a clash still paint red.
           valid: isValid({ ...next, practitionerId: appointment.practitionerId }, appointment.id),
         });
+      }
+
+      const handleMove = (moveEvent: PointerEvent) => {
+        advance(moveEvent.clientX, moveEvent.clientY);
+      };
+
+      /*
+        ── Taking the gesture back from the browser ──
+
+        `preventDefault()` on `touchmove` is the only thing that stops iOS
+        panning the grid mid-drag, and `touch-action` is not available to the
+        block: it fills a column that has to stay pannable. Registered at
+        pointer-down rather than when the hold succeeds, because a listener added
+        after the browser has begun scrolling is too late — and inert until
+        `armed`, so an ordinary scroll that starts on a booking passes straight
+        through.
+
+        ⚠ `{ passive: false }` is load-bearing: a passive listener's
+        `preventDefault()` is a silent no-op.
+      */
+      const handleTouchMove = (touchEvent: TouchEvent) => {
+        const gesture = moveRef.current;
+        if (!gesture) return;
+
+        /*
+          ── Nothing scrolls while a booking is being held ──
+
+          This used to wait for `armed`, and the wait was visible: through the
+          whole 450ms hold the grid was still the browser's to scroll, so the
+          smallest tremor slid the calendar under the finger. The card the reader
+          was deliberately holding on to moved away from them, and on a phone the
+          hold usually died with it — the browser claims a gesture it has started
+          scrolling.
+
+          So a finger that has landed on an appointment stops the scroll from its
+          very first move, before the hold has been met and whether or not it
+          will be. What that costs is bounded and deliberate: it is only true
+          while this gesture exists, and a finger that travels more than
+          {@link HOLD_TOLERANCE_PX} is read as a scroll — `advance` tears the
+          gesture down, this listener goes with it, and the browser has the
+          week back. That is one prevented frame at the start of a swipe that
+          begins on a card, which is the same touch slop every scroller on the
+          platform already spends.
+
+          A booking is the right surface to take this on and empty canvas is not:
+          `beginCreate` still arms on `armed` alone, because the canvas *is* the
+          calendar and a grid that resists the first 10px of every pan would be
+          worse than the problem.
+        */
+        if (touchEvent.cancelable) touchEvent.preventDefault();
+
+        /*
+          After a `pointercancel` this is the only movement this gesture will
+          ever see — the pointer stream is finished — so the drift test and the
+          preview have to run from here instead.
+        */
+        if (gesture.pointerCancelled) {
+          const touch = touchEvent.touches[0];
+          if (touch) advance(touch.clientX, touch.clientY);
+        }
+      };
+
+      /*
+        The hold. Picking the block up paints its preview at the position it
+        already occupies, so the card visibly lifts at the instant the gesture is
+        taken rather than at the first 15 minutes of travel.
+      */
+      const holdTimer = isFinger
+        ? window.setTimeout(() => {
+            const gesture = moveRef.current;
+            if (!gesture || gesture.moved) return;
+
+            gesture.armed = true;
+            setHoldingId(null);
+
+            // The card has been picked up, so the pointer belongs to this
+            // gesture from here — including the events the browser would
+            // otherwise reclaim for a pan.
+            captureOnce(gesture);
+
+            const next = compute(gesture.lastClientY, gesture.lastClientX, gesture);
+            // The pickup happens where the card already is, so there is nothing
+            // to carry yet — but the key is recorded, or the first frame of
+            // travel would render this same position a second time.
+            gesture.previewKey = `${next.date}|${next.startMinute}|${next.durationMinutes}`;
+            setDragPreview({
+              id: appointment.id,
+              ...next,
+              valid: isValid({ ...next, practitionerId: appointment.practitionerId }, appointment.id),
+            });
+          }, HOLD_TO_DRAG_MS)
+        : null;
+
+      /**
+       * A gesture the browser took away is not a move: it tears down and commits
+       * nothing.
+       *
+       * ⚠ **Except a finger, at any stage of the gesture.**
+       *
+       * Unarmed, for the reason `beginCreate.handleCancel` sets out in full: iOS
+       * fires `pointercancel` speculatively, the moment it starts considering
+       * the touch for a scroller, which on a pannable grid is well inside the
+       * 450ms hold. Tearing down there would clear the timer and the hold could
+       * never once reach the line that arms it.
+       *
+       * And armed, because a card that is being carried must not be put down by
+       * anything except the hand carrying it. A cancel mid-drag dropped the
+       * appointment where it stood and snapped the card back — the gesture ended
+       * without anybody ending it, which on a touch screen is the one thing a
+       * drag must never do. Nothing is lost by staying: the finger is still on
+       * the glass, `touchmove` is still reporting where, and the release is
+       * still the only thing that writes. If the touch really is gone, its own
+       * `touchcancel` says so and *that* is what abandons the gesture.
+       *
+       * What the cancel does cost either way is the pointer stream: no further
+       * `pointermove` and no `pointerup`. From here the gesture runs on
+       * `touchmove` and finishes on `touchend`.
+       */
+      const handleCancel = () => {
+        const gesture = moveRef.current;
+
+        if (!gesture || gesture.pointerType !== 'touch') {
+          teardown();
+          return;
+        }
+
+        gesture.pointerCancelled = true;
       };
 
       /**
-       * Same split as `beginCreate`: a gesture the browser took away is not a
-       * move, so it tears down and commits nothing.
+       * Finish the gesture and commit the move, if it is one.
        *
-       * This path was already safe by accident — `handleUp` returns early unless
-       * the pointer travelled, and a cancel usually arrives before that — but it
-       * was safe for the wrong reason, and a cancel *after* the threshold would
-       * have written a move the user never finished. Saying it explicitly costs
-       * one function and makes both gestures read the same way.
+       * Takes the release point rather than an event, because there are two ways
+       * this can end — `pointerup` ordinarily, and `touchend` once
+       * `pointercancel` has killed the pointer stream. Safe to reach twice: an
+       * uncancelled touch fires both, and whichever arrives first clears the ref.
        */
-      const handleCancel = () => {
-        window.removeEventListener('pointermove', handleMove);
-        window.removeEventListener('pointerup', handleUp);
-        window.removeEventListener('pointercancel', handleCancel);
-
-        moveRef.current = null;
-        setDragPreview(null);
-      };
-
-      const handleUp = (upEvent: PointerEvent) => {
-        window.removeEventListener('pointermove', handleMove);
-        window.removeEventListener('pointerup', handleUp);
-        window.removeEventListener('pointercancel', handleCancel);
-
+      function completeMove(release: { x: number; y: number } | null) {
         const gesture = moveRef.current;
-        moveRef.current = null;
-        setDragPreview(null);
 
-        // Below the threshold this was a click, which only selects. Committing
-        // here would write an identical row on every single click.
+        teardown();
+
+        // Below the threshold this was a tap, which only selects — and an
+        // unarmed finger never even became a drag. Committing here would write
+        // an identical row on every single press.
         if (!gesture?.moved) return;
 
-        const next = compute(upEvent.clientY, upEvent.clientX, gesture);
+        /*
+          Where the gesture actually ended. `0, 0` is a mis-reported WebKit touch
+          release rather than a real point — see `lastClientX` on the create
+          gesture — and a `touchend` with no `changedTouches` falls back the same
+          way.
+        */
+        const usable = release !== null && !(release.x === 0 && release.y === 0);
+        const releaseX = usable ? release.x : gesture.lastClientX;
+        const releaseY = usable ? release.y : gesture.lastClientY;
+
+        const next = compute(releaseY, releaseX, gesture);
 
         // Nothing actually changed — a drag out and back. Writing here would
         // send an identical row to the server for no reason. The date is part of
@@ -711,33 +1301,34 @@ export function useCalendarGestures({
         }
 
         latest.current.onCommitMove(appointment, next);
+      }
+
+      const handleUp = (upEvent: PointerEvent) => {
+        completeMove({ x: upEvent.clientX, y: upEvent.clientY });
       };
 
-      /*
-        Capture the pointer on the element that started the gesture.
+      /**
+       * The touch stream's own release, for the gesture whose pointer stream
+       * `pointercancel` already ended. Registered for every touch gesture, since
+       * by the time a cancel arrives it is too late to start listening — and it
+       * costs nothing: on an uncancelled touch `pointerup` gets there first.
+       */
+      const handleTouchEnd = (touchEvent: TouchEvent) => {
+        const touch = touchEvent.changedTouches[0];
+        completeMove(touch ? { x: touch.clientX, y: touch.clientY } : null);
+      };
 
-        On touch this is what keeps a drag a drag. Without it the browser is free
-        to reinterpret the finger as a pan the moment it travels, which cancels
-        the move halfway through; with it, every subsequent event for this
-        pointer is delivered here until it is released. `touch-action: none` on
-        the grip (see `AppointmentBlock`) is the other half — capture decides
-        where the events go, `touch-action` decides whether the browser competes
-        for them at all.
-
-        Wrapped because capture throws if the pointer has already been released,
-        which is a race a fast tap can win. Losing capture is not fatal — the
-        window listeners still work for a mouse — so it must not take the gesture
-        down with it.
-      */
-      try {
-        (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
-      } catch {
-        // Nothing to do: the gesture proceeds uncaptured, as it always did.
-      }
+      /** A touch the system took away — a second finger, a call, the app backgrounded. */
+      const handleTouchCancel = () => {
+        teardown();
+      };
 
       window.addEventListener('pointermove', handleMove);
       window.addEventListener('pointerup', handleUp);
       window.addEventListener('pointercancel', handleCancel);
+      window.addEventListener('touchmove', handleTouchMove, { passive: false });
+      window.addEventListener('touchend', handleTouchEnd);
+      window.addEventListener('touchcancel', handleTouchCancel);
     },
     [isValid, minuteAt],
   );
@@ -745,6 +1336,8 @@ export function useCalendarGestures({
   return {
     pending,
     dragPreview,
+    /** The appointment a finger is currently resting on, mid-hold. */
+    holdingId,
     beginCreate,
     beginMovePointerDown: beginMove('move'),
     beginResizePointerDown: beginMove('resize'),

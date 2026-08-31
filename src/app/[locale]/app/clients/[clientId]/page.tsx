@@ -2,13 +2,13 @@ import { getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 
-import { getClientVisitSummary, listClientVisits } from '@/features/booking/queries';
+import { listClientVisits } from '@/features/booking/queries';
 import { ClientProfile } from '@/features/clients/components/client-profile';
 import { PROFILE_TABS, type ProfileTab } from '@/features/clients/components/profile-tab';
-import { getPortalUsername } from '@/features/clients/portal-credentials';
+import { getPortalUsername, suggestPortalUsername } from '@/features/clients/portal-credentials';
 import { getClientWeekMeals, getClientWeekProgress } from '@/features/clients/progress';
 import { getClient, getClientIntake } from '@/features/clients/queries';
-import { suggestUsername } from '@/features/clients/transliterate';
+import { clinicServicePrices, consultedClients, ledgerByClient } from '@/features/billing/queries';
 import { currentSunday } from '@/features/weekly-plans/week';
 import { listPlans } from '@/features/weekly-plans/queries';
 import { getSettings } from '@/features/whatsapp/queries';
@@ -62,9 +62,17 @@ export default async function ClientInfoPage({ params, searchParams }: ClientInf
 
   const today = toIsoDate(new Date());
 
-  const [visitSummary, visitEntries, plans, intake, whatsapp, portalUsername] =
-    await Promise.all([
-      getClientVisitSummary(clinicId, client.id, today),
+  const [
+    visitEntries,
+    plans,
+    intake,
+    whatsapp,
+    portalUsername,
+    suggestedUsername,
+    ledgers,
+    prices,
+    consulted,
+  ] = await Promise.all([
       listClientVisits(clinicId, client.id),
       listPlans(clinicId, client.id),
       // The Nutrition view's whole subject, and the meal-slot denominator the
@@ -74,6 +82,20 @@ export default async function ClientInfoPage({ params, searchParams }: ClientInf
       // client over WhatsApp, or only over the desk.
       getSettings(clinicId),
       client.hasPortalAccess ? getPortalUsername(clinicId, client.id) : Promise.resolve(null),
+      // The username the issue form opens with — the client's own phone number,
+      // checked against the names already in use. Only the issue form reads it,
+      // so a client who already signs in costs no query for it.
+      client.hasPortalAccess ? Promise.resolve('') : suggestPortalUsername(client),
+      /*
+        The Expenses view: this subscriber's ledger, what the clinic charges,
+        and whether a consultation is already on the account — the free-first
+        rule the charge card applies. Read here with everything else rather
+        than inside the panel, so a record opens with one round of reads
+        however many views it has.
+      */
+      ledgerByClient(clinicId, [client.id]),
+      clinicServicePrices(clinicId),
+      consultedClients(clinicId, [client.id]),
     ]);
 
   // An unknown `?tab=` opens on the first view — Nutrition — rather than 404ing: the param is
@@ -138,15 +160,20 @@ export default async function ClientInfoPage({ params, searchParams }: ClientInf
       locale={locale}
       today={today}
       defaultTab={defaultTab}
-      visits={{ summary: visitSummary, entries: visitEntries }}
+      visits={{ entries: visitEntries }}
       plans={plans}
       intake={intake}
       progress={progress}
       progressWeeks={progressWeeks}
       mealsByDay={mealsByDay}
+      billing={{
+        entries: ledgers.get(client.id) ?? [],
+        prices,
+        consulted: consulted.has(client.id),
+      }}
       portal={{
         username: portalUsername,
-        suggestedUsername: suggestUsername(client.fullName),
+        suggestedUsername,
       }}
       canSendWhatsapp={whatsapp?.status === 'ready' && Boolean(client.phone)}
     />

@@ -1,33 +1,21 @@
 'use client';
 
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 
-import { type IconName } from '@/components/ui/icon';
+import { buttonVariants } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 import {
   NotificationInboxItem,
+  notificationInboxItemLinkVariants,
   NotificationInboxPopover,
 } from '@/components/ui/notification-inbox-popover';
-import { formatLongDate, formatMinute } from '@/features/booking/format';
-import { type PortalNotification } from '@/features/portal/notifications';
-import { type Locale } from '@/i18n/routing';
-import { formatDate } from '@/lib/format';
+import { NOTIFICATION_ICON, useNotificationCopy } from '@/features/portal/notification-copy';
+import { notificationHref, type PortalNotification } from '@/features/portal/notifications';
+import { Link } from '@/i18n/navigation';
 
 /**
- * The client's feed, behind the bell in `PortalHeader`.
- *
- * ## Why this is a popup and not a screen
- *
- * It was a screen: `/portal/notifications`, reached by tapping the bell, with a
- * back control and a list. Everything on that screen was one sentence long and
- * none of it was actionable — an appointment reminder, "this week's plan is
- * ready", the clinic's answer to a request — so the whole interaction was
- * *leave what you were doing, read four lines, come back*. A feed nobody acts
- * on inside a screen you have to exit is a page that costs more to visit than
- * it returns; over the page it is a glance.
- *
- * The route is gone with it. It carried nothing this panel does not — same
- * loader, same rows, same empty state — and a screen reachable only from a
- * control that now opens a popover is a screen with no way in.
+ * The client's feed, behind the bell in `PortalHeader`: the latest rows in a
+ * popover, "see all" leading to the full list at `/portal/notifications`.
  *
  * ## Reusing the practitioner's inbox
  *
@@ -38,75 +26,30 @@ import { formatDate } from '@/lib/format';
  * — are what let the portal keep its own bell rather than inherit a bordered
  * grey button into a header that has no other chrome in it.
  *
- * **The rows are flush and ruled here, where the screen drew cards.** That is
- * the shared component's shape and it is the right one: a 380px panel is
- * already a surface, and eight `Card`s inside it would be eight more.
+ * **The rows are flush and ruled here, where the full screen draws cards.**
+ * That is the shared component's shape and it is the right one: a 380px panel
+ * is already a surface, and five `Card`s inside it would be five more. The
+ * screen behind "see all" keeps the cards — see `NotificationList`.
  *
- * ## Deliberately not here
+ * **`PREVIEW_LIMIT` caps the panel; the screen does not.** `buildNotifications`
+ * already caps the whole feed at eight, so the two rarely disagree by much —
+ * but the panel is a glance from whatever tab the client is on, and five rows
+ * is what it can hold without scrolling on a short phone.
  *
- * **Tabs, a footer, and any kind of link.** Nothing in this feed is a
- * destination — every row is derived from a record that already has its own
- * screen (`features/portal/notifications.ts`), so a row that navigated would be
- * guessing which of them the client meant. There is also nowhere for a "see
- * all" to lead any more: the panel holds the whole feed, which
- * `buildNotifications` caps at eight.
- *
- * **The seen marks.** They stay in `PortalHeader`, which is where the store
- * that holds them lives and where the ⚠ note explaining why they cannot live in
- * the database already is. This takes the count it computed and calls `onOpen`
+ * **The seen marks stay in `PortalHeader`**, which is where the store that
+ * holds them lives and where the ⚠ note explaining why they cannot live in the
+ * database already is. This takes the count it computed and calls `onOpen`
  * when the panel opens; opening the feed is what reads it.
  */
 
-const ICON: Record<PortalNotification['kind'], IconName> = {
-  adherenceReminder: 'progress',
-  appointmentReminder: 'calendar',
-  planUpdate: 'myPlan',
-  clinicMessage: 'chat',
-};
-
 /**
- * One notification, in words.
+ * How many rows the popover previews before "see all" takes over.
  *
- * A hook rather than a plain function because every branch reads the catalogue,
- * and two of them format a date in the active locale. Lifted out of the row so
- * the `switch` is exhaustive over `PortalNotification['kind']` on its own — a
- * new kind is then a compile error here rather than a row that renders blank.
+ * Five, the same number the staff bell settled on (`notifications-bell.tsx`)
+ * for the identical reason: a panel that scrolls to be read is no longer a
+ * glance.
  */
-function useNotificationCopy(item: PortalNotification): { title: string; body: string } {
-  const locale = useLocale() as Locale;
-  const t = useTranslations('portal.notifications.items');
-  const tRequest = useTranslations('portal.request');
-
-  switch (item.kind) {
-    case 'adherenceReminder':
-      return { title: t('adherenceReminder.title'), body: t('adherenceReminder.body') };
-
-    case 'appointmentReminder':
-      return {
-        title: t('appointmentReminder.title'),
-        body: t('appointmentReminder.body', {
-          date: formatLongDate(locale, item.date),
-          time: formatMinute(locale, item.date, item.startMinute),
-        }),
-      };
-
-    case 'planUpdate':
-      return {
-        title: t('planUpdate.title'),
-        body: t('planUpdate.body', { date: formatLongDate(locale, item.weekStartDate) }),
-      };
-
-    case 'clinicMessage':
-      return {
-        title: t('clinicMessage.title'),
-        body: t('clinicMessage.body', {
-          kind: tRequest(`kind.${item.requestKind}`),
-          status: tRequest(`status.${item.status}`),
-          date: formatDate(locale, item.respondedAt),
-        }),
-      };
-  }
-}
+const PREVIEW_LIMIT = 5;
 
 function PortalNotificationRow({ item }: { item: PortalNotification }) {
   const { title, body } = useNotificationCopy(item);
@@ -114,12 +57,20 @@ function PortalNotificationRow({ item }: { item: PortalNotification }) {
   return (
     <li>
       {/*
-        No `tone`. The shared item's tones are the practitioner's triage —
-        attention for a client who needs chasing, incomplete for a record with a
-        hole in it — and nothing in this feed is a problem the reader owns.
-        Neutral is the honest answer for all four kinds.
+        `notificationHref` — the screen this row is about, the same
+        destination a push notification for the same event opens. The shared
+        component's own doc comment asks for exactly this: a `<Link>` wrapping
+        the presentational item, carrying `notificationInboxItemLinkVariants`.
       */}
-      <NotificationInboxItem icon={ICON[item.kind]} title={title} description={body} />
+      <Link href={notificationHref(item.kind)} className={notificationInboxItemLinkVariants}>
+        {/*
+          No `tone`. The shared item's tones are the practitioner's triage —
+          attention for a client who needs chasing, incomplete for a record with a
+          hole in it — and nothing in this feed is a problem the reader owns.
+          Neutral is the honest answer for all four kinds.
+        */}
+        <NotificationInboxItem icon={NOTIFICATION_ICON[item.kind]} title={title} description={body} />
+      </Link>
     </li>
   );
 }
@@ -140,6 +91,8 @@ export function PortalNotificationsBell({
 }) {
   const t = useTranslations('portal.notifications');
   const tHeader = useTranslations('portal.header');
+
+  const preview = items.slice(0, PREVIEW_LIMIT);
 
   return (
     <NotificationInboxPopover
@@ -181,14 +134,17 @@ export function PortalNotificationsBell({
       /*
         `align="start"`: this bell sits at the header's inline-start — the right
         in Arabic, the left in English — so a panel aligned to its inline-end
-        would open across the screen and collide with the far edge.
-
-        Only the popover reads this, which now means only a mouse-driven window:
-        on any touch surface the shell renders a bottom sheet, which is pinned
-        to the screen's edges and has no trigger to align against. The prop
-        still matters for the desktop it is left for.
+        would open across the screen and collide with the far edge on a phone.
       */
       align="start"
+      /*
+        A popup anchored to the bell on every device, phone included — not the
+        shared component's own default of a bottom sheet on touch. "See all"
+        already leads to `/portal/notifications`, a page of its own with a
+        back control, so the panel here only ever needs to be a glance rather
+        than a surface worth the weight of a sheet.
+      */
+      sheetOnTouch={false}
       onOpenChange={(open) => {
         if (open) onOpen();
       }}
@@ -204,8 +160,24 @@ export function PortalNotificationsBell({
         gap rather than as part of the badge.
       */
       badgeClassName="bg-status-complete-mark text-white ring-2 ring-card"
+      /*
+        Centred, and the link is its own width rather than the footer's —
+        the staff bell's own reasoning (`notifications-bell.tsx`): full width
+        it reads as a primary action closing the panel, and this only opens a
+        longer list. A real `<Link>`, not a button that opens a dialog over
+        the page: the client asked for a page they can back out of, with its
+        own back control, not another surface stacked on this one.
+      */
+      footer={
+        <div className="flex justify-center">
+          <Link href="/portal/notifications" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
+            {t('seeAll')}
+            <Icon name="chevronEnd" className="size-4" />
+          </Link>
+        </div>
+      }
     >
-      {items.map((item) => (
+      {preview.map((item) => (
         <PortalNotificationRow key={item.id} item={item} />
       ))}
     </NotificationInboxPopover>

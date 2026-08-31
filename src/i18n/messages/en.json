@@ -39,6 +39,8 @@
   "nav": {
     "dashboard": "Dashboard",
     "clients": "Clients",
+    "subscriber": "Subscriber",
+    "bills": "Bills",
     "calendar": "Calendar",
     "plans": "Nutrition plans",
     "appointments": "Appointments",
@@ -52,10 +54,41 @@
     "security": "Security",
     "weeklyPlans": "Weekly Plans",
     "dishes": "Dish catalog",
+    "management": "Management",
+    "newClient": "New client",
+    "day": "Day",
+    "week": "Week",
+    "month": "Month",
     "whatsapp": "WhatsApp",
     "notifications": "Notifications",
     "openNavigation": "Open navigation",
-    "closeNavigation": "Close navigation"
+    "closeNavigation": "Close navigation",
+    "expandSidebar": "Expand sidebar",
+    "collapseSidebar": "Collapse sidebar"
+  },
+  "commandPalette": {
+    "label": "Search and commands",
+    "trigger": "Search",
+    "placeholder": "Search subscribers, actions and screens…",
+    "pickClient": "Choose a subscriber…",
+    "searching": "Searching…",
+    "empty": "No matches for your search.",
+    "groupActions": "Quick actions",
+    "newWeeklyPlan": "New weekly plan",
+    "groupRecent": "Recently opened",
+    "groupClients": "Subscribers",
+    "groupSettings": "Settings and more",
+    "groupNavigation": "Go to",
+    "groupCommands": "Commands",
+    "switchLanguage": "Switch to {language}",
+    "language": {
+      "ar": "العربية",
+      "en": "English"
+    },
+    "hintNavigate": "navigate",
+    "hintOpen": "open",
+    "hintBack": "back",
+    "hintClose": "close"
   },
   "settingsWorkspace": {
     "title": "Settings",
@@ -65,6 +98,7 @@
     "tabs": {
       "profile": "Personal profile",
       "clinic": "Clinic",
+      "forms": "Forms",
       "whatsapp": "WhatsApp",
       "security": "Security"
     },
@@ -74,22 +108,17 @@
       "staffMember": "Clinic team member",
       "active": "Active",
       "formTitle": "Professional information",
-      "formDescription": "Update the details that identify you within the clinic team.",
       "accountEmail": "Account email",
-      "accountEmailHint": "This email is managed through your sign-in account.",
       "identityTitle": "Account",
-      "languageTitle": "Preferred language",
-      "languageDescription": "The language this workspace is shown in."
+      "languageTitle": "Preferred language"
     },
     "clinic": {
       "title": "Clinic",
       "description": "Contact details and working hours used for booking and client communication.",
       "formTitle": "Clinic details",
-      "formDescription": "Essential contact information used by the team and clients.",
       "hoursTitle": "Working hours",
       "hoursDescription": "Choose the days and times available for appointments.",
       "identityTitle": "Clinic identity",
-      "identityDescription": "The logo and name your clients see.",
       "hoursSummaryLabel": "Opening days and hours"
     },
     "whatsapp": {
@@ -132,7 +161,7 @@
     "namePlaceholder": "Your name",
     "firstNamePlaceholder": "Your first name",
     "lastNamePlaceholder": "Your last name",
-    "usernamePlaceholder": "Your username",
+    "usernamePlaceholder": "Phone number or username",
     "submit": "Sign in",
     "showPassword": "Show password",
     "hidePassword": "Hide password",
@@ -160,7 +189,16 @@
     "setPasswordHeading": "Choose a new password",
     "setPasswordDescription": "The password you were given is temporary. Choose your own to continue.",
     "setPasswordSubmit": "Save and continue",
-    "clientPasswordHint": "At least {count, number, integer} characters.",
+    "ruleLength": "At least {count, number, integer} characters",
+    "ruleLetter": "At least one letter",
+    "ruleDigit": "At least one number",
+    "ruleChecklistLabel": "Password requirements",
+    "ruleMet": "Met",
+    "ruleUnmet": "Not met yet",
+    "passwordsMatch": "Both passwords match",
+    "confirmPasswordRequired": "Type the password a second time.",
+    "clientPasswordHint": "At least {count, number, integer} characters, with letters and numbers.",
+    "clientPasswordTooWeak": "Use letters and numbers together.",
     "genericError": "Could not sign you in. Check your details and try again.",
     "emailTaken": "That email address is already registered.",
     "passwordMismatch": "The two passwords do not match.",
@@ -233,7 +271,6 @@
     "monthOther": "Other {count, number, integer}",
     "hiddenBelow": "+{count, number, integer} more",
     "hiddenBelowAction": "Scroll down to {count, number, integer} more appointments on this day",
-    "monthReadOnly": "Month view is an overview. Click a day to book or edit.",
     "nav": {
       "today": "Today",
       "previous": "Previous",
@@ -521,12 +558,31 @@
         "reported": "Reported this week",
         "notReported": "Nothing reported yet",
         "noPlan": "No plan running"
+      },
+      "plan": {
+        "label": "Nutrition plan",
+        "has": "Has a plan",
+        "none": "No plan"
+      },
+      "paymentStatus": {
+        "label": "Payment status",
+        "unpaid": "Unpaid",
+        "partial": "Partly paid",
+        "paid": "Paid",
+        "none": "Nothing billed"
+      },
+      "subscription": {
+        "label": "Subscription",
+        "active": "Running",
+        "expired": "Ended",
+        "none": "Never subscribed"
       }
     },
     "resultCount": "{total, number, integer} clients",
     "notFound": "Client not found",
     "notFoundDescription": "This client may have been removed, or the link is incorrect.",
     "backToList": "Back to clients",
+    "backToBills": "Return to the bills page",
     "notProvided": "Not provided",
     "yearsOld": "{count, number, integer} years",
     "openPlanner": "Plan board",
@@ -556,7 +612,8 @@
         "nutrition": "Nutrition",
         "progress": "Progress",
         "security": "The Gate",
-        "billing": "Plans"
+        "billing": "Plans",
+        "expenses": "Expenses"
       }
     },
     "progress": {
@@ -746,7 +803,7 @@
       "confirmDeleteTitle": "Delete this record permanently?",
       "confirmDelete": "This permanently deletes {name} and their portal account. It cannot be undone.",
       "confirmArchiveTitle": "Archive this client?",
-      "confirmArchive": "They will be removed from the register. You can restore them at any time from the Archive page."
+      "confirmArchive": "They will be removed from the register. You can restore them at any time from the Archived list."
     },
     "plan": {
       "published": "Active plan",
@@ -765,7 +822,7 @@
       "stateActive": "active",
       "stateNone": "not set up",
       "username": "Username",
-      "usernameHint": "What the client signs in with. Latin letters and numbers.",
+      "usernameHint": "What the client signs in with — their phone number, unless you change it.",
       "issue": "Create sign-in details",
       "reissue": "Issue a new password",
       "confirmReissueTitle": "Issue a new password?",
@@ -830,6 +887,11 @@
       "allergenHint": "Only the ticks above remove dishes from the catalog.",
       "dailyTarget": "Daily target",
       "bmi": "BMI",
+      "bmiScale": "Where it falls on the scale",
+      "dismissWarning": "Dismiss this warning",
+      "sectionEmpty": "Nothing recorded yet.",
+      "fillSection": "Add this section",
+      "foodFrequency": "Food frequency",
       "sectionsLabel": "Intake sections",
       "hasContent": "Has content",
       "allergyDetailPlaceholder": "Mild reaction to walnuts but not almonds",
@@ -859,8 +921,6 @@
       "complete": "Everything is filled in",
       "completeness": "Record completeness",
       "filledOf": "{filled} of {total} fields filled in",
-      "sectionEmpty": "Nothing recorded yet.",
-      "gapsHeading": "Fill in the patient's information from these sections",
       "kcalMismatch": "The manual target is far from the computed one",
       "kcalMismatchDetail": "{manual} kcal was entered by hand, but the measurements and goal give {computed} kcal. Check the number, or clear it to compute it automatically.",
       "bmiValueText": "{value} — {category}",
@@ -873,10 +933,7 @@
       "removeAllergen": "Remove {name}",
       "goalLine": "Goal",
       "activityLine": "Activity",
-      "completeShort": "Complete",
       "editRecord": "Edit record",
-      "scheduleSummary": "{count, plural, one {1 meal} other {# meals}} on {kcal} kcal",
-      "gapsPrompt": "{count, plural, =0 {Everything is filled in} one {1 field has no data yet} other {# fields have no data yet}}",
       "allergyLine": "Allergies",
       "privateBadge": "Clinic only",
       "notesDivider": "Notes",
@@ -942,6 +999,292 @@
         "label": "Visit record views",
         "upcoming": "Upcoming",
         "past": "Previous"
+      }
+    }
+  },
+  "forms": {
+    "edit": "Change",
+    "custom": "Custom",
+    "default": "App default",
+    "bill": {
+      "title": "Bill wording",
+      "description": "Edit the bill form that reaches the patient — its layout and every word on it.",
+      "edit": "Edit bill form",
+      "reset": "Restore the app's bill",
+      "clinicName": "Name printed on the bill",
+      "addHere": "Add a line here",
+      "hiddenHere": "Taken off:",
+      "customItem": "Your own line",
+      "removeItem": "Take off the bill",
+      "moveItem": "Drag it anywhere, or use the arrow keys",
+      "resize": "Resize from the corner, or use the up and down arrows",
+      "sampleAddress": "Clinic address",
+      "zone": {
+        "header": "Head of the page",
+        "details": "Subscriber and date"
+      },
+      "item": {
+        "logo": "Logo",
+        "clinicName": "Clinic name",
+        "doctorName": "Practitioner name",
+        "clinicPhone": "Clinic phone",
+        "clinicAddress": "Clinic address",
+        "docTitle": "Document title",
+        "billNo": "Bill number",
+        "subscriberLabel": "Subscriber label",
+        "subscriberValue": "Subscriber name",
+        "issuedLabel": "Issued label",
+        "issuedValue": "Issue date"
+      },
+      "logo": "Logo",
+      "totals": "Totals",
+      "totalsMove": "Drag left, middle or right",
+      "sampleDoctor": "Practitioner name",
+      "sampleSubscriber": "Subscriber name",
+      "sampleCharge": "Follow-up visit",
+      "samplePayment": "Payment — cash"
+    },
+    "messages": {
+      "reset": "Restore the app's message",
+      "title": "Automatic messages",
+      "description": "What a patient receives when an appointment is booked, before it comes round, when it is moved or deleted, and when a balance is chased. A saved message is used from the next one sent onwards.",
+      "appointmentConfirmation": "Appointment booked",
+      "appointmentConfirmationHelp": "Sent when an appointment is booked.",
+      "appointmentReminder": "Appointment reminder",
+      "appointmentReminderHelp": "Sent before an appointment, on the schedule set on the WhatsApp tab.",
+      "appointmentRescheduled": "Appointment moved",
+      "appointmentRescheduledHelp": "Sent when an appointment changes to another day or time.",
+      "appointmentCancelled": "Appointment deleted",
+      "appointmentCancelledHelp": "Sent when a booking is deleted. Never for a visit that has already happened.",
+      "paymentReminder": "Payment reminder",
+      "paymentReminderHelp": "Sent when staff choose to remind a subscriber of what is outstanding."
+    },
+    "errors": {
+      "invalid": "Nothing to save.",
+      "tooLong": "That is longer than WhatsApp will send. Shorten it and try again.",
+      "unknownPlaceholder": "This message cannot fill {placeholder}. Use one of the words listed under the box.",
+      "unexpected": "Something went wrong. Try again."
+    }
+  },
+  "billing": {
+    "title": "Bills",
+    "subtitle": "What each subscriber has been billed, paid, and still owes.",
+    "empty": "No subscribers yet.",
+    "emptyFiltered": "No subscriber matches this search.",
+    "clearFilters": "Clear filters",
+    "fields": {
+      "name": "Full name",
+      "subscription": "Remaining",
+      "totalPrice": "Total price",
+      "remaining": "Debt",
+      "balance": "Balance",
+      "totalPayment": "Total payment",
+      "status": "Payment status",
+      "actions": "Actions"
+    },
+    "subscription": {
+      "remaining": "{days, plural, one {# day} other {# days}}",
+      "finished": "{days, plural, one {Ended # day} other {Ended # days}}"
+    },
+    "status": {
+      "none": "No charges",
+      "unpaid": "Unpaid",
+      "partial": "Partly paid",
+      "paid": "Paid",
+      "credit": "In credit"
+    },
+    "prices": {
+      "title": "Services and prices",
+      "description": "What this clinic charges for each service. Changing a price here does not change a bill that has already been recorded.",
+      "unpriced": "No price yet",
+      "rowLabel": "Service prices",
+      "edit": "Change",
+      "save": "Save changes",
+      "saving": "Saving…",
+      "saved": "Prices saved"
+    },
+    "services": {
+      "monthly": "One month subscription",
+      "quarterly": "Three month subscription",
+      "consultation": "Consultation"
+    },
+    "methods": {
+      "cash": "Cash",
+      "transfer": "Bank transfer",
+      "card": "Card",
+      "other": "Other"
+    },
+    "recordPayment": {
+      "title": "Record a payment",
+      "open": "Record a payment",
+      "openFor": "Record a payment for {name}",
+      "forSubscriber": "Money received from {name}.",
+      "amount": "Amount",
+      "amountHint": "In shekels. Enter a negative amount to record a refund.",
+      "owed": "{amount} still owed.",
+      "overOwed": "That is more than the {amount} still owed.",
+      "method": "Method",
+      "paidOn": "Bills date",
+      "datePlaceholder": "YYYY-MM-DD",
+      "openDatePicker": "Open the date picker",
+      "note": "Note",
+      "submit": "Record payment",
+      "saving": "Recording…",
+      "cancel": "Cancel",
+      "close": "Close",
+      "addedBalance": "Added to balance",
+      "details": "Date and note",
+      "saved": "Payment recorded"
+    },
+    "recordCharge": {
+      "title": "Add a charge",
+      "open": "Add a charge",
+      "openFor": "Add a charge for {name}",
+      "forSubscriber": "What {name} is being billed for.",
+      "chargedOn": "Date of service",
+      "service": "Service",
+      "datePlaceholder": "YYYY-MM-DD",
+      "openDatePicker": "Open the date picker",
+      "saving": "Adding…",
+      "close": "Close",
+      "submit": "Add charge",
+      "addedTotal": "Added to total price",
+      "noPrice": "This service has no price yet. Set one in Settings → Clinic.",
+      "firstFree": "The first consultation is free.",
+      "saved": "Charge added"
+    },
+    "errors": {
+      "genericError": "That could not be saved. Try again.",
+      "amountRequired": "Enter an amount.",
+      "invalidAmount": "Enter an amount like 270 or 270.50.",
+      "amountZero": "A payment cannot be zero.",
+      "amountNegative": "A charge cannot be negative. Record a refund as a payment instead.",
+      "amountTooLarge": "That amount is too large.",
+      "invalidDate": "Choose a valid date.",
+      "noteTooLong": "The note is too long.",
+      "descriptionRequired": "Say what the charge is for.",
+      "descriptionTooLong": "That description is too long.",
+      "invalidClient": "That subscriber is not on this clinic's register.",
+      "invalidService": "That service is not one this clinic offers.",
+      "subscriptionActive": "This subscriber is already on a subscription. Record the next one when the current one ends.",
+      "paymentExceedsBalance": "That is more than this subscriber still owes.",
+      "billNotSent": "Could not send on WhatsApp. Nothing was sent — send it another way, and check Settings → WhatsApp.",
+      "nothingOutstanding": "This subscriber owes nothing, so there is nothing to remind them about.",
+      "paymentRemindersOff": "Payment reminders are switched off for this clinic. Turn them on under Settings › WhatsApp.",
+      "whatsappNotConnected": "WhatsApp is not connected. Nothing was sent — connect the clinic number in Settings → WhatsApp.",
+      "clientHasNoPhone": "This subscriber has no phone number on their record, so there is nowhere to send.",
+      "clientNotOnWhatsapp": "That number is not on WhatsApp. Nothing was sent — check the number on their record."
+    },
+    "print": {
+      "statement": "Print all bills",
+      "statementFor": "Print all bills for {name}",
+      "bills": "Bills",
+      "billsFor": "Bills for {name}",
+      "billNumbered": "Print bill {number}",
+      "noBills": "No bills yet",
+      "bill": "Print this bill",
+      "print": "Print",
+      "close": "Close",
+      "failed": "That bill could not be printed. Try again.",
+      "exportBills": "Export bills"
+    },
+    "bills": {
+      "billTitle": "Bill",
+      "statementTitle": "Account statement",
+      "billNo": "Bill no.",
+      "issuedOn": "Issued",
+      "subscriber": "Subscriber",
+      "date": "Date",
+      "description": "Description",
+      "amount": "Amount",
+      "charge": "Charge",
+      "payment": "Payment",
+      "emptyLedger": "Nothing has been billed on this account.",
+      "footer": "A record of what this clinic billed and received."
+    },
+    "ledger": {
+      "billNo": "Bill no.",
+      "date": "Date",
+      "amount": "Amount",
+      "method": "Method",
+      "note": "Note",
+      "actions": "Actions",
+      "chargeKind": "Charge",
+      "batchNo": "Batch no.",
+      "resetColumns": "Reset column order"
+    },
+    "expenses": {
+      "title": "Expenses and bills",
+      "empty": "Nothing on this account yet. Add a charge or record a payment to start the ledger."
+    },
+    "sendBill": {
+      "sendAll": "Send all bills",
+      "bill": "Send this bill by WhatsApp",
+      "confirmTitle": "Send this statement?",
+      "confirmBody": "{name} will receive their account statement on WhatsApp. A sent message cannot be taken back.",
+      "confirmAllTitle": "Send every bill?",
+      "confirmAllBody": "{name} will receive one document holding every bill on their account. A sent message cannot be taken back.",
+      "confirmOneTitle": "Send this bill?",
+      "confirmOneBody": "{name} will receive bill #{number} on WhatsApp. A sent message cannot be taken back.",
+      "sent": "Statement sent on WhatsApp.",
+      "sentBill": "Bill sent on WhatsApp.",
+      "lastBill": "Send last bill",
+      "confirmLastTitle": "Send the last bill?",
+      "confirmLastBody": "{name} will receive their most recent bill on WhatsApp. A sent message cannot be taken back."
+    },
+    "pagination": {
+      "previous": "Previous",
+      "next": "Next",
+      "page": "Page {page, number, integer}"
+    },
+    "rowMenu": {
+      "more": "More services",
+      "reminder": "WhatsApp reminder",
+      "reminderNothing": "Nothing outstanding",
+      "confirmTitle": "Send a payment reminder?",
+      "confirmBody": "{name} will be reminded on WhatsApp of the {amount} outstanding on their account. A sent message cannot be taken back.",
+      "sent": "Reminder sent on WhatsApp.",
+      "printAll": "Print all bills",
+      "printAllFor": "Print every bill on {name}'s account"
+    },
+    "export": {
+      "action": "Export",
+      "title": "Export bills",
+      "description": "Every subscriber on the system, for the period you choose.",
+      "fileName": "Bills",
+      "sheetName": "Bills",
+      "empty": "No bills in this period.",
+      "submit": "Download",
+      "kindCharge": "Charge",
+      "kindPayment": "Payment",
+      "columns": {
+        "client": "Patient",
+        "phone": "Phone",
+        "kind": "Type",
+        "description": "Details",
+        "date": "Date",
+        "amount": "Amount",
+        "entries": "Bills"
+      },
+      "level": {
+        "label": "Detail level",
+        "detailed": "Detailed",
+        "detailedHint": "Every bill on its own line, so a patient with several appears several times.",
+        "summary": "Not detailed",
+        "summaryHint": "One line a patient, with their totals for the period."
+      },
+      "format": {
+        "label": "File format"
+      },
+      "duration": {
+        "label": "Duration",
+        "thisMonth": "This month",
+        "last3": "Last 3 months",
+        "thisYear": "This year",
+        "all": "All the duration",
+        "custom": "Custom",
+        "from": "From",
+        "to": "To"
       }
     }
   },
@@ -1078,8 +1421,6 @@
       "emptyDayHint": "Your dietitian left this day open. Pick another day above.",
       "kcalValue": "{value} kcal",
       "markEaten": "Mark {meal} as eaten",
-      "wasEaten": "{meal} — eaten",
-      "wasNotEaten": "{meal} — not marked as eaten",
       "totalGrams": "≈ {value} g",
       "mealQuantity": "Meal quantity",
       "orInstead": "You can eat this instead:",
@@ -1143,7 +1484,7 @@
       "outsideWindow": "You can only ask for a time within the next month.",
       "alreadyRequested": "You have already asked about this. Your dietitian will answer soon.",
       "pastAppointment": "That appointment has already happened.",
-      "dayLocked": "You can only tick meals for today.",
+      "dayLocked": "You can't tick meals for a day that hasn't happened yet.",
       "unexpected": "Something went wrong. Please try again."
     },
     "emptyToday": "Nothing planned yet.",
@@ -1215,6 +1556,14 @@
           "missed": "That's alright — tomorrow is a fresh start.",
           "partial": "A good step toward your plan.",
           "full": "Wonderful commitment today!"
+        },
+        "energy": {
+          "empty": "Start your healthy day!",
+          "starting": "A great start!",
+          "halfway": "You're halfway there!",
+          "strong": "Well done! Almost there.",
+          "completeTitle": "Day complete!",
+          "complete": "Well done! You completed all your meals."
         }
       },
       "week": {
@@ -1236,7 +1585,9 @@
           "future": "{day}: still to come"
         },
         "celebration": {
-          "title": "You earned today's streak!",
+          "title": "You did it!",
+          "subtitle": "Every meal today, logged.",
+          "mealsCompleted": "{completed, number, integer} of {total, number, integer} {total, plural, one {meal} other {meals}} completed",
           "claim": "Claim today's fire",
           "claimed": "Today's streak claimed."
         }
@@ -1267,6 +1618,34 @@
         "thisWeek": "This week"
       }
     },
+    "journey": {
+      "title": "Your journey",
+      "subtitle": "This week",
+      "barLabel": "Your plan adherence this week",
+      "message": {
+        "empty": "Tick off a meal in your plan and your journey begins.",
+        "start": "Every journey starts with one meal. You've got this.",
+        "building": "A good start — you're building a habit.",
+        "consistent": "You're staying consistent. Keep it up.",
+        "progressing": "You're making real progress this week!",
+        "closer": "You're getting closer — a strong week so far.",
+        "almost": "Almost a perfect week. Nearly there!",
+        "complete": "You followed your plan all week! 🎉"
+      }
+    },
+    "mascot": {
+      "welcome": "Welcome back to your journey.",
+      "mealReminder": "A meal in today's plan is coming up.",
+      "missedMeal": "A meal from earlier today is still open — no worries, log it when you can.",
+      "streakAtRisk": "Your streak is still open today — a quick log keeps it going.",
+      "streakLost": "Your streak reset — every journey has a fresh start in it.",
+      "backOnTrack": "Good to see you logging again. Keep going.",
+      "milestone25": "A quarter of the way through the week — nice start.",
+      "milestone50": "Halfway through the week. Keep it up.",
+      "milestone75": "Three quarters there — almost a full week.",
+      "goalComplete": "You followed your plan all week! 🎉",
+      "consistency": "That's a real run of consistent days."
+    },
     "header": {
       "notifications": "Notifications",
       "notificationsWaiting": "Notifications, {count, number, integer} request awaiting a reply",
@@ -1281,6 +1660,7 @@
     },
     "notifications": {
       "title": "Notifications",
+      "seeAll": "See all notifications",
       "empty": {
         "title": "No new notifications",
         "body": "Appointment reminders, plan updates and replies from the clinic will show up here as they happen."
@@ -1292,6 +1672,10 @@
         },
         "appointmentReminder": {
           "title": "Appointment reminder",
+          "body": "Your appointment is on {date} at {time}."
+        },
+        "appointmentBooked": {
+          "title": "Appointment booked",
           "body": "Your appointment is on {date} at {time}."
         },
         "planUpdate": {
@@ -1326,6 +1710,13 @@
       "notifications": {
         "title": "Notifications",
         "description": "Choose what you would like to hear about.",
+        "device": {
+          "label": "Notifications on this device",
+          "description": "Get alerts on this device, even when the app is closed.",
+          "blocked": "Notifications are blocked in your browser settings. Allow them for this site, then try again.",
+          "needsInstall": "Add the app to your Home Screen first to receive notifications. Tap here for the steps.",
+          "unsupported": "This browser does not support notifications."
+        },
         "appointmentReminder": {
           "label": "Appointment reminder",
           "description": "A message before your appointment at the clinic."
@@ -1464,7 +1855,8 @@
   "errors": {
     "notFound": "Page not found",
     "notFoundDescription": "The link you opened is incorrect or has moved.",
-    "notFoundCta": "Go to the home page",
+    "notFoundCtaDashboard": "Go to the dashboard",
+    "notFoundCtaHome": "Go to the home page",
     "unexpected": "Something went wrong",
     "unexpectedBody": "Nothing you entered was saved anywhere. Try again, or start from the home page.",
     "screen": {
@@ -1510,7 +1902,24 @@
       "updated": "Last edited"
     },
     "history": "Earlier plans",
+    "previousDays": "Earlier days of the week",
+    "nextDays": "Later days of the week",
     "moreActions": "More plan actions",
+    "export": {
+      "title": "Download this week",
+      "pdf": "PDF",
+      "word": "Word",
+      "hint": "The whole week on one page, ready to print or hand over.",
+      "failed": "That file could not be prepared. Try again."
+    },
+    "print": {
+      "alternatives": "Or instead:",
+      "draftNote": "Draft plan — the client cannot see this week yet."
+    },
+    "deletePlan": "Delete this plan",
+    "deletePlanConfirmTitle": "Delete this plan?",
+    "deletePlanConfirmMessage": "The week of {date} and every meal in it are removed for good. This cannot be undone.",
+    "deletePlanPublishedNote": "This plan is published, so the client is reading it now. Deleting it takes their copy too.",
     "weekOf": "Week of {date}",
     "generatedBy": "Model used",
     "kcalValue": "{value} kcal",
@@ -1532,7 +1941,7 @@
     "saving": "Saving…",
     "saved": "Saved",
     "emptySlot": "Not filled",
-    "unfilledWarning": "{count} meals could not be filled — fill them before publishing",
+    "unfilledWarning": "{count, plural, one {One meal is still empty — fill it before publishing} other {# meals are still empty — fill them before publishing}}",
     "dailyTarget": "Daily target",
     "proteinTarget": "Protein {value} g",
     "goal": "Goal",
@@ -1553,9 +1962,17 @@
     "profileSubtitle": "The data {name}'s plan is built from",
     "planningSnapshot": "Planning snapshot",
     "planningNotes": "Planning notes",
+    "notesTargets": "Daily targets",
+    "notesBody": "Body",
+    "notesWritten": "Written notes",
+    "notesNothingWritten": "No written notes.",
+    "notesUnwritten": "Not recorded: {fields}",
     "dishCatalog": "Dish catalog",
     "dishCatalogHint": "Drag a dish onto a meal. The catalog closes when the drag begins.",
+    "catalogNeedsPlan": "Create a week first",
+    "catalogNeedsPlanHint": "This client has no plan yet, so there is nowhere to put a dish. Create a week, then drag from here.",
     "allergiesMissing": "Allergy information has not been recorded. Confirm it before publishing.",
+    "allergiesMissingShort": "Not recorded",
     "suggested": "Suggested: {value}",
     "shareTotal": "Shares total {value}%",
     "addSlot": "Add a meal",
@@ -1563,23 +1980,55 @@
     "allergenHint": "These filter the catalog before it reaches the AI, so a dish containing them cannot be suggested.",
     "permanentInstructionsHint": "Sent with every generation, e.g. type 2 diabetes — avoid added sugar.",
     "scheduleHint": "The share is this meal's portion of the day's calories. It does not have to total exactly 100.",
-    "weekInstructions": "Instructions for this week",
+    "weekInstructions": "Notes for this week",
+    "weekInstructionsHint": "Optional. The AI takes it into account.",
     "instructionPlaceholder": "Easier preparation, lower cost, portable meals…",
-    "generate": "Generate plan with AI",
+    "generate": "Generate the week's plan",
     "generating": "Generating…",
     "generatingHint": "A whole week takes about a minute. Do not close the page.",
+    "planGenerated": "Plan created successfully",
+    "planRegenerated": "Plan rebuilt successfully",
     "generationLoading": {
       "title": "Building the new week",
       "regenerateTitle": "Rebuilding this week",
-      "description": "AI is matching the client's targets and instructions to dishes in the approved catalog.",
-      "elapsed": "{seconds, plural, one {# second elapsed} other {# seconds elapsed}}",
-      "activity": {
-        "targets": "Reading the client's targets and week instructions…",
-        "catalog": "Matching suitable dishes from the approved catalog…",
-        "balance": "Balancing meals across all seven days…",
-        "draft": "Preparing a draft for your review…"
-      },
-      "review": "The result stays a draft until you review and publish it."
+      "announce": "Stage {current} of {total}: {stage}",
+      "stages": {
+        "gather": {
+          "name": "Gathering information",
+          "description": "Reading the client's profile, goals and recorded limits.",
+          "points": {
+            "profile": "Health profile",
+            "goals": "Goals and target weight",
+            "limits": "Allergies and restrictions"
+          }
+        },
+        "analyse": {
+          "name": "Analysing the need",
+          "description": "Working out daily calories and how nutrients split across meals.",
+          "points": {
+            "calories": "Daily calories",
+            "macros": "Nutrient split",
+            "meals": "Meal count and pattern"
+          }
+        },
+        "build": {
+          "name": "Building the plan",
+          "points": {
+            "dishes": "Choosing dishes",
+            "days": "Spreading the seven days",
+            "portions": "Setting portion sizes"
+          }
+        },
+        "review": {
+          "name": "Review and sign-off",
+          "description": "Checking the balance and preparing a draft for your review.",
+          "points": {
+            "balance": "Nutrient balance check",
+            "restrictions": "Restrictions match",
+            "draft": "Preparing the draft"
+          }
+        }
+      }
     },
     "regenerate": "Regenerate",
     "regenerateDay": "Regenerate this day",
@@ -1675,7 +2124,7 @@
     "newWeek": "New week",
     "createWeek": "Create week",
     "newWeekTitle": "Start a new week",
-    "newWeekSubtitle": "Choose how to start planning this week's meals.",
+    "newWeekSubtitle": "Choose how to start this week's plan.",
     "weekStartLabel": "Week start date",
     "weekStartHint": "The planner begins on this day and continues for seven days.",
     "newWeekGenerate": {
@@ -1683,13 +2132,13 @@
       "regenerate": "Regenerate with AI"
     },
     "newWeekGenerateHint": {
-      "create": "Builds a new week from this client's targets and the approved dish catalog.",
-      "regenerate": "Replaces the draft on screen. Nobody has seen it, so nothing is lost."
+      "create": "Picks the week's meals from your approved dishes, to suit the client's targets.",
+      "regenerate": "Replaces the draft on screen. The client has not seen it, so nothing is lost."
     },
     "regenerateWeek": "Regenerate this week",
     "newWeekCopy": "Copy a previous plan",
     "newWeekFrom": "Start from {date}",
-    "newWeekFromHint": "Copies that week's dishes into the client's current meal schedule.",
+    "newWeekFromHint": "Moves that week's dishes into the client's current meal schedule.",
     "newWeekEmpty": "Empty week",
     "newWeekEmptyHint": "One empty slot per meal in the client's schedule.",
     "newWeekEmptyAction": "Start an empty week",
@@ -1742,9 +2191,25 @@
     "addMeal": "Add a meal",
     "addMealHint": "The meal is added to all seven days. You can remove it from a single day afterwards.",
     "addMealLabel": "Meal name",
-    "addMealPlaceholder": "Evening snack",
     "addMealTime": "Time",
     "addMealIcon": "Choose a food icon",
+    "addMealTaken": "already added",
+    "mealNameSuggestions": {
+      "suhoor": "Suhoor",
+      "breakfast": "Breakfast",
+      "secondBreakfast": "Second breakfast",
+      "morningSnack": "Morning snack",
+      "brunch": "Brunch",
+      "lunch": "Lunch",
+      "preWorkout": "Before training",
+      "afternoonSnack": "Afternoon snack",
+      "iftar": "Iftar",
+      "postWorkout": "After training",
+      "dinner": "Dinner",
+      "eveningSnack": "Evening snack",
+      "beforeSleep": "Before bed"
+    },
+    "addMealNamePlaceholder": "Pick a meal",
     "mealIconChoices": {
       "tea": "Tea cup",
       "hotDrink": "Hot drink",
@@ -1755,12 +2220,16 @@
       "plate": "Dinner plate",
       "chefMinimal": "Chef choice"
     },
+    "slotRemoved": "Removed {slot}",
+    "slotRemovedHint": "The slot is gone from all seven days.",
     "removeSlotConfirm": "Remove {slot} from all seven days? Any dishes placed in it are removed too.",
     "restoreSlot": "Add {slot} back to this day",
     "removeMeal": "Remove meal",
     "clearMeal": "Empty slot",
-    "morePortion": "Larger meal quantity",
-    "lessPortion": "Smaller meal quantity",
+    "moreIngredient": "More of this ingredient",
+    "lessIngredient": "Less of this ingredient",
+    "alsoContains": "Also in this meal",
+    "backToRecipe": "Reset to the recipe amounts",
     "budgetHint": "This meal's budget is {value} kcal",
     "overBudget": "Over budget",
     "underBudget": "Under budget",
@@ -1778,9 +2247,7 @@
     "weekTargets": "This week's targets",
     "kcalTargetLabel": "Daily calories",
     "proteinTargetLabel": "Daily protein (g)",
-    "goalLabel": "Goal for this week",
-    "targetsHint": "Applies to this plan only. The client's nutrition profile is not changed.",
-    "useProfile": "Use the profile",
+    "targetsHint": "Leave blank to follow the profile. This plan only.",
     "days": {
       "sunday": "Sunday",
       "monday": "Monday",
@@ -1808,7 +2275,6 @@
   },
   "dishes": {
     "title": "Dish catalog",
-    "subtitle": "{count} approved dishes — the only thing the AI may choose from",
     "addDish": "Add dish",
     "empty": "No dishes in the catalog yet",
     "emptyHint": "Approved dishes appear here once they are added.",
@@ -1816,14 +2282,13 @@
     "emptyFilteredHint": "Try another name, or a different meal time.",
     "searchPlaceholder": "Search by dish name",
     "clearFilters": "Clear filters",
-    "filters": "Filters",
     "filtersReset": "Reset",
     "allMealTypes": "All",
     "count": "{count, plural, =0 {No dishes} one {# dish} other {# dishes}}",
     "moreTags": "+{count, number, integer}",
     "notFoundPrompt": "Didn't find the dish you're looking for?",
     "ownerFilter": {
-      "label": "Show dishes",
+      "label": "Source",
       "all": "All",
       "system": "Shared",
       "clinic": "Mine"
@@ -1853,8 +2318,10 @@
       "ingredients": "Ingredients",
       "actions": "Actions"
     },
-    "hiddenBadge": "Hidden",
-    "showHidden": "Show hidden",
+    "showHidden": "Hidden dishes only",
+    "showHiddenHint": "Show what you put away, so you can bring it back",
+    "tagSearchPlaceholder": "Find a quality",
+    "noTagMatches": "No quality by that name",
     "ownership": {
       "system": "Shared",
       "clinic": "Added by me"
@@ -1899,13 +2366,8 @@
     "foodPicker": {
       "label": "Search for an ingredient",
       "placeholder": "Search for an ingredient…",
-      "searching": "Searching…",
       "kcalPer100g": "{kcal} kcal / 100g",
-      "startSearching": "Search for an ingredient, or add your own",
       "noResults": "We couldn't find \"{name}\".",
-      "noResultTitle": "No matching ingredient",
-      "addNew": "Add a new ingredient",
-      "addNewShort": "Can't find it? Add a new ingredient",
       "addCustom": "Add a custom ingredient",
       "addNamed": "Add \"{name}\" as a new ingredient",
       "moreResults": "Show more",
@@ -1943,30 +2405,27 @@
     },
     "editor": {
       "pageTitle": "Add dish",
-      "pageSubtitle": "Add a dish to the clinic's approved catalog",
-      "nameAr": "Dish name",
-      "nameArPlaceholder": "e.g. Chicken Maqluba",
+      "nameAr": "Arabic name",
+      "nameArPlaceholder": "مقلوبة دجاج",
       "nameEn": "English name",
       "nameEnPlaceholder": "e.g. Chicken Maqluba",
-      "additionalDetails": "Additional details",
-      "baseServingLabel": "Base serving label",
-      "baseServingHint": "Shown to the client as the unit for this dish, e.g. \"serving\" or \"plate\".",
+      "existingMatchesTitle": "Existing dishes starting with this name",
+      "exactMatchTitle": "This name is already in use",
+      "exactMatch": "Exact match",
       "mealTypesLegend": "Meal time",
       "labelsLegend": "Dish properties",
-      "labelsHint": "Each colour follows the dish into the catalog and the weekly plan.",
       "allergensLegend": "Allergens",
-      "allergensHint": "These exclude the dish from clients with a matching allergy.",
+      "labelGroups": {
+        "preparation": "Preparation",
+        "cost": "Cost & portability",
+        "nature": "Dish character"
+      },
       "ingredientsHeading": "Ingredients",
-      "addIngredient": "Add ingredient",
       "removeIngredient": "Remove ingredient",
-      "noIngredientsYet": "Search above to add the dish's ingredients.",
       "ingredientCount": "{count, plural, =0 {No ingredients} one {# ingredient} other {# ingredients}}",
-      "pickFoodHint": "Search for a food to add it to this ingredient",
-      "changeFood": "Change food",
       "amount": "Amount",
       "unitAria": "Unit",
-      "rowKcal": "{kcal} kcal",
-      "rowGrams": "= {grams} g",
+      "rowGrams": "{grams} g",
       "units": {
         "g": "g",
         "piece": "piece",
@@ -1976,11 +2435,8 @@
         "tbsp": "tbsp",
         "tsp": "tsp"
       },
-      "liveNutrition": "Nutrition per base serving",
       "nutritionTitle": "Nutrition",
       "nutritionEmpty": "Add ingredients to see the nutrition.",
-      "perServing": "per {unit}",
-      "energyShare": "Bars show each macro's share of the calories.",
       "categories": {
         "high_protein": "High protein",
         "high_carb": "High carbohydrate",
@@ -1988,7 +2444,8 @@
         "balanced": "Balanced"
       },
       "errors": {
-        "nameRequired": "Dish name is required",
+        "nameRequired": "Arabic name is required",
+        "nameEnRequired": "English name is required",
         "mealTypeRequired": "Select at least one meal time",
         "ingredientRequired": "Add at least one ingredient with a food and a positive amount"
       },
@@ -1996,16 +2453,31 @@
       "saveChanges": "Save changes",
       "submitting": "Saving…",
       "editTitle": "Edit dish",
-      "editSubtitle": "Update this dish in your clinic's catalog",
       "unsavedTitle": "Discard changes?",
       "unsavedMessage": "You have unsaved changes that will be lost if you close.",
       "discard": "Discard",
-      "keepEditing": "Keep editing"
+      "keepEditing": "Keep editing",
+      "next": "Next",
+      "back": "Back",
+      "steps": {
+        "define": "Details",
+        "ingredients": "Ingredients",
+        "review": "Review"
+      },
+      "recipeEmptyTitle": "No ingredients yet",
+      "columnIngredient": "Ingredient",
+      "columnGrams": "Grams",
+      "columnKcal": "kcal",
+      "awaitingAmount": "Amount?",
+      "perServingShort": "Per serving",
+      "gramsPerServing": "{grams} g per serving",
+      "kcalPer100g": "{kcal} kcal / 100 g",
+      "suggested": "Proposed",
+      "saveAndAddAnother": "Save and add another"
     }
   },
   "whatsapp": {
     "title": "WhatsApp",
-    "description": "Link the clinic's WhatsApp number to send appointment reminders and confirmations automatically.",
     "disabled": "WhatsApp is not enabled on this installation. Set WHATSAPP_ENABLED and the gateway variables in .env.local, then restart the server.",
     "gatewayUnreachable": "The WhatsApp gateway did not answer. Make sure it is running, then try again.",
     "connection": {
@@ -2042,7 +2514,13 @@
       "reminders": "Appointment reminders",
       "remindersHelp": "One message per appointment, sent a day before and exactly once.",
       "confirmations": "Confirmation when an appointment is booked",
-      "confirmationsHelp": "Sent on booking, and again if the appointment moves.",
+      "confirmationsHelp": "Sent the moment a booking is made.",
+      "reschedules": "Notice when an appointment is moved",
+      "reschedulesHelp": "Sent when a booking changes to another day or time.",
+      "cancellations": "Notice when an appointment is deleted",
+      "cancellationsHelp": "Sent when a booking is deleted. Never for a visit that has already happened.",
+      "paymentReminders": "Payment reminder",
+      "paymentRemindersHelp": "Lets staff remind a subscriber of what is outstanding, from the Bills page.",
       "leadFixed": "The reminder goes out one day before the appointment.",
       "save": "Save",
       "saved": "Settings saved."
@@ -2112,6 +2590,8 @@
     },
     "clinicName": "Clinic name",
     "clinicPhone": "Clinic phone",
+    "phoneCountry": "Country code",
+    "phonePlaceholder": "Number without the country code",
     "email": "Contact email",
     "address": "Clinic address",
     "fullName": "Full name",
@@ -2171,6 +2651,7 @@
       "tooLong": "Keep this to {max} characters or fewer.",
       "invalidEmail": "Enter a valid email address, such as name@clinic.com.",
       "invalidPhone": "Enter a valid phone number.",
+      "phoneDigitCount": "Enter {min, number, integer} or {max, number, integer} digits, without the country code.",
       "invalidTime": "Choose a valid time in 15-minute increments.",
       "closingAfterOpening": "Closing time must be later than opening time.",
       "workingDayRequired": "Choose at least one working day.",
@@ -2185,9 +2666,9 @@
     },
     "logo": "Clinic logo",
     "logoUpload": "Choose an image",
+    "logoHint": "PNG, JPG or WebP. Resized to 256×256 automatically.",
     "logoReplace": "Replace image",
     "logoRemove": "Remove logo",
-    "logoHint": "PNG, JPG or WebP. Resized to 256×256 automatically.",
     "logoPreviewAlt": "Clinic logo",
     "closed": "Closed"
   },
@@ -2209,67 +2690,67 @@
     "steps": {
       "welcome": {
         "title": "A quick tour of your clinic",
-        "body": "This walks through the five sections in the sidebar, from the dashboard to the dish catalog, and points out where each day’s work starts. Nothing here changes your data — the guide only shows you around. Press “Skip guide” at any time to leave."
+        "body": "A quick pass over the five sections in the sidebar. Nothing here changes your data, and you can leave at any time."
       },
       "navigation": {
         "title": "The sidebar is how you move around",
-        "body": "Dashboard, Clients, Calendar, Weekly Plans and Dish catalog, in the order a working day usually uses them. On a phone or a tablet the labels drop away and the icons stay."
+        "body": "The five sections, in the order a working day uses them. On a phone the labels drop away and the icons stay."
       },
       "dashboardStats": {
         "title": "The band you read first",
-        "body": "New clients this month and today’s appointments, each with its own trend beneath it, and beside them anything a client is waiting on. Three cards of the same height, so the row never changes shape."
+        "body": "New clients this month and today’s appointments, each with its own trend, and beside them anything waiting on your reply."
       },
       "dashboardRequests": {
         "title": "Client requests arrive here",
-        "body": "This is the client requests card. Anything a client asks for through their portal — a new appointment, a reschedule, a cancellation, a change to their record — waits here, and you can accept or decline it without leaving the dashboard. “All requests” opens the full inbox in a dialog over this page, including everything you have already answered."
+        "body": "Anything a client asks for through their portal — a booking, a reschedule, a cancellation, a change to their record — waits here to be accepted or declined. “All requests” opens the full inbox."
       },
       "dashboardAgenda": {
         "title": "This week’s appointments",
-        "body": "The diary for the days around today, with the appointment in progress marked and the next one pointed at. Open a row to reach that client’s record."
+        "body": "The diary for the days around today, with the appointment in progress marked. Open a row to reach that client’s record."
       },
       "clientsRegister": {
         "title": "Every client you have",
-        "body": "The register: name, age, contact and status, sortable by any column. Open a row for the client’s full record — their measurements, their plans and their history."
+        "body": "Name, age, contact and status, sortable by any column. Open a row for the client’s full record."
       },
       "clientsSearch": {
         "title": "Find, filter and archive",
-        "body": "Search by name or phone, narrow the list by status or another field, and reach the archive of clients who are no longer active. The archive is where a client goes when they stop coming; nothing is deleted."
+        "body": "Search by name or phone, narrow the list by status, and reach the archive of inactive clients from here. Nothing is deleted."
       },
       "clientsNew": {
         "title": "How to add a new client",
-        "body": "Press “New client” here. A card opens over the register with the client’s details, measurements and goals — fill it in and save, and they appear in the list straight away. The same card is how you edit anyone later, so adding or correcting someone never costs you your place in the register."
+        "body": "Press “New client” and a card opens with their details, measurements and goals. The same card is how you edit anyone later."
       },
       "calendarToolbar": {
         "title": "Choosing what you are looking at",
-        "body": "Step through days or weeks with the arrows, jump to a date with the date button, and switch between the day, week and month views. Search finds an appointment by the client’s name."
+        "body": "Step through days or weeks with the arrows, jump to a date with the date button, and switch between the day, week and month views."
       },
       "calendarBooking": {
         "title": "How to book an appointment",
-        "body": "Drag down the grid across the time you want, on the day you want. Let go and a picker opens: choose the client, set how long the appointment runs, and repeat it weekly if it is a standing slot. If the person is not on your list yet, you can add them without leaving the picker. To move a booking afterwards, drag the block to its new time."
+        "body": "Drag down the grid across the time you want and a picker opens: choose the client, set the length, repeat it weekly if it is a standing slot. To move a booking, drag the block."
       },
       "plannerPicker": {
         "title": "How to build a weekly plan",
-        "body": "Start by choosing whose week you are planning. Search here, or pick one of the suggested clients below — the ones whose plans are running out soonest."
+        "body": "Start by choosing whose week you are planning. Search here, or pick one of the suggested clients below — their plans run out soonest."
       },
       "plannerBoard": {
         "title": "The week, meal by meal",
-        "body": "Once a client is chosen you get their board: seven days across, their meals down each one. Fill a slot from the dish catalog beside it, or generate the week and edit what comes back. Each day shows how its calories and protein compare to the client’s target, and publishing sends the plan to their portal."
+        "body": "Seven days across, their meals down each one. Fill the slots from the dish catalog beside it, or generate the week and edit it. Publishing sends the plan to their portal."
       },
       "dishesCatalog": {
         "title": "What the plans draw from",
-        "body": "Every dish available to your weekly plans, with its calories, carbohydrates and protein on the card. Dishes marked as system dishes come with the app; the rest are your clinic’s own."
+        "body": "Every dish your weekly plans can draw on, with its calories and macros on the card. The ones marked as system dishes come with the app."
       },
       "dishesFilters": {
         "title": "Narrowing the catalog",
-        "body": "Search by name, or filter by meal type, tag and nutrition. You can also switch between your clinic’s own dishes and the ones that came with the app."
+        "body": "Search by name, or filter by meal type, tag and nutrition — or switch between your clinic’s own dishes and the app’s."
       },
       "dishesAdd": {
         "title": "How to add a new dish",
-        "body": "Press “Add dish”. The builder opens beside the catalog: name the dish in both languages, add its ingredients and their amounts, and the calories and macros are worked out as you go. Save it and it is available in every weekly plan from then on."
+        "body": "The builder opens beside the catalog: name the dish in both languages and add its ingredients, and the nutrition is worked out as you go."
       },
       "finish": {
         "title": "That is the whole tour",
-        "body": "You can start it again from “User guide” at the foot of the sidebar whenever you want. Each section also carries its own hints and empty states, which appear when there is something to explain."
+        "body": "You can start it again from “User guide” at the foot of the sidebar whenever you want."
       }
     }
   }

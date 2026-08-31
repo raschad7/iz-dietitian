@@ -40,12 +40,15 @@ import { cn } from '@/lib/utils';
  * drawing that as the line returning to the floor says "the run ended" far more
  * directly than an interrupted stroke did.
  *
- * **Why olive and lime are allowed on this chart.** §Charts keeps the brand off
+ * **Why brand green is allowed on this chart.** §Charts keeps the brand off
  * the practitioner dashboard's charts because olive there marks what you can
  * click. This card has nothing to click, and what it draws is the client's own
- * growth — the same green-line-over-lime-wash language the home screen's leaf
- * ring already speaks to them in. The lime stays a fill and never a foreground,
- * which is the rule that actually matters.
+ * growth — the same green-line-over-green-wash language the home screen's leaf
+ * ring already speaks to them in. The wash reads `--accent-green`
+ * (`--color-accent-green` below), the token lime's own removal from
+ * `globals.css` left as its replacement — see the "Lime: removed" note there.
+ * It stays a fill and never a foreground, which is the rule that actually
+ * matters.
  */
 
 /**
@@ -58,9 +61,6 @@ import { cn } from '@/lib/utils';
  */
 const TOP = 34;
 const BOTTOM = 88;
-
-/** Catmull-Rom tension. Below 1 the curve pulls tighter and overshoots less. */
-const TENSION = 0.82;
 
 /**
  * The wipe's own duration, mirroring `.q-chart-reveal` in `globals.css` — 7 ×
@@ -94,10 +94,6 @@ function columnFraction(index: number, count: number): number {
   return (index + 0.5) / Math.max(count, 1);
 }
 
-function clampY(value: number): number {
-  return Math.min(Math.max(value, TOP), BOTTOM);
-}
-
 /**
  * Where each day sits in the box.
  *
@@ -129,35 +125,98 @@ function round(value: number): string {
 }
 
 /**
- * A Catmull-Rom spline written out as cubic Béziers — the smooth curve, with
- * every point actually on the line rather than merely near it.
+ * One tangent per point, chosen so each segment's cubic never overshoots past
+ * either of its two endpoints — Fritsch–Carlson monotone cubic interpolation,
+ * the same family recharts draws with `type="monotone"` elsewhere in the app
+ * (see the note on it in `stat-plots.tsx`: a spline that can overshoot is
+ * exactly what that comment already ruled out for the dashboard's own charts).
  *
- * Control points are clamped to the plot area so a steep rise cannot bow the
- * stroke out through the floor and leave the wash hanging below its own
- * baseline.
+ * This curve used to be a Catmull-Rom spline, whose control points *can*
+ * overshoot past an endpoint on a sharp reversal — a day at the very floor or
+ * ceiling next to a steep rise, which a streak's own shape produces constantly
+ * — and were clamped back to the plot's bounds when they did. Clamping only
+ * the y of one control point, independent of the other, broke the curve's
+ * tangent asymmetrically right at that point: the two halves of the curve no
+ * longer left it at matching angles, which read as a sharp corner instead of
+ * a rounded one — exactly at the days most likely to be a real streak's own
+ * peaks and floors. Monotone interpolation has no such case to clamp: each
+ * segment already stays within its two endpoints by construction.
  */
+function tangents(points: Point[]): number[] {
+  const count = points.length;
+  if (count < 2) return points.map(() => 0);
+
+  const dx: number[] = [];
+  const secant: number[] = [];
+
+  /*
+    The non-null assertions through the rest of this function are all the same
+    claim: every index here is derived from `count`, `secant` was just filled
+    with exactly `count - 1` entries, and the early return above guarantees
+    `count >= 2`. `noUncheckedIndexedAccess` cannot see any of that, and
+    threading `?? 0` fallbacks through an interpolation would invent data
+    points rather than describe them.
+  */
+  for (let index = 0; index < count - 1; index += 1) {
+    const step = points[index + 1]!.x - points[index]!.x;
+    dx.push(step);
+    secant.push(step === 0 ? 0 : (points[index + 1]!.y - points[index]!.y) / step);
+  }
+
+  const slope: number[] = new Array(count);
+  slope[0] = secant[0]!;
+  slope[count - 1] = secant[count - 2]!;
+
+  for (let index = 1; index < count - 1; index += 1) {
+    const before = secant[index - 1]!;
+    const after = secant[index]!;
+    // A local peak or floor gets a flat tangent — forcing a slope through a
+    // point the data itself turns around at is what overshoot comes from.
+    slope[index] = before === 0 || after === 0 || before > 0 !== after > 0 ? 0 : (before + after) / 2;
+  }
+
+  // Fritsch–Carlson's own bound: shrink a segment's two tangents together,
+  // preserving their ratio, whenever they would carry the curve past either
+  // endpoint — the guarantee that makes clamping unnecessary anywhere else.
+  for (let index = 0; index < count - 1; index += 1) {
+    const step = secant[index]!;
+    if (step === 0) {
+      slope[index] = 0;
+      slope[index + 1] = 0;
+      continue;
+    }
+
+    const a = slope[index]! / step;
+    const b = slope[index + 1]! / step;
+    const magnitude = Math.hypot(a, b);
+
+    if (magnitude > 3) {
+      const scale = 3 / magnitude;
+      slope[index] = scale * a * step;
+      slope[index + 1] = scale * b * step;
+    }
+  }
+
+  return slope;
+}
+
+/** The monotone curve, with every point actually on the line rather than merely near it. */
 function curve(points: Point[]): string {
   const first = points[0];
   if (!first) return '';
 
+  const slope = tangents(points);
   let path = `M ${round(first.x)} ${round(first.y)}`;
 
+  // Same claim as in `tangents`: `index` and `index + 1` are both inside a
+  // list this loop is bounded by, and `slope` has one entry per point.
   for (let index = 0; index < points.length - 1; index += 1) {
-    const start = points[index];
-    const end = points[index + 1];
-    const previous = points[index - 1] ?? start;
-    const next = points[index + 2] ?? end;
+    const start = points[index]!;
+    const end = points[index + 1]!;
+    const step = (end.x - start.x) / 3;
 
-    if (!start || !end || !previous || !next) continue;
-
-    const c1 = {
-      x: start.x + ((end.x - previous.x) / 6) * TENSION,
-      y: clampY(start.y + ((end.y - previous.y) / 6) * TENSION),
-    };
-    const c2 = {
-      x: end.x - ((next.x - start.x) / 6) * TENSION,
-      y: clampY(end.y - ((next.y - start.y) / 6) * TENSION),
-    };
+    const c1 = { x: start.x + step, y: start.y + slope[index]! * step };
+    const c2 = { x: end.x - step, y: end.y - slope[index + 1]! * step };
 
     path += ` C ${round(c1.x)} ${round(c1.y)}, ${round(c2.x)} ${round(c2.y)}, ${round(end.x)} ${round(end.y)}`;
   }
@@ -335,6 +394,16 @@ export function AdherenceStreakCard({
               is a zero-width centring box placed with `inset-inline-start`,
               which mirrors for Arabic on its own — matching the mirrored `x`
               the curve was plotted at.
+
+              Only today's dot stays on the page — the rest are a hover
+              reveal (`group`/`group-hover` on the inner dot), so the curve's
+              shape is what reads at a glance and a past day's exact value is
+              a deliberate look rather than six digits sitting on the line all
+              the time. `q-chart-point` is sized to a full `size-8` hit area
+              rather than the dot's own few pixels — centred by the same
+              zero-width trick, so growing it does not shift it off the point
+              — because a target that small is not one a cursor lands on
+              without hunting for it.
             */}
             {continuity.map((day, index) => {
               const point = points[index];
@@ -346,7 +415,7 @@ export function AdherenceStreakCard({
                 <span
                   key={day.date}
                   aria-hidden="true"
-                  className="absolute flex w-0 -translate-y-1/2 justify-center"
+                  className="group absolute flex w-0 -translate-y-1/2 justify-center"
                   style={{
                     insetInlineStart: `${columnFraction(index, continuity.length) * 100}%`,
                     top: `${point.y}%`,
@@ -375,7 +444,7 @@ export function AdherenceStreakCard({
                     `TodayFlameCell`'s particles set theirs inline.
                   */}
                   <span
-                    className="q-chart-point grid place-items-center"
+                    className="q-chart-point grid size-8 place-items-center"
                     style={{
                       animationDelay: `${Math.round(columnFraction(index, continuity.length) * DRAW_MS)}ms`,
                     }}
@@ -387,8 +456,8 @@ export function AdherenceStreakCard({
 
                     <span
                       className={cn(
-                        'col-start-1 row-start-1 rounded-full bg-card ring-primary',
-                        isLatest ? 'size-3 ring-[3px]' : 'size-2 ring-2',
+                        'col-start-1 row-start-1 rounded-full bg-card ring-primary transition-opacity duration-150',
+                        isLatest ? 'size-3 ring-[3px] opacity-100' : 'size-2 ring-2 opacity-0 group-hover:opacity-100',
                       )}
                     />
                   </span>

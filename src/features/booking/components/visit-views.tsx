@@ -4,6 +4,7 @@ import { useState, type ReactNode } from 'react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Segmented } from '@/components/ui/segmented';
+import { cn } from '@/lib/utils';
 
 /**
  * The two halves of a visit record — what is booked and what has happened — and
@@ -17,11 +18,17 @@ import { Segmented } from '@/components/ui/segmented';
  * that remains *is* those two questions, and the card opens on the first.
  *
  * **A `Segmented`, not a row of tabs.** The record carries a tab bar of its own
- * — Account, Nutrition, Security, Plans — and those switch the
+ * — Nutrition, Progress, Visits, The Gate, Plans — and those switch the
  * subject of the page; these two switch which half of one card's list you are
- * reading. Drawing them as a second bar in the same visual language would stack
- * two identical-looking strips and leave the reader working out which one moves
- * them off the view.
+ * reading.
+ *
+ * It is the *same* control as that bar — `contained`, so the selection is a
+ * white card sliding through a grey well — because both answer "which view am I
+ * in?" and answering one question two ways is how a screen stops feeling built
+ * by one hand. What keeps them from reading as two competing strips is scale and
+ * place, not species: the bar spans the panel above and carries a mark per view,
+ * while this one is content-width, unmarked, and lives *inside* a card header
+ * beside the count of what it is switching.
  *
  * ## One card, and the switch is in its header
  *
@@ -48,6 +55,18 @@ import { Segmented } from '@/components/ui/segmented';
  * becomes as tall as its content and the whole record scrolls instead. It is
  * also why the Account view around it scrolls nothing of its own: two scrollbars
  * a finger apart, each moving a different thing, is worse than either.
+ *
+ * A tablet is inside that arrangement, not an exception to it: the height is
+ * keyed on width alone, so at `lg` the card reaches the bottom of the screen on
+ * glass exactly as it does on a laptop, and the history scrolls inside it.
+ *
+ * ⚠ There was a revision that let it grow instead on a coarse pointer, on the
+ * grounds that a landscape tablet matches `lg` with only 768px of height and the
+ * port left over is small. That is a real constraint and this is not the answer
+ * to it: what pays for the port is the space above it, which is why the doubled
+ * gap below was removed. If the port is still too short, take height from the
+ * facts strip or the plans card — do not let the card stop filling, or it ends
+ * partway down the screen with the panel around it not scrolling either.
  */
 export type VisitView = 'upcoming' | 'past';
 
@@ -98,33 +117,35 @@ export function VisitViews({
           </span>
         </CardTitle>
 
+        {/*
+          `contained` — the same control the record's own tab bar above it uses,
+          and the calendar's day/week/month switch: a sunken neutral well with a
+          white card lifted out of it, and the card *slides* between the halves
+          rather than blinking on in place. Two switches on one screen that
+          answer the same kind of question should also move the same way; this
+          one used to re-tint a bordered segment, which read as a different
+          species of control sitting a few pixels under the profile tabs.
+
+          No icons on the segments. The profile bar carries them because it has
+          five views and drops its labels below `sm`; two labelled halves have
+          nothing a mark would clarify.
+
+          **No `activeClassName`/`inactiveClassName`.** They used to force the
+          thumb to `bg-muted` and unpick the olive hover, which was the right
+          call against the old olive default — olive is already spent on this
+          view's date marks and its calendar button, and a fifth olive fill on
+          the control that merely says *which half* would have been the loudest
+          thing here. `contained` resolves to the white raised card on a grey
+          track on its own, and its unselected halves only darken their label, so
+          both overrides are now saying what the shape already says.
+        */}
         <Segmented
           label={label}
           size="sm"
+          shape="contained"
           options={options}
           value={view}
           onChange={setView}
-          /*
-            **The selected segment is the sunken neutral, not the brand olive.**
-
-            Olive is this app's action colour, and on this view it is already
-            spent on the things that are *about the appointments* — today's date
-            mark, the current dot beside a booked visit, and the button that
-            books. A fourth olive fill on the control that merely says which half
-            you are looking at competed with all of them, and it was the largest.
-
-            Grey states the same fact without claiming to be one of those: the
-            thumb is `--muted` — the c-100 cream the sunken surfaces use — with
-            full-strength foreground on it, which measures well past the 4.5:1
-            floor and reads as "you are here" rather than as "do this".
-
-            `inactiveClassName` has to be passed with it. Its default hover is
-            `bg-secondary`, the olive tint, and an unselected segment lighting up
-            olive while the selected one sits in grey inverts the whole meaning
-            of the control. Both halves now live on the same neutral ramp.
-          */
-          activeClassName="bg-muted text-foreground"
-          inactiveClassName="text-muted-foreground hover:bg-muted/60 hover:text-foreground"
         />
       </CardHeader>
 
@@ -140,7 +161,18 @@ export function VisitViews({
       <CardContent
         role="tabpanel"
         aria-label={active?.label ?? label}
-        className="mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain"
+        className={cn(
+          'min-h-0 flex-1 overflow-y-auto overscroll-contain',
+          /*
+            ⚠ No `mt-*` here, and it is worth knowing why the obvious one is
+            wrong. `Card` already sets `gap-(--card-spacing)` between its header
+            and its content — 16px, 20px from `sm` up — so a margin on top of
+            that is not "some breathing room", it is a second full gap. The two
+            together put 32–36px between the heading and the first visit, which
+            on a tablet is most of the reason a reader had to scroll to see one
+            card at all.
+          */
+        )}
       >
         {panels[view]}
       </CardContent>

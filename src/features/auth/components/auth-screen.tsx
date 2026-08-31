@@ -201,7 +201,7 @@ export function AuthScreen({
      * could see.
      *
      * `q-route-stage` stays absent from this route. Its enter animation starts
-     * from `clip-path: inset(0 1rem 0 0 round var(--qiwam-radius-lg))`, which
+     * from `clip-path: inset(0 1rem 0 0 round var(--enzyme-radius-lg))`, which
      * clips against the element's own box — and this element's box is the full
      * viewport, not the card, so the strip it opens from is bare document
      * background down the edge of the screen rather than a surface sliding in.
@@ -234,8 +234,43 @@ export function AuthScreen({
               docs/design-system.md forbids letter spacing on Arabic, and Arabic
               is this app's default locale.
             */}
-            <div className="mb-5 text-center short:mb-3">
-              <h1 className="font-heading text-display-sm font-bold text-foreground short:text-heading-lg">{title}</h1>
+            {/*
+              Second of the entrance's five parts — see `q-auth-enter` in
+              `globals.css`. The heading and its tagline rise together, because
+              they are one thing to read and splitting them would put a beat
+              between a sentence and its own second line.
+
+              The two position classes in this file are the only reason
+              `AuthScreen` knows the entrance exists at all. They are here rather
+              than in `AuthSplitCard` because this is where these two rows are
+              written: the card receives them as one opaque `header` node and has
+              nothing to hang a per-row delay on.
+            */}
+            <div className="q-auth-enter q-auth-enter-2 mb-5 text-center short:mb-3">
+              {/*
+                `min-h-[2lh]` — two lines of this heading's own line box, held
+                open whether the words fill them or not.
+
+                The three faces do not have three headings of the same length:
+                "Sign in" and "Client portal" take one line, "Create a clinic
+                team account" takes two. Left to itself that is a 41px step in
+                the heading, and everything below it — tagline, role switch,
+                fields — steps with it, which is the same jump the fields used to
+                cause, arriving from the other direction.
+
+                `lh` rather than a pixel figure so it follows the `short:` size
+                below without a second number to keep in step.
+
+                ⚠ `short:min-h-0` gives it straight back on a cramped viewport.
+                Below 860px the sign-in form already comes within about 40px of
+                the fold, and reserving a line nothing is written on is exactly
+                the kind of decorative space that must go before a control does —
+                so on those screens the heading collapses to its content and the
+                sign-up face is allowed to sit lower.
+              */}
+              <h1 className="min-h-[2lh] font-heading text-display-sm font-bold text-foreground short:min-h-0 short:text-heading-lg">
+                {title}
+              </h1>
 
               {/*
                 `brandTagline` — a string that has been in the catalogue since an
@@ -254,7 +289,21 @@ export function AuthScreen({
                 field, a control or an error, and none of those may be hidden to
                 win space.
               */}
-              <p className="mt-2 text-body-sm text-muted-foreground shorter:hidden">
+              {/*
+                `font-light` — 300, and it is a real 300 in both scripts.
+
+                Readex Pro already loaded one; Almarai did not, and `[locale]/
+                layout.tsx` now asks for it explicitly. That matters because CSS
+                does not *synthesise* a light weight the way it will fake a bold:
+                with only 400 and 700 loaded this class would have matched the
+                400 face and changed nothing at all on the default locale.
+
+                ⚠ This is the one line on the screen allowed to take it. See the
+                warning beside the font declaration: 300 gives up real legibility
+                in Arabic at body sizes, and everything else here names a field,
+                a control or an error.
+              */}
+              <p className="mt-2 text-body-sm font-light text-muted-foreground shorter:hidden">
                 {t('brandTagline')}
               </p>
             </div>
@@ -283,7 +332,8 @@ export function AuthScreen({
               label={t('roleQuestion')}
               value={view.role}
               onChange={(role) => goTo({ role })}
-              className="mb-5 short:mb-3"
+              /* Third of the five. */
+              className="q-auth-enter q-auth-enter-3 mb-5 short:mb-3"
               options={ROLES.map((option) => ({
                 value: option.value,
                 label: t(option.labelKey),

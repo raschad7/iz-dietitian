@@ -45,7 +45,7 @@ export default function LocaleError({
   }, [error]);
 
   return (
-    <main className="q-route-stage mx-auto flex min-h-dvh max-w-lg flex-col items-center justify-center gap-6 px-6 py-16 text-center">
+    <main className="mx-auto flex min-h-dvh max-w-lg flex-col items-center justify-center gap-6 px-6 py-16 text-center">
       <BrandLogo aria-hidden={false} role="img" aria-label={tApp('name')} className="h-10" />
 
       <div className="space-y-2">
@@ -62,9 +62,16 @@ export default function LocaleError({
         </Button>
 
         {/* A link styled as a button, not `<Button render={<Link/>}>` — Base UI's
-            Button warns when it renders anything but a real `<button>`. */}
+            Button warns when it renders anything but a real `<button>`.
+
+            `notFoundCtaHome` because this link goes to `/`. The key was
+            `notFoundCta` and served both this screen and the 404 page; that one
+            now picks its destination from the session, so the label was split
+            in two by where it leads. This is a client component and cannot read
+            a session, but it has no need to — the public home is the right
+            landing for a public screen that failed. */}
         <Link href="/" className={buttonVariants({ variant: 'ghost' })}>
-          {t('notFoundCta')}
+          {t('notFoundCtaHome')}
         </Link>
       </div>
     </main>

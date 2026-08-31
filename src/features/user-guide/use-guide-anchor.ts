@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 /**
  * The box the spotlight cuts, in viewport coordinates.
@@ -28,7 +28,32 @@ export type AnchorStatus =
   /** Gave up. The card is drawn centred, with its text intact. */
   | 'missing';
 
-export type AnchorState = { status: AnchorStatus; rect: AnchorRect | null };
+/** Told the newest measurement, every frame it changes. See {@link AnchorState}. */
+type RectListener = (rect: AnchorRect | null) => void;
+
+export type AnchorState = {
+  status: AnchorStatus;
+  /**
+   * The **settled** box: the one that is safe to lay something out against.
+   *
+   * It is deliberately not the newest measurement. Anything that renders from
+   * this re-renders when it changes, and re-rendering the overlay on every frame
+   * of a scroll is what this hook now exists to avoid — see {@link SETTLE_MS}.
+   */
+  rect: AnchorRect | null;
+  /**
+   * The per-frame feed, for anything that can position itself by writing to a
+   * DOM node instead of by rendering.
+   *
+   * The listener is called synchronously from the measurement loop with the
+   * newest box, and returns an unsubscribe. `Spotlight` is the only caller: the
+   * hole has to sit exactly on its control at the refresh rate of whatever is
+   * moving it, and React is the wrong instrument for that.
+   */
+  subscribe: (listener: RectListener) => () => void;
+  /** The newest measurement, for a subscriber's first paint before a frame lands. */
+  peek: () => AnchorRect | null;
+};
 
 /**
  * What the frame loop has settled on for one step.
@@ -67,8 +92,39 @@ const OPTIONAL_ANCHOR_TIMEOUT_MS = 1000;
  */
 const ANCHOR_BACKSTOP_MS = 250;
 
-/** Below this, a rect change is layout noise rather than movement worth a render. */
+/** Below this, a rect change is layout noise rather than movement worth reacting to. */
 const RECT_EPSILON = 0.5;
+
+/**
+ * How long the box has to hold still before React is told about it.
+ *
+ * ## What this fixes
+ *
+ * The measurement loop used to write every frame's rect into `useState`. That is
+ * correct, and it is also — on a phone — the whole bug. An anchor being scrolled
+ * into view moves for a few hundred milliseconds, so the overlay reconciled,
+ * committed and repainted on every one of those frames; and what it repaints is
+ * a `box-shadow` with `120vmax` of spread, which is close to the most expensive
+ * thing a mobile GPU can be handed. Past the point where the device stops
+ * finishing frames in time, the hole no longer arrives with the content it is
+ * cut around, and the two disagree by a different amount each frame. That is
+ * what the shaking is.
+ *
+ * The two steps it was worst on are the two with the largest anchors — the
+ * calendar toolbar spans the full width of the screen and the calendar grid
+ * spans nearly the whole viewport — because the area of that shadow, and so the
+ * cost of each repaint, scales with the size of the hole.
+ *
+ * So geometry no longer travels through React at all. The loop pushes each frame
+ * straight at `Spotlight`, which writes it to its own node; React is told only
+ * once the box has stopped moving, because the only other thing that reads it —
+ * the card's placement — wants a box that has finished moving anyway.
+ *
+ * 120ms is a little over seven frames: long enough that no scroll or layout
+ * settle re-triggers it, short enough to stay under the threshold at which the
+ * card would read as lagging the hole.
+ */
+const SETTLE_MS = 120;
 
 /**
  * Padding drawn around the anchor, so the hole frames the control rather than
@@ -114,13 +170,21 @@ function same(a: AnchorRect | null, b: AnchorRect | null): boolean {
  *
  * So the rect is read on an animation frame for as long as the step is showing.
  * That sounds expensive and is not: `getBoundingClientRect` on one element is
- * cheap, the loop exists only while a modal overlay is up, and state is set only
- * when the box has actually moved — see {@link RECT_EPSILON}, which is what
- * stops sub-pixel jitter from re-rendering the overlay sixty times a second.
+ * cheap, the loop exists only while a modal overlay is up, and — since the
+ * rewrite recorded on {@link SETTLE_MS} — a frame in which the box moved costs
+ * one style write rather than a render of the whole overlay.
  *
  * A `MutationObserver` would answer "has it appeared yet" but not "where is it
  * now", and a `ResizeObserver` answers neither for an element moved by an
  * ancestor's scroll. One frame loop answers all of it.
+ *
+ * ## Two channels, and why there are two
+ *
+ * `rect` is the settled box, for whatever has to be *laid out* against the
+ * anchor. `subscribe` is the live one, for whatever has to be *glued* to it.
+ * They are separate because their requirements are opposites: the hole is wrong
+ * the instant it lags a frame, and the card is wrong if it moves at all while
+ * the reader is reading it.
  *
  * ## Why "waiting" and "none" are not stored
  *
@@ -131,11 +195,11 @@ function same(a: AnchorRect | null, b: AnchorRect | null): boolean {
  * than written into state by an effect.
  *
  * That is not only tidiness. Seeding them from the effect meant `setState` in an
- * effect body, which this project's lint rules reject outright and React
- * charges a cascading render for; and it left a window, between the step
- * changing and the effect running, in which the hook returned the *previous*
- * step's rect. Keying the stored result by `stepId` closes that window
- * structurally: a result that is not this step's simply reads as `waiting`.
+ * effect body, which this project's lint rules reject outright and React charges
+ * a cascading render for; and it left a window, between the step changing and
+ * the effect running, in which the hook returned the *previous* step's rect.
+ * Keying the stored result by `stepId` closes that window structurally: a result
+ * that is not this step's simply reads as `waiting`.
  *
  * @param anchor `data-guide` value to look for, or `null` for an unanchored step.
  * @param stepId Restarts the search when the tour advances.
@@ -151,29 +215,51 @@ export function useGuideAnchor(
   const [resolution, setResolution] = useState<Resolution | null>(null);
 
   /*
-    The last rect handed to React, kept in a ref so the frame loop can compare
-    against it without listing it as a dependency and restarting itself.
+    The live channel. Both halves are refs rather than state on purpose: the
+    entire point of this path is that a measurement reaches the DOM without
+    passing through a render.
   */
-  const lastRect = useRef<AnchorRect | null>(null);
+  const liveRect = useRef<AnchorRect | null>(null);
+  const listeners = useRef<Set<RectListener>>(new Set());
+
+  const subscribe = useCallback((listener: RectListener) => {
+    const set = listeners.current;
+    set.add(listener);
+    return () => {
+      set.delete(listener);
+    };
+  }, []);
+
+  const peek = useCallback(() => liveRect.current, []);
 
   useEffect(() => {
     if (!active || anchor === null) return;
 
-    lastRect.current = null;
+    liveRect.current = null;
 
     let frame = 0;
     let cancelled = false;
     /** Set once, so a slow screen does not get scrolled to twice. */
     let scrolled = false;
+    /** The last box handed to React, so the settle test has something to compare. */
+    let promoted: AnchorRect | null = null;
+    /** When the live box last actually moved. Drives {@link SETTLE_MS}. */
+    let movedAt = performance.now();
     const startedAt = performance.now();
     const budget = optional ? OPTIONAL_ANCHOR_TIMEOUT_MS : ANCHOR_TIMEOUT_MS;
+
+    /** Hands a box to every live subscriber. Never renders. */
+    function publish(rect: AnchorRect | null): void {
+      liveRect.current = rect;
+      for (const listener of listeners.current) listener(rect);
+    }
 
     /**
      * One measurement. Returns whether there is any point taking another.
      *
      * Deliberately free of scheduling, because two different clocks call it —
-     * see below. It is idempotent: it re-reads the element and writes state only
-     * when the box has actually moved, so being called twice in a frame costs a
+     * see below. It is idempotent: it re-reads the element and pushes only when
+     * the box has actually moved, so being called twice in a frame costs a
      * `getBoundingClientRect` and nothing else.
      */
     function measure(): boolean {
@@ -185,7 +271,8 @@ export function useGuideAnchor(
           step centred rather than stalling on it — see `optional` in `steps.ts`.
         */
         if (performance.now() - startedAt > budget) {
-          lastRect.current = null;
+          publish(null);
+          promoted = null;
           setResolution({ stepId, rect: null });
           return false;
         }
@@ -199,8 +286,36 @@ export function useGuideAnchor(
           technically visible at the very bottom of the viewport is one the card
           is about to sit on top of. Centring gives the card somewhere to go on
           either side of it.
+
+          ## `instant`, and why it is not a downgrade
+
+          This was `smooth`, and a smooth scroll is what the tour's remaining lag
+          was made of. The sequence: the card is promoted on the *first* sighting
+          of the anchor — see the retention note below — so it is placed against
+          the box as it was before the scroll started. The scroll then runs for
+          the several hundred milliseconds a smooth scroll takes, the hole
+          gliding with it, and the card is only re-placed once the box has held
+          still for {@link SETTLE_MS} on top of that. Every step whose anchor
+          needs bringing into view therefore paid for the whole scroll before it
+          settled, and the steps that scroll — the register table, the search
+          field above it, the calendar toolbar after a route change, the
+          planner's suggestions below the picker — are exactly the ones that were
+          reported as lagging.
+
+          Instant costs nothing here. The screen behind this is dimmed to a hole
+          the size of one control, so there is no travel for the reader to
+          follow and nothing for the animation to explain: the hole and the card
+          simply arrive together, on the first frame, in the right place.
+
+          It also settles a bug. `scrollIntoView`'s `behavior` **overrides** the
+          CSS `scroll-behavior` property, so the `scroll-behavior: auto
+          !important` that `globals.css` applies under `prefers-reduced-motion`
+          never reached this call: a reader who had asked for no motion got a
+          smooth scroll on every anchored step regardless. Passing `instant`
+          asks for no motion for everybody, which is the one answer that cannot
+          disagree with a preference.
         */
-        element.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' });
+        element.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' });
       }
 
       const raw = element.getBoundingClientRect();
@@ -220,9 +335,23 @@ export function useGuideAnchor(
       if (raw.width <= 0 || raw.height <= 0) return true;
 
       const rect = pad(raw);
+      const now = performance.now();
 
-      if (!same(lastRect.current, rect)) {
-        lastRect.current = rect;
+      /* The hole moves this frame, at the cost of one style write. */
+      if (!same(liveRect.current, rect)) {
+        movedAt = now;
+        publish(rect);
+      }
+
+      /*
+        React is told once the box has held still — or straight away, if this is
+        the first sighting of this step's anchor and nothing has been promoted
+        yet. Waiting out the settle in that one case would leave the card
+        invisible for the length of the scroll that brings the anchor into view,
+        which is the very blink the retention rule below exists to prevent.
+      */
+      if (promoted === null || (!same(promoted, rect) && now - movedAt >= SETTLE_MS)) {
+        promoted = rect;
         setResolution({ stepId, rect });
       }
 
@@ -265,27 +394,31 @@ export function useGuideAnchor(
     };
   }, [anchor, stepId, active, optional]);
 
-  if (!active || anchor === null) return { status: 'none', rect: null };
+  return useMemo<AnchorState>(() => {
+    if (!active || anchor === null) return { status: 'none', rect: null, subscribe, peek };
 
-  /*
-    Nothing settled yet, or what settled belongs to the step before this one —
-    and in that second case the previous step's box is handed back rather than
-    dropped.
+    /*
+      Nothing settled yet, or what settled belongs to the step before this one —
+      and in that second case the previous step's box is handed back rather than
+      dropped.
 
-    That retention is the difference between a hole that travels from one control
-    to the next and a screen that goes flat for a frame in between. Advancing a
-    step always costs at least one render where the new anchor has not been
-    measured yet; without this, every one of the sixteen steps opened with a
-    blink of undifferentiated dim, and the two that cross a route opened with a
-    long one.
+      That retention is the difference between a hole that travels from one
+      control to the next and a screen that goes flat for a frame in between.
+      Advancing a step always costs at least one render where the new anchor has
+      not been measured yet; without this, every one of the sixteen steps opened
+      with a blink of undifferentiated dim, and the two that cross a route opened
+      with a long one.
 
-    It is safe to draw a stale hole because it is never a stale *promise*: the
-    card beside it has already changed to the new step's words, and the box
-    catches up within a frame on the same screen, or as soon as the next screen
-    paints.
-  */
-  if (resolution === null) return { status: 'waiting', rect: null };
-  if (resolution.stepId !== stepId) return { status: 'waiting', rect: resolution.rect };
-  if (resolution.rect === null) return { status: 'missing', rect: null };
-  return { status: 'found', rect: resolution.rect };
+      It is safe to draw a stale hole because it is never a stale *promise*: the
+      card beside it has already changed to the new step's words, and the box
+      catches up within a frame on the same screen, or as soon as the next screen
+      paints — now by travelling there rather than cutting, see `Spotlight`.
+    */
+    if (resolution === null) return { status: 'waiting', rect: null, subscribe, peek };
+    if (resolution.stepId !== stepId) {
+      return { status: 'waiting', rect: resolution.rect, subscribe, peek };
+    }
+    if (resolution.rect === null) return { status: 'missing', rect: null, subscribe, peek };
+    return { status: 'found', rect: resolution.rect, subscribe, peek };
+  }, [active, anchor, resolution, stepId, subscribe, peek]);
 }

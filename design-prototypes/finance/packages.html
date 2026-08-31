@@ -1,0 +1,439 @@
+<!doctype html>
+<!--
+  Standalone prototype — no production code is touched.
+  Packages are clinic-owned rows: the clinic sets its own names, prices,
+  durations and visit counts. 180 / 500 are this clinic's current values,
+  not constants in the system.
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>إنزيم — الباقات والرسائل</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Readex+Pro:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="finance.css" />
+</head>
+<body>
+
+<!--
+  Shared icon sprite. Every page inlines this block verbatim — these are
+  standalone files with no build step, so there is nothing to include with.
+  Glyphs are the Lucide shapes the app already uses through `src/lib/icons.ts`.
+-->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <g id="i-dash" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></g>
+  <g id="i-users" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></g>
+  <g id="i-calendar" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></g>
+  <g id="i-plans" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H9a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1Z"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M8 12h8M8 16h5"/></g>
+  <g id="i-dish" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h1a2 2 0 0 0 2-2V2M6 2v20"/><path d="M18 2v20M18 12c2 0 3-1.5 3-4V2"/></g>
+  <g id="i-wallet" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5"/><path d="M17 13h.01"/></g>
+  <g id="i-settings" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.35.4.65.73.85"/></g>
+  <g id="i-trend" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m22 7-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/></g>
+  <g id="i-clock" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></g>
+  <g id="i-alert" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></g>
+  <g id="i-wa" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.5 8.5 0 0 1-3.9-.9L3 20.5l1.5-4.5A8.4 8.4 0 0 1 3.6 11.5a8.4 8.4 0 0 1 8.4-8.4 8.4 8.4 0 0 1 9 8.4Z"/></g>
+  <g id="i-plus" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></g>
+  <g id="i-check" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></g>
+  <g id="i-search" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></g>
+  <g id="i-moon" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></g>
+  <g id="i-receipt" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2.5-1.5L9 22l2.5-1.5L14 22l2.5-1.5L19 22V2l-2.5 1.5L14 2l-2.5 1.5L9 2 6.5 3.5 4 2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></g>
+  <g id="i-cash" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></g>
+  <g id="i-chev" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></g>
+  <g id="i-back" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></g>
+  <g id="i-info" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></g>
+  <g id="i-package" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></g>
+  <g id="i-trash" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></g>
+  <g id="i-refresh" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></g>
+  <g id="i-inbox" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/></g>
+</defs></svg>
+
+<div class="shell">
+
+  <nav class="rail" aria-label="التنقل الرئيسي">
+    <div class="rail-head">
+      <svg class="rail-mark" viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M16 3c7 0 13 5.6 13 12.5S23 28 16 28 3 22.4 3 15.5 9 3 16 3Z" fill="#75CF48"/>
+        <circle cx="12" cy="14" r="2.1" fill="#266805"/><circle cx="19" cy="18" r="2.1" fill="#266805"/>
+      </svg>
+      <span class="rail-word">إنزيم</span>
+    </div>
+    <div class="rail-nav">
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-dash"/></svg><span data-en="Dashboard">لوحة التحكم</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-users"/></svg><span data-en="Clients">العملاء</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-calendar"/></svg><span data-en="Calendar">التقويم</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-plans"/></svg><span data-en="Weekly plans">الخطط الأسبوعية</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-dish"/></svg><span data-en="Dish catalog">كتالوج الأطباق</span></a>
+      <a class="rail-item" href="index.html" aria-current="page">
+        <svg viewBox="0 0 24 24"><use href="#i-wallet"/></svg>
+        <span data-en="Finance">الأمور المالية</span>
+        <em class="rail-count" style="font-style:normal">2</em>
+      </a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-inbox"/></svg><span data-en="Requests">الطلبات</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-settings"/></svg><span data-en="Settings">الإعدادات</span></a>
+    </div>
+    <div class="rail-foot">
+      <div class="rail-user">
+        <span class="avatar">د</span>
+        <span class="stack">
+          <span class="t-label" data-en="Dr. Duaa">د. دعاء</span>
+          <span class="t-caption" data-en="Dietitian">أخصائية تغذية</span>
+        </span>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main">
+
+    <div class="topbar">
+      <a class="btn btn--neutral-ghost btn--sm btn--icon" href="index.html"
+         aria-label="رجوع إلى الأمور المالية" data-en-label="Back to finance">
+        <svg viewBox="0 0 24 24"><use href="#i-back"/></svg>
+      </a>
+      <span class="t-label muted">
+        <a href="index.html" data-en="Finance">الأمور المالية</a>
+        <span aria-hidden="true"> / </span>
+        <span data-en="Packages &amp; messages">الباقات والرسائل</span>
+      </span>
+      <span class="grow"></span>
+      <div class="segmented" role="tablist" aria-label="اللغة">
+        <button data-locale-btn="ar" role="tab" aria-selected="true">ع</button>
+        <button data-locale-btn="en" role="tab" aria-selected="false">EN</button>
+      </div>
+      <button class="btn btn--neutral btn--icon btn--sm" data-theme-toggle
+              aria-label="الوضع الداكن" data-en-label="Dark mode">
+        <svg viewBox="0 0 24 24"><use href="#i-moon"/></svg>
+      </button>
+    </div>
+
+    <main class="page">
+
+      <div class="page-head">
+        <div class="grow">
+          <h1 class="t-display" data-en="Packages &amp; messages">الباقات والرسائل</h1>
+          <p class="muted mt-1" data-en="Your clinic's own price list, and the wording of the WhatsApp reminders.">
+            قائمة أسعار عيادتك، وصيغة رسائل التذكير على واتساب.
+          </p>
+        </div>
+      </div>
+
+      <div class="ptabs" data-tabs role="tablist" aria-label="أقسام الصفحة">
+        <button data-tab="tab-pkgs" role="tab" aria-selected="true" data-en="Packages">الباقات</button>
+        <button data-tab="tab-msgs" role="tab" aria-selected="false" data-en="WhatsApp messages">رسائل واتساب</button>
+      </div>
+
+      <!-- ══ Packages ═════════════════════════════════════════════════ -->
+      <section id="tab-pkgs" role="tabpanel" class="section" style="margin-block-start:20px">
+
+        <div class="callout mt-1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><use href="#i-info"/></svg>
+          <div>
+            <b data-en="A price change applies to new subscriptions only.">تغيير السعر يسري على الاشتراكات الجديدة فقط.</b>
+            <div class="t-caption mt-1" data-en="Every existing subscription keeps the price it was sold at, so last month's figures never move under you.">
+              كل اشتراك قائم يحتفظ بالسعر الذي بيع به، فأرقام الشهر الماضي لا تتحرّك من تحتك.
+            </div>
+          </div>
+        </div>
+
+        <div class="section-head mt-6">
+          <h2 class="t-h-lg grow" data-en="Your packages">باقاتك</h2>
+          <button class="btn btn--sm btn--outline" data-open="dlg-newpkg">
+            <svg viewBox="0 0 24 24"><use href="#i-plus"/></svg>
+            <span data-en="Add package">إضافة باقة</span>
+          </button>
+        </div>
+
+        <!-- Monthly -->
+        <div class="pkg-card" data-pkg-card data-active="true">
+          <div class="pkg-head">
+            <span class="badge badge--onTrack" data-en="Active">مفعّلة</span>
+            <span class="t-caption grow" data-en="4 subscriptions currently on this package">4 اشتراكات قائمة على هذه الباقة</span>
+            <button class="switch" role="switch" aria-checked="true"
+                    aria-label="تفعيل الباقة" data-en-label="Package active"></button>
+            <button class="btn btn--sm btn--destructive-ghost btn--icon"
+                    aria-label="حذف الباقة" data-en-label="Delete package">
+              <svg viewBox="0 0 24 24"><use href="#i-trash"/></svg>
+            </button>
+          </div>
+
+          <div class="pkg">
+            <div class="field">
+              <label for="p1-ar" data-en="Name (Arabic)">الاسم (عربي)</label>
+              <input class="input" id="p1-ar" value="اشتراك شهري" />
+            </div>
+            <div class="field">
+              <label for="p1-price" data-en="Price (₪)">السعر (₪)</label>
+              <input class="input num" id="p1-price" type="number" data-pkg="price" value="180" min="0" step="5" />
+            </div>
+            <div class="field">
+              <label for="p1-days" data-en="Days">الأيام</label>
+              <input class="input num" id="p1-days" type="number" data-pkg="days" value="30" min="1" />
+            </div>
+            <div class="field">
+              <label for="p1-visits" data-en="Visits">الزيارات</label>
+              <input class="input num" id="p1-visits" type="number" data-pkg="visits" value="4" min="1" />
+            </div>
+            <div class="field">
+              <label for="p1-plans" data-en="Plans">الخطط</label>
+              <input class="input num" id="p1-plans" type="number" data-pkg="plans" value="4" min="0" />
+            </div>
+            <button class="btn btn--sm btn--soft" data-en="Save">حفظ</button>
+          </div>
+          <p class="pkg-derived" data-pkg-derived></p>
+        </div>
+
+        <!-- Quarterly -->
+        <div class="pkg-card" data-pkg-card data-active="true">
+          <div class="pkg-head">
+            <span class="badge badge--onTrack" data-en="Active">مفعّلة</span>
+            <span class="t-caption grow" data-en="2 subscriptions currently on this package">اشتراكان قائمان على هذه الباقة</span>
+            <button class="switch" role="switch" aria-checked="true"
+                    aria-label="تفعيل الباقة" data-en-label="Package active"></button>
+            <button class="btn btn--sm btn--destructive-ghost btn--icon"
+                    aria-label="حذف الباقة" data-en-label="Delete package">
+              <svg viewBox="0 0 24 24"><use href="#i-trash"/></svg>
+            </button>
+          </div>
+
+          <div class="pkg">
+            <div class="field">
+              <label for="p2-ar" data-en="Name (Arabic)">الاسم (عربي)</label>
+              <input class="input" id="p2-ar" value="اشتراك ثلاثة أشهر" />
+            </div>
+            <div class="field">
+              <label for="p2-price" data-en="Price (₪)">السعر (₪)</label>
+              <input class="input num" id="p2-price" type="number" data-pkg="price" value="500" min="0" step="5" />
+            </div>
+            <div class="field">
+              <label for="p2-days" data-en="Days">الأيام</label>
+              <input class="input num" id="p2-days" type="number" data-pkg="days" value="90" min="1" />
+            </div>
+            <div class="field">
+              <label for="p2-visits" data-en="Visits">الزيارات</label>
+              <input class="input num" id="p2-visits" type="number" data-pkg="visits" value="12" min="1" />
+            </div>
+            <div class="field">
+              <label for="p2-plans" data-en="Plans">الخطط</label>
+              <input class="input num" id="p2-plans" type="number" data-pkg="plans" value="12" min="0" />
+            </div>
+            <button class="btn btn--sm btn--soft" data-en="Save">حفظ</button>
+          </div>
+          <p class="pkg-derived" data-pkg-derived></p>
+        </div>
+
+        <!-- Retired -->
+        <div class="pkg-card" data-pkg-card data-active="false">
+          <div class="pkg-head">
+            <span class="badge badge--rest" data-en="Retired">موقوفة</span>
+            <span class="t-caption grow" data-en="Hidden from new subscriptions. The 3 old subscriptions on it are untouched.">
+              مخفيّة عن الاشتراكات الجديدة. الاشتراكات الثلاثة القديمة عليها لم تُمس.
+            </span>
+            <button class="switch" role="switch" aria-checked="false"
+                    aria-label="تفعيل الباقة" data-en-label="Package active"></button>
+            <button class="btn btn--sm btn--destructive-ghost btn--icon"
+                    aria-label="حذف الباقة" data-en-label="Delete package">
+              <svg viewBox="0 0 24 24"><use href="#i-trash"/></svg>
+            </button>
+          </div>
+
+          <div class="pkg">
+            <div class="field">
+              <label for="p3-ar" data-en="Name (Arabic)">الاسم (عربي)</label>
+              <input class="input" id="p3-ar" value="باقة نصف شهرية" />
+            </div>
+            <div class="field">
+              <label for="p3-price" data-en="Price (₪)">السعر (₪)</label>
+              <input class="input num" id="p3-price" type="number" data-pkg="price" value="100" min="0" step="5" />
+            </div>
+            <div class="field">
+              <label for="p3-days" data-en="Days">الأيام</label>
+              <input class="input num" id="p3-days" type="number" data-pkg="days" value="15" min="1" />
+            </div>
+            <div class="field">
+              <label for="p3-visits" data-en="Visits">الزيارات</label>
+              <input class="input num" id="p3-visits" type="number" data-pkg="visits" value="2" min="1" />
+            </div>
+            <div class="field">
+              <label for="p3-plans" data-en="Plans">الخطط</label>
+              <input class="input num" id="p3-plans" type="number" data-pkg="plans" value="2" min="0" />
+            </div>
+            <button class="btn btn--sm btn--soft" data-en="Save">حفظ</button>
+          </div>
+          <p class="pkg-derived" data-pkg-derived></p>
+        </div>
+
+        <!-- The free consultation, deliberately not a package -->
+        <div class="card card--tinted mt-6">
+          <div class="card-body">
+            <div class="row" style="align-items:flex-start;flex-wrap:nowrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                   style="inline-size:20px;block-size:20px;flex:0 0 20px;margin-block-start:3px;color:var(--muted-foreground)">
+                <use href="#i-info"/>
+              </svg>
+              <div>
+                <b data-en="The free first consultation is not a package.">الاستشارة الأولى المجانية ليست باقة.</b>
+                <p class="t-caption mt-1" data-en="A new client simply has no subscription until they buy one, and their first appointment costs nothing. There is no zero-price row to maintain and no free visit to deduct.">
+                  العميل الجديد ببساطة بلا اشتراك حتى يشتري واحداً، وموعده الأول بلا مقابل. لا يوجد صف بسعر صفر يُصان، ولا زيارة مجانية تُخصم.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ WhatsApp messages ════════════════════════════════════════ -->
+      <section id="tab-msgs" role="tabpanel" class="section" style="margin-block-start:20px" hidden>
+
+        <div class="callout mt-1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><use href="#i-wa"/></svg>
+          <div>
+            <b data-en="Reminders are never automatic.">التذكيرات ليست تلقائية أبداً.</b>
+            <div class="t-caption mt-1" data-en="This is the wording that gets filled in and shown to you for approval before anything is sent.">
+              هذه هي الصيغة التي تُعبَّأ وتُعرض عليك للموافقة قبل إرسال أي شيء.
+            </div>
+          </div>
+        </div>
+
+        <div class="cols-2 mt-6" style="align-items:stretch">
+
+          <div class="card">
+            <div class="card-head">
+              <div class="grow">
+                <h2 class="t-h-sm" data-en="Payment reminder">قالب التذكير بالدفع</h2>
+                <p class="t-caption mt-1" data-en="Click a variable to insert it at the cursor.">اضغطي متغيّراً لإدراجه عند المؤشر.</p>
+              </div>
+            </div>
+            <div class="card-body stack gap-3">
+              <div class="vars">
+                <button class="var-token" type="button">{الاسم}</button>
+                <button class="var-token" type="button">{الباقة}</button>
+                <button class="var-token" type="button">{المتبقي}</button>
+                <button class="var-token" type="button">{الاستحقاق}</button>
+                <button class="var-token" type="button">{العيادة}</button>
+              </div>
+              <div class="field">
+                <label for="tmpl-body" class="sr-only" data-en="Message body">نص الرسالة</label>
+                <textarea class="textarea" id="tmpl-body" rows="12" dir="rtl">مرحباً {الاسم} 🌿
+تذكير ودّي من {العيادة}.
+
+الاشتراك: {الباقة}
+المتبقي: {المتبقي} ₪
+تاريخ الاستحقاق: {الاستحقاق}
+
+يسعدنا استلام الدفعة في زيارتك القادمة، أو عبر التحويل البنكي.
+شكراً لكِ 💚</textarea>
+              </div>
+            </div>
+            <div class="card-foot">
+              <button class="btn btn--sm btn--default" data-en="Save template">حفظ القالب</button>
+              <button class="btn btn--sm btn--neutral-ghost">
+                <svg viewBox="0 0 24 24"><use href="#i-refresh"/></svg>
+                <span data-en="Reset to default">إعادة للافتراضي</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <div class="grow">
+                <h2 class="t-h-sm" data-en="Preview">المعاينة</h2>
+                <p class="t-caption mt-1" data-en="Filled with Suha Najjar's real subscription.">معبّأة ببيانات اشتراك سُهى النجار الحقيقية.</p>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="wa-preview" id="tmpl-preview" dir="rtl"></div>
+              <p class="hint mt-3" data-en="An overdue subscription adds one line saying how many days have passed. That line is generated, not part of the template.">
+                الاشتراك المتأخر يضيف سطراً واحداً يذكر عدد الأيام التي مرّت. هذا السطر يُولَّد ولا يُكتب في القالب.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2 class="t-h-lg" data-en="Where this connects">أين يتصل هذا</h2>
+          <div class="card mt-3">
+            <div class="card-body">
+              <dl style="margin:0">
+                <div class="kv">
+                  <dt data-en="Gateway">البوابة</dt>
+                  <dd class="row gap-2"><span class="dot" style="background:var(--primary)"></span>
+                    <span data-en="OpenWA — connected">OpenWA — متصلة</span></dd>
+                </div>
+                <div class="kv">
+                  <dt data-en="Sending number">رقم الإرسال</dt>
+                  <dd dir="ltr">+970 59 000 1122</dd>
+                </div>
+                <div class="kv">
+                  <dt data-en="Reminders sent this month">تذكيرات أُرسلت هذا الشهر</dt>
+                  <dd>7</dd>
+                </div>
+              </dl>
+              <p class="hint mt-3" data-en="This reuses the clinic's existing WhatsApp gateway — the same one that already sends appointment reminders. No second integration.">
+                هذا يعيد استخدام بوابة واتساب الموجودة أصلاً في العيادة — نفسها التي ترسل تذكيرات المواعيد. لا تكامل ثانٍ.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- ══ Dialog: add a package ═════════════════════════════════════════ -->
+<dialog id="dlg-newpkg" aria-labelledby="dlg-newpkg-title">
+  <form class="dlg" method="dialog">
+    <div class="dlg-head">
+      <div class="grow">
+        <h2 class="t-h-sm" id="dlg-newpkg-title" data-en="Add a package">إضافة باقة</h2>
+        <p class="t-caption" data-en="Nothing here is fixed — name it, price it, and set how much it contains.">
+          لا شيء هنا ثابت — سمّيها، وسعّرها، وحدّدي ما تحتويه.
+        </p>
+      </div>
+    </div>
+    <div class="dlg-body">
+      <div class="field-row">
+        <div class="field">
+          <label for="np-ar" data-en="Name (Arabic)">الاسم (عربي)</label>
+          <input class="input" id="np-ar" placeholder="اشتراك ستة أشهر" />
+        </div>
+        <div class="field">
+          <label for="np-en" data-en="Name (English)">الاسم (إنجليزي)</label>
+          <input class="input" id="np-en" dir="ltr" placeholder="Six months" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="np-price" data-en="Price (₪)">السعر (₪)</label>
+          <input class="input num" id="np-price" type="number" min="0" step="5" placeholder="900" />
+        </div>
+        <div class="field">
+          <label for="np-days" data-en="Duration (days)">المدة (أيام)</label>
+          <input class="input num" id="np-days" type="number" min="1" placeholder="180" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="np-visits" data-en="Visits included">الزيارات المشمولة</label>
+          <input class="input num" id="np-visits" type="number" min="1" placeholder="24" />
+        </div>
+        <div class="field">
+          <label for="np-plans" data-en="Plans included">الخطط المشمولة</label>
+          <input class="input num" id="np-plans" type="number" min="0" placeholder="24" />
+        </div>
+      </div>
+      <p class="hint" data-en="You can still agree a different price with an individual subscriber when you create their subscription.">
+        يظل بإمكانك الاتفاق على سعر مختلف مع مشترك بعينه عند إنشاء اشتراكه.
+      </p>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn btn--neutral" type="button" data-close data-en="Cancel">إلغاء</button>
+      <button class="btn btn--default" type="submit" data-en="Add package">إضافة الباقة</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="finance.js"></script>
+</body>
+</html>

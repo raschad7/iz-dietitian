@@ -5,9 +5,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { updateNotificationAction } from '@/features/portal/actions';
 import { PortalScreenHeader } from '@/features/portal/components/portal-screen-header';
 import { SettingsSwitchRow } from '@/features/portal/components/settings-switch-row';
+import { EnablePushRow } from '@/features/portal/push/enable-push-row';
 import { portalSettings, requirePortalClient } from '@/features/portal/session';
 import { NOTIFICATION_KINDS } from '@/features/portal/types';
 import { resolveLocale } from '@/i18n/params';
+import { getLocaleDirection } from '@/i18n/routing';
 
 type NotificationsPageProps = {
   params: Promise<{ locale: string }>;
@@ -48,6 +50,20 @@ export default async function NotificationsPage({ params }: NotificationsPagePro
               <p className="pb-2 text-xs leading-relaxed text-muted-foreground">{t('description')}</p>
 
               <div className="divide-y divide-border border-t border-border">
+                {/*
+                  Where a notification may be delivered, above what may be
+                  said. It is a different question from the four below it —
+                  those are consent and gate WhatsApp as well, this one is
+                  about the phone in the client's hand — and it leads because
+                  it is the switch that makes any of the rest arrive while the
+                  app is closed.
+
+                  Renders nothing on a deployment with no VAPID keypair, so a
+                  checkout without one shows exactly the four switches it
+                  always did. See `EnablePushRow`.
+                */}
+                <EnablePushRow locale={locale} dir={getLocaleDirection(locale)} />
+
                 {NOTIFICATION_KINDS.map((kind) => (
                   <SettingsSwitchRow
                     key={kind}

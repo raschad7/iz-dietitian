@@ -4,23 +4,29 @@ import { useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { Dialog, DialogHeader } from '@/components/ui/dialog';
+import { Dialog } from '@/components/ui/dialog';
 import { getLocaleDirection, type Locale } from '@/i18n/routing';
 
 import { decideDialogClose } from '../dialog-close';
 import type { RefinedFood } from '../ingredient-refine';
-import type { DishEditData } from '../queries';
+import type { DishEditData, DishNameSuggestion } from '../queries';
 
 import { DishEditor } from './dish-editor';
 
 /**
- * The dish builder as a large centered dialog (spec §1).
+ * The dish builder as a centred dialog (spec §1).
  *
- * A centered modal workspace, not a side sheet: ~70rem wide and up to 92dvh tall,
- * the page dimmed and blurred behind it, focus trapped, Escape and a backdrop
- * click honoured — all from the shared `Dialog` (a native `<dialog>` opened with
- * `showModal`). Only the body scrolls; the header and the editor's own sticky
- * footer stay put. On a phone it becomes the app's full-width work sheet.
+ * A modal workspace, not a side sheet: the page dimmed and blurred behind it,
+ * focus trapped, Escape and a backdrop click honoured — all from the shared
+ * `Dialog` (a native `<dialog>` opened with `showModal`). On a phone it becomes
+ * the app's full-width work sheet.
+ *
+ * **It is a fixed height, and it does not scroll.** The editor inside is three
+ * steps, each sized to hold its own question, and the one scrolling region in the
+ * whole surface is the ingredient list on step 2. A dialog that grew with its
+ * content is what put the meal-time field below the fold in the first place, so
+ * the height is pinned here rather than left to whatever the tallest step
+ * happens to be.
  *
  * Closing is guarded: with unsaved edits, Escape / backdrop / the close button
  * all route through a confirm step instead of discarding silently. A successful
@@ -35,7 +41,9 @@ export function DishEditorDialog({
   onOpenChange,
   dish,
   onSaved,
+  onSavedAndContinue,
   search,
+  searchDishNames,
 }: {
   locale: string;
   open: boolean;
@@ -44,16 +52,33 @@ export function DishEditorDialog({
   dish?: DishEditData;
   /** Called after a successful save; the caller closes the dialog and refreshes. */
   onSaved: () => void;
+  /**
+   * Called after a save made with "save and add another": the dialog stays open
+   * and the editor is remounted empty for the next dish. Absent on the edit flow,
+   * where there is no "another" to add.
+   */
+  onSavedAndContinue?: () => void;
   /** Injectable ingredient search for the dev harness; defaults to the real action. */
   search?: (locale: string, query: string) => Promise<RefinedFood[]>;
+  /** Injectable existing-dish search for the dev harness; defaults to the real action. */
+  searchDishNames?: (
+    locale: string,
+    query: string,
+    excludeDishId?: string,
+  ) => Promise<DishNameSuggestion[]>;
 }) {
   const t = useTranslations('dishEditor.editor');
-  const tCommon = useTranslations('common');
   const activeLocale = useLocale() as Locale;
   const isEditing = dish !== undefined;
 
   const [dirty, setDirty] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  /**
+   * Bumped after a "save and add another", so the `key` below changes and the
+   * editor remounts. A remount is the reset: it cannot leave a stale allergen or
+   * a stale serving count behind the way clearing state by hand could.
+   */
+  const [nonce, setNonce] = useState(0);
 
   /**
    * The single close handler for every signal the dialog can emit — the X, the
@@ -76,27 +101,40 @@ export function DishEditorDialog({
         label={isEditing ? t('editTitle') : t('pageTitle')}
         dir={getLocaleDirection(activeLocale)}
         size="wide"
-        // A workspace: wider and taller than the default card, a flex column so the
-        // header stays put and the editor body scrolls inside it.
-        className="open:flex open:flex-col max-h-[92dvh] sm:w-[min(70rem,calc(100vw-4rem))]"
+        // A workspace: wider than the default card, and a *fixed* height so the
+        // three steps share one frame instead of the surface jumping between a
+        // short step and a tall one. `62rem` is the width at which the review
+        // step's two columns both hold their content without wrapping; the
+        // height clamp is what keeps the whole editor on a laptop screen.
+        className="sm:h-[min(42rem,calc(100dvh-4rem))] sm:w-[min(62rem,calc(100vw-4rem))]"
       >
-        <DialogHeader
-          title={isEditing ? t('editTitle') : t('pageTitle')}
-          description={isEditing ? t('editSubtitle') : t('pageSubtitle')}
-          onClose={requestClose}
-          closeLabel={tCommon('close')}
-          className="shrink-0 border-b border-border pb-4"
-        />
-
-        {/* Remounted per open via the key, so the builder starts fresh each time. */}
+        {/*
+          The header is the editor's, not this component's: it carries the step
+          rail, and the step is the editor's state. Only the close button belongs
+          here, so it comes back out through `onRequestClose` to the same guard
+          Escape and the backdrop use.
+        */}
+        {/* Remounted per open (and per "add another") via the key, so the builder
+            starts fresh each time. */}
         <DishEditor
-          key={dish?.id ?? 'new'}
+          key={`${dish?.id ?? 'new'}-${nonce}`}
           locale={locale}
           dish={dish}
           onSuccess={onSaved}
+          onSaveAnother={
+            onSavedAndContinue
+              ? () => {
+                  setDirty(false);
+                  setNonce((current) => current + 1);
+                  onSavedAndContinue();
+                }
+              : undefined
+          }
           onCancel={requestClose}
+          onRequestClose={requestClose}
           onDirtyChange={setDirty}
           search={search}
+          searchDishNames={searchDishNames}
         />
       </Dialog>
 

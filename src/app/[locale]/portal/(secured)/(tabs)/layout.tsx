@@ -2,16 +2,15 @@ import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 
 import { AppShell } from '@/components/layout/sidebar';
-import { PORTAL_NAV, PORTAL_NAV_ICONS } from '@/features/portal/nav';
+import { PORTAL_COLUMN } from '@/features/portal/layout';
+import { PORTAL_NAV_ICONS, PORTAL_NAV_SECTIONS } from '@/features/portal/nav';
 import { HomeGlow } from '@/features/portal/components/home-glow';
 import { PortalHeader } from '@/features/portal/components/portal-header';
 import { PortalTabBar } from '@/features/portal/components/portal-tab-bar';
 import { greetingKey } from '@/features/portal/greeting';
 import { loadPortalNotifications } from '@/features/portal/page-data';
-import { InstallAppBanner } from '@/features/portal/pwa/install-app-banner';
 import { requirePortalClient } from '@/features/portal/session';
 import { resolveLocale } from '@/i18n/params';
-import { getLocaleDirection } from '@/i18n/routing';
 import { formatDate } from '@/lib/format';
 
 type PortalTabsLayoutProps = {
@@ -51,19 +50,14 @@ export default async function PortalTabsLayout({ children, params }: PortalTabsL
     could not be cleared by reading it: a client with one pending request saw the
     same red dot for a week.
 
-    `loadPortalNotifications` is four small parallel reads. The heavy part — a
-    fully costed plan board, read for one date field — was taken out of it on
-    the way; see the note there.
+    `loadPortalNotifications` is four small parallel reads and is the same loader
+    the notifications screen itself uses, so the two can never disagree. The
+    heavy part — a fully costed plan board, read for one date field — was taken
+    out of it on the way; see the note there.
 
-    The rows, not a count, and not the ids either. "Unread" is a set difference
-    rather than a subtraction, so a number was never enough — and the feed now
-    opens in a popover from the header rather than on a screen of its own
-    (`PortalNotificationsBell`), so the rows have to travel with it. That is why
-    there is no second loader anywhere: this call is both the badge and the
-    panel, and the two cannot disagree.
-
-    `PortalHeader` holds the seen marks in `localStorage` and explains why they
-    cannot live in the database.
+    Ids, not a count, because "unread" is a set difference. `PortalHeader` holds
+    the seen marks in `localStorage` and explains why they cannot live in the
+    database.
   */
   const notifications = await loadPortalNotifications(context);
 
@@ -107,7 +101,7 @@ export default async function PortalTabsLayout({ children, params }: PortalTabsL
         every portal tab rather than only the home route, which is why the page
         no longer marks its own root either.
       */}
-      <AppShell items={PORTAL_NAV} title={t('title')} showTitle={false} icons={PORTAL_NAV_ICONS}>
+      <AppShell items={PORTAL_NAV_SECTIONS} title={t('title')} showTitle={false} icons={PORTAL_NAV_ICONS}>
         {/*
           **Inside the shell, not beside it.** This used to be a sibling of
           `AppShell`, which put it in the portal wrapper's own flex column at
@@ -147,7 +141,7 @@ export default async function PortalTabsLayout({ children, params }: PortalTabsL
             day: 'numeric',
             month: 'long',
           })}
-          notifications={notifications}
+          notificationIds={notifications.map((item) => item.id)}
           locale={locale}
           showNav
         />
@@ -158,19 +152,16 @@ export default async function PortalTabsLayout({ children, params }: PortalTabsL
           at `md` put a tablet's last card underneath the bar. The horizontal
           padding still steps at `md` — it is a measure, not a clearance, and
           it has to keep matching `PortalHeader`'s so the two columns line up.
+
+          `PORTAL_COLUMN` is that measure, and it is imported rather than
+          written out for exactly the reason the long note above describes: the
+          header's column and this one have to agree, and two literals that
+          happen to match today are two literals. It opens to `max-w-6xl` from
+          `lg` — the same line the rail arrives on — and every tab page inside
+          it lays its content out in columns from there.
         */}
         <main className="min-w-0 flex-1 px-4 pt-5 pb-24 md:px-6 md:pt-6 lg:pb-8">
-          <div className="mx-auto w-full max-w-3xl">
-            {/*
-              Inline, not fixed — it scrolls away with the page, so it never
-              competes with `PortalTabBar`'s own fixed bottom edge. Mounted
-              once here rather than per-tab so switching tabs does not remount
-              (and therefore does not re-run) its dismissal logic.
-            */}
-            <InstallAppBanner dir={getLocaleDirection(locale)} />
-
-            {children}
-          </div>
+          <div className={PORTAL_COLUMN}>{children}</div>
         </main>
 
         <PortalTabBar />

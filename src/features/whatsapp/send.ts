@@ -1,11 +1,14 @@
 import { randomUUID } from 'node:crypto';
 
 import { type WhatsappMessageKind, type WhatsappSettings } from '@/db/schema';
+/* The clinic's own wording, when it has any — see `sendWhatsappTemplate`. */
+import { clinicMessageBody } from '@/features/forms/queries';
 import { type Locale } from '@/i18n/routing';
 
 import { getWhatsappConfig } from './config';
 import { createHttpGateway, GatewayError, type WhatsappGateway } from './gateway';
 import { claimOutboundMessage, markMessageFailed, markMessageSent, saveSessionLink } from './mutations';
+import { paceSend } from './pacing';
 import { toChatIdFromPhone } from './phone';
 import { getSettings } from './queries';
 import { clampMessageBody, renderWhatsappMessage, type WhatsappTemplateKind, type WhatsappTemplateVariables } from './templates';
@@ -14,7 +17,7 @@ import { type SendResult } from './types';
 /**
  * The single funnel every outgoing WhatsApp message passes through.
  *
- * One function, so the four rules that make this safe are written once:
+ * One function, so the five rules that make this safe are written once:
  *
  *  1. **It never throws.** WhatsApp is an unofficial, best-effort channel bolted
  *     onto a clinic that worked fine without it. Booking an appointment must not
@@ -27,7 +30,11 @@ import { type SendResult } from './types';
  *  3. **It checks the connection first.** Sending into a session that is not
  *     paired produces a gateway error per message; one status read prevents a
  *     whole reminder run of them.
- *  4. **The gateway is injectable.** `bun test` passes a fake and asserts on what
+ *  4. **Sends are paced.** Every message leaving a clinic's number waits for
+ *     the one before it, plus a gap — see `pacing.ts`. Here rather than in each
+ *     automation, because bursts restrict a number no matter which feature
+ *     produced them.
+ *  5. **The gateway is injectable.** `bun test` passes a fake and asserts on what
  *     would have been sent, exactly as `src/lib/mail/` does with its transports.
  */
 
@@ -40,6 +47,21 @@ export type SendRequest = {
   phone: string | null | undefined;
   body: string;
   /**
+   * A file to send instead of a plain message — the bill, as the PDF the
+   * printer produces.
+   *
+   * An option on the same request rather than a second funnel, because every
+   * rule above it applies unchanged: a document still must not throw into a
+   * booking, still must be claimed before the network call, still must not go
+   * into an unpaired session. Only the last line differs — `sendFile` rather
+   * than `sendText`.
+   *
+   * `body` travels with it as the caption and is what the ledger records, so
+   * a dietitian reading the message log sees what the subscriber was told and
+   * not an opaque "a file was sent".
+   */
+  document?: { base64: string; fileName: string; mimeType: string };
+  /**
    * The idempotency anchor. Deterministic for an automation
    * (`reminder:<appointmentId>:<date>`), random for a manual send, where
    * repeating the same text is a legitimate thing to want.
@@ -51,6 +73,12 @@ export type SendDeps = {
   gateway?: WhatsappGateway;
   /** Saves a settings read when the caller already has the row (reminder runs). */
   settings?: WhatsappSettings | null;
+  /**
+   * Overrides the gap this clinic's number is held to — `WHATSAPP_SEND_SPACING_MS`
+   * otherwise. An explicit value is taken exactly, with no jitter on top, which
+   * is what a test asserting on timing needs; `0` sends immediately.
+   */
+  spacingMs?: number;
 };
 
 export async function sendWhatsappMessage(request: SendRequest, deps: SendDeps = {}): Promise<SendResult> {
@@ -68,6 +96,7 @@ export async function sendWhatsappMessage(request: SendRequest, deps: SendDeps =
   if (!body) return { status: 'skipped', reason: 'empty_body' };
 
   const gateway = deps.gateway ?? createHttpGateway(config);
+  const { sessionId } = settings;
 
   // OpenWA can accept an E.164-looking number that WhatsApp does not own, then
   // spend the whole send timeout trying to resolve its LID. Check first so an
@@ -109,7 +138,29 @@ export async function sendWhatsappMessage(request: SendRequest, deps: SendDeps =
   if (!claimed) return { status: 'skipped', reason: 'duplicate' };
 
   try {
-    const sent = await gateway.sendText(settings.sessionId, target.chatId, body);
+    /*
+      Paced, so two messages never leave the same number back to back — see
+      `pacing.ts`. It wraps the gateway call and nothing above it: the settings
+      read, the recipient check and the claim are all local work that costs the
+      number nothing, and a message that turns out to be a duplicate should not
+      hold the queue while it waits for a gap it will never use.
+    */
+    const sent = await paceSend(
+      request.clinicId,
+      {
+        spacingMs: deps.spacingMs ?? config.sendSpacingMs,
+        jitterMs: deps.spacingMs === undefined ? config.sendJitterMs : 0,
+      },
+      () =>
+        /* The one line a document changes. Everything around it — the claim,
+           the number check, the settings read — is the same either way. */
+        request.document
+          ? gateway.sendFile(sessionId, target.chatId, {
+              ...request.document,
+              caption: body,
+            })
+          : gateway.sendText(sessionId, target.chatId, body),
+    );
 
     await markMessageSent(claimed.id, sent.messageId);
 
@@ -142,8 +193,30 @@ export async function sendWhatsappTemplate(
 ): Promise<SendResult> {
   let body: string;
 
+  /*
+    The clinic's own wording for this message, if it has rewritten it in the
+    Forms tab.
+
+    Read here rather than in each `notify*` function, because this is the one
+    place every templated message passes through — a lookup per caller would be
+    three chances to forget it, and the fourth message added later would be a
+    fourth. It is one indexed read per send, on a path that is already talking
+    to a gateway over the network.
+
+    A failure to read is not a failure to send: the app's own copy is a correct
+    message, and a patient going untold because a settings table was briefly
+    unavailable would be the worse outcome by far.
+  */
+  let override: string | undefined;
+
   try {
-    body = renderWhatsappMessage(template.kind, template.locale, template.variables);
+    override = await clinicMessageBody(request.clinicId, template.kind);
+  } catch (error) {
+    console.error('[whatsapp] reading the clinic wording failed', error);
+  }
+
+  try {
+    body = renderWhatsappMessage(template.kind, template.locale, template.variables, override);
   } catch (error) {
     // A template with a missing variable is a programming error, but it must not
     // take down the booking that triggered it.

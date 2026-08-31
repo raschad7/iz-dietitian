@@ -3,10 +3,14 @@ import {
   LOCKUP_SEED_CX,
   LOCKUP_VIEWBOX,
   LOCKUP_WORDMARK_PATH,
+  MARK_LEAF_PATH,
+  MARK_SEED_CX,
+  MARK_VIEWBOX,
   SEED_CY,
   SEED_ROTATION,
   SEED_RX,
   SEED_RY,
+  WORDMARK_VIEWBOX,
 } from '@/features/brand/logo';
 import { cn } from '@/lib/utils';
 
@@ -70,12 +74,92 @@ export function BrandLogo({ className, ...props }: React.ComponentProps<'svg'>) 
 }
 
 /**
+ * The leaf alone, with no wordmark beside it.
+ *
+ * For the places that are *already* saying the product's name in words — the
+ * auth screens, whose `h1` names the form and the clinic in the same breath.
+ * The full lockup there put "Enzyme" in the corner, again in the heading, and a
+ * third time in the tagline underneath, all within the top third of the page.
+ * The mark keeps the brand present without spending the reader's attention on
+ * the same word three times.
+ *
+ * Square, so a caller controls it with a single dimension — unlike `BrandLogo`,
+ * where 2.6:1 forces height to be the controlled axis. The seeds take
+ * `--brand-seed` here exactly as they do in the lockup: they sit *on* the leaf,
+ * so the surface behind the mark never reaches them.
+ */
+export function BrandMark({ className, ...props }: React.ComponentProps<'svg'>) {
+  return (
+    <svg
+      viewBox={MARK_VIEWBOX}
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden
+      className={className}
+      {...props}
+    >
+      <path d={MARK_LEAF_PATH} fill="var(--brand-leaf)" />
+      <Seeds centres={MARK_SEED_CX} />
+    </svg>
+  );
+}
+
+/**
+ * The lettering alone, with no leaf beside it.
+ *
+ * The other half of `BrandLogo`, framed by itself — same path, drawn in
+ * `WORDMARK_VIEWBOX` (the ink's own bounding box) rather than in the lockup's
+ * canvas, so a caller controls it without carrying the leaf's share of the
+ * width. The splash screen already draws it this way; this is that shape as a
+ * component.
+ *
+ * ## Why the rail wants the two halves apart
+ *
+ * The rail's head used to swap the whole lockup for `BrandMark` the moment the
+ * column folded, which changed the leaf's size (36px to 28px) and its position
+ * in the same frame — the mark jumped at exactly the moment the eye was
+ * following the fold. Drawn as `BrandMark` **plus** this, the leaf is one
+ * element at one size in both states and never moves; only the lettering
+ * collapses, and it can be given the time to do it. See `RailMark` in
+ * `layout/sidebar.tsx`.
+ *
+ * 1.924:1, so **width** follows a height the caller sets — the same axis
+ * `BrandLogo` controls, which is what keeps the two in proportion when they are
+ * drawn side by side.
+ */
+export function BrandWordmark({ className, ...props }: React.ComponentProps<'svg'>) {
+  return (
+    <svg
+      viewBox={WORDMARK_VIEWBOX}
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden
+      className={cn('w-auto', className)}
+      {...props}
+    >
+      <path d={LOCKUP_WORDMARK_PATH} fill="var(--brand-wordmark)" />
+    </svg>
+  );
+}
+
+/**
  * The two seeds. Identical ellipses at two horizontal positions, so the pair is
  * written once and the only thing either lockup supplies is where they sit.
+ *
+ * ## The group around them
+ *
+ * A `<g>` with no attributes but its slot name draws exactly what the two bare
+ * ellipses drew, so every existing caller is unaffected. It exists because the
+ * pair reads as a pair of eyes and one screen moves them as one: the plan
+ * generation wait screen slides them inside the leaf to follow the pointer (see
+ * `.q-plan-mark` in `globals.css`). Transforming a group keeps that a single
+ * write against the shape the designer drew, rather than two ellipses a caller
+ * has to keep in step — and keeps the geometry itself here, where it is stated
+ * once for the whole app.
  */
 function Seeds({ centres }: { centres: readonly number[] }) {
   return (
-    <>
+    <g data-slot="brand-seeds">
       {centres.map((cx) => (
         <ellipse
           key={cx}
@@ -87,6 +171,6 @@ function Seeds({ centres }: { centres: readonly number[] }) {
           fill="var(--brand-seed)"
         />
       ))}
-    </>
+    </g>
   );
 }

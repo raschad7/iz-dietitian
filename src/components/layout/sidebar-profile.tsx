@@ -39,7 +39,7 @@ import { cn } from '@/lib/utils';
  *
  * ⚠ This paragraph used to end "the mobile sheet has the same usable width, so
  * it follows this mode too", and that sheet no longer exists — the staff rail is
- * locked to 56px at every width below `lg`, phones included. See the note on
+ * locked to 56px on a phone. See the note on
  * `usesInlineDisclosure` below for what that stale branch was doing to a phone.
  *
  * At 56px there is no useful inline layout to reveal, so the collapsed rail —
@@ -62,9 +62,9 @@ import { cn } from '@/lib/utils';
 
 /** Destinations, block-start to block-end. */
 const LINKS = [
-  { href: '/app/settings/profile', labelKey: 'settings', icon: 'settings' },
+  { href: '/app/settings', labelKey: 'settings', icon: 'settings' },
 ] as const satisfies ReadonlyArray<{
-  href: '/app/settings/profile';
+  href: '/app/settings';
   labelKey: 'settings';
   icon: IconName;
 }>;
@@ -98,9 +98,9 @@ export function SidebarProfile({
     written for a rail that below `md` was a full-width `Sheet` — where an
     inline disclosure has room, which is what the note above still describes.
 
-    That Sheet is gone. `SidebarProvider` sets `locked = railOnly && isCompact`,
+    That Sheet is gone. `SidebarProvider` sets `locked = railOnly && isMobile`,
     and `railOnly` is `Boolean(user)` — so on every staff screen under 1024px
-    the rail is drawn as the 56px icon column at *every* width, phones included,
+    the rail is drawn as the 56px icon column on a phone,
     and `Sidebar`'s `isMobile && !locked` drawer branch is never taken. `isMobile`
     was still true below 768px, so the account row went on unfolding a 256px
     panel inside a 56px column. The rows spilled out of the rail over the page,
@@ -116,7 +116,7 @@ export function SidebarProfile({
     on a coarse pointer (see the `(pointer: coarse)` block in `globals.css`),
     which is the right shape for a thumb on either device.
 
-    Nothing changes from `lg` up, where the rail expands and this was always
+    Nothing changes from `md` up once the rail is expanded, where this was always
     `true` for the reason it says.
   */
   const usesInlineDisclosure = sidebarState === 'expanded';
@@ -392,18 +392,33 @@ function AccountAvatar({ name, className }: { name: string; className?: string }
  * Name over email. `min-w-0` on the stack and `truncate` on both lines is what
  * stops a long address from pushing the avatar off a 256px rail.
  *
- * The email is `dir="ltr"` under an Arabic name: an address is Latin text and a
- * bidi run would otherwise drag its dot-com to the wrong end.
+ * Both lines isolate their text as an inline run and neither sets a direction
+ * on the line itself. That distinction is the whole point: `text-start` is
+ * inherited as the keyword and re-resolved against *each* element's own
+ * direction, so a line that declares itself LTR aligns left even inside an
+ * Arabic rail.
+ *
+ * ⚠ The name used to carry `dir="auto"` directly. A Latin name — and the staff
+ * account is as often "Rani Shweiki" as it is an Arabic one — resolved that
+ * span to LTR, which sent the name to the left edge while the email stayed
+ * right, and the two lines of one identity ended up on opposite sides of the
+ * block. `bdi` gives the same auto-detected isolation (it defaults to
+ * `dir="auto"`) without ever touching the line's direction, so the alignment
+ * stays the rail's in both scripts.
+ *
+ * The email is pinned `ltr` rather than left to detection: an address is Latin
+ * text, and a bidi run under an Arabic name would otherwise drag its dot-com to
+ * the wrong end.
  */
 function ProfileIdentity({ name, email }: { name: string; email?: string | null }) {
   return (
     <span className="flex min-w-0 flex-1 flex-col text-start leading-tight group-data-[collapsible=icon]:hidden">
-      <span className="truncate text-body-sm font-medium" dir="auto">
-        {name}
+      <span className="truncate text-body-sm font-medium">
+        <bdi>{name}</bdi>
       </span>
       {email ? (
-        <span className="truncate text-caption text-muted-foreground" dir="ltr">
-          {email}
+        <span className="truncate text-caption text-muted-foreground">
+          <bdi dir="ltr">{email}</bdi>
         </span>
       ) : null}
     </span>

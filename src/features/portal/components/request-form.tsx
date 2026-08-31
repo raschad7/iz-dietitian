@@ -2,11 +2,12 @@
 
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
-import { useActionState, useState, useTransition } from 'react';
+import { type ReactNode, useActionState, useState, useTransition } from 'react';
 import { useFormStatus } from 'react-dom';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DialogBody, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -54,7 +55,30 @@ import { cn } from '@/lib/utils';
  * filed, because the hour can go while the form is open.
  */
 
-type RequestFormProps = RequestPageData & { locale: Locale };
+type RequestFormProps = RequestPageData & {
+  locale: Locale;
+  /**
+   * Rendered first, ahead of the fields. The dialog and the standalone page
+   * each own their own intro sentence and pass it in rather than this
+   * component guessing which heading it sits under.
+   */
+  description?: ReactNode;
+  /**
+   * Pins the submit button to a `DialogFooter` that stays outside the
+   * scrolling fields, instead of letting it fall at the end of them.
+   *
+   * The dialog needs this and the standalone page does not. A phone's
+   * software keyboard shrinks the *dialog's* own capped height (see
+   * `--q-viewport-block` in `globals.css`) but does nothing to a full page,
+   * which the window itself scrolls — so on the page the button at the end
+   * of the form is exactly as reachable as any other field. Inside the
+   * dialog it was the scrollport's last row, and a client who had just
+   * opened the keyboard had no way to know there was more to scroll to: the
+   * footer that stays, same as the header, is what the rest of the app's
+   * dialogs already give every primary action.
+   */
+  pinFooter?: boolean;
+};
 
 export function RequestForm({
   kind,
@@ -64,6 +88,8 @@ export function RequestForm({
   slots,
   selectedStartMinute,
   locale,
+  description,
+  pinFooter = false,
 }: RequestFormProps) {
   const t = useTranslations('portal');
   const [state, formAction] = useActionState(requestAppointmentAction, initialRequestState);
@@ -80,12 +106,17 @@ export function RequestForm({
   // invented. The submit button says so rather than failing on press.
   const noTimes = picksTime && slots.length === 0;
 
-  return (
-    <form action={formAction} className="space-y-5">
-      <input type="hidden" name="locale" value={locale} />
-      <input type="hidden" name="kind" value={kind} />
-      {appointment ? <input type="hidden" name="appointmentId" value={appointment.id} /> : null}
-      {picksTime ? <input type="hidden" name="preferredDate" value={selectedDate} /> : null}
+  const submitButton = (
+    <SubmitButton
+      label={t(`request.submit.${kind}`)}
+      destructive={kind === 'cancel'}
+      disabled={noTimes}
+    />
+  );
+
+  const fields = (
+    <>
+      {description}
 
       {appointment ? (
         <Card size="sm">
@@ -158,20 +189,44 @@ export function RequestForm({
           {t(state.messageKey)}
         </p>
       ) : null}
+    </>
+  );
 
-      {/*
-        Disabled in exactly one state: a chosen day with no hour left on it. A
-        day is always selected (`loadRequestPage` opens on the first with room)
-        and so is an hour whenever the day has one, so every other path here has
-        enough to send. The explanation sits beside the button rather than on
-        it — `disabled:pointer-events-none` means a `title` on a disabled
-        control can never be read.
-      */}
-      <SubmitButton
-        label={t(`request.submit.${kind}`)}
-        destructive={kind === 'cancel'}
-        disabled={noTimes}
-      />
+  const hiddenInputs = (
+    <>
+      <input type="hidden" name="locale" value={locale} />
+      <input type="hidden" name="kind" value={kind} />
+      {appointment ? <input type="hidden" name="appointmentId" value={appointment.id} /> : null}
+      {picksTime ? <input type="hidden" name="preferredDate" value={selectedDate} /> : null}
+    </>
+  );
+
+  if (pinFooter) {
+    return (
+      <form action={formAction} className="flex min-h-0 flex-1 flex-col">
+        {hiddenInputs}
+
+        <DialogBody className="min-h-0 flex-1 overflow-y-auto">{fields}</DialogBody>
+
+        {/*
+          Outside the scrolling body, so a phone's keyboard — which shrinks
+          the dialog's own capped height, see `--q-viewport-block` in
+          `globals.css` — never covers the one action a client came here to
+          reach. Disabled in exactly one state: a chosen day with no hour
+          left on it. A day is always selected (`loadRequestPage` opens on
+          the first with room) and so is an hour whenever the day has one, so
+          every other path here has enough to send.
+        */}
+        <DialogFooter>{submitButton}</DialogFooter>
+      </form>
+    );
+  }
+
+  return (
+    <form action={formAction} className="space-y-5">
+      {hiddenInputs}
+      {fields}
+      {submitButton}
     </form>
   );
 }

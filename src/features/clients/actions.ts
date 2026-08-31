@@ -17,6 +17,7 @@ import {
   updateClient,
 } from './mutations';
 import {
+  type ClientFormEcho,
   type ClientFormState,
   type IntakeFormState,
   type PortalCredentialsState,
@@ -48,6 +49,40 @@ function readForm(formData: FormData) {
     dateOfBirth: formData.get('dateOfBirth'),
     sex: formData.get('sex'),
   };
+}
+
+/**
+ * The client card's own fields, as strings, to hand back with a refusal.
+ *
+ * See `ClientFormEcho`: React empties an uncontrolled form once its action
+ * returns, so a rejected save has to carry what was typed or the reader gets a
+ * blank card and starts again. Read from the same `FormData` the schema saw, so
+ * what comes back is what was sent.
+ *
+ * `email` and `preferredLocale` are not here because the card does not offer
+ * them — see the layout note in `ClientIdentityFields`. Anything the card cannot
+ * type cannot be lost by clearing it.
+ */
+function echoForm(formData: FormData): ClientFormEcho {
+  const text = (field: string) => {
+    const value = formData.get(field);
+    // A file part, or a missing field, is not something to hand back to a text
+    // input — both become the empty string the field would have shown anyway.
+    return typeof value === 'string' ? value : '';
+  };
+
+  return {
+    firstName: text('firstName'),
+    lastName: text('lastName'),
+    phone: text('phone'),
+    dateOfBirth: text('dateOfBirth'),
+    sex: text('sex'),
+  };
+}
+
+/** One more refusal than the card has already had. */
+function nextAttempt(previous: ClientFormState): number {
+  return (previous.status === 'error' ? previous.attempt : 0) + 1;
 }
 
 /**
@@ -197,7 +232,7 @@ async function deliverCredentials(
 }
 
 export async function createClientAction(
-  _previousState: ClientFormState,
+  previousState: ClientFormState,
   formData: FormData,
 ): Promise<ClientFormState> {
   const locale = readLocale(formData);
@@ -205,11 +240,19 @@ export async function createClientAction(
 
   const parsed = clientFormSchema.safeParse(readForm(formData));
 
+  /*
+    Every refusal hands the card back what was typed. Including the unexpected
+    one below: a write that failed for a reason the reader had nothing to do with
+    is the *worst* moment to also empty their form.
+  */
+  const refusal = { values: echoForm(formData), attempt: nextAttempt(previousState) } as const;
+
   if (!parsed.success) {
     return {
       status: 'error',
       messageKey: 'errors.invalid',
       fieldErrors: z.flattenError(parsed.error).fieldErrors,
+      ...refusal,
     };
   }
 
@@ -219,7 +262,7 @@ export async function createClientAction(
     ({ id } = await createClient(clinicId, parsed.data));
   } catch (error) {
     console.error('[clients] create failed', error);
-    return { status: 'error', messageKey: 'errors.unexpected' };
+    return { status: 'error', messageKey: 'errors.unexpected', ...refusal };
   }
 
   revalidatePath(`/${locale}/app/clients`);
@@ -229,7 +272,7 @@ export async function createClientAction(
 }
 
 export async function updateClientAction(
-  _previousState: ClientFormState,
+  previousState: ClientFormState,
   formData: FormData,
 ): Promise<ClientFormState> {
   const locale = readLocale(formData);
@@ -238,11 +281,18 @@ export async function updateClientAction(
   const id = clientIdSchema.parse(formData.get('clientId'));
   const parsed = clientFormSchema.safeParse(readForm(formData));
 
+  // The same bargain as creating: a refusal carries the reader's own typing
+  // back with it. An edit has stored values to fall back on, which makes losing
+  // the corrections *quieter* rather than better — the card would silently
+  // revert to what is on file and look as though nothing had been typed.
+  const refusal = { values: echoForm(formData), attempt: nextAttempt(previousState) } as const;
+
   if (!parsed.success) {
     return {
       status: 'error',
       messageKey: 'errors.invalid',
       fieldErrors: z.flattenError(parsed.error).fieldErrors,
+      ...refusal,
     };
   }
 
@@ -250,7 +300,7 @@ export async function updateClientAction(
     await updateClient(clinicId, id, parsed.data);
   } catch (error) {
     console.error('[clients] update failed', error);
-    return { status: 'error', messageKey: 'errors.unexpected' };
+    return { status: 'error', messageKey: 'errors.unexpected', ...refusal };
   }
 
   revalidatePath(`/${locale}/app/clients`);
@@ -459,8 +509,26 @@ export async function reissuePortalPasswordAction(
 
     const whatsapp = await deliverCredentials(clinicId, id, result);
 
-    revalidatePath(`/${locale}/app/clients`);
-    revalidatePath(`/${locale}/app/clients/${id}`);
+    /*
+      ⚠ **No `revalidatePath` here, unlike issue and revoke.** Those two flip
+      `hasPortalAccess` — the value the register's rows and this card's own
+      branch are drawn from — so the server-rendered pages really are stale
+      once they land. A re-issue changes none of it: `reissuePortalPassword`
+      writes a password hash, sets `mustChangePassword` and deletes the
+      client's sessions, and no staff screen renders any of the three. The
+      username is the same username.
+
+      Revalidating anyway was not merely wasted work, it was *visible*. It
+      evicts this record from the client Router Cache, so the router has to
+      re-fetch the route it is already standing on — and a segment re-fetched
+      with nothing cached under it renders `[clientId]/loading.tsx` in the gap.
+      Pressing "issue a new password" flashed the record's skeleton over a page
+      whose contents had not changed.
+
+      The new password reaches the screen through the returned state, which is
+      the only place it could ever come from: nothing stores it in plaintext,
+      so no re-render of the page could show it.
+    */
 
     return {
       status: 'issued',

@@ -20,7 +20,8 @@
  *    immutable, which is what makes them safe: a hashed URL names one exact
  *    build output, so a cached copy can never be *stale*, only unused. This is
  *    what stops an installed app from re-downloading its whole JS/CSS payload
- *    on a slow connection. Cache-first.
+ *    on a slow connection. Cache-first — **in production only**, see
+ *    `isImmutableBuildAsset`.
  * 3. **An offline fallback for navigations** — network-first, and the network
  *    response is passed straight through and never stored. Only when the
  *    network *fails* does the precached offline page get served, so the
@@ -43,10 +44,26 @@
  * from under it, whichever of the two activated last. Anything added here must
  * keep this prefix, and must never delete a key without it.
  */
+/**
+ * Whether a development build registered this worker.
+ *
+ * A service worker is a static file in `public/`, so it has no build of its own
+ * and no `NODE_ENV` to read; its own URL is the only channel there is.
+ * `service-worker-register.tsx` appends `?dev=1` outside production — the same
+ * reasoning that has `scopeLocale()` below read the locale off
+ * `self.registration.scope` rather than opening a handshake for it.
+ *
+ * It gates exactly one rule, `isImmutableBuildAsset`. Everything else — the
+ * icon caching, the offline fallback, the install prompt that depends on a
+ * controlled `start_url` — behaves in development exactly as it ships, because
+ * a PWA whose worker is switched off locally is a PWA nobody can test.
+ */
+const IS_DEV = new URL(self.location.href).searchParams.get('dev') === '1';
+
 const CACHE_PREFIX = 'staff-';
 
-const STATIC_CACHE = `${CACHE_PREFIX}static-v2`;
-const SHELL_CACHE = `${CACHE_PREFIX}shell-v2`;
+const STATIC_CACHE = `${CACHE_PREFIX}static-v3`;
+const SHELL_CACHE = `${CACHE_PREFIX}shell-v6`;
 
 const CURRENT_CACHES = [STATIC_CACHE, SHELL_CACHE];
 
@@ -82,9 +99,24 @@ function isCacheableStaticAsset(url) {
  * Content-hashed build output. Safe to keep forever precisely because the hash
  * is in the filename — a new build produces new URLs rather than new contents
  * at old ones.
+ *
+ * ⚠ **That is a property of the production build alone.** `next dev` names a
+ * chunk after the modules inside it (`src_09nxu4-._.js`), not after their
+ * contents, so one URL serves different bytes either side of an edit. Cached
+ * first-wins, a development chunk is pinned to whatever the browser saw first —
+ * and it survives a restarted dev server, a deleted `.next` and a hard reload
+ * alike, because Cache Storage is none of those things.
+ *
+ * It is not a theoretical failure. A newly added export read `undefined` on the
+ * client while the server rendered it perfectly well, surfacing as a hydration
+ * mismatch on a single SVG attribute, because this rule was still serving the
+ * copy of the module from the build before that export existed. Never
+ * cache-first an asset whose URL is not a hash of its bytes.
  */
 function isImmutableBuildAsset(url) {
-  return url.origin === self.location.origin && url.pathname.startsWith('/_next/static/');
+  return (
+    !IS_DEV && url.origin === self.location.origin && url.pathname.startsWith('/_next/static/')
+  );
 }
 
 self.addEventListener('install', (event) => {

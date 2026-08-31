@@ -15,7 +15,7 @@
  *
  * Keeping the path data in one `.ts` module means a corrected curve is
  * corrected everywhere. The literal hexes are allowed here for the same reason
- * they are allowed in `src/features/portal/pwa/brand.ts`: `qiwam/no-raw-hex`
+ * they are allowed in `src/features/portal/pwa/brand.ts`: `enzyme/no-raw-hex`
  * covers `.tsx`/`.jsx`, where a hex is a token that skipped the system — an
  * image generated for the OS has no stylesheet to read a token from, so the
  * literal has to live somewhere, and it lives here rather than at each call
@@ -45,6 +45,23 @@ export const BRAND_ON_COLOR = '#FFFFFF';
 export const MARK_VIEWBOX = '0 0 743 743';
 /** Leaf plus wordmark. 2.6:1, so height is the dimension a caller controls. */
 export const LOCKUP_VIEWBOX = '0 0 1930 743';
+
+/**
+ * The wordmark alone, framed on its own ink.
+ *
+ * `LOCKUP_WORDMARK_PATH` is drawn in `LOCKUP_VIEWBOX`'s coordinates, where it
+ * starts fourteen units from the origin and stops two thirds of the way across
+ * a 1930-unit canvas — the remainder of that canvas is the leaf. A caller that
+ * wants the lettering *under* the mark rather than beside it — the splash
+ * screen — needs the same path framed by itself, and redrawing it at the origin
+ * would be a second copy of the one thing this module exists to keep single.
+ *
+ * These four numbers are the path's own bounding box instead, measured off its
+ * control points. A cubic is contained by the hull of its control points, so
+ * the frame is the ink plus at most a hair of the curves' slack — never a crop.
+ * 1.924:1, so width is the dimension a caller controls.
+ */
+export const WORDMARK_VIEWBOX = '14 111 1033 537';
 
 /** The bitten circle, drawn at the origin of `MARK_VIEWBOX`. */
 export const MARK_LEAF_PATH =

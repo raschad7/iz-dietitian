@@ -1,10 +1,10 @@
 import { getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
-import type { ReactNode } from 'react';
+import { Suspense, type ReactNode } from 'react';
 
 import { Icon } from '@/components/ui/icon';
 import { getClient } from '@/features/clients/queries';
-import { Link } from '@/i18n/navigation';
+import { RecordBackLink } from '@/features/clients/components/record-back-link';
 import { resolveLocale } from '@/i18n/params';
 import { requireStaffClinic } from '@/lib/session';
 
@@ -62,14 +62,16 @@ export default async function ClientLayout({ children, params }: ClientLayoutPro
         The way back, and nothing else. Edit and the overflow menu were here for
         one release; they are at the foot of the identity panel now, which is the
         column they act on — see `ClientRecordActions`.
+
+        Where "back" goes depends on which list the record was opened from, which
+        is a `?from=` the link carried in — so this one piece of the chrome
+        reads the URL in the browser. See `RecordBackLink`. The `Suspense`
+        boundary is what `useSearchParams` asks for; its fallback is the same
+        words the common case renders, so nothing moves when it resolves.
       */}
-      <Link
-        href="/app/clients"
-        className="inline-flex w-fit items-center gap-1 text-body-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-      >
-        <Icon name="chevronStart" className="size-3.5" />
-        {t('backToList')}
-      </Link>
+      <Suspense fallback={<RecordBackLinkFallback label={t('backToList')} />}>
+        <RecordBackLink labels={{ list: t('backToList'), bills: t('backToBills') }} />
+      </Suspense>
 
       {/*
         ⚠ **The padding is what stops the cards looking sliced.** Setting
@@ -86,5 +88,22 @@ export default async function ClientLayout({ children, params }: ClientLayoutPro
       */}
       <div className="min-h-0 flex-1 overflow-y-auto px-1 pt-1 pb-6">{children}</div>
     </div>
+  );
+}
+/**
+ * The breadcrumb before the URL has been read — the register, which is where
+ * most records are opened from and where an unmarked one goes anyway.
+ *
+ * Deliberately the same shape and the same words as the resolved link rather
+ * than a skeleton: this resolves within a frame, and a grey bar that becomes
+ * text is more movement than showing the common answer and correcting it in
+ * the one case it is wrong.
+ */
+function RecordBackLinkFallback({ label }: { label: string }) {
+  return (
+    <span className="inline-flex w-fit items-center gap-1 text-body-sm text-muted-foreground">
+      <Icon name="chevronStart" className="size-3.5" />
+      {label}
+    </span>
   );
 }

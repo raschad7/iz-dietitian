@@ -58,7 +58,7 @@ export function AppointmentTabs({
 
           This switch sits directly under the page's one button and directly
           above the next appointment. Every tinted version of it — the solid
-          olive, then an green-100 fill with a 3px olive rule, then that fill
+          olive, then an olive-100 fill with a 3px olive rule, then that fill
           alone — was a brand-coloured block competing with the two things
           around it for the same 200px, and the rule at one point read as an
           underlined *link*: the one decoration on the page that looked
@@ -69,6 +69,16 @@ export function AppointmentTabs({
           itself is the quietest thing on it.
         */
         activeClassName="bg-card text-foreground"
+        /*
+          `shape="pill"` is `w-full`, which is right on a phone — two halves of
+          the screen, each a thumb-sized target. On a desktop it made a
+          1136px-wide switch out of two words, with the labels marooned in the
+          middle of each half and the raised thumb reading as a panel rather
+          than a control. `lg:max-w-sm` holds it to the size it was designed at
+          and lets it sit at the reading edge of the column, above the lists it
+          switches between.
+        */
+        className="lg:max-w-sm"
         options={[
           { value: 'upcoming', label: upcomingLabel },
           { value: 'past', label: pastLabel },

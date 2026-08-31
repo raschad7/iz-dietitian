@@ -1,17 +1,13 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
-import { createPortal } from 'react-dom';
 
-import { Dialog, DialogHeader } from '@/components/ui/dialog';
 import { useDialogPresence } from '@/components/ui/dialog-motion';
 import { loadClientFormAction } from '@/features/clients/actions';
-import { ClientForm } from '@/features/clients/components/client-form';
+import { ClientFormDialog } from '@/features/clients/components/client-form-dialog';
 import { type ClientFormValues } from '@/features/clients/types';
 import { useRouter } from '@/i18n/navigation';
-import { getLocaleDirection, type Locale } from '@/i18n/routing';
-import { cn } from '@/lib/utils';
+import { type Locale } from '@/i18n/routing';
 
 /**
  * The client card, and the control that opens it.
@@ -27,12 +23,10 @@ import { cn } from '@/lib/utils';
  * trigger is a real `<button type="button">`, so it is safe inside the search
  * form it sits in on the register.
  *
- * The card is portalled to `<body>`. The trigger can be inside a form — a
- * `<form>` nested in another is invalid HTML and the browser resolves it by
- * quietly dropping one — or inside another `<dialog>`, as it is in the
- * calendar's appointment card. `<dialog>` renders in the top layer either way,
- * and a modal opened over a modal stacks on it rather than being trapped
- * behind it.
+ * **The card itself is `ClientFormDialog`.** This component is the button half:
+ * it owns the open state, reads the record when one is being edited, and hands
+ * focus back afterwards. The command palette opens the same card with no button
+ * at all, which is why the two are separate files.
  */
 type ClientFormTriggerProps = {
   locale: Locale;
@@ -64,7 +58,6 @@ export function ClientFormTrigger({
   'aria-label': ariaLabel,
   'data-guide': dataGuide,
 }: ClientFormTriggerProps) {
-  const t = useTranslations('clients');
   const router = useRouter();
 
   const [open, setOpen] = useState(false);
@@ -136,47 +129,12 @@ export function ClientFormTrigger({
         {children}
       </button>
 
-      {dialogPresent
-        ? createPortal(
-            <Dialog
-              open={open}
-              onClose={close}
-              label={client ? t('editTitle') : t('createTitle')}
-              dir={getLocaleDirection(locale)}
-              flat
-              className={cn(
-                // `open:` and not a bare `flex`: a `display` utility on a
-                // <dialog> outranks the UA rule that hides it while closed.
-                'open:flex open:flex-col max-h-[90dvh] overflow-hidden',
-                // One width, because there is one set of fields. The card used
-                // to animate between 30rem and 50rem as its disclosure opened;
-                // the disclosure is gone, and a fixed width is one fewer thing
-                // moving under the pointer.
-                'sm:w-[min(30rem,calc(100vw-2rem))]',
-              )}
-            >
-              {/*
-                No close button: this card's footer already ends in Cancel, and
-                Escape and a backdrop click both close it. A third exit in the
-                corner was crowding the title of the only surface a client
-                record is written on.
-              */}
-              <DialogHeader
-                title={client ? t('editTitle') : t('createTitle')}
-                description={client ? undefined : t('createHint')}
-                className="px-4 pt-4 sm:px-5 sm:pt-5"
-              />
-
-              <ClientForm
-                locale={locale}
-                client={client ?? undefined}
-                onCancel={close}
-                onSaved={close}
-              />
-            </Dialog>,
-            document.body,
-          )
-        : null}
+      <ClientFormDialog
+        locale={locale}
+        client={client ?? undefined}
+        open={open}
+        onClose={close}
+      />
     </>
   );
 }

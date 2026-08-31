@@ -26,7 +26,7 @@ export default async function ResetPasswordPage({ params, searchParams }: ResetP
   }
 
   return (
-    <main className="q-route-stage mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6 py-16">
+    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6 py-16">
       <ResetPasswordForm locale={locale} token={token} />
     </main>
   );

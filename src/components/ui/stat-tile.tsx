@@ -63,6 +63,16 @@ type StatTileProps = Omit<React.ComponentProps<'div'>, 'children'> & {
   flagged?: boolean;
   /** Shown in place of the figure when `value` is null. */
   emptyText?: React.ReactNode;
+  /**
+   * The value is words, not a number — a goal, an activity level, a blood type.
+   *
+   * It sits on the same baseline as every figure beside it and is set to *read*
+   * at the same size, which is the entire reason this component exists. What it
+   * drops is the three things that are only correct for digits: `dir="ltr"`,
+   * `tabular-nums`, and the 20px itself — Arabic letterforms at 20px are
+   * visibly larger than 20px digits. See the branch below for each.
+   */
+  textual?: boolean;
 };
 
 function StatTile({
@@ -72,6 +82,7 @@ function StatTile({
   note,
   flagged = false,
   emptyText,
+  textual = false,
   className,
   ...props
 }: StatTileProps) {
@@ -127,6 +138,33 @@ function StatTile({
           // At body size, not the figure's: an absence is not a reading, and
           // setting "—" at 24px gives a missing value the weight of a number.
           <span className="text-body-md font-normal">{emptyText ?? '—'}</span>
+        ) : textual ? (
+          /*
+           * ⚠ **A worded value must not take the figure's `dir="ltr"`.** That
+           * attribute exists to keep digits in order inside Arabic; put it on
+           * 'زيادة الوزن' and it reverses the run. `<bdi>` isolates the value's
+           * own direction instead, so an Arabic answer reads Arabic, an English
+           * one reads English, and neither drags the tile with it.
+           *
+           * `tabular-nums` goes too, for the same reason it was ever there:
+           * monospaced digits align a column of numbers, and there is no column
+           * of numbers here — on letterforms it only opens the spacing up.
+           *
+           * ⚠ **`body-md`, and that is not a contradiction of the paragraph
+           * above.** The point of this component is that every value in a grid
+           * looks like it belongs to the same row — which is a statement about
+           * *optical* size, not about the number in the CSS. Arabic set in
+           * Almarai at 20px carries far more visual mass than tabular digits at
+           * 20px: the digits are cap-height and nothing else, while ا، ل and د
+           * run the full ascender and the descenders drop below the baseline. At
+           * a matched 20px, 'زيادة الوزن' read about half again as large as
+           * '180' sitting beside it, and the tile that was meant to equalise the
+           * row was the thing unbalancing it.
+           *
+           * Two steps down is what makes them look level. Match the metric and
+           * you mismatch the reading; this matches the reading.
+           */
+          <bdi className="max-w-full text-body-md text-balance wrap-anywhere">{value}</bdi>
         ) : (
           <>
             {/*

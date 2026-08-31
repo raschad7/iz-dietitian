@@ -1,7 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 
-import { SettingsToolbar } from '@/features/settings/components/settings-toolbar';
 import { APP_VERSION } from '@/lib/version';
 
 /**
@@ -20,6 +19,11 @@ import { APP_VERSION } from '@/lib/version';
  *
  * There is no dirty-state provider here any more, and no save bar: values are
  * edited in dialogs that commit their own field. See `settings-edit-dialog.tsx`.
+ *
+ * The tab bar is no longer here either. It used to sit in this layout, above
+ * every child route, because each section *was* a route; the sections are one
+ * page now and the bar drives client state, so it lives inside the page's
+ * `SettingsWorkspace`. This layout is left with the heading and the version.
  */
 export default async function SettingsLayout({ children }: { children: ReactNode }) {
   const t = await getTranslations('settingsWorkspace');
@@ -43,13 +47,17 @@ export default async function SettingsLayout({ children }: { children: ReactNode
         <p className="max-w-2xl text-body-sm text-muted-foreground">{t('description')}</p>
       </header>
 
-      <SettingsToolbar />
-
       {children}
 
-      <footer className="mt-6 border-t border-border/60 pt-4 text-start">
+      {/*
+        No divider. The version is a quiet footnote, not a new section, so a
+        full-width rule above it drew a line the page did not need. The label
+        and the number sit on one line, the number isolated LTR so its dots read
+        the same way in Arabic.
+      */}
+      <footer className="mt-6 text-start">
         <p className="text-caption text-muted-foreground">
-          <span>{t('version')}:</span> <span dir="ltr">v{APP_VERSION}</span>
+          {t('version')} <span dir="ltr">v{APP_VERSION}</span>
         </p>
       </footer>
     </div>
