@@ -9,6 +9,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from '@/components/ui/sidebar';
 
 import { useGuide } from './guide-context';
@@ -49,6 +50,30 @@ import { useGuide } from './guide-context';
 export function GuideLauncher() {
   const guide = useGuide();
   const t = useTranslations('userGuide');
+  const { compact, state, toggleSidebar, isMobile, openMobile, setOpenMobile } = useSidebar();
+
+  /**
+   * Starts the tour, and puts the rail away first if the rail is covering the
+   * screen the tour is about.
+   *
+   * Only where the rail is a *layer*: the tablet's overlaid column, and the
+   * phone's drawer. Both are drawn on top of the page, so the first thing the
+   * reader would see of a tour of that page is most of it hidden behind the
+   * control they started it with. A desktop rail is a column beside the page
+   * and hides nothing, so it is left exactly as they had it — closing it there
+   * would be the tour rearranging a screen it is supposed to be explaining.
+   *
+   * The fold and the tour start in the same press rather than one waiting for
+   * the other. The rail's 300ms is a width transition and the spotlight is read
+   * on an animation frame for as long as a step is showing (see
+   * `use-guide-anchor.ts`), so the hole tracks the rail on its way in instead
+   * of landing where the rail used to be.
+   */
+  const start = () => {
+    if (isMobile && openMobile) setOpenMobile(false);
+    else if (compact && state === 'expanded') toggleSidebar();
+    guide?.start();
+  };
 
   if (guide === null) return null;
 
@@ -92,7 +117,7 @@ export function GuideLauncher() {
               className="text-sidebar-label"
               tooltip={label}
               isActive={guide.active}
-              onClick={guide.start}
+              onClick={start}
             >
               {/* 20px even at `sm`, because folded this is a glyph in the same
                   56px column as the destinations and has to line up with them. */}
