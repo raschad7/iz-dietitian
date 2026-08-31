@@ -334,7 +334,19 @@ export function CommandPalette({
       onClose={onClose}
       label={t('label')}
       dir={getLocaleDirection(locale)}
-      placement="center"
+      /*
+        A sheet on the phone, the centred card everywhere else.
+
+        `center` was the whole width once, on the reasoning that a short modal
+        centred beats a strip along the bottom edge. The palette is not that
+        modal: it is 34rem of list, which on a phone is most of the screen
+        whatever it is anchored to — and anchored to the middle it left a
+        gutter of scrim above *and* below while the thing the thumb actually
+        reaches is the block-end edge. Risen from that edge it gains the sheet's
+        two exits (the band of scrim above it, and the grip) and starts its rows
+        where the hand already is.
+      */
+      placement="sheet"
       flat
       /*
         A ceiling rather than a height. The list is short when nothing has been
@@ -348,7 +360,16 @@ export function CommandPalette({
         the second group. The extra width also buys the subscriber rows room for
         a disc, a name and a phone number without the number crowding the name.
       */
-      className="sm:w-[min(36rem,calc(100vw-2rem))] [--q-dialog-max-block:34rem]"
+      /*
+        Below `sm` the frame takes a *definite* height rather than a ceiling:
+        the sheet's own budget, which is the viewport less the notch and less
+        the band of pressable scrim the sheet leaves above itself. That is the
+        same figure `globals.css` clamps it to, stated as a size so the fixed
+        height on `Command` below has a parent to resolve `h-full` against —
+        without it the list would size to its content and jitter on every
+        keystroke, which is the one thing that height exists to prevent.
+      */
+      className="max-sm:h-[calc(var(--q-viewport-block)-var(--q-safe-t)-var(--q-sheet-top-gap,3rem))] sm:w-[min(36rem,calc(100vw-2rem))] [--q-dialog-max-block:34rem]"
     >
       <Command
         shouldFilter={false}
@@ -396,7 +417,12 @@ export function CommandPalette({
           the frame's own block gutter. `--q-dialog-max-block` above stays as
           the frame's independent ceiling.
         */
-        className="h-[min(34rem,calc(100dvh-6rem))]"
+        /*
+          On the phone the frame above owns the height and this fills what the
+          grip leaves of it — `flex-1` rather than a second fixed figure, so the
+          two can never disagree by the height of a pill.
+        */
+        className="h-[min(34rem,calc(100dvh-6rem))] max-sm:h-auto max-sm:min-h-0 max-sm:flex-1"
         /*
           The two ways back out of the picker.
 
