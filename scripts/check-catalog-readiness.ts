@@ -284,8 +284,18 @@ export async function checkCatalogReadiness(): Promise<Check[]> {
   // 8. The marking survived the seed. A dish loses its controls silently: the board
   //    still renders, the amounts are still right, and the −/+ is simply not there
   //    — which looks like a missing feature rather than a missing column.
+  //
+  //    Scoped to the shipped dishes, like check 3 above: the number on the right of
+  //    this comparison describes `data/dishes.json` and nothing else, so the number
+  //    on the left has to be counted over the same rows. Unscoped it agrees today
+  //    only because `createClinicDish` never writes `is_primary` — it would start
+  //    failing the day a dietitian can mark a line of her own, for a reason that has
+  //    nothing to do with whether the seed ran.
   const primary = await count(sql`
-    select count(*)::int as n from dish_ingredients where is_primary
+    select count(*)::int as n
+    from dish_ingredients di
+    join dishes d on d.id = di.dish_id
+    where di.is_primary and d.clinic_id is null and d.is_active = true
   `);
   checks.push({
     name: `dish ingredients carry all ${expected.primaryIngredients} adjustable lines`,
@@ -298,8 +308,14 @@ export async function checkCatalogReadiness(): Promise<Check[]> {
 
   // 9. And so did the units. A line that lost its portion falls back to grams,
   //    which is safe and readable but steps in tens instead of by the loaf.
+  //    Scoped the same way, and here it was not hypothetical: a clinic dish saved
+  //    with a household unit does write `portion_id`, so an unscoped count read a
+  //    dietitian's own recipe as catalog corruption and failed a deploy over it.
   const withUnit = await count(sql`
-    select count(*)::int as n from dish_ingredients where portion_id is not null
+    select count(*)::int as n
+    from dish_ingredients di
+    join dishes d on d.id = di.dish_id
+    where di.portion_id is not null and d.clinic_id is null and d.is_active = true
   `);
   checks.push({
     name: `dish ingredients keep all ${expected.unitIngredients} household units`,
