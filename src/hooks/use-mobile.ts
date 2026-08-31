@@ -120,8 +120,27 @@ export function useIsSheetSurface() {
  * `64rem` rather than a pixel count, so it tracks the root font size the way the
  * `lg` breakpoint it mirrors does — a reader who has scaled their text up is on
  * a narrower screen in the only unit that matters.
+ *
+ * ── The second clause: the same tablet, turned on its side ──
+ *
+ * Width alone only catches a tablet held upright. Turned landscape the same
+ * device is 1024–1366px wide and reads as a desktop to the first clause, so the
+ * rail there went back to being a column that shoves the page aside — one
+ * device answering two different ways depending on which way up it is held.
+ *
+ * So the band asks the *other* dimension too. A screen whose block size is a
+ * tablet's is a tablet whatever its inline size says, and the pointer is what
+ * separates it from a short desktop window: `64rem` of height is an ordinary
+ * laptop with a browser that is not maximised, and nothing about that reader
+ * wants the tablet's shape. A coarse pointer and a block size within a tablet's
+ * is a tablet, in either orientation.
+ *
+ * `<=` rather than `<` on the height, unlike the width. The width is a
+ * boundary — `lg` starts *at* 64rem — while the height is naming a device:
+ * a 12.9" tablet in landscape is exactly 1024px tall, and a rule that excluded
+ * the largest tablet would miss the one this clause exists for.
  */
-const COMPACT_QUERY = '(width < 64rem)'
+const COMPACT_QUERY = '(width < 64rem), (pointer: coarse) and (height <= 64rem)'
 
 function subscribeCompact(onChange: () => void) {
   const query = window.matchMedia(COMPACT_QUERY)
