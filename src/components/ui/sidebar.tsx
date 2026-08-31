@@ -131,12 +131,14 @@ function SidebarProvider({
   /*
     ── The tablet: folded on arrival, and openable ──
 
-    Between `md` and `lg` a staff rail starts as its icon column whatever the
-    stored preference says, and the trigger still works. The reasoning is that
-    the two halves of the question have different answers on a tablet: 16rem of
-    a 1024px screen is a sixth of it spent on chrome the reader is not currently
-    using, so the *default* should be folded — but a screen that size has plenty
-    of room to unfold, so the *choice* has to stay theirs.
+    On a tablet — narrower than `lg`, or a coarse pointer no taller than one,
+    which is the same device turned on its side — a staff rail starts as its
+    icon column whatever the stored preference says, and the trigger still
+    works. The reasoning is that the two halves of the question have different
+    answers on a tablet: 16rem of a 1024px screen is a sixth of it spent on
+    chrome the reader is not currently using, so the *default* should be folded
+    — but a screen that size has plenty of room to unfold, so the *choice* has
+    to stay theirs.
 
     ⚠ This is deliberately not `locked`. Hard-locking this band was tried once
     and reverted: it left an iPad with no way to read the destination labels at
@@ -271,7 +273,8 @@ function Sidebar({
   variant?: "sidebar" | "floating" | "inset"
   collapsible?: "offcanvas" | "icon" | "none"
 }) {
-  const { isMobile, state, openMobile, setOpenMobile, locked } = useSidebar()
+  const { isMobile, state, openMobile, setOpenMobile, locked, compact, toggleSidebar } =
+    useSidebar()
 
   if (collapsible === "none") {
     return (
@@ -330,6 +333,7 @@ function Sidebar({
       data-side={side}
       data-slot="sidebar"
       data-locked={locked ? "true" : undefined}
+      data-compact={compact ? "true" : undefined}
     >
       {/* This is what handles the sidebar gap on desktop */}
       <div
@@ -340,9 +344,57 @@ function Sidebar({
           "group-data-[side=inline-end]:rotate-180",
           variant === "floating" || variant === "inset"
             ? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4)))]"
-            : "group-data-[collapsible=icon]:w-(--sidebar-width-icon)"
+            : "group-data-[collapsible=icon]:w-(--sidebar-width-icon)",
+          /*
+            ── The tablet unfolds *over* the page, not beside it ──
+
+            On the desktop the gap grows with the rail and the screen reflows
+            around it, which is right when 16rem is a tenth of the width. On a
+            tablet it is a sixth, and reflowing a calendar every time somebody
+            glances at a label reads as the page breaking rather than as the
+            rail opening. So in this band the gap stays at the icon column and
+            the rail is drawn on top of it: nothing underneath moves, and one
+            press puts it back.
+          */
+          compact &&
+            (variant === "floating" || variant === "inset"
+              ? "w-[calc(var(--sidebar-width-icon)+(--spacing(4)))]"
+              : "w-(--sidebar-width-icon)")
         )}
       />
+      {/*
+        The scrim under an overlaid rail. It exists only while the tablet's rail
+        is unfolded: it is what makes the column read as a layer above the page,
+        and it is the press-anywhere-else that folds it again — the same gesture
+        the phone's drawer already answers to.
+      */}
+      {compact && state === "expanded" ? (
+        <button
+          type="button"
+          aria-hidden="true"
+          tabIndex={-1}
+          data-slot="sidebar-scrim"
+          onClick={toggleSidebar}
+          /*
+            `z-40`, not the rail's own `z-10`.
+
+            The rail is the *first* thing in the shell and the page comes after
+            it, so at equal rank every positioned thing on that page paints over
+            it — and the screens this shell carries are full of them: a sticky
+            table head (`z-10`), a pinned calendar gutter, a toolbar (`z-30`).
+            At `z-10` the scrim dimmed the page and then those stood back up
+            through it, bright and still clickable, which reads as a broken
+            surface rather than as a covered one.
+
+            `z-40` is the app's page-scrim rank — the meal inspector's backdrop
+            and the portal's tab bar sit there — and it stays *below* `z-50`,
+            where the popups and the sheets live. So the rail covers the page
+            and nothing else, and a popup opened from the rail is still on top
+            of it.
+          */
+          className="fixed inset-0 z-40 bg-[var(--overlay)] [backdrop-filter:blur(4px)]"
+        />
+      ) : null}
       <div
         data-slot="sidebar-container"
         data-side={side}
@@ -353,6 +405,11 @@ function Sidebar({
           // needs no help — `data-collapsible="icon"` is set on the group, so
           // the variant below resolves it to the icon column.
           locked && "flex",
+          // Above the scrim, and carrying the shadow that says this is a layer
+          // over the page rather than a column beside it.
+          // The same rank as the scrim, and later in the DOM than it, so the
+          // rail draws over the scrim while both stay under the popup layer.
+          compact && "z-40 shadow-overlay",
           // Adjust the padding for floating and inset variants.
           variant === "floating" || variant === "inset"
             ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
