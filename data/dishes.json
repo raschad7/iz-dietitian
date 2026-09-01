@@ -16,8 +16,8 @@
   "dishes": [
     {
       "slug": "labaneh-zeit-pita",
-      "nameAr": "لبنة بزيت الزيتون مع خبز",
-      "nameEn": "Labaneh with olive oil and pita",
+      "nameAr": "لبن يوناني بزيت الزيتون مع خبز",
+      "nameEn": "Greek yogurt with olive oil and pita",
       "mealTypes": [
         "breakfast",
         "dinner"
@@ -474,8 +474,8 @@
     },
     {
       "slug": "labaneh-walnut-honey",
-      "nameAr": "لبنة مع جوز وعسل",
-      "nameEn": "Labaneh with walnuts and honey",
+      "nameAr": "لبن يوناني مع جوز وعسل",
+      "nameEn": "Greek yogurt with walnuts and honey",
       "mealTypes": [
         "breakfast"
       ],
@@ -767,7 +767,7 @@
     },
     {
       "slug": "banana-peanuts",
-      "nameAr": "موز مع فستق",
+      "nameAr": "موز مع فول سوداني",
       "nameEn": "Banana with peanuts",
       "mealTypes": [
         "snack"
@@ -1183,8 +1183,8 @@
     },
     {
       "slug": "labaneh-cucumber-snack",
-      "nameAr": "لبنة مع خيار",
-      "nameEn": "Labaneh with cucumber",
+      "nameAr": "لبن يوناني مع خيار",
+      "nameEn": "Greek yogurt with cucumber",
       "mealTypes": [
         "snack"
       ],
@@ -2438,8 +2438,8 @@
     },
     {
       "slug": "labaneh-cucumber-dinner",
-      "nameAr": "لبنة مع خيار وخبز",
-      "nameEn": "Labaneh with cucumber and pita",
+      "nameAr": "لبن يوناني مع خيار وخبز",
+      "nameEn": "Greek yogurt with cucumber and pita",
       "mealTypes": [
         "dinner"
       ],
@@ -3279,41 +3279,46 @@
         "filling"
       ],
       "allergenTags": [
-        "sesame"
+        "sesame",
+        "gluten"
       ],
       "baseServingLabel": "صحن واحد",
       "ingredients": [
         {
-          "fdcId": 173800,
-          "grams": 100,
-          "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
+          "fdcId": 172455,
+          "grams": 102.0,
+          "note": "Falafel, home-prepared",
+          "unit": "Piece",
+          "count": 6.0,
           "primary": true
         },
         {
-          "fdcId": 173754,
-          "grams": 40,
-          "note": "Broadbeans (fava beans), mature seeds, canned",
+          "fdcId": 174915,
+          "grams": 60.0,
+          "note": "Bread, pita, white, enriched",
+          "unit": "Loaf",
+          "count": 1.0,
           "primary": true
         },
         {
-          "fdcId": 170000,
-          "grams": 30,
-          "note": "Onions, raw"
+          "fdcId": 168604,
+          "grams": 15,
+          "note": "Seeds, sesame butter, tahini, type of kernels unspecified"
+        },
+        {
+          "fdcId": 170457,
+          "grams": 60,
+          "note": "Tomatoes, red, ripe, raw, year round average"
+        },
+        {
+          "fdcId": 168409,
+          "grams": 60,
+          "note": "Cucumber, with peel, raw"
         },
         {
           "fdcId": 170416,
           "grams": 10,
           "note": "Parsley, fresh"
-        },
-        {
-          "fdcId": 171413,
-          "grams": 12,
-          "note": "Oil, olive, salad or cooking"
-        },
-        {
-          "fdcId": 168604,
-          "grams": 10,
-          "note": "Seeds, sesame butter, tahini, type of kernels unspecified"
         }
       ]
     },
