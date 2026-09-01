@@ -65,7 +65,7 @@ export async function recordPaymentAction(
     return failure(error, 'recording a payment');
   }
 
-  revalidateLedger(locale, parsed.data.clientId);
+  /* Deliberately *not* revalidated here — see `revalidateLedgerAction`. */
   return { status: 'success' };
 }
 
@@ -94,8 +94,48 @@ export async function recordChargeAction(
     return failure(error, 'recording a charge');
   }
 
-  revalidateLedger(locale, parsed.data.clientId);
+  /* Deliberately *not* revalidated here — see `revalidateLedgerAction`. */
   return { status: 'success' };
+}
+
+/**
+ * Rebuilds the two screens that read the ledger, as a call of its own.
+ *
+ * ## Why this is not a line at the end of the two writes above
+ *
+ * It was, and it is what made recording a payment feel broken on the deployed
+ * server: the card sat on "Recording…" for seconds after the money had already
+ * been written, sometimes long enough that the reader reloaded the page to find
+ * the payment was there all along.
+ *
+ * A server action that revalidates does not answer when the write is done. Next
+ * re-renders the route the caller is standing on and streams *that* back in the
+ * same response — so the reply to "record ₪10" was the whole Bills register, or
+ * the whole subscriber record, rebuilt from the database first. On a laptop
+ * pointed at a local database nobody notices; over a network round trip per
+ * query it is the difference between a card that closes and a card that hangs.
+ * `useActionState` reports `pending` for all of it, because all of it is one
+ * response.
+ *
+ * So the write answers with nothing but its own outcome, and the rebuild is a
+ * second call the card makes *after* it has closed and said so. The same work
+ * happens, on the same two paths; what changed is that nobody is waiting on it.
+ * The register catches up a moment later, which is the moment it was always
+ * going to catch up in — the card no longer stands still for it.
+ *
+ * ⚠ **Every caller of `recordPaymentAction` or `recordChargeAction` has to call
+ * this on success.** A write that lands and is never followed by this leaves
+ * both screens on whatever the client router cached, for as long as
+ * `staleTimes.dynamic` in `next.config.ts` says.
+ */
+export async function revalidateLedgerAction(locale: string, clientId: string): Promise<void> {
+  const parsed = localeSchema.parse(locale);
+  /* A server action is a public endpoint even when all it does is drop a cache
+     entry: the guard is what keeps this from being a way to ask whether an
+     arbitrary id is a path worth revalidating. */
+  await requireStaffClinic(parsed);
+
+  revalidateLedger(parsed, clientId);
 }
 
 /**

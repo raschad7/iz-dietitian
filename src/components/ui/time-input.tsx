@@ -77,7 +77,19 @@ type TimeInputProps = Omit<React.ComponentProps<'input'>, 'type'> & {
 
 function TimeInput({ className, step, icon = true, ...props }: TimeInputProps) {
   return (
-    <span dir="ltr" className="relative block">
+    /*
+      `min-w-0` so the control can be sized by the column it sits in.
+
+      A grid or flex item's automatic minimum is its *content's* minimum, and
+      the content here is a native time field: WebKit reports the full width of
+      the value it draws — wider still where the browser's locale puts an AM/PM
+      on the end — and will not go under it. Without this, a time field in a
+      fixed track does not shrink to the track, it overflows it, and what the
+      reader sees is one field painted over the one beside it. The field can now
+      be told how wide to be; whether it is given enough room is the caller's
+      business, and both schedules ask a container query.
+    */
+    <span dir="ltr" className="relative block min-w-0">
       {icon ? (
         <span
           aria-hidden
@@ -95,6 +107,23 @@ function TimeInput({ className, step, icon = true, ...props }: TimeInputProps) {
           // and an iconned text field start their content at the same offset.
           icon && 'ps-12',
           'tabular',
+          /*
+           * `appearance-none`, and on an iPad it is the difference between a
+           * field and two.
+           *
+           * WebKit on iPadOS does not draw a time input as the box the page
+           * styled: it draws its *own* control — a small grey rounded pill —
+           * and puts the value beside it, inside the same element. What
+           * appeared in the schedules was an empty rounded box sitting against
+           * the field next to it, which read exactly like two controls
+           * overlapping, because visually that is what it was. Turning the
+           * native appearance off leaves the value in the box this app drew.
+           *
+           * The rule below removes the button that opens the OS picker, which
+           * is a different piece of chrome on a different engine; both are
+           * needed and neither implies the other.
+           */
+          'appearance-none',
           /*
            * The indicator is the button that opens the OS spinner. `appearance`
            * as well as `display`, because they are two different opt-outs and

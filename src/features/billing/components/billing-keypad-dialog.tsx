@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/toast';
 import { TooltipHint } from '@/components/ui/tooltip-hint';
+import { revalidateLedgerAction } from '@/features/billing/actions';
 import { ROW_ACTION_CLASS } from '@/features/billing/components/row-action';
 import { initialBillingFormState, type BillingFormState } from '@/features/billing/form-state';
 import { formatAmountCompact, keypadReadout, parseAmount, toAmountInput, toKeypadDigits } from '@/features/billing/money';
@@ -332,11 +333,28 @@ export function BillingKeypadDialog({
       setChosenValue(firstChoice(options));
       setPaidOn(today as IsoDate);
       setDateText(today);
+
+      /*
+        And *then* the screens behind the card are rebuilt — after the close,
+        and with nothing waiting on it.
+
+        This used to be the last line of the write itself, which meant the
+        write's answer carried a freshly rendered Bills register or subscriber
+        record with it and `pending` covered the lot. See
+        `revalidateLedgerAction`. Fired here, the card is already shut and the
+        toast already said so; the table catches up when the rebuild lands.
+
+        Swallowed on failure on purpose: the money is written either way, and a
+        cache that stays warm a little longer is not something to interrupt the
+        reader over. The screens are right again on the next load.
+      */
+      void revalidateLedgerAction(locale, clientId).catch(() => {});
     }
 
     wasPending.current = pending;
-    /* A one-shot on the end of a submission. `labels`, `options` and `today` are
-       the card's configuration, not reasons to re-run it. */
+    /* A one-shot on the end of a submission. `labels`, `options`, `today`,
+       `locale` and `clientId` are the card's configuration, not reasons to
+       re-run it. */
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending, state.status, open]);
 

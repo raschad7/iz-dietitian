@@ -320,7 +320,34 @@ function TableRow({ className, zebra, linked, plain, ...props }: React.Component
         '[&>td]:border-b [&>td]:border-border',
         'transition-colors [&>td]:transition-colors',
         zebra && 'even:bg-muted',
-        linked && 'relative cursor-pointer',
+        /*
+         * `relative` is what the stretched `<Link>` in the first cell is
+         * measured against — `after:absolute after:inset-0`, which fills the
+         * row and makes the whole record clickable.
+         *
+         * ⚠ **`translate(0)` is not decoration, and removing it breaks Safari.**
+         * WebKit does not honour `position: relative` on a table row: the row
+         * is laid out where it always was, but it never becomes a containing
+         * block, so every row's overlay measured itself against the next
+         * positioned ancestor instead — `TableRoot`. Every record's link
+         * covered the *entire table*, stacked one over another, and the last
+         * one in the markup was the one on top: on an iPad, tapping any row in
+         * the register or in Bills opened the last subscriber on the page,
+         * whichever name had been tapped.
+         *
+         * A transformed element is a containing block for absolutely positioned
+         * descendants, that rule has no table exception, and WebKit implements
+         * it — so an identity transform buys the containing block that
+         * `relative` was supposed to. `translate(0)` and not `translateZ(0)`:
+         * the 3D spelling promotes every row to its own compositing layer, and
+         * a register is thirty of them.
+         *
+         * It also makes each row a stacking context. Nothing here depends on
+         * rows painting through one another, the sticky header cells carry
+         * `z-10` and so still paint over them, and every menu, tooltip and
+         * dialog inside a row is portalled out of it.
+         */
+        linked && 'relative cursor-pointer [transform:translate(0)]',
         /*
          * **No radius on a row fill.** It was a pill, then a pill open at the
          * bottom, and both were the same mistake: a rounded fill is a shape for

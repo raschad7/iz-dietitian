@@ -326,7 +326,23 @@ export function IntakeForm({
           */}
           <div
             id={panelId}
-            className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6"
+            /*
+              `min-w-0`, and without it the panel is as wide as its widest
+              section rather than as wide as the dialog.
+
+              A flex item's automatic minimum is its content's minimum, so a row
+              of fields that wants 560px makes this box 560px wide however
+              little room the dialog has beside the rail — it does not overflow
+              *inside* the panel where a scrollbar could deal with it, it pushes
+              the panel itself past the dialog's edge, and the delete button at
+              the end of every schedule row was clipped off the side. It also
+              fed a wrong answer to the `@container` queries the schedules ask,
+              since what they measure is this box.
+
+              `overflow-y-auto` above says nothing about the inline axis, and
+              `flex-1` grows a box rather than capping it. This is the cap.
+            */
+            className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6"
           >
             <Panel id="measurements" current={section}>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -1474,8 +1490,22 @@ function MealScheduleField({
   const percent = Math.round(shareTotal * 100);
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="hidden gap-3 px-1 text-label font-semibold text-muted-foreground sm:grid sm:grid-cols-[1fr_13rem_7rem_auto]">
+    /*
+      `@container/meals`, and every column rule below asks this list how wide it
+      is rather than asking the window.
+
+      The schedule is inside the intake dialog, behind that dialog's own section
+      rail, so the room a row actually has is a few hundred pixels less than the
+      window suggests — and on a tablet that gap is the whole problem. The
+      `sm:` steps this used to carry switched the four fixed columns on at 640px
+      of *viewport*, which on an iPad is a row of about 470px trying to hold
+      560px of controls: the meal name ran into the time beside it, and the time
+      — a native `<input type="time">`, which WebKit will not shrink below the
+      value it is drawing — ran into the share beside that. A container query
+      asks the question that decides the answer.
+    */
+    <div className="@container/meals flex flex-col gap-3">
+      <div className="hidden gap-x-4 px-1 text-label font-semibold text-muted-foreground @min-[29rem]/meals:grid @min-[29rem]/meals:grid-cols-[minmax(0,1fr)_8rem_5rem_auto]">
         <span>{t('fields.slotLabel')}</span>
         <span>{t('fields.slotTime')}</span>
         <span>{t('fields.slotShare')}</span>
@@ -1485,7 +1515,7 @@ function MealScheduleField({
       {slots.map((slot, index) => (
         <div
           key={slot.slotKey}
-          className="grid grid-cols-[1fr_auto] gap-3 sm:grid-cols-[1fr_13rem_7rem_auto] sm:items-center"
+          className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-3 @min-[29rem]/meals:grid-cols-[minmax(0,1fr)_8rem_5rem_auto] @min-[29rem]/meals:items-center"
         >
           <input type="hidden" name="slotKey" value={slot.slotKey} />
 
@@ -1495,14 +1525,22 @@ function MealScheduleField({
             maxLength={60}
             defaultValue={slot.label}
             aria-label={t('fields.slotLabel')}
-            className="col-span-2 sm:col-span-1"
+            className="col-span-2 @min-[29rem]/meals:col-span-1"
           />
           {/*
             No `step`: `timeOfDaySchema` accepts any whole minute, so the
             control should too. A meal at 07:35 is a real answer.
           */}
+          {/*
+            `icon={false}`, for the reason the clinic's own weekly schedule
+            drops it: the glyph costs 48px of the content box, and in a column
+            this narrow that is the difference between a time you can read and
+            `07:30 A`. The column is already headed "Time", so a clock on every
+            row labels nothing the heading has not said once.
+          */}
           <TimeInput
             name="slotTime"
+            icon={false}
             defaultValue={slot.timeOfDay}
             aria-label={t('intake.time')}
           />

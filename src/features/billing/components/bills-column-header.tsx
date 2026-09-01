@@ -5,7 +5,7 @@ import { useState, type DragEvent } from 'react';
 import { TableHead } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 
-import type { BillsColumnKey } from './bills-columns';
+import { NAME_COLUMN_WIDTH, type BillsColumnKey } from './bills-columns';
 import { useFinePointer } from './use-fine-pointer';
 
 /**
@@ -93,6 +93,13 @@ export function BillsColumnHeader({
   return (
     <TableHead
       numeric={numeric}
+      /*
+        The name's own width, carried by its heading so it travels when the
+        column is dragged somewhere else — a `colgroup` could not, being
+        positional. Every other heading is left to the table, which splits what
+        is left evenly between them. See `NAME_COLUMN_WIDTH`.
+      */
+      style={columnKey === 'name' ? { width: NAME_COLUMN_WIDTH } : undefined}
       /*
         `draggable` and its handlers are only ever set on a pointer device.
         Attaching them unconditionally would leave dead listeners on a phone and
