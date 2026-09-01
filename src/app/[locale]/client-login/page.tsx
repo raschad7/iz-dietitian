@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
 import { AuthScreen } from '@/features/auth/components/auth-screen';
+import { redirectIfSignedIn } from '@/features/auth/signed-in-guard';
 import { isGoogleEnabled } from '@/lib/auth';
 import { resolveLocale } from '@/i18n/params';
 
@@ -23,6 +24,16 @@ export async function generateMetadata({ params }: ClientLoginPageProps): Promis
  */
 export default async function ClientLoginPage({ params }: ClientLoginPageProps) {
   const locale = await resolveLocale(params);
+
+  /*
+    The link a dietitian sends out with a new username is the one most likely to
+    be opened twice — once to set the password, once weeks later from the same
+    message. The second visit belongs in the portal, not on the form.
+
+    No `redirectTo`: this route takes no search params, so there is never one to
+    honour. `redirectIfSignedIn` falls back to the client's own area.
+  */
+  await redirectIfSignedIn(locale);
 
   return <AuthScreen locale={locale} showGoogle={isGoogleEnabled} initialRole="client" />;
 }

@@ -95,7 +95,7 @@ export default async function ClientLayout({ children, params }: ClientLayoutPro
  * most records are opened from and where an unmarked one goes anyway.
  *
  * Deliberately the same shape and the same words as the resolved link rather
- * than a skeleton: this resolves within a frame, and a grey bar that becomes
+ * than a placeholder: this resolves within a frame, and a bar that becomes
  * text is more movement than showing the common answer and correcting it in
  * the one case it is wrong.
  */

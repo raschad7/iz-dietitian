@@ -65,8 +65,8 @@ import { type ClientIntakeValues, type MealSlotValues } from './types';
 
 /**
  * How many clients one page of the register holds **before a browser has
- * measured the screen** — the row count a first paint and a server-rendered
- * skeleton are drawn with.
+ * measured the screen** — the row count the first server-rendered paint is
+ * drawn with.
  *
  * It used to be the whole answer: nine, a layout decision as much as a query
  * one, chosen so that nine rows plus the title, the search row and the pager fit

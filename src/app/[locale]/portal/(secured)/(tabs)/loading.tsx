@@ -1,5 +1,4 @@
-import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import { PageLoading } from '@/components/layout/page-loading';
 
 /**
  * What fills a portal tab while its data is read.
@@ -11,26 +10,12 @@ import { Skeleton } from '@/components/ui/skeleton';
  * wait, because the app had already acknowledged the tap.
  *
  * The shell above stays put: the header, the rail and the tab bar all belong to
- * the layout, so only the column between them is replaced. That is why this
- * draws no header of its own — §9.7, the loader occupies the layout rather than
- * covering it.
+ * the layout, so only the column between them is replaced. The spinner
+ * therefore centres inside that column and never lands under the tab bar.
  *
  * Appointments keeps its own, closer, boundary; this covers home, progress and
- * the profile, which all open on a stack of cards. Three of them, not the real
- * count — enough to fill a phone's fold without pretending to a number.
+ * the profile.
  */
 export default function PortalTabLoading() {
-  return (
-    <div className="space-y-4" aria-busy>
-      {[0, 1, 2].map((index) => (
-        <Card key={index}>
-          <CardContent className="space-y-3">
-            <Skeleton className="h-5 w-40 max-w-full" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-2/3" />
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
+  return <PageLoading />;
 }

@@ -1,57 +1,57 @@
-import { getTranslations } from 'next-intl/server';
+import { redirect } from 'next/navigation';
 
-import { BrandLogo } from '@/components/layout/brand-logo';
-import { buttonVariants } from '@/components/ui/button';
-import { Link } from '@/i18n/navigation';
+import { areaHomePath, toUserRole } from '@/features/auth/redirect';
 import { resolveLocale } from '@/i18n/params';
+import { getSession } from '@/lib/session';
 
-type LandingPageProps = {
+/**
+ * The root of a locale. It renders nothing — it decides where you belong and
+ * sends you there.
+ *
+ * **There is no public landing page any more.** This used to be a pitch with
+ * two buttons on it: "Clinic team sign in" and "Client portal". Everybody who
+ * opened the product — the dietitian arriving at work, the client tapping the
+ * installed portal icon, anyone following a bare link to the domain — was made
+ * to read it and then answer a question about themselves that the app already
+ * knew the answer to. A signed-in dietitian was shown a sales page for the
+ * software they were already paying for, and asked to sign in again.
+ *
+ * So the fork moved to where the answer exists:
+ *
+ *  - signed in as staff → `/app`
+ *  - signed in as a client → `/portal`
+ *  - signed out → `/login`
+ *
+ * The two buttons are not lost. `/login` carries the same staff/client switch
+ * above its card, so the one destination still serves both audiences — that
+ * page was already the second half of the fork, and the landing page was a
+ * duplicate of it wearing marketing copy.
+ *
+ * **Most signed-out visitors never reach this file.** `src/proxy.ts` turns an
+ * anonymous request at this URL around on the cookie alone, one round trip
+ * earlier. This is the authoritative pass — it reads the session for real,
+ * which is the only way to tell a dietitian from a client — and it is also the
+ * fallback for the case the middleware cannot judge: a cookie that exists but
+ * no longer resolves to a session.
+ *
+ * `redirect` throws, so nothing is ever returned from here. The `never` return
+ * type says so.
+ */
+export default async function LocaleRoot({
+  params,
+}: {
   params: Promise<{ locale: string }>;
-};
+}): Promise<never> {
+  const locale = await resolveLocale(params);
+  const session = await getSession();
 
-export default async function LandingPage({ params }: LandingPageProps) {
-  await resolveLocale(params);
-
-  const t = await getTranslations('landing');
-  const tApp = await getTranslations('app');
-
-  return (
-    <>
-      {/*
-        No `SplashScreen` here either — `[locale]/layout.tsx` mounts it for every
-        route, this page included, so the introduction still comes before the
-        fork below. Mounting it per page was what made it a property of the
-        route rather than of the app starting. Do not add it back.
-      */}
-      <main className="mx-auto flex min-h-dvh max-w-3xl flex-col justify-center gap-8 px-6 py-16">
-        <div className="space-y-4 text-start">
-          {/*
-            The one page anyone can reach without an account, and it named the
-            product nowhere. `aria-hidden={false}` because the heading below is
-            the product's *pitch*, not its name — nothing else here identifies it.
-          */}
-          <BrandLogo aria-hidden={false} role="img" aria-label={tApp('name')} className="h-12 sm:h-14" />
-          <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-5xl">{t('title')}</h1>
-          <p className="text-pretty text-lg text-muted-foreground">{t('description')}</p>
-        </div>
-
-        {/*
-          Links styled as buttons, not <Button render={<Link/>}>: Base UI's Button
-          defaults `nativeButton` to true and warns when it renders anything other
-          than a real <button>, because that silently drops native button
-          semantics. `buttonVariants` gives the same appearance on a real anchor.
-        */}
-        <div className="flex flex-wrap gap-3">
-          <Link href="/login" className={buttonVariants({ variant: 'default' })}>
-            {t('staffCta')}
-          </Link>
-          <Link href="/client-login" className={buttonVariants({ variant: 'outline' })}>
-            {t('clientCta')}
-          </Link>
-        </div>
-
-        <p className="border-s-2 border-border ps-4 text-sm text-muted-foreground">{t('foundationNotice')}</p>
-      </main>
-    </>
+  /*
+    No email-verification check here, deliberately. An unverified staff account
+    is bounced to `/verify-email` by `requireStaffSession` the moment `/app`
+    renders, and repeating the rule in a second place is how the two come to
+    disagree. This file answers one question: which area is yours.
+  */
+  redirect(
+    session ? areaHomePath(locale, toUserRole(session.user.role)) : `/${locale}/login`,
   );
 }

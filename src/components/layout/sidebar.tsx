@@ -1406,12 +1406,12 @@ function NavLink({ href, at, ...props }: { href: NavHref; at: Location } & React
 
         Every screen behind this rail is dynamic — they all read the session —
         and Next will only fetch a dynamic route ahead as far as its
-        `loading.tsx`. So the default gets the skeleton ready and leaves the data
+        `loading.tsx`. So the default gets the spinner ready and leaves the data
         to the click, which is most of what is left of the wait now that the
         navigation itself is instant. This asks for the rest the moment the
         pointer lands on the row, which on a desktop is a beat or two before the
         click: the page is usually already in the router cache by the time it
-        happens, and the skeleton never appears at all.
+        happens, and the spinner never appears at all.
 
         **Scoped to this list on purpose.** Hovering renders a whole route on
         the server, so this belongs on a fixed set of deliberate destinations and

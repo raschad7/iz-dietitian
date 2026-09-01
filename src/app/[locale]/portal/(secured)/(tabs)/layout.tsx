@@ -12,6 +12,7 @@ import { loadPortalNotifications } from '@/features/portal/page-data';
 import { requirePortalClient } from '@/features/portal/session';
 import { resolveLocale } from '@/i18n/params';
 import { formatDate } from '@/lib/format';
+import { cn } from '@/lib/utils';
 
 type PortalTabsLayoutProps = {
   children: ReactNode;
@@ -161,7 +162,21 @@ export default async function PortalTabsLayout({ children, params }: PortalTabsL
           it lays its content out in columns from there.
         */}
         <main className="min-w-0 flex-1 px-4 pt-5 pb-24 md:px-6 md:pt-6 lg:pb-8">
-          <div className={PORTAL_COLUMN}>{children}</div>
+          {/*
+            `min-h-full` so this column is as tall as the `main` around it
+            rather than as tall as whatever it happens to hold.
+
+            It changes nothing for a real screen — the cards still stack from
+            the top, and a column taller than its content has no appearance of
+            its own. It matters for `PageLoading`, which centres itself in its
+            parent: without a height here, the percentage it measures against
+            resolves to `auto`, the box collapses to the spinner's own 40px, and
+            the mark sits tight under the greeting instead of in the middle of
+            the tab. The account screens in `(screen)` already give it a flex
+            column to fill, so this is the one place in the portal that had to
+            say it out loud.
+          */}
+          <div className={cn(PORTAL_COLUMN, 'min-h-full')}>{children}</div>
         </main>
 
         <PortalTabBar />

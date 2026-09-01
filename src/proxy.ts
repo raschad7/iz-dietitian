@@ -31,6 +31,20 @@ const PROTECTED_AREAS: Record<string, string> = {
 };
 
 /**
+ * The locale root is protected too, and it is the one entry nobody types a path
+ * for: `enzyme.iztech.net`, the browser's restored tab, the bookmark, the
+ * installed icon.
+ *
+ * There is nothing public at `/[locale]` any more — the page there only decides
+ * which area you belong in and redirects. So an anonymous request can be turned
+ * around here on the cookie alone, which saves rendering a page whose whole
+ * body is a `redirect`. Signed-in requests still fall through to it, because
+ * only the page can tell a dietitian from a client: the session cookie is
+ * opaque and says *that* someone is signed in, never which of the two they are.
+ */
+const ROOT_LOGIN_PATH = 'login';
+
+/**
  * `routing.localeCookie` is a fixed object in `src/i18n/routing.ts`, never the
  * `boolean` its type also allows — the guard is only to satisfy that wider type.
  * Same reasoning as the write in `updateLanguageAction`.
@@ -82,7 +96,13 @@ export default function proxy(request: NextRequest) {
   const segments = request.nextUrl.pathname.split('/').filter(Boolean);
   const [maybeLocale, maybeArea] = segments;
 
-  const loginPath = maybeArea === undefined ? undefined : PROTECTED_AREAS[maybeArea];
+  /*
+    `/ar` on its own is `maybeArea === undefined`, and that is the locale root
+    rather than an unprotected page — see `ROOT_LOGIN_PATH`. Anything else
+    unrecognised (`/ar/settings-typo`) stays public and reaches the 404.
+  */
+  const loginPath =
+    maybeArea === undefined ? ROOT_LOGIN_PATH : PROTECTED_AREAS[maybeArea];
 
   if (hasLocale(routing.locales, maybeLocale) && loginPath !== undefined) {
     /**
@@ -93,7 +113,16 @@ export default function proxy(request: NextRequest) {
      */
     if (!getSessionCookie(request)) {
       const loginUrl = new URL(`/${maybeLocale}/${loginPath}`, request.url);
-      loginUrl.searchParams.set('redirect', request.nextUrl.pathname);
+      /*
+        No `?redirect=` from the root. The parameter exists to return someone to
+        the screen they were reaching for, and the root is not a screen — it is
+        the redirect itself. Setting it would send them back here after signing
+        in, for a second bounce to the area `resolveSafeRedirect` would have
+        picked anyway.
+      */
+      if (maybeArea !== undefined) {
+        loginUrl.searchParams.set('redirect', request.nextUrl.pathname);
+      }
       return NextResponse.redirect(loginUrl);
     }
 

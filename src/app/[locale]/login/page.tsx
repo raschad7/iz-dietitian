@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
 import { AuthScreen } from '@/features/auth/components/auth-screen';
+import { redirectIfSignedIn } from '@/features/auth/signed-in-guard';
 import { isGoogleEnabled } from '@/lib/auth';
 import { resolveLocale } from '@/i18n/params';
 
@@ -28,6 +29,13 @@ export async function generateMetadata({ params }: LoginPageProps): Promise<Meta
 export default async function LoginPage({ params, searchParams }: LoginPageProps) {
   const locale = await resolveLocale(params);
   const { redirect: redirectTo, error } = await searchParams;
+
+  /*
+    Nobody who is already signed in needs a password field. `redirectTo` is
+    passed through so that a session which only *looked* expired to the
+    middleware still lands on the screen it was reaching for.
+  */
+  await redirectIfSignedIn(locale, redirectTo);
 
   return (
     <AuthScreen

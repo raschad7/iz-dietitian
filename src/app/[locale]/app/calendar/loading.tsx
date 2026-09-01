@@ -1,62 +1,20 @@
-import { PageHeaderSkeleton } from '@/components/layout/page-header-skeleton';
-import { CalendarGridSkeleton } from '@/features/booking/components/calendar-skeleton';
-import { CalendarSnapshot } from '@/features/booking/components/calendar-snapshot';
-import { Skeleton } from '@/components/ui/skeleton';
+import { PageLoading } from '@/components/layout/page-loading';
 
 /**
- * The calendar, while the server answers.
+ * The wait for the diary.
  *
- * **Only the first visit of a session sees a placeholder.** After that this
- * redraws the calendar the reader last had on screen — see `CalendarSnapshot`,
- * which is what `body` below is the fallback for. The rest of this file is
- * about that first visit.
+ * Its own boundary rather than the generic one under `/app`, because arriving
+ * at the diary is a real wait and the route should commit on the click like
+ * every other one.
  *
- * The grid goes full-bleed to the shell's inline edges while the toolbar keeps
- * the page gutter, so this has to do the same or the whole screen slides
- * sideways as the real thing lands — the negative margins here are `FULL_BLEED`
- * in `calendar.tsx` and the padding is its `TOOLBAR_INSET`.
+ * No `h-full` override any more: `PageLoading` fills the staff shell's `main`
+ * on its own, and the override was a second opinion about the same box.
  *
- * **It opens on the week.** A `loading.tsx` is handed no params, so it cannot
- * read `?view=` and cannot know which of the three is coming. The week is the
- * calendar's own default — `resolveView` falls back to it, and it is what the
- * rail links to — so it is both the likeliest answer and the one whose shape
- * sits between the other two: a day is this with one column, a month replaces
- * the timeline. Landing on either of those redraws the panel once, which is a
- * far smaller correction than a spinner would have been. A redraw has no such
- * problem: it knows which view it is holding, because it was that view.
- *
- * The grid itself is `CalendarGridSkeleton`, shared with the view switch inside
- * `Calendar` — the wait for a view to arrive should look the same whether you
- * came from another screen or from the tab beside it.
+ * Switching between day, week and month inside the screen does not come through
+ * here and shows nothing: every view at an anchor is drawn from appointments
+ * the browser is already holding, so the switch happens in the frame of the
+ * press. See the note in `calendar.tsx`.
  */
 export default function CalendarLoading() {
-  const body = (
-    <div className="flex min-h-0 flex-1 flex-col">
-      {/* The toolbar: day/week/month on one side, the date navigator, search
-          and "New appointment" on the other. */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-3 pt-4 md:px-5 md:pt-6">
-        <Skeleton className="h-10 w-56" />
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-10 w-40" />
-          <Skeleton className="h-10 w-32 max-sm:hidden" />
-        </div>
-      </div>
-
-      {/* Full-bleed from here down, exactly as the grid is. */}
-      <div className="-mx-3 mt-4 flex min-h-0 flex-1 flex-col md:-mx-5">
-        <CalendarGridSkeleton view="week" />
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="flex h-full min-h-0 flex-col" aria-busy>
-      {/* The header is a placeholder either way: it reads the notifications
-          feed, which is not the calendar's to remember. It is one row against a
-          whole screen that is already drawn under it. */}
-      <PageHeaderSkeleton />
-
-      <CalendarSnapshot fallback={body} />
-    </div>
-  );
+  return <PageLoading />;
 }

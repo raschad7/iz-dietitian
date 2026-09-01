@@ -674,8 +674,8 @@ export function Calendar({
    *
    * `kind: 'full'` and not the default. An `auto` prefetch of a dynamic route —
    * and every staff screen is one — stops at the nearest `loading.tsx`, which
-   * for this route is a grid of grey columns. Prefetching the skeleton would
-   * warm exactly the thing the reader is not waiting for.
+   * for this route is a spinner. Prefetching that would warm exactly the thing
+   * the reader is not waiting for.
    *
    * Nothing is prefetched up front. Warming all three views on arrival would be
    * three renders of a page to serve one, repeated on every press of the date
@@ -2040,9 +2040,9 @@ export function Calendar({
  *
  * It does not pulse. A marker that animates for as long as the state holds is
  * animating for most of a working afternoon, which is both tiring at the edge of
- * vision and a promise of change from something that is not changing.
- * `animate-pulse` is also the app's skeleton vocabulary — it means "waiting for
- * this", and a booking that exists and is merely out of sight is not waiting for
+ * vision and a promise of change from something that is not changing. Motion in
+ * this app means "waiting for this" — it is what the loading spinner is for —
+ * and a booking that exists and is merely out of sight is not waiting for
  * anything.
  */
 function BelowFoldMarker({ count, onClick }: { count: number; onClick: () => void }) {

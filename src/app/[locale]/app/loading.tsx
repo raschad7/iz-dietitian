@@ -1,5 +1,4 @@
-import { PageHeaderSkeleton } from '@/components/layout/page-header-skeleton';
-import { Skeleton } from '@/components/ui/skeleton';
+import { PageLoading } from '@/components/layout/page-loading';
 
 /**
  * What the staff app shows the instant you arrive, before the screen's data is.
@@ -16,42 +15,13 @@ import { Skeleton } from '@/components/ui/skeleton';
  * dynamic — they all read the session cookie — and Next will only prefetch a
  * dynamic route as far as its nearest `loading` file. With none in the tree
  * there was nothing static to fetch ahead, so `<Link>` prefetching did nothing
- * at all on this half of the product.
- *
- * ## Why this one is generic
+ * at all on this half of the product. **So the file has to stay even though its
+ * contents are now four lines: delete it to "simplify" and both properties go
+ * with it.**
  *
  * It stands in for the dashboard and for every screen under `/app` that has no
- * closer boundary — notifications, requests, settings, the profile. Those all
- * open the same way: the shared header, then cards. The four sections whose
- * shape is nothing like that (the register, the catalog, the calendar, the
- * planner) each have a `loading.tsx` of their own next to their page, and a
- * screen that grows a shape of its own should get one too rather than being
- * approximated here.
+ * closer boundary. It no longer traces their shape — see `PageLoading`.
  */
 export default function AppLoading() {
-  return (
-    <div className="flex flex-col gap-4" aria-busy>
-      <PageHeaderSkeleton />
-
-      {/*
-        The band of cards the dashboard opens on, at the width it opens at.
-        Three across from `lg`, stacked below it — the same grid, so the fold
-        holds the same amount before and after the data lands.
-      */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Skeleton className="h-32 rounded-lg" />
-        <Skeleton className="h-32 rounded-lg" />
-        <Skeleton className="h-32 rounded-lg" />
-      </div>
-
-      {/*
-        And the panel under it. A fixed height rather than the diary's
-        `flex-1`: this is standing in for four different screens and only one of
-        them fills the window, so a block that claimed the rest of the height
-        would leave the other three with a placeholder taller than the page they
-        are about to be.
-      */}
-      <Skeleton className="h-72 rounded-lg" />
-    </div>
-  );
+  return <PageLoading />;
 }

@@ -46,8 +46,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
+import { Spokes } from '@/components/ui/spokes';
 import { StatGrid, StatTile } from '@/components/ui/stat-tile';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -572,12 +572,16 @@ export function UiGallery({ locale }: { locale: Locale }) {
           </Button>
         </EmptyState>
 
-        <Row label="skeleton">
-          <div className="flex w-full flex-col gap-2">
-            <Skeleton className="h-4 w-1/3" />
-            <Skeleton className="h-4 w-2/3" />
-            <Skeleton className="h-4 w-1/2" />
-          </div>
+        {/*
+          The page loader, at the size `PageLoading` draws it and in the colour
+          it draws it in. `PageLoading` itself is not mounted here — it claims
+          60dvh and would push the rest of this section off the fold — so what
+          is shown is the mark it centres.
+        */}
+        <Row label="loading mark (Spokes)">
+          <Spokes className="size-10 text-spinner" role="status" aria-label="Loading" />
+          <Spokes className="size-6 text-spinner" aria-hidden />
+          <Spokes className="size-4 text-muted-foreground" aria-hidden />
         </Row>
       </Section>
 

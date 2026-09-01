@@ -76,7 +76,7 @@ Check the directory itself for the exact API. The current shared inventory is:
 | Surfaces and overlays | `Card`, `Dialog`, `Sheet`, `Popover`, `DropdownMenu`, `Tooltip`, `TooltipHint`, `Toaster`/`toast` |
 | Navigation | `Sidebar`, `Tabs`, `PanelTabs`, `Pagination`, `FitRows` |
 | Data display | `Table`, `Chart`, `ChartTip`, `StatGrid`, `StatTile`, `Progress`, `ComfortBand`, `Timeline` |
-| Feedback | `Callout`, `EmptyState`, `Skeleton`, `Spinner` |
+| Feedback | `Callout`, `EmptyState`, `Spokes`, `Spinner`, `PageLoading` |
 | Identity and graphics | `Avatar`, `Icon`, `Caret` |
 
 Some files export several parts. Compose those parts rather than rebuilding the
@@ -665,8 +665,24 @@ stylesheet and against the call sites the frame replaced.
 ### Empty, loading, and status feedback
 
 - `EmptyState` explains what is missing and offers at most one clear next action.
-- `Skeleton` preserves expected layout during content loading.
-- `Spinner` is for bounded action progress, not an otherwise empty page.
+- `PageLoading` is the only loading screen. Every `loading.tsx` renders it and
+  nothing else: one `Spokes` mark in `text-spinner`, centred on the page, no
+  tracing of the page that is coming.
+- `Spokes` is that mark — eight spokes, from the `@loading-ui` registry recorded
+  in `components.json`. It draws in `currentColor`; the screen picks the green.
+- `Spinner` stays for bounded action progress *inside a control* — a submitting
+  button, a field resolving. It is the `refresh` glyph, not the page mark, and
+  the two are not interchangeable: one says "this control is working", the other
+  says "this screen is not here yet".
+- **There are no skeletons.** The `Skeleton` component and the `.q-skeleton`
+  sweep were removed. A skeleton is a second copy of a layout that has to be
+  kept in step with the real one by hand, and it guesses at counts it cannot
+  know — six register rows for a clinic with two. Do not reintroduce one, and do
+  not hand-roll the effect with `animate-pulse` on grey blocks.
+- **Keep every `loading.tsx` file.** They are not decoration: a route without one
+  does not commit its navigation until the server has finished the page, and
+  Next will not prefetch a dynamic route past its nearest boundary. Deleting one
+  because "it only renders a spinner now" costs both.
 - `Callout tone="neutral"` communicates notable information,
   `attention` requests follow-up, and `medical` communicates clinical risk.
 - There is no generic success callout. Confirm close-to-source when possible.

@@ -55,10 +55,14 @@ export default async function NotFound() {
   /*
    * Where "out of here" goes depends on who is asking.
    *
-   * A signed-out visitor sent to `/app` would land on a login screen, which is
-   * a second dead end wearing a form — so they get the public landing page. A
-   * signed-in one sent to `/` would land on the marketing page for a product
-   * they are already inside. Neither is wrong exactly; both are useless.
+   * A signed-in visitor sent to `/login` would be bounced straight back into
+   * the area they are already in — a redirect for a link that could have aimed
+   * there in the first place. A signed-out one sent to `/app` would meet the
+   * same guard in reverse and arrive at `/login` anyway, a hop later.
+   *
+   * So each gets their own end of it directly. There is no third destination:
+   * the public landing page this used to offer is gone, and `/` now resolves to
+   * exactly the two branches below.
    *
    * The role split is the same one `requireRole` in `src/lib/session.ts`
    * enforces, read here rather than left to it. A portal client pointed at
@@ -79,13 +83,14 @@ export default async function NotFound() {
   const session = await getSession();
   const staff = session?.user.role === "staff";
 
-  const destination = session ? (staff ? "/app" : "/portal") : "/";
+  const destination = session ? (staff ? "/app" : "/portal") : "/login";
 
   /*
    * Two labels for three destinations, and they line up: "home page" is honest
-   * for both the portal's own home and the public one, where "dashboard" is a
-   * word only the staff area uses for itself (`nav.dashboard`) — the portal
-   * calls its equivalent screen Home (`nav.portalHome`).
+   * for the portal's own home and for the sign-in screen a signed-out visitor
+   * gets, where "dashboard" is a word only the staff area uses for itself
+   * (`nav.dashboard`) — the portal calls its equivalent screen Home
+   * (`nav.portalHome`).
    */
   const cta = staff ? t("notFoundCtaDashboard") : t("notFoundCtaHome");
 
@@ -122,7 +127,6 @@ export default async function NotFound() {
 
         A link styled as a control rather than `<Button render={<Link/>}>` —
         Base UI's Button warns when it renders anything but a real `<button>`.
-        Same reasoning as the landing page.
 
         ## The colours
 
