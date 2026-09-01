@@ -356,28 +356,6 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-/**
- * The skeleton a card shows while its data loads. Same shape, same footprint,
- * so nothing jumps when the content arrives.
- */
-function CardSkeleton({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="card-skeleton"
-      aria-hidden
-      className={cn(
-        "flex flex-col gap-3 rounded-lg bg-card p-4 shadow-card ring-1 ring-foreground/10",
-        className
-      )}
-      {...props}
-    >
-      <div className="h-4 w-1/3 rounded-sm bg-muted motion-safe:animate-pulse" />
-      <div className="h-3 w-2/3 rounded-sm bg-muted motion-safe:animate-pulse" />
-      <div className="h-3 w-1/2 rounded-sm bg-muted motion-safe:animate-pulse" />
-    </div>
-  )
-}
-
 export {
   Card,
   CardHeader,
@@ -388,6 +366,5 @@ export {
   CardContent,
   CardField,
   CardDivider,
-  CardSkeleton,
   cardVariants,
 }

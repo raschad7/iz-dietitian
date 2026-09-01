@@ -67,9 +67,13 @@ export default function LocaleError({
             `notFoundCtaHome` because this link goes to `/`. The key was
             `notFoundCta` and served both this screen and the 404 page; that one
             now picks its destination from the session, so the label was split
-            in two by where it leads. This is a client component and cannot read
-            a session, but it has no need to — the public home is the right
-            landing for a public screen that failed. */}
+            in two by where it leads.
+
+            This is a client component and cannot read a session, and it no
+            longer needs to: `/` is not a public home any more, it is the
+            redirect that asks that very question on the server — staff to
+            `/app`, a client to `/portal`, nobody to `/login`. So this one link
+            is right for all three without knowing which it is. */}
         <Link href="/" className={buttonVariants({ variant: 'ghost' })}>
           {t('notFoundCtaHome')}
         </Link>

@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
 import { AuthScreen } from '@/features/auth/components/auth-screen';
+import { redirectIfSignedIn } from '@/features/auth/signed-in-guard';
 import { resolveLocale } from '@/i18n/params';
 import { isGoogleEnabled } from '@/lib/auth';
 
@@ -25,6 +26,13 @@ export async function generateMetadata({ params }: SignUpPageProps): Promise<Met
  */
 export default async function SignUpPage({ params }: SignUpPageProps) {
   const locale = await resolveLocale(params);
+
+  /*
+    Signed in already, so there is nothing here to do — `signUpStaff` would
+    refuse the submit anyway. Someone who genuinely wants a second account signs
+    out first, which is the honest order of those two steps.
+  */
+  await redirectIfSignedIn(locale);
 
   return <AuthScreen locale={locale} showGoogle={isGoogleEnabled} initialMode="signUp" />;
 }

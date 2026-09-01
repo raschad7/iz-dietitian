@@ -32,11 +32,11 @@ function arrivingView(): CalendarView {
 /**
  * The calendar the reader last looked at, drawn again while the real one loads.
  *
- * ## Why the skeleton was not enough
+ * ## Why the route's own loader was not enough
  *
  * `loading.tsx` commits the navigation on the click and fills the page in
- * underneath — see the note on `CalendarLoading` — but what it filled in was a
- * grey grid, every single time. The calendar is a screen a dietitian steps away
+ * underneath — see the note on `CalendarLoading` — but what it filled in was an
+ * empty screen, every single time. The calendar is a screen a dietitian steps away
  * from and back to all day: open a client's record, come back; take a booking,
  * come back. Each of those returns re-ran the page and redrew the placeholder,
  * so the most-visited screen in the app was the one that never looked loaded.
@@ -47,7 +47,7 @@ function arrivingView(): CalendarView {
  * exactly what a working morning is full of.
  *
  * So the last frame is kept in the tab — see `calendar-snapshot-store` — and
- * this redraws it. First visit of a session: the skeleton, because there is
+ * this redraws it. First visit of a session: the spinner, because there is
  * nothing to redraw. Every visit after it: the calendar, immediately, replaced
  * by the server's answer the moment it lands.
  *

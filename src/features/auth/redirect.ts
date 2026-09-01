@@ -18,12 +18,46 @@ const AREA_BY_ROLE = {
   client: 'portal',
 } as const satisfies Record<UserRole, string>;
 
+/**
+ * Narrows the role as Better Auth hands it over.
+ *
+ * `session.user.role` is typed `string | null | undefined` — the plugin widens
+ * every additional field, whatever the column says. In the database it is
+ * `not null` with a default of `'staff'` and it is written server-side only
+ * (see the `user.create.before` hook in `src/lib/auth.ts`), so the loose half of
+ * that type describes no row this app can produce.
+ *
+ * `'client'` is the value that has to be recognised; anything else resolves to
+ * the column's own default rather than throwing, because both callers are only
+ * choosing *where to point a redirect*. Neither grants anything: an account
+ * that somehow arrived at the wrong area meets `requireStaffSession` or
+ * `requireClientSession` there and is turned around. The cost of the fallback
+ * being wrong is one extra hop, not access.
+ */
+export function toUserRole(role: string | null | undefined): UserRole {
+  return role === 'client' ? 'client' : 'staff';
+}
+
+/**
+ * Where a role's own area starts — `/ar/app` for staff, `/ar/portal` for a
+ * client.
+ *
+ * Exported because the locale root needs the same answer for a different
+ * question. `resolveSafeRedirect` below asks "may I send you where you asked to
+ * go?"; the root asks "where do you belong at all?" — no untrusted input, no
+ * allow-list, just the mapping. Writing that mapping out a second time there is
+ * how the two come to disagree.
+ */
+export function areaHomePath(locale: Locale, role: UserRole): string {
+  return `/${locale}/${AREA_BY_ROLE[role]}`;
+}
+
 export function resolveSafeRedirect(
   requested: string | null | undefined,
   locale: Locale,
   role: UserRole,
 ): string {
-  const home = `/${locale}/${AREA_BY_ROLE[role]}`;
+  const home = areaHomePath(locale, role);
 
   if (!requested) return home;
 

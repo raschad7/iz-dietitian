@@ -17,7 +17,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { Skeleton } from "@/components/ui/skeleton"
 import {
   Tooltip,
   TooltipContent,
@@ -456,11 +455,6 @@ function SidebarTrigger({
 }) {
   const { toggleSidebar, locked, state, isMobile, openMobile } = useSidebar()
 
-  // Nothing to toggle, so nothing to press. A control that is present and inert
-  // is worse than an absent one: it invites the press and then says nothing
-  // about why the rail did not move.
-  if (locked) return null
-
   /*
     Whether the rail is currently showing its labels, which is what the glyph
     below reports. Two sources because there are two rails: a phone renders the
@@ -468,6 +462,65 @@ function SidebarTrigger({
     column and stays on whatever it was last set to underneath it.
   */
   const expanded = isMobile ? openMobile : state === "expanded"
+
+  /*
+    ## The tooltip is controlled, and it is not a preference
+
+    **A hint was surviving the button it belonged to.** `AppSidebar` mounts this
+    component twice — once in `.q-rail-collapse` beside the mark, once in
+    `.q-rail-drop` on the line below — and the fold decides which of the two is
+    on screen. It decides it in CSS: the losing wrapper goes to `0fr` and
+    `opacity: 0` (globals.css), so the button is not unmounted, moved or
+    disabled. It is clipped to nothing exactly where the pointer is resting.
+
+    A browser only recomputes what the pointer is over when something *moves*
+    the pointer. An element that shrinks to zero underneath a stationary cursor
+    fires no `pointerleave`, so Base UI never hears that the hover ended and an
+    uncontrolled tooltip stays open for the rest of the session — a bubble
+    floating beside the rail with no control under it, which is what the report
+    showed. The popup is portalled, so no ancestor of the trigger can clip it
+    away either.
+
+    Holding the state here means the fold can end the hover itself. The effect
+    fires on the transition the CSS is animating, which is the same moment the
+    button stops being pointable.
+
+    `isMobile` is in the dependencies for the same reason: crossing the
+    breakpoint swaps the desktop column for the drawer, which retires this
+    button just as thoroughly as the fold does.
+
+    ## Why the reset is in the render body and not an effect
+
+    This began as `useEffect(() => setTooltipOpen(false), [expanded])`, which
+    `react-hooks/set-state-in-effect` refuses — an effect that immediately sets
+    state schedules a second render for something the first render already knew.
+    What is written instead is React's own "adjusting state when a prop changes"
+    pattern: compare against the value last rendered with, and correct during
+    the render that noticed. React re-runs this component before touching the
+    DOM, so the bubble never gets a frame in which it is open but its button is
+    gone.
+
+    `railShape` rather than a boolean, because two different changes retire this
+    button: the fold, and crossing the `md` breakpoint — which swaps the desktop
+    column for the drawer and is just as final for the hint.
+
+    ⚠ All three hooks run before the `locked` early return below. They are
+    unconditional on purpose — moving any of them past that branch would make
+    the hook order depend on a prop.
+  */
+  const [tooltipOpen, setTooltipOpen] = React.useState(false)
+  const railShape = `${isMobile ? "drawer" : "rail"}:${expanded}`
+  const [renderedShape, setRenderedShape] = React.useState(railShape)
+
+  if (renderedShape !== railShape) {
+    setRenderedShape(railShape)
+    setTooltipOpen(false)
+  }
+
+  // Nothing to toggle, so nothing to press. A control that is present and inert
+  // is worse than an absent one: it invites the press and then says nothing
+  // about why the rail did not move.
+  if (locked) return null
   const label = (expanded ? collapseLabel : expandLabel) ?? "Toggle Sidebar"
 
   const trigger = (
@@ -567,7 +620,7 @@ function SidebarTrigger({
   if (!expandLabel) return trigger
 
   return (
-    <Tooltip>
+    <Tooltip open={tooltipOpen} onOpenChange={setTooltipOpen}>
       <TooltipTrigger render={trigger} />
       <TooltipContent
         // `inline-end`, not `right`: collapsed, the rail sits on the
@@ -924,6 +977,37 @@ function SidebarMenuButton({
     tooltip?: string | React.ComponentProps<typeof TooltipContent>
   } & VariantProps<typeof sidebarMenuButtonVariants>) {
   const { isMobile, state } = useSidebar()
+
+  /*
+    Controlled for the reason `SidebarTrigger`'s is, and against the same
+    mechanism — see the long note there.
+
+    A destination row is mounted twice as well (`NavRow` draws both shapes and
+    lets CSS pick), and the fold clips the losing one to nothing under whatever
+    the pointer happens to be resting on. No `pointerleave` is fired for a box
+    that shrinks beneath a stationary cursor, so the hint stayed open with no
+    row beneath it. `hidden` below only stops it being *painted* while the rail
+    is open; it does not end the hover, so the bubble came back the next time
+    the rail folded.
+
+    Folding is not the only way to reach it here: the rail also folds from the
+    keyboard shortcut and, on a tablet, from a press on the scrim — both of
+    which leave the pointer exactly where it was, which is the condition.
+
+    Corrected during render rather than from an effect, for the reason set out
+    at length on `SidebarTrigger` — an effect that only sets state is a second
+    render for something the first one already knew, and the lint rule that
+    bans it is right.
+  */
+  const [tooltipOpen, setTooltipOpen] = React.useState(false)
+  const railShape = `${isMobile ? "drawer" : "rail"}:${state}`
+  const [renderedShape, setRenderedShape] = React.useState(railShape)
+
+  if (renderedShape !== railShape) {
+    setRenderedShape(railShape)
+    setTooltipOpen(false)
+  }
+
   const comp = useRender({
     defaultTagName: "button",
     props: mergeProps<"button">(
@@ -952,7 +1036,7 @@ function SidebarMenuButton({
   }
 
   return (
-    <Tooltip>
+    <Tooltip open={tooltipOpen} onOpenChange={setTooltipOpen}>
       {comp}
       <TooltipContent
         // `inline-end`, not `right`: collapsed, the sidebar sits on the
@@ -1010,44 +1094,6 @@ function SidebarMenuBadge({
       )}
       {...props}
     />
-  )
-}
-
-function SidebarMenuSkeleton({
-  className,
-  showIcon = false,
-  ...props
-}: React.ComponentProps<"div"> & {
-  showIcon?: boolean
-}) {
-  // Random width between 50 to 90%.
-  const [width] = React.useState(() => {
-    return `${Math.floor(Math.random() * 40) + 50}%`
-  })
-
-  return (
-    <div
-      data-slot="sidebar-menu-skeleton"
-      data-sidebar="menu-skeleton"
-      className={cn("flex h-8 items-center gap-2 rounded-md px-2", className)}
-      {...props}
-    >
-      {showIcon && (
-        <Skeleton
-          className="size-4 rounded-md"
-          data-sidebar="menu-skeleton-icon"
-        />
-      )}
-      <Skeleton
-        className="h-4 max-w-(--skeleton-width) flex-1"
-        data-sidebar="menu-skeleton-text"
-        style={
-          {
-            "--skeleton-width": width,
-          } as React.CSSProperties
-        }
-      />
-    </div>
   )
 }
 
@@ -1163,7 +1209,6 @@ export {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSkeleton,
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,

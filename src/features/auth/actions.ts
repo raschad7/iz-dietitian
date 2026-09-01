@@ -605,7 +605,15 @@ export async function removePasskeyAction(
   return { status: 'success', messageKey: 'passkeyRemoved' };
 }
 
-/** Ends the session and returns to the public landing page. */
+/**
+ * Ends the session and returns to the sign-in screen.
+ *
+ * `/login` rather than `/${locale}`, which is where this pointed while there
+ * was a landing page to point at. The root now redirects straight here for a
+ * request with no session, so aiming at it would be the same destination by way
+ * of an extra round trip — and the cookie is cleared a moment before the
+ * redirect, so it would always be the anonymous branch.
+ */
 export async function signOutAction(formData: FormData): Promise<void> {
   const locale = localeSchema.parse(formData.get('locale'));
 
@@ -616,5 +624,5 @@ export async function signOutAction(formData: FormData): Promise<void> {
     console.error('[auth] sign-out failed', error);
   }
 
-  redirect(`/${locale}`);
+  redirect(`/${locale}/login`);
 }

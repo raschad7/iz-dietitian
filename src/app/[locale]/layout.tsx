@@ -331,9 +331,9 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
         {/*
           The launch screen, mounted once for the whole product.
 
-          It used to be mounted three times — both shells and the landing page —
-          which meant it was tied to *where* the reader was rather than to the
-          app starting. A document is loaded on whatever route was last open, so
+          It used to be mounted three times — both shells and the landing page
+          that used to sit at the locale root — which meant it was tied to
+          *where* the reader was rather than to the app starting. A document is loaded on whatever route was last open, so
           reloading a nested route under `/app` played nothing, while every
           sign-in and sign-out replayed it because those land on a route that
           mounts a shell.

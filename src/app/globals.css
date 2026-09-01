@@ -671,6 +671,9 @@
   --color-accent-green: var(--accent-green);
   --color-on-accent: var(--on-accent);
 
+  /* The loading mark's green — `text-spinner`. See `--spinner` for the step. */
+  --color-spinner: var(--spinner);
+
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-destructive-subtle: var(--destructive-subtle);
@@ -1031,6 +1034,24 @@
   /* text.onAccent — green-950 on green-300 is ~9.9:1, comfortably over AA.
      Still not `--primary`: a mid-ramp green on a light green fill fails. */
   --on-accent: var(--green-950);
+
+  /*
+   * The loading mark — `Spokes`, drawn by `PageLoading` and nothing else.
+   *
+   * green-500, which is the ramp's light green taken one step down. The lighter
+   * steps above it are fills, not marks: green-300 measures about 1.7:1 on white
+   * (see `--accent-green` right above) and green-400 — `--primary` — is not much
+   * better, so eight 2px strokes in either would be a suggestion of a spinner
+   * rather than one. green-500 is 3.47:1 on the light canvas, over the 3:1 floor
+   * WCAG sets for a graphic, and the last step that still reads as *light* green
+   * rather than as the dark brand green of green-600 and below.
+   *
+   * One value for both themes, deliberately: §15 remaps bg, text and border and
+   * leaves brand hues alone, and this is a brand hue. It sits on green-950 in
+   * dark mode, where a light green has more contrast than it does here, not
+   * less — so the step that passes on white passes there too.
+   */
+  --spinner: var(--green-500);
 
   /* Border & focus */
   --border: var(--n-200);               /* border.divider */
@@ -2706,21 +2727,19 @@
   }
 
   /*
-   * §9.7 loading skeleton: an green-tinted sweep across a sunken fill, 1600ms.
+   * ── Direction is written `[dir]`, never `:dir()` ──
    *
-   * These bars stand in for the *contents* of a real `Card`, not for the card
-   * itself, so they take the small radius rather than the card's. A caller that
-   * needs a card-shaped skeleton should shape the card, not the bar.
+   * The rule for every physical property in this file, kept here because the
+   * loading skeletons that used to carry it are gone and the note is still
+   * load-bearing — `.q-auth-*` at the end of the file cites it.
    *
-   * The gradient is symmetric, so it mirrors for free; only the direction of
-   * travel has to flip, and `translateX` has no logical form.
-   *
-   * That flip is keyed off `[dir='rtl']` — set on `<html>` by the locale layout —
-   * and deliberately NOT off `:dir(rtl)`, which reads better but does not
-   * survive: Lightning CSS drops every `:dir()` rule from the production build.
-   * `.q-field` used to depend on one for the inline-start anchor of its focus
-   * line and silently lost it in Arabic; that whole treatment is gone now, and
-   * nothing in this file may reintroduce a `:dir()` rule.
+   * A physical transform or clip has no logical form, so its direction has to
+   * be stated. State it against `[dir='rtl']` / `[dir='ltr']`, set on `<html>`
+   * by the locale layout, and deliberately NOT against `:dir(rtl)`, which reads
+   * better but does not survive: Lightning CSS drops every `:dir()` rule from
+   * the production build. `.q-field` used to depend on one for the inline-start
+   * anchor of its focus line and silently lost it in Arabic. Nothing in this
+   * file may reintroduce a `:dir()` rule.
    */
   /*
    * ── The cue a hidden scrollbar owes its surface ──
@@ -2747,7 +2766,7 @@
    * So each edge shows a shadow only while there is content past that edge —
    * which is precisely what a scrollbar was telling you.
    *
-   * Symmetric, so it mirrors for RTL for free, like `.q-skeleton` below. Built
+   * Symmetric, so it mirrors for RTL for free. Built
    * from theme tokens, so it follows the dark palette. `--scroll-cue-surface` is
    * the colour of whatever the scroller sits on; override it on a scroller
    * inside a card, where the ground is `--card` rather than the page.
@@ -2892,43 +2911,6 @@
       100% 0.625rem,
       100% 0.625rem;
     background-attachment: local, local, scroll, scroll;
-  }
-
-  .q-skeleton {
-    position: relative;
-    overflow: hidden;
-    background: var(--accent);
-    border-radius: var(--enzyme-radius-sm);
-  }
-
-  .q-skeleton::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      to right,
-      transparent,
-      color-mix(in oklch, var(--green-100) 90%, transparent),
-      transparent
-    );
-    transform: translateX(-100%);
-    animation: q-skeleton-sweep 1600ms ease-in-out infinite;
-  }
-
-  .dark .q-skeleton::after {
-    /* green-100 on an green-800 fill would strobe; §15 keeps brand hues but the
-       sweep is a surface effect, so it follows the surface. */
-    background: linear-gradient(
-      to right,
-      transparent,
-      color-mix(in oklch, var(--green-700) 90%, transparent),
-      transparent
-    );
-  }
-
-  [dir='rtl'] .q-skeleton::after {
-    transform: translateX(100%);
-    animation-name: q-skeleton-sweep-rtl;
   }
 
   /*
@@ -6291,18 +6273,6 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   }
 }
 
-@keyframes q-skeleton-sweep {
-  to {
-    transform: translateX(100%);
-  }
-}
-
-@keyframes q-skeleton-sweep-rtl {
-  to {
-    transform: translateX(-100%);
-  }
-}
-
 @keyframes q-flame-pop {
   0% {
     transform: scale(1);
@@ -8435,7 +8405,7 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
  * form, so the direction has to be stated. It is keyed off `[dir='rtl']` /
  * `[dir='ltr']`, set on `<html>` by the locale layout, and deliberately NOT off
  * `:dir()`: Lightning CSS drops every `:dir()` rule from the production build,
- * which is written up at greater length beside `.q-skeleton`. What is stated is
+ * written up at greater length under "Direction is written `[dir]`" above. What is stated is
  * a pair of custom properties rather than a second keyframe set — the keyframes
  * read the properties, so there is one description of the gesture and only its
  * sign changes.

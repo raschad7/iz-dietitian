@@ -60,10 +60,10 @@ const PLOT_HEIGHT = 'h-[132px] w-full';
 /**
  * What stands in while Recharts arrives.
  *
- * Deliberately empty rather than a skeleton with a shimmer: the plots sit
+ * Deliberately empty rather than a spinner: the plots sit
  * *inside* stat cards that are fully server-rendered — heading, headline figure
  * and footer are all painted already — so the card reads as complete and only
- * its illustration is late. A pulsing block there would announce a wait the
+ * its illustration is late. Anything turning there would announce a wait the
  * reader has no reason to care about, and would draw the eye away from the
  * number the card exists to show.
  */

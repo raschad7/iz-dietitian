@@ -49,7 +49,7 @@ export function rememberCalendar(next: CalendarFrame): void {
  * swapped it for a month. The wrong grid, confidently, every time the switch
  * was pressed.
  *
- * Keyed, each view redraws itself: the skeleton shows once per view per
+ * Keyed, each view redraws itself: the spinner shows once per view per
  * session — the first time there is nothing to redraw — and never again.
  */
 export function takeCalendarFrame(view: CalendarView): CalendarFrame | null {

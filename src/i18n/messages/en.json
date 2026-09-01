@@ -142,13 +142,6 @@
     "saveFailed": "That could not be saved. Try again.",
     "notSet": "Not set"
   },
-  "landing": {
-    "title": "Run your dietitian practice in one place",
-    "description": "Follow up on clients, build nutrition plans, schedule appointments and record payments — in Arabic and English.",
-    "staffCta": "Clinic team sign in",
-    "clientCta": "Client portal",
-    "foundationNotice": "This is a foundation build: structure, auth and i18n are in place, no feature modules have been built yet."
-  },
   "login": {
     "title": "Sign in",
     "roleQuestion": "Who is signing in?",

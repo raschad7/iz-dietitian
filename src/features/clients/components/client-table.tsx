@@ -736,7 +736,7 @@ function WeeklyProgress({
  * It used to draw the same bar as a measured cell, sitting at zero — the
  * argument being that a column where every row carries a bar is a column you
  * can scan. What it actually produced was a grey capsule under a dash on every
- * row of a quiet register, which is the exact shape of a loading skeleton: the
+ * row of a quiet register, which reads as an unfinished placeholder: the
  * reader's first reading of the column was "this has not finished loading",
  * and their second was "these people are at 0%" — the one accusation this cell
  * exists to avoid making.

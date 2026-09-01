@@ -35,7 +35,7 @@ const APPEAR_AFTER_MS = 80;
  * lands on the address it started from — the same `?page=2` clicked twice —
  * never changes it, so without a ceiling the bar would trickle for the rest of
  * the session. Ten seconds is past any navigation this app has; a route slower
- * than that has a skeleton on screen saying so, which is the better signal
+ * than that has a spinner on screen saying so, which is the better signal
  * anyway.
  */
 const GIVE_UP_AFTER_MS = 10_000;
@@ -132,11 +132,12 @@ export function finishNavigationProgress(): void {
  * Watches the address bar and finishes the bar when it moves.
  *
  * **The bar ends when the reader arrives, not when the page is full.** With a
- * `loading.tsx` boundary on the route, arriving means the skeleton — and that
- * is the right place to stop: the bar's job is the gap between clicking and
- * being somewhere, and from the skeleton onwards the page itself is saying what
- * is still on its way, in the shape of the thing that is coming. Two loading
- * indicators for one wait is one too many.
+ * `loading.tsx` boundary on the route, arriving means that route's spinner —
+ * and that is the right place to stop: the bar's job is the gap between
+ * clicking and being somewhere, and from the spinner onwards the page itself
+ * is saying that something is still on its way. Two loading indicators for one
+ * wait is one too many, and a trickling bar above a turning spinner is the
+ * worst pairing of the two — the same message at two different speeds.
  *
  * The search string is watched alongside the path because half the navigations
  * in the staff app are query-string ones — `?view=week`, `?status=archived`,

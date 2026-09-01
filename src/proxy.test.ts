@@ -98,3 +98,51 @@ describe('what the rule deliberately does not touch', () => {
     );
   });
 });
+
+/**
+ * The locale root is a redirect, not a page — see `ROOT_LOGIN_PATH` in
+ * `proxy.ts`. There is nothing public there any more, so an anonymous request
+ * is turned around here rather than being rendered just to be redirected.
+ */
+describe('the locale root', () => {
+  test('a signed-out visitor is sent to sign-in', () => {
+    expect(redirectedTo(proxy(request('/ar', { session: false })))).toBe('/ar/login');
+  });
+
+  test('on either locale, keeping the prefix it arrived on', () => {
+    expect(redirectedTo(proxy(request('/en', { session: false })))).toBe('/en/login');
+  });
+
+  test('and carries no ?redirect= back to itself', () => {
+    // The root is not a screen anyone was reaching for, so returning to it after
+    // sign-in would only bounce a second time.
+    const location = new URL(
+      proxy(request('/ar', { session: false })).headers.get('location')!,
+      'https://clinic.example',
+    );
+
+    expect(location.search).toBe('');
+  });
+
+  test('a signed-in request falls through to the page, which reads the role', () => {
+    // The cookie is opaque: it says *that* someone is signed in, never whether
+    // they are staff or a client. Only `[locale]/page.tsx` can tell.
+    expect(redirectedTo(proxy(request('/ar')))).toBeNull();
+  });
+
+  test('a protected area still carries the screen that was asked for', () => {
+    const location = new URL(
+      proxy(request('/ar/app/clients', { session: false })).headers.get('location')!,
+      'https://clinic.example',
+    );
+
+    expect(location.pathname).toBe('/ar/login');
+    expect(location.searchParams.get('redirect')).toBe('/ar/app/clients');
+  });
+
+  test('an unmatched path under a locale stays public and reaches the 404', () => {
+    // Only the root and the two named areas are guarded here; everything else
+    // is `[...rest]`, which must not be turned into a sign-in redirect.
+    expect(redirectedTo(proxy(request('/ar/nonsense-typo', { session: false })))).toBeNull();
+  });
+});

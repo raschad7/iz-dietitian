@@ -522,8 +522,8 @@ export async function reissuePortalPasswordAction(
       evicts this record from the client Router Cache, so the router has to
       re-fetch the route it is already standing on — and a segment re-fetched
       with nothing cached under it renders `[clientId]/loading.tsx` in the gap.
-      Pressing "issue a new password" flashed the record's skeleton over a page
-      whose contents had not changed.
+      Pressing "issue a new password" flashed the record's loading spinner over
+      a page whose contents had not changed.
 
       The new password reaches the screen through the returned state, which is
       the only place it could ever come from: nothing stores it in plaintext,

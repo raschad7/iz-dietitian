@@ -17,7 +17,8 @@ import { notFound } from 'next/navigation';
  * no correct language to hardcode.
  *
  * `[...rest]` rather than `[[...rest]]`: the optional form would also match the
- * locale root itself and shadow `page.tsx`, turning the landing page into a 404.
+ * locale root itself and shadow `page.tsx`, turning the root's sign-in / area
+ * redirect into a 404.
  */
 export default function CatchAllNotFound(): never {
   notFound();
