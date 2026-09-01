@@ -1,7 +1,44 @@
 import { describe, expect, test } from 'bun:test';
 
 import { reconcile, type CatalogDish } from './generate';
+import type { DishIngredientDetail } from './nutrition';
 import { parseGeneratedPlan } from './schema';
+
+/**
+ * A recipe of one weighed line worth `kcal` at one serving.
+ *
+ * `reconcile` portions a recipe to decide what a multiplier produces, so a
+ * catalog entry needs one. A single grams-measured line is the simplest thing
+ * that behaves: it steps in tens and meets no ceiling, so the portion these tests
+ * assert on is the multiplier and nothing else.
+ */
+function recipeOf(kcal: number): DishIngredientDetail[] {
+  return [
+    {
+      quantityGrams: kcal,
+      food: {
+        id: `food-${kcal}`,
+        nameAr: 'مكوّن',
+        nameEn: 'Ingredient',
+        category: 'grains',
+        kcal: 100,
+        protein: 5,
+        carbs: 10,
+        fat: 1,
+        fiber: null,
+        sugar: null,
+        saturatedFat: null,
+        sodium: null,
+        cholesterol: null,
+        calcium: null,
+        iron: null,
+        potassium: null,
+      },
+      isPrimary: true,
+      sortOrder: 0,
+    },
+  ];
+}
 
 /**
  * A catalog small enough to reason about, shaped like the real one.
@@ -20,6 +57,7 @@ const CATALOG: CatalogDish[] = [
     baseKcal: 620,
     baseProtein: 22,
     nutritionCategory: 'balanced',
+    recipe: recipeOf(620),
   },
   {
     id: 'dish-fasolia',
@@ -31,6 +69,7 @@ const CATALOG: CatalogDish[] = [
     baseKcal: 600,
     baseProtein: 20,
     nutritionCategory: 'balanced',
+    recipe: recipeOf(600),
   },
   {
     id: 'dish-nuts',
@@ -42,6 +81,7 @@ const CATALOG: CatalogDish[] = [
     baseKcal: 610,
     baseProtein: 18,
     nutritionCategory: 'balanced',
+    recipe: recipeOf(610),
   },
   {
     id: 'dish-labaneh',
@@ -53,6 +93,7 @@ const CATALOG: CatalogDish[] = [
     baseKcal: 380,
     baseProtein: 18,
     nutritionCategory: 'balanced',
+    recipe: recipeOf(380),
   },
   {
     id: 'dish-tiny',
@@ -64,6 +105,7 @@ const CATALOG: CatalogDish[] = [
     baseKcal: 120,
     baseProtein: 4,
     nutritionCategory: 'balanced',
+    recipe: recipeOf(120),
   },
 ];
 

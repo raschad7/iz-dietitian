@@ -132,6 +132,21 @@ export function pluralizeEnglishUnit(label: string, value: number): string {
  */
 const FRACTIONAL_LABEL = /^(half|quarter|third) /i;
 
+/**
+ * The point at which counting stops being how anyone states an amount.
+ *
+ * `فراولة 24 حبة` is not a portion a person counts out; `فراولة 288 غ` is a
+ * portion they weigh. Ten is where the two cross for the foods this applies to —
+ * small countable produce, which is the only family whose recipes reach these
+ * numbers.
+ *
+ * Deliberately not applied to spoons, cups or loaves: `12 ملعقة أرز` is exactly
+ * how a dietitian writes rice, and rewriting it into grams would be replacing
+ * her unit with ours.
+ */
+const MAX_WRITTEN_COUNT = 10;
+const COUNTED_LABELS = new Set(['Piece', 'Slice']);
+
 /** `1½ رغيف` / `1½ loaves` — a count and its unit, in the reader's language. */
 export function portionText(
   portion: { labelAr: string; labelEn: string },
@@ -172,9 +187,15 @@ export function ingredientAmount(
     portionQuantity > 0 &&
     portion.grams > 0
   ) {
+    const tooManyToCount =
+      COUNTED_LABELS.has(portion.labelEn) && portionQuantity > MAX_WRITTEN_COUNT;
+
     // "ثلاثة أرباع نصف كوب" is not a quantity anyone acts on. A whole number of
     // half-cups still is, so only the fractional case falls back.
-    if (Number.isInteger(portionQuantity) || !FRACTIONAL_LABEL.test(portion.labelEn)) {
+    if (
+      !tooManyToCount &&
+      (Number.isInteger(portionQuantity) || !FRACTIONAL_LABEL.test(portion.labelEn))
+    ) {
       return { kind: 'portion', text: portionText(portion, portionQuantity, locale) };
     }
   }

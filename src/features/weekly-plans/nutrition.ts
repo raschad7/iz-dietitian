@@ -218,7 +218,13 @@ export type DishIngredientDetail = {
    * from. A portion below never enters this arithmetic.
    */
   quantityGrams: number;
-  food: { id: string; nameAr: string; nameEn: string } & FoodNutrients;
+  /**
+   * `category` is optional because a caller that only needs nutrition — the dish
+   * editor's live preview — has no use for it. Every reader that portions a meal
+   * gets it from `foodColumns`, which has always selected it; portioning falls
+   * back to the unremarkable grid without it.
+   */
+  food: { id: string; nameAr: string; nameEn: string; category?: string | null } & FoodNutrients;
   /**
    * How the dietitian typed the amount — "2 حبة" rather than "100 غرام".
    *

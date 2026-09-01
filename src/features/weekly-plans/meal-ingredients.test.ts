@@ -76,10 +76,18 @@ const RECIPE: RecipeLine[] = [
 ];
 
 describe('mealIngredientLines', () => {
+  /**
+   * The multiplier reaches every line that is food. The last one is not: at this
+   * fixture's 100 kcal per 100 g, twelve grams of oil is twelve kilocalories, and
+   * `portioning.ts` holds a line that small where the recipe put it — doubling a
+   * dish does not double its seasoning. The rule and its threshold belong to that
+   * module's tests; what matters here is that this function resolves through it
+   * rather than multiplying on its own.
+   */
   test('a meal that was never adjusted is its recipe at the multiplier', () => {
     const lines = mealIngredientLines({ recipe: RECIPE, servings: 2, stored: null });
 
-    expect(lines.map((entry) => entry.quantityGrams)).toEqual([280, 260, 200, 24]);
+    expect(lines.map((entry) => entry.quantityGrams)).toEqual([280, 260, 200, 12]);
   });
 
   test('a meal with its own amounts ignores the multiplier entirely', () => {

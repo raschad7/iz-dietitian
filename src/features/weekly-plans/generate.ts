@@ -21,6 +21,9 @@ import {
   type GeneratedPlan,
   type GenerationScope,
 } from './schema';
+import { DAY_TOLERANCE, driftState } from './drift';
+import type { DishIngredientDetail } from './nutrition';
+import { chooseServings, nextServings, portionedKcal } from './portioning';
 import { bestServings, isSimilar, snapServings } from './similar';
 import type { SlotBudget } from './targets';
 
@@ -28,6 +31,15 @@ import type { SlotBudget } from './targets';
 export type CatalogDish = PromptDish & {
   id: string;
   allergenTags: readonly string[];
+  /**
+   * The recipe, carried so the portion can be chosen against what a multiplier
+   * actually produces rather than against `baseKcal × servings`. Rounding happens
+   * per line and under per-line ceilings, so the two are not the same number.
+   *
+   * Not sent to the model — `describeCatalog` names the fields it puts on the
+   * wire, and this is not one of them.
+   */
+  recipe: readonly DishIngredientDetail[];
 };
 
 export type ReconciledOption = {
@@ -147,6 +159,9 @@ export function reconcile({
   let unfilled = 0;
 
   for (const dayOfWeek of days) {
+    /** This day's filled meals beside their recipes, for the balancing pass below. */
+    const filled: BalanceEntry[] = [];
+
     for (const [index, budget] of budgets.entries()) {
       const returnedMeal = returned.get(`${dayOfWeek}:${budget.slotKey}`);
       const mealType = mealTypeForSlot(budget.slotKey);
@@ -183,9 +198,16 @@ export function reconcile({
       // measurably was not good enough: gpt-4o-mini undershot every lunch by 15-25%,
       // which turned a 1,577 kcal target into a 1,292 kcal day.
       //
-      // Falls back to its value only for a dish with no energy, where no multiplier
-      // can hit a budget and there is nothing to compute.
-      const servings = bestServings(dish.baseKcal, budget.kcal) ?? snapServings(returnedMeal.servings);
+      // `chooseServings` searches the portioned result rather than dividing into
+      // `baseKcal`, because a portion is snapped per line and held under per-line
+      // ceilings: 2.75 servings of a dish is not 2.75 times its energy, and the
+      // multiplier that hits the budget on paper is not the one that hits it on a
+      // plate. Falls back for a dish with no recipe or no energy, where no
+      // multiplier means anything.
+      const servings =
+        chooseServings(dish.recipe, budget.kcal) ??
+        bestServings(dish.baseKcal, budget.kcal) ??
+        snapServings(returnedMeal.servings);
       const seen = new Set([dish.slug]);
       const options: ReconciledOption[] = [];
 
@@ -206,7 +228,9 @@ export function reconcile({
         // Same again: an alternative is only a substitute if its portion hits the
         // same budget, so the portion is computed rather than accepted.
         const alternativeServings =
-          bestServings(alternativeDish.baseKcal, budget.kcal) ?? snapServings(alternative.servings);
+          chooseServings(alternativeDish.recipe, budget.kcal) ??
+          bestServings(alternativeDish.baseKcal, budget.kcal) ??
+          snapServings(alternative.servings);
 
         options.push({
           dishId: alternativeDish.id,
@@ -214,22 +238,106 @@ export function reconcile({
           servings: alternativeServings,
           // Recorded rather than filtered: an alternative that is 40% lighter is
           // still a dish the dietitian might want, it just is not a like-for-like
-          // swap, and the panel says so.
-          isSimilar: isSimilar(alternativeDish.baseKcal * alternativeServings, budget.kcal),
+          // swap, and the panel says so. Measured at the portioned amount, which
+          // is what the meal would actually hold if it were swapped in.
+          isSimilar: isSimilar(
+            portionedKcal(alternativeDish.recipe, alternativeServings) ||
+              alternativeDish.baseKcal * alternativeServings,
+            budget.kcal,
+          ),
         });
       }
 
-      meals.push({
+      const meal: ReconciledMeal = {
         ...base,
         dishId: dish.id,
         servings,
         rationaleAr: truncateRationale(returnedMeal.rationaleAr),
         options,
-      });
+      };
+
+      meals.push(meal);
+      filled.push({ meal, recipe: dish.recipe });
     }
+
+    balanceDay(filled);
   }
 
   return { meals, warnings, unfilled };
+}
+
+/** One filled meal and the recipe its portion is computed from. */
+type BalanceEntry = { meal: ReconciledMeal; recipe: readonly DishIngredientDetail[] };
+
+/** How many single-step adjustments one day is allowed. */
+const BALANCE_PASSES = 8;
+
+/**
+ * Nudges a day back onto its target after every meal has been portioned.
+ *
+ * Portioning rounds and it caps, and both lose calories: a snack whose fruit hit
+ * its ceiling lands under its slot, and five slots doing that put the day
+ * meaningfully under the target it was built for. The old arithmetic never had
+ * this problem because it never refused anything — it simply served four oranges.
+ *
+ * So the day is checked once the meals are chosen, and the meal with the most
+ * room moves one step. Room means distance from its *own* slot budget, so the
+ * calories are found where the plate can carry them rather than by inflating
+ * whichever meal happens to be first.
+ *
+ * A move is kept only if it brings the day closer than it was. That is what stops
+ * the pass oscillating around a target it cannot hit exactly, and it is why this
+ * terminates well before {@link BALANCE_PASSES} in every case that converges at
+ * all — the bound is a seatbelt, not a schedule.
+ *
+ * Mutates `servings` on the meals it is given. They are the same objects already
+ * pushed onto the result, which is deliberate: a day is only balanced once and
+ * copying them to say so would be ceremony.
+ */
+function balanceDay(entries: readonly BalanceEntry[]): void {
+  if (!entries.length) return;
+
+  const target = entries.reduce((sum, entry) => sum + entry.meal.budgetKcal, 0);
+  if (!(target > 0)) return;
+
+  const kcalOf = (entry: BalanceEntry) => portionedKcal(entry.recipe, entry.meal.servings);
+  const dayKcal = () => entries.reduce((sum, entry) => sum + kcalOf(entry), 0);
+
+  for (let pass = 0; pass < BALANCE_PASSES; pass += 1) {
+    const total = dayKcal();
+    const drift = driftState(total, target, DAY_TOLERANCE);
+    if (!drift) return;
+
+    const direction = drift === 'under' ? 1 : -1;
+
+    let chosen: { entry: BalanceEntry; servings: number } | null = null;
+    let mostRoom = -Infinity;
+
+    for (const entry of entries) {
+      const servings = nextServings(entry.recipe, entry.meal.servings, direction);
+      if (servings === null) continue;
+
+      // Positive when this meal is short of its own budget in the direction the
+      // day needs to move — the plate with somewhere to put the calories.
+      const room = (entry.meal.budgetKcal - kcalOf(entry)) * direction;
+
+      if (room > mostRoom) {
+        chosen = { entry, servings };
+        mostRoom = room;
+      }
+    }
+
+    if (!chosen) return;
+
+    const before = Math.abs(total - target);
+    const previous = chosen.entry.meal.servings;
+    chosen.entry.meal.servings = chosen.servings;
+
+    if (Math.abs(dayKcal() - target) >= before) {
+      chosen.entry.meal.servings = previous;
+      return;
+    }
+  }
 }
 
 /**

@@ -45,6 +45,8 @@ import type { FoodPortion } from './ingredient-units';
 import {
   hasOwnAmounts,
   mealIngredientLines,
+  mealTotals,
+  scaleRecipe,
   type MealIngredientLine,
 } from './meal-ingredients';
 import {
@@ -487,6 +489,10 @@ export function toPromptCatalog(catalog: readonly DishDetail[]): CatalogDish[] {
     allergenTags: dish.allergenTags,
     baseKcal: baseServingKcal(dish.ingredients),
     baseProtein: dishTotals(dish.ingredients, 1).protein.value,
+    // Carried for `chooseServings`, which has to portion a recipe to know what a
+    // multiplier produces. Never reaches the model: `describeCatalog` writes the
+    // columns it wants by name.
+    recipe: dish.ingredients,
     // Computed here, sent to the model as a fact rather than a question — kept
     // separate from `tags`, which stay purely practical.
     nutritionCategory: nutritionCategory(dishTotals(dish.ingredients, 1)),
@@ -1721,7 +1727,9 @@ async function assembleBoard(plan: PlanRow): Promise<Board> {
     const dish = dishById.get(option.dishId);
     if (!dish) continue;
 
-    const kcal = dishTotals(dish.ingredients, option.servings).kcal.value;
+    // Portioned, not multiplied: this is the figure beside a swap the dietitian is
+    // deciding on, and it has to be what the meal would hold if she took it.
+    const kcal = mealTotals(scaleRecipe(dish.ingredients, option.servings)).kcal.value;
     const budget = budgetByMeal.get(option.mealId) ?? 0;
 
     const entry: BoardOption = {

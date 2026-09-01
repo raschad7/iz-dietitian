@@ -50,6 +50,7 @@ const DOT_LIMIT = 3;
  * like `nutritionFilters.${entry}` stay resolvable. */
 type NutritionFilter = (typeof NUTRITION_FILTERS)[number];
 import { dishTagDotClasses, highProteinDotClasses } from '../meal-tag-tone';
+import { chooseServings } from '../portioning';
 import { bestServings } from '../similar';
 import { PLANNER_THEME } from '../theme';
 import type { RecentUse } from '../usage';
@@ -415,7 +416,13 @@ export function DishCatalog({
            apply and the bar stays hidden as before. */
         <ul className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pt-1">
           {shown.map((dish) => {
-            const servings = slot ? (bestServings(dish.baseKcal, slot.budgetKcal) ?? 1) : 1;
+            // Same chooser the generator uses, so a dish placed by hand arrives at
+            // the portion it would have arrived at had the model picked it.
+            const servings = slot
+              ? (chooseServings(dish.ingredients, slot.budgetKcal) ??
+                bestServings(dish.baseKcal, slot.budgetKcal) ??
+                1)
+              : 1;
             const allowed = editable && dish.blockedBy.length === 0;
 
             return (

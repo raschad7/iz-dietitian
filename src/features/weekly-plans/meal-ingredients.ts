@@ -36,6 +36,7 @@
  */
 
 import { GRAMS_STEP, stepQuantity, unitStep } from './ingredient-units';
+import { portionLine } from './portioning';
 import {
   dishGrams,
   dishTotals,
@@ -75,11 +76,17 @@ function usableServings(servings: number): number {
 }
 
 /**
- * The recipe at a serving multiplier — the classic behaviour, made explicit.
+ * The recipe at a serving multiplier, in amounts a person serves.
  *
- * The portion count scales with the grams so the two keep describing the same
- * amount: one and a half servings of a dish written as `4 ملاعق` is `6 ملاعق`, not
- * four spoons beside a weight that says otherwise.
+ * Every line goes through `portioning.ts`, which moves it in whole steps of its
+ * own unit and holds it under its own ceiling. It used to be a plain
+ * multiplication, and a plain multiplication is what produced `تمر مجهول 1.88
+ * حبة` — arithmetically perfect and impossible to act on.
+ *
+ * The count and the grams are decided together and the count decides: it is what
+ * the client is told to serve, so it is what the nutrition has to be built from.
+ * A multiplier of one returns the recipe unchanged, which is what keeps a dish's
+ * stated energy true of a meal holding one serving of it.
  */
 export function scaleRecipe(
   recipe: readonly RecipeLine[],
@@ -87,15 +94,16 @@ export function scaleRecipe(
 ): MealIngredientLine[] {
   const multiplier = usableServings(servings);
 
-  return recipe.map((line) => ({
-    ...line,
-    quantityGrams: line.quantityGrams * multiplier,
-    portion: line.portion ?? null,
-    portionQuantity:
-      typeof line.portionQuantity === 'number' && line.portionQuantity > 0
-        ? line.portionQuantity * multiplier
-        : null,
-  }));
+  return recipe.map((line) => {
+    const amount = portionLine(line, multiplier);
+
+    return {
+      ...line,
+      quantityGrams: amount.quantityGrams,
+      portion: line.portion ?? null,
+      portionQuantity: amount.portionQuantity,
+    };
+  });
 }
 
 /**
