@@ -448,9 +448,9 @@
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
         {
-          "fdcId": 171287,
+          "fdcId": 173424,
           "grams": 100,
-          "note": "Egg, whole, raw, fresh",
+          "note": "Egg, whole, cooked, hard-boiled",
           "unit": "Piece",
           "count": 2,
           "primary": true
@@ -711,9 +711,9 @@
           "note": "Wheat flour, white, all-purpose, enriched, bleached"
         },
         {
-          "fdcId": 171790,
-          "grams": 60,
-          "note": "Beef, ground, 95% lean meat / 5% fat, raw",
+          "fdcId": 171792,
+          "grams": 50,
+          "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
           "primary": true
         },
         {
@@ -1228,9 +1228,9 @@
       "baseServingLabel": "بيضة واحدة",
       "ingredients": [
         {
-          "fdcId": 171287,
+          "fdcId": 173424,
           "grams": 60,
-          "note": "Egg, whole, raw, fresh",
+          "note": "Egg, whole, cooked, hard-boiled",
           "primary": true
         }
       ]
@@ -1358,9 +1358,9 @@
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
         {
-          "fdcId": 173627,
-          "grams": 150,
-          "note": "Chicken, broilers or fryers, dark meat, thigh, meat only, raw",
+          "fdcId": 172388,
+          "grams": 120,
+          "note": "Chicken, broilers or fryers, thigh, meat only, cooked, roasted",
           "primary": true
         },
         {
@@ -1405,9 +1405,9 @@
           "note": "Jute, potherb, raw"
         },
         {
-          "fdcId": 171077,
-          "grams": 130,
-          "note": "Chicken, broiler or fryers, breast, skinless, boneless, meat only, raw",
+          "fdcId": 171477,
+          "grams": 95,
+          "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
           "primary": true
         },
         {
@@ -1444,9 +1444,9 @@
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
         {
-          "fdcId": 171077,
-          "grams": 150,
-          "note": "Chicken, broiler or fryers, breast, skinless, boneless, meat only, raw",
+          "fdcId": 171477,
+          "grams": 110,
+          "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
           "primary": true
         },
         {
@@ -1488,9 +1488,9 @@
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
         {
-          "fdcId": 171790,
-          "grams": 140,
-          "note": "Beef, ground, 95% lean meat / 5% fat, raw",
+          "fdcId": 171792,
+          "grams": 115,
+          "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
           "primary": true
         },
         {
@@ -1579,9 +1579,9 @@
           "note": "Okra, raw"
         },
         {
-          "fdcId": 171790,
-          "grams": 100,
-          "note": "Beef, ground, 95% lean meat / 5% fat, raw",
+          "fdcId": 171792,
+          "grams": 85,
+          "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
           "primary": true
         },
         {
@@ -1636,9 +1636,9 @@
           "primary": true
         },
         {
-          "fdcId": 171790,
-          "grams": 80,
-          "note": "Beef, ground, 95% lean meat / 5% fat, raw",
+          "fdcId": 171792,
+          "grams": 65,
+          "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
           "primary": true
         },
         {
@@ -1680,9 +1680,9 @@
           "primary": true
         },
         {
-          "fdcId": 171790,
-          "grams": 70,
-          "note": "Beef, ground, 95% lean meat / 5% fat, raw",
+          "fdcId": 171792,
+          "grams": 60,
+          "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
           "primary": true
         },
         {
@@ -1714,9 +1714,9 @@
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
         {
-          "fdcId": 171077,
-          "grams": 150,
-          "note": "Chicken, broiler or fryers, breast, skinless, boneless, meat only, raw",
+          "fdcId": 171477,
+          "grams": 110,
+          "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
           "primary": true
         },
         {
@@ -1757,9 +1757,9 @@
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
         {
-          "fdcId": 175176,
-          "grams": 150,
-          "note": "Fish, tilapia, raw",
+          "fdcId": 175177,
+          "grams": 115,
+          "note": "Fish, tilapia, cooked, dry heat",
           "primary": true
         },
         {
@@ -1851,9 +1851,9 @@
           "primary": true
         },
         {
-          "fdcId": 171077,
-          "grams": 130,
-          "note": "Chicken, broiler or fryers, breast, skinless, boneless, meat only, raw",
+          "fdcId": 171477,
+          "grams": 95,
+          "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
           "primary": true
         },
         {
@@ -1883,9 +1883,9 @@
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
         {
-          "fdcId": 174370,
-          "grams": 120,
-          "note": "Lamb, ground, raw",
+          "fdcId": 172544,
+          "grams": 80,
+          "note": "Lamb, ground, cooked, broiled",
           "primary": true
         },
         {
@@ -1970,9 +1970,9 @@
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
         {
-          "fdcId": 175167,
-          "grams": 140,
-          "note": "Fish, salmon, Atlantic, farmed, raw",
+          "fdcId": 175168,
+          "grams": 130,
+          "note": "Fish, salmon, Atlantic, farmed, cooked, dry heat",
           "primary": true
         },
         {
@@ -2100,9 +2100,9 @@
           "note": "Beans, snap, green, raw"
         },
         {
-          "fdcId": 171790,
-          "grams": 100,
-          "note": "Beef, ground, 95% lean meat / 5% fat, raw",
+          "fdcId": 171792,
+          "grams": 85,
+          "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
           "primary": true
         },
         {
@@ -2263,9 +2263,9 @@
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
         {
-          "fdcId": 171077,
-          "grams": 150,
-          "note": "Chicken, broiler or fryers, breast, skinless, boneless, meat only, raw",
+          "fdcId": 171477,
+          "grams": 110,
+          "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
           "primary": true
         },
         {
@@ -2492,9 +2492,9 @@
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
         {
-          "fdcId": 175176,
-          "grams": 150,
-          "note": "Fish, tilapia, raw",
+          "fdcId": 175177,
+          "grams": 115,
+          "note": "Fish, tilapia, cooked, dry heat",
           "primary": true
         },
         {
@@ -2799,9 +2799,9 @@
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
         {
-          "fdcId": 171077,
-          "grams": 130,
-          "note": "Chicken, broiler or fryers, breast, skinless, boneless, meat only, raw",
+          "fdcId": 171477,
+          "grams": 95,
+          "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
           "primary": true
         },
         {
@@ -3099,9 +3099,9 @@
           "primary": true
         },
         {
-          "fdcId": 171077,
-          "grams": 130,
-          "note": "Chicken, broiler or fryers, breast, skinless, boneless, meat only, raw",
+          "fdcId": 171477,
+          "grams": 95,
+          "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
           "primary": true
         },
         {
@@ -3149,9 +3149,9 @@
           "primary": true
         },
         {
-          "fdcId": 173627,
-          "grams": 120,
-          "note": "Chicken, broilers or fryers, dark meat, thigh, meat only, raw",
+          "fdcId": 172388,
+          "grams": 95,
+          "note": "Chicken, broilers or fryers, thigh, meat only, cooked, roasted",
           "primary": true
         },
         {
@@ -3195,9 +3195,9 @@
           "primary": true
         },
         {
-          "fdcId": 174370,
-          "grams": 80,
-          "note": "Lamb, ground, raw",
+          "fdcId": 172544,
+          "grams": 55,
+          "note": "Lamb, ground, cooked, broiled",
           "primary": true
         },
         {
@@ -3242,9 +3242,9 @@
           "primary": true
         },
         {
-          "fdcId": 171790,
-          "grams": 90,
-          "note": "Beef, ground, 95% lean meat / 5% fat, raw",
+          "fdcId": 171792,
+          "grams": 75,
+          "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
           "primary": true
         },
         {
@@ -3394,9 +3394,9 @@
           "primary": true
         },
         {
-          "fdcId": 171790,
-          "grams": 60,
-          "note": "Beef, ground, 95% lean meat / 5% fat, raw",
+          "fdcId": 171792,
+          "grams": 50,
+          "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
           "primary": true
         },
         {
@@ -3439,9 +3439,9 @@
           "primary": true
         },
         {
-          "fdcId": 171790,
-          "grams": 60,
-          "note": "Beef, ground, 95% lean meat / 5% fat, raw",
+          "fdcId": 171792,
+          "grams": 50,
+          "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
           "primary": true
         },
         {
@@ -3520,9 +3520,9 @@
           "note": "Spinach, raw"
         },
         {
-          "fdcId": 171790,
-          "grams": 80,
-          "note": "Beef, ground, 95% lean meat / 5% fat, raw",
+          "fdcId": 171792,
+          "grams": 65,
+          "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
           "primary": true
         },
         {
@@ -3562,9 +3562,9 @@
           "note": "Peas, green, raw"
         },
         {
-          "fdcId": 171790,
-          "grams": 70,
-          "note": "Beef, ground, 95% lean meat / 5% fat, raw",
+          "fdcId": 171792,
+          "grams": 60,
+          "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
           "primary": true
         },
         {
@@ -3646,9 +3646,9 @@
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
         {
-          "fdcId": 173627,
-          "grams": 130,
-          "note": "Chicken, broilers or fryers, dark meat, thigh, meat only, raw",
+          "fdcId": 172388,
+          "grams": 105,
+          "note": "Chicken, broilers or fryers, thigh, meat only, cooked, roasted",
           "primary": true
         },
         {
@@ -3689,9 +3689,9 @@
           "note": "Jute, potherb, raw"
         },
         {
-          "fdcId": 171790,
-          "grams": 80,
-          "note": "Beef, ground, 95% lean meat / 5% fat, raw",
+          "fdcId": 171792,
+          "grams": 65,
+          "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
           "primary": true
         },
         {
@@ -3735,9 +3735,9 @@
           "primary": true
         },
         {
-          "fdcId": 171790,
-          "grams": 70,
-          "note": "Beef, ground, 95% lean meat / 5% fat, raw",
+          "fdcId": 171792,
+          "grams": 60,
+          "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
           "primary": true
         },
         {
@@ -3782,9 +3782,9 @@
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
         {
-          "fdcId": 175176,
-          "grams": 150,
-          "note": "Fish, tilapia, raw",
+          "fdcId": 175177,
+          "grams": 115,
+          "note": "Fish, tilapia, cooked, dry heat",
           "primary": true
         },
         {
@@ -3880,9 +3880,9 @@
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
         {
-          "fdcId": 173627,
-          "grams": 130,
-          "note": "Chicken, broilers or fryers, dark meat, thigh, meat only, raw",
+          "fdcId": 172388,
+          "grams": 105,
+          "note": "Chicken, broilers or fryers, thigh, meat only, cooked, roasted",
           "primary": true
         },
         {
@@ -3929,9 +3929,9 @@
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
         {
-          "fdcId": 171790,
-          "grams": 100,
-          "note": "Beef, ground, 95% lean meat / 5% fat, raw",
+          "fdcId": 171792,
+          "grams": 85,
+          "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
           "primary": true
         },
         {
@@ -4117,9 +4117,9 @@
       "baseServingLabel": "ساندويش",
       "ingredients": [
         {
-          "fdcId": 171098,
-          "grams": 90,
-          "note": "Turkey, whole, breast, meat only, raw",
+          "fdcId": 171496,
+          "grams": 70,
+          "note": "Turkey, whole, breast, meat only, cooked, roasted",
           "primary": true
         },
         {
@@ -4163,9 +4163,9 @@
           "primary": true
         },
         {
-          "fdcId": 171077,
-          "grams": 100,
-          "note": "Chicken, broiler or fryers, breast, skinless, boneless, meat only, raw",
+          "fdcId": 171477,
+          "grams": 75,
+          "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
           "primary": true
         },
         {
@@ -4385,9 +4385,9 @@
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
         {
-          "fdcId": 171077,
-          "grams": 130,
-          "note": "Chicken, broiler or fryers, breast, skinless, boneless, meat only, raw",
+          "fdcId": 171477,
+          "grams": 95,
+          "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
           "primary": true
         },
         {
@@ -4434,9 +4434,9 @@
           "primary": true
         },
         {
-          "fdcId": 171077,
-          "grams": 110,
-          "note": "Chicken, broiler or fryers, breast, skinless, boneless, meat only, raw",
+          "fdcId": 171477,
+          "grams": 80,
+          "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
           "primary": true
         },
         {
@@ -4558,9 +4558,9 @@
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
         {
-          "fdcId": 175167,
-          "grams": 130,
-          "note": "Fish, salmon, Atlantic, farmed, raw",
+          "fdcId": 175168,
+          "grams": 120,
+          "note": "Fish, salmon, Atlantic, farmed, cooked, dry heat",
           "primary": true
         },
         {
@@ -4643,9 +4643,9 @@
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
         {
-          "fdcId": 171287,
+          "fdcId": 173424,
           "grams": 100,
-          "note": "Egg, whole, raw, fresh",
+          "note": "Egg, whole, cooked, hard-boiled",
           "unit": "Piece",
           "count": 2,
           "primary": true
