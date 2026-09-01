@@ -96,8 +96,17 @@ export function usePrintBill(): {
       const frame = document.createElement('iframe');
       frame.setAttribute('aria-hidden', 'true');
       frame.tabIndex = -1;
-      /* Off-screen, not hidden — see the note above. */
-      frame.style.cssText = 'position:fixed;inset-inline-start:-10000px;top:0;width:1px;height:1px;opacity:0;border:0';
+      /*
+        Off-screen, not hidden — see the note above — and a page's worth of it.
+
+        A 1px frame is laid out, which is what the note is about, but it is not
+        laid out *around a document*: a PDF viewer given a box that small has
+        nothing to paginate and can sit there without ever finishing. The size
+        is a sheet of paper at screen scale, so the viewer does the work it
+        would do if the frame were visible.
+      */
+      frame.style.cssText =
+        'position:fixed;inset-inline-start:-10000px;top:0;width:900px;height:1200px;opacity:0;border:0';
 
       let done = false;
       /*
@@ -121,6 +130,40 @@ export function usePrintBill(): {
 
       await new Promise<void>((resolve, reject) => {
         frame.addEventListener('load', () => {
+          const win = frame.contentWindow;
+
+          /*
+            The frame's *own* first document, not the bill.
+
+            An `<iframe>` put into the page fires `load` for the `about:blank`
+            it starts life with, before whatever it was pointed at has arrived.
+            That document is same-origin and perfectly printable, so nothing
+            below would have refused it: what came out of the printer was one
+            blank sheet carrying the *host page's* URL and title in the header,
+            because `about:blank` inherits both — which is exactly the sheet
+            this bug was reported with.
+
+            Setting `src` before the frame is appended (see the bottom of this
+            promise) is what stops the event being fired at all, and this is the
+            second lock on the same door: an engine that fires it anyway, or
+            fires it late, gets ignored rather than printed. The real document
+            is the blob, and nothing else is worth raising a dialog over.
+          */
+          if (!win) return;
+
+          let loaded = '';
+          /* Reading `location` across origins throws; a blob is same-origin, so
+             a throw here means this is not the document being waited for and
+             the print goes ahead on the engine's own terms rather than being
+             blocked by a check that could not answer. */
+          try {
+            loaded = win.location.href;
+          } catch {
+            loaded = '';
+          }
+
+          if (loaded === 'about:blank') return;
+
           /*
             The document is here, so the wait below is over — but the frame
             stays until the dialog closes, which is `clean`'s job and not this
@@ -128,9 +171,7 @@ export function usePrintBill(): {
           */
           window.clearTimeout(gaveUp);
 
-          const win = frame.contentWindow;
-
-          if (!win || typeof win.print !== 'function') {
+          if (typeof win.print !== 'function') {
             clean();
             reject('unavailable' satisfies PrintFailure);
             return;
@@ -209,8 +250,17 @@ export function usePrintBill(): {
           reject('unavailable' satisfies PrintFailure);
         }, 10_000);
 
-        document.body.append(frame);
+        /*
+          Pointed at the bill *before* it is put in the page, and the order is
+          the fix rather than a tidiness.
+
+          A frame appended with no `src` has already begun loading `about:blank`
+          by the time the next line runs, and the `load` for it is queued.
+          Assigning first means the frame has exactly one document to load and
+          exactly one `load` to fire — the bill's.
+        */
         frame.src = objectUrl;
+        document.body.append(frame);
       });
     } catch (error) {
       throw typeof error === 'string' ? error : ('failed' satisfies PrintFailure);

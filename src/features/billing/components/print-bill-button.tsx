@@ -1,7 +1,5 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-
 import { buttonVariants } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Spinner } from '@/components/ui/spinner';
@@ -9,6 +7,7 @@ import { TooltipHint } from '@/components/ui/tooltip-hint';
 import { cn } from '@/lib/utils';
 
 import { ROW_ACTION_CLASS } from './row-action';
+import { usePrintBill } from './use-print-bill';
 
 /**
  * A printer that raises the browser's own print dialog, over the page it was
@@ -40,20 +39,26 @@ import { ROW_ACTION_CLASS } from './row-action';
  * that says "print this other document"; a frame is the only way to aim the
  * browser's dialog at a document the current page is not.
  *
- * ## Pointed at, not fetched
+ * ## Fetched, not pointed at — and this is what the deployed bug was
  *
- * The frame's `src` is the bill's own URL. An earlier version fetched the PDF
- * first, turned it into a blob and pointed the frame at that — to be able to
- * check the response before showing it — and paid for the check with a hundred
- * lines of blob and cleanup bookkeeping, plus a failure mode per step. The
- * frame sends the session cookie exactly as a navigation would, so the fetch
- * was buying a status code and little else.
+ * The mechanics are `usePrintBill`'s: the PDF is fetched, turned into a blob
+ * and loaded into the frame from there. A version of this button pointed the
+ * frame straight at the bill's URL instead, on the grounds that the frame sends
+ * the session cookie exactly as a navigation would and the fetch was buying
+ * little more than a status code. It bought three things, and all three only
+ * showed on the deployed server:
  *
- * ## Why the frame is off-screen rather than `display: none`
- *
- * A frame that is not displayed is not laid out, and a PDF viewer inside one
- * may never finish rendering — so `print()` fires against a blank page. Moving
- * it out of view keeps it a real, laid-out frame that nobody can see.
+ * 1. **The render is not in the frame's time budget.** The give-up timer exists
+ *    for a frame that never lays out; pointed straight at the route it was also
+ *    timing the server's PDF render, which on a laptop is instant and on the
+ *    box this ships to is not. When it fired, the fall-back opened the bill in
+ *    a tab — the "it opened twice" half of the report.
+ * 2. **A response that is not a PDF has somewhere to go.** A session that
+ *    expired mid-shift answers a *redirect to the login form*, with a perfectly
+ *    good status on it, and a frame pointed at the route would have printed
+ *    that.
+ * 3. **A blob is not a navigation**, so nothing between the page and the
+ *    document — a service worker, a proxy — is in the way of a print.
  *
  * ## When the browser will not
  *
@@ -86,102 +91,27 @@ export function PrintBillButton({
   className?: string;
   iconClassName?: string;
 }) {
-  /* The beat between the press and the dialog: a bill is a render, not a file
-     on disk, and a printer that looks inert for a second gets pressed twice. */
-  const [pending, setPending] = useState(false);
+  /*
+    The frame, the blob and every way this can fail to raise a dialog, in one
+    place — the record's Expenses panel prints through the same hook. See
+    `usePrintBill`.
+  */
+  const { print, pending } = usePrintBill();
 
   /*
-    Every frame this button has made, so leaving the screen mid-print — a filter
-    changed, a page turned — does not leave one behind for the life of the tab.
+    The tab is the answer to every way the browser will not raise a dialog: a
+    `print()` that throws, a frame that neither loads nor errors, a Safari that
+    does not print a framed PDF, and a response that turned out to be the login
+    form. All of them end here, at the URL the anchor was carrying anyway.
+
+    `window.open` is best-effort: a fetch has happened since the press, so a
+    popup blocker that only trusts a live gesture will refuse it and hand back
+    `null`. Then the bill takes this tab rather than a new one — leaving the
+    Bills page is worse than staying on it, and it is still far better than a
+    press with no outcome at all.
   */
-  const frames = useRef<(() => void)[]>([]);
-
-  useEffect(() => {
-    const made = frames.current;
-    return () => {
-      for (const clean of made) clean();
-      made.length = 0;
-    };
-  }, []);
-
-  const print = () => {
-    setPending(true);
-
-    const frame = document.createElement('iframe');
-    frame.setAttribute('aria-hidden', 'true');
-    frame.tabIndex = -1;
-    /* Off-screen, not hidden — see the note above. */
-    frame.style.cssText = 'position:fixed;inset-inline-start:-10000px;top:0;width:900px;height:1200px;opacity:0;border:0';
-
-    let done = false;
-    let gaveUp = 0;
-
-    const clean = () => {
-      if (done) return;
-      done = true;
-      window.clearTimeout(gaveUp);
-      frame.remove();
-      frames.current = frames.current.filter((entry) => entry !== clean);
-    };
-
-    frames.current.push(clean);
-
-    /* The tab is the answer to every way this can fail to raise a dialog. */
-    const fallBack = () => {
-      clean();
-      setPending(false);
-      window.open(href, '_blank', 'noopener');
-    };
-
-    frame.addEventListener('load', () => {
-      window.clearTimeout(gaveUp);
-
-      const win = frame.contentWindow;
-
-      if (!win || typeof win.print !== 'function') {
-        fallBack();
-        return;
-      }
-
-      /*
-        A beat after `load`. The event fires when the frame's document is in
-        place, which for a PDF is the *viewer*, not the rendered page — printing
-        on the same tick catches it before it has laid the document out, and
-        raises a dialog over a blank preview.
-      */
-      window.setTimeout(() => {
-        try {
-          win.focus();
-          win.print();
-        } catch {
-          fallBack();
-          return;
-        }
-
-        setPending(false);
-
-        /*
-          The dialog is modal and synchronous in most browsers, so the frame can
-          go as soon as it closes. `afterprint` is the signal when the browser
-          sends one; the timer is the backstop for the viewers that do not, and
-          60s is long enough to pick a printer.
-        */
-        win.addEventListener('afterprint', clean, { once: true });
-        window.setTimeout(clean, 60_000);
-      }, 150);
-    });
-
-    frame.addEventListener('error', fallBack);
-
-    /*
-      A frame that neither loads nor errors ends the wait itself: a viewer
-      replaced by a download handler fires neither event, and without this the
-      spinner would spin for the rest of the session.
-    */
-    gaveUp = window.setTimeout(fallBack, 10_000);
-
-    document.body.append(frame);
-    frame.src = href;
+  const openInTab = () => {
+    if (!window.open(href, '_blank', 'noopener')) window.location.href = href;
   };
 
   const control = (
@@ -205,7 +135,7 @@ export function PrintBillButton({
         if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
 
         event.preventDefault();
-        print();
+        void print(href).catch(openInTab);
       }}
     >
       {pending ? (
