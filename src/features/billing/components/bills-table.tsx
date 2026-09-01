@@ -11,7 +11,7 @@ import type { ClientListResult } from '@/features/clients/queries';
 import { Link } from '@/i18n/navigation';
 import type { Locale } from '@/i18n/routing';
 
-import { COLUMN_COUNT } from './bills-columns';
+import { ACTIONS_COLUMN_WIDTH, BILLS_COLUMNS, COLUMN_COUNT } from './bills-columns';
 import { BillsHeaderRow } from './bills-header-row';
 
 /**
@@ -95,9 +95,8 @@ export function BillsTable({
   return (
     <TableRoot>
       {/*
-        `table-fixed` with a column group of equal shares: every column on this
-        screen is an equal share of the width — `COLUMN_COUNT` of them,
-        actions included — and none widens to fit what happens to be in it.
+        `table-fixed`, with the actions column held back and the rest of the
+        width split evenly between the columns that carry data.
 
         Auto layout was measuring each column against its own content, so the
         grid moved as the register did — a long name or a five-figure total
@@ -105,17 +104,36 @@ export function BillsTable({
         down the page between one filter and the next. A column of figures is
         read by scanning it, and a scan wants the same edge on every row.
 
-        `min-w` keeps the even shares honest on a narrow screen: a seventh of a
-        phone is not a column, so the table holds its width and the scroll
-        container around it does what it is there for.
+        **The actions column is not an equal share, and giving it one was a
+        bug.** Its four controls are 228px of fixed furniture that does not
+        scale with the table — see `ACTIONS_COLUMN_WIDTH` — so a seventh of the
+        width was a cell too small to hold its own contents on anything narrower
+        than a desktop, and the menu at the end of the row was drawn outside the
+        table. Taking it off the top first is what keeps the row intact at every
+        width; the six columns that *do* scale then share what is left.
+
+        **The name takes two of those shares, and the width is not declared
+        here.** A `colgroup` is positional and these columns can be dragged into
+        another order, so a wide first track would have stayed in the first slot
+        while the name moved out of it. The five columns with no `<col>` width
+        split what is left evenly; the name's own heading carries its width and
+        travels with it. See `NAME_COLUMN_WIDTH`.
+
+        `min-w` keeps those six shares honest when the screen runs out. It was
+        `64rem`, which is wider than a tablet's content area once the rail is
+        taken off — so Bills scrolled sideways at a width where the register
+        beside it did not, on a screen where sideways is the one direction a
+        table should not move. `44rem` is what the six columns need to stay
+        readable, and it leaves the sideways scroll for the phones that
+        genuinely cannot fit a seven-column register.
       */}
-      <Table className="min-w-[64rem] table-fixed">
+      <Table className="min-w-[44rem] table-fixed">
         <colgroup>
-          {Array.from({ length: COLUMN_COUNT }, (_, index) => (
-            /* The share is derived from the count, so adding a column keeps
-               the table even instead of leaving a stale fraction behind. */
-            <col key={index} style={{ width: `${100 / COLUMN_COUNT}%` }} />
+          {/* One `<col>` per movable column, carrying no width — see above. */}
+          {BILLS_COLUMNS.map((column) => (
+            <col key={column.key} />
           ))}
+          <col style={{ width: ACTIONS_COLUMN_WIDTH }} />
         </colgroup>
 
         {/*
