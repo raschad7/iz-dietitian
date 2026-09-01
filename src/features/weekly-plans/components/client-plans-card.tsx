@@ -30,6 +30,7 @@ type PlanSummary = {
   updatedAt: Date;
   kcalTargetSnapshot: number;
   mealCount: number;
+  summaryAr: string | null;
 };
 
 /**
@@ -108,6 +109,18 @@ export function ClientPlansCard({
         </CardHeader>
 
         <CardContent className="flex flex-col gap-4">
+          {/*
+            The model's account of the week, above the figures.
+
+            Shown in Arabic in both locales, as the meal rationale already is: it
+            is the model's own sentence about this client's week, and translating
+            it would mean generating a second one that could disagree with the
+            first. A week built by hand has none, and shows none.
+          */}
+          {current.summaryAr ? (
+            <p className="text-body-sm text-muted-foreground">{current.summaryAr}</p>
+          ) : null}
+
           {/*
             Two tiles, not three. "Last edited" was a third, and a `StatTile`
             isolates its value LTR — correct for a figure, wrong for a formatted
@@ -198,6 +211,18 @@ export function ClientPlansCard({
                         >
                           {t('weekOf', { date: formatMediumDate(locale, plan.weekStartDate) })}
                         </Link>
+                        {/*
+                          Under the date rather than in a column of its own: it is
+                          two or three sentences, and a sixth column would either
+                          squeeze the table or wrap into unreadable slivers. Two
+                          lines is enough to tell one week from another, which is
+                          the whole job.
+                        */}
+                        {plan.summaryAr ? (
+                          <span className="mt-0.5 line-clamp-2 block text-caption font-normal text-muted-foreground">
+                            {plan.summaryAr}
+                          </span>
+                        ) : null}
                       </TableCell>
 
                       <TableCell>

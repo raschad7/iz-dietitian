@@ -2106,7 +2106,8 @@
       "clientNotFound": "Client not found.",
       "unexpected": "Something went wrong.",
       "notFound": "Dish not found.",
-      "inUse": "This dish is used in an active plan and cannot be deleted."
+      "inUse": "This dish is used in an active plan and cannot be deleted.",
+      "reviewFailed": "The plan could not be reviewed."
     },
     "tabs": {
       "client": "Client",
@@ -2264,7 +2265,31 @@
       "iron": "Iron",
       "potassium": "Potassium"
     },
-    "unmeasuredCount": "{count, number, integer} of these foods have no published value for this nutrient, so the real total is higher."
+    "unmeasuredCount": "{count, number, integer} of these foods have no published value for this nutrient, so the real total is higher.",
+    "review": {
+      "title": "Plan review",
+      "run": "Review this week",
+      "running": "Reviewing…",
+      "again": "Review again",
+      "empty": "This plan has not been reviewed yet.",
+      "emptyHint": "The model reads the week as the client receives it and writes down what it notices. The arithmetic checks run here first.",
+      "problem": "Problem",
+      "suggestion": "Suggestion",
+      "checks": "Arithmetic checks",
+      "week": "Whole week",
+      "noFindings": "Nothing to flag. The week is ready to hand over.",
+      "reviewedAt": "Reviewed",
+      "verdict": {
+        "usable": "Ready",
+        "needs_work": "Needs work",
+        "not_usable": "Not ready"
+      },
+      "severity": {
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low"
+      }
+    }
   },
   "dishes": {
     "title": "Dish catalog",

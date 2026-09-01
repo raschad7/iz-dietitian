@@ -5,6 +5,7 @@ import {
   clients,
   weeklyPlanGenerations,
   weeklyPlanMealOptions,
+  weeklyPlanReviews,
   weeklyPlanMeals,
   weeklyPlans,
 } from '@/db/schema';
@@ -156,6 +157,33 @@ export async function recordGeneration(input: {
  * end this would leave the client's Progress tab reporting a day exactly as
  * complete as it was before the regeneration, with nothing left behind it.
  */
+/**
+ * Stores one review of one plan.
+ *
+ * Insert-only. A review is a dated opinion and the plan under it moves, so the
+ * history is worth more than the latest row alone — `latestReview` reads the head
+ * of it, and nothing overwrites what came before.
+ */
+export async function saveReview(input: {
+  clinicId: string;
+  planId: string;
+  model: string;
+  verdict: string;
+  summaryAr: string;
+  findings: unknown;
+  checks: unknown;
+}): Promise<void> {
+  await db.insert(weeklyPlanReviews).values({
+    clinicId: input.clinicId,
+    planId: input.planId,
+    model: input.model,
+    verdict: input.verdict,
+    summaryAr: input.summaryAr,
+    findings: input.findings,
+    checks: input.checks,
+  });
+}
+
 export async function createPlanFromGeneration(input: {
   clinicId: string;
   clientId: string;
@@ -193,6 +221,10 @@ export async function createPlanFromGeneration(input: {
         goalSnapshot: input.goal,
         generatedBy: 'ai',
         model: input.outcome.model,
+        // Written once, here. `replaceMeals` deliberately leaves it alone: a
+        // regenerated Tuesday does not change what the week was built around, and
+        // rewriting the caption from a one-day response would describe the day.
+        summaryAr: input.outcome.summaryAr,
       })
       .returning({ id: weeklyPlans.id });
 

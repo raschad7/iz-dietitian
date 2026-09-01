@@ -30,6 +30,7 @@ import {
   weeklyPlanMealIngredients,
   weeklyPlanMealOptions,
   weeklyPlanMeals,
+  weeklyPlanReviews,
   weeklyPlans,
   type MealSlot,
 } from '@/db/schema';
@@ -40,6 +41,8 @@ import { DISPLAY_TIME_ZONE } from '@/lib/format';
 
 import { normalizeArabic } from './arabic-normalize';
 import { matchesOwner, type OwnerFilter } from './catalog-ownership';
+import { carbBase, proteinSource } from './dish-composition';
+import type { ReviewFinding } from './review';
 import type { CatalogDish } from './generate';
 import type { FoodPortion } from './ingredient-units';
 import {
@@ -496,6 +499,11 @@ export function toPromptCatalog(catalog: readonly DishDetail[]): CatalogDish[] {
     // Computed here, sent to the model as a fact rather than a question — kept
     // separate from `tags`, which stay purely practical.
     nutritionCategory: nutritionCategory(dishTotals(dish.ingredients, 1)),
+    // What repeats when a week feels repetitive. Derived from the recipe for the
+    // same reason the nutrition label is: a tag someone types can disagree with
+    // the food, and this one has to be able to carry a rule.
+    proteinSource: proteinSource(dish.ingredients),
+    carbBase: carbBase(dish.ingredients),
   }));
 }
 
@@ -1386,7 +1394,55 @@ export type PlanListEntry = {
   updatedAt: Date;
   kcalTargetSnapshot: number;
   mealCount: number;
+  /** The model's account of this week, for telling one from another in a list. */
+  summaryAr: string | null;
 };
+
+/** A plan review as the board reads it. */
+export type PlanReviewRow = {
+  id: string;
+  model: string;
+  verdict: string;
+  summaryAr: string;
+  findings: ReviewFinding[];
+  checks: string[];
+  createdAt: Date;
+};
+
+/**
+ * The newest review of one plan, or null where it has never been reviewed.
+ *
+ * Clinic-scoped like every other read here: a plan id is a uuid a staff member
+ * could otherwise carry between clinics.
+ */
+export async function latestReview(
+  clinicId: string,
+  planId: string,
+): Promise<PlanReviewRow | null> {
+  const [row] = await db
+    .select({
+      id: weeklyPlanReviews.id,
+      model: weeklyPlanReviews.model,
+      verdict: weeklyPlanReviews.verdict,
+      summaryAr: weeklyPlanReviews.summaryAr,
+      findings: weeklyPlanReviews.findings,
+      checks: weeklyPlanReviews.checks,
+      createdAt: weeklyPlanReviews.createdAt,
+    })
+    .from(weeklyPlanReviews)
+    .where(and(eq(weeklyPlanReviews.clinicId, clinicId), eq(weeklyPlanReviews.planId, planId)))
+    .orderBy(desc(weeklyPlanReviews.createdAt))
+    .limit(1);
+
+  if (!row) return null;
+
+  return {
+    ...row,
+    // `jsonb` comes back as `unknown`, and what was written is what is read.
+    findings: (row.findings ?? []) as ReviewFinding[],
+    checks: (row.checks ?? []) as string[],
+  };
+}
 
 /** One client's plans, newest week first, for the header pills and the Past tab. */
 export async function listPlans(clinicId: string, clientId: string): Promise<PlanListEntry[]> {
@@ -1397,6 +1453,7 @@ export async function listPlans(clinicId: string, clientId: string): Promise<Pla
       status: weeklyPlans.status,
       updatedAt: weeklyPlans.updatedAt,
       kcalTargetSnapshot: weeklyPlans.kcalTargetSnapshot,
+      summaryAr: weeklyPlans.summaryAr,
       // Counted in SQL rather than by loading the meals: the panel shows a number,
       // and fetching 35 rows per plan to take their length would make this the
       // page's largest read by a wide margin.

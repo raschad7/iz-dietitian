@@ -408,6 +408,7 @@ export function BoardHarness({ locale }: { locale: Locale }) {
             locale={locale}
             clinicName="عيادة إنزيم"
             history={<p className="text-body-sm text-muted-foreground">—</p>}
+            review={<p className="text-body-sm text-muted-foreground">—</p>}
             newWeek={NEW_WEEK(context)}
           >
             <ContextPanel context={context} clients={CLIENTS} locale={locale} embedded />

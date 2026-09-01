@@ -13,11 +13,13 @@ import { ContextPanel } from '@/features/weekly-plans/components/context-panel';
 import { EmptyPlanBoard } from '@/features/weekly-plans/components/empty-plan-board';
 import { PlanBoard } from '@/features/weekly-plans/components/plan-board';
 import { PlanHistory } from '@/features/weekly-plans/components/plan-history';
+import { PlanReviewCard } from '@/features/weekly-plans/components/plan-review-card';
 import { isLlmConfigured } from '@/features/weekly-plans/llm';
 import {
   getBoard,
   getClientContext,
   getLatestBoard,
+  latestReview,
   listCatalogForBoard,
   listPlannableClients,
   listPlans,
@@ -74,11 +76,13 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
 
   // The catalog ships with its recipes so the board can recompute totals for a
   // dropped dish itself, and the previous week's slots so a repeat is visible
-  // without leaving the page.
-  const [catalog, usage, previous] = await Promise.all([
+  // without leaving the page. The review rides in the same round — it is one row
+  // and the panel that shows it is always mounted.
+  const [catalog, usage, previous, review] = await Promise.all([
     listCatalogForBoard(clinicId, allergens),
     recentDishUse(clinicId, clientId),
     board ? previousPlanSlots(clinicId, clientId, board.weekStartDate) : Promise.resolve(null),
+    board ? latestReview(clinicId, board.id) : Promise.resolve(null),
   ]);
 
   // Derive alternatives from the catalog already loaded for the drawer. This
@@ -180,6 +184,9 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
             locale={locale}
             clinicName={clinic?.name ?? null}
             history={history}
+            review={
+              <PlanReviewCard planId={board.id} locale={locale} review={review} />
+            }
             newWeek={newWeek}
           >
             {/* The generate form moved into the new-week dialog, where the

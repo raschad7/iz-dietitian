@@ -1,0 +1,1 @@
+ALTER TABLE "weekly_plans" ADD COLUMN "summary_ar" text;

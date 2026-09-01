@@ -19,6 +19,7 @@ import {
   publishPlan,
   recordGeneration,
   replaceMeals,
+  saveReview,
   saveWeekInstructions,
   swapMealDish,
   unpublishPlan,
@@ -45,7 +46,8 @@ import {
   type GenerationScope,
 } from './schema';
 import { slotBudgets } from './targets';
-import type { GenerateState, PlanActionState } from './form-state';
+import type { GenerateState, PlanActionState, ReviewState } from './form-state';
+import { runReview, type ReviewOutcome } from './review';
 
 /**
  * A server action is a public endpoint. The layout guard protects the page render,
@@ -541,6 +543,78 @@ export async function saveInstructionsAction(
   }
 
   revalidateBoard(locale);
+  return { status: 'done' };
+}
+
+/**
+ * Asks the model to read a finished week and stores what it said.
+ *
+ * A request of its own, pressed by the dietitian, rather than a second pass
+ * inside generation: a generation already runs close to the route's ceiling, and
+ * a review that made every plan take twice as long would be turned off within a
+ * week. It also puts her in charge of it — the findings are shown, not applied.
+ */
+export async function reviewPlanAction(
+  _previousState: ReviewState,
+  formData: FormData,
+): Promise<ReviewState> {
+  const locale = readLocale(formData);
+  const { clinicId } = await requireStaffClinic(locale);
+
+  const parsed = publishPlanSchema.safeParse({ planId: formData.get('planId') });
+  if (!parsed.success) return { status: 'error', messageKey: 'errors.planNotFound' };
+
+  const board = await getBoard(clinicId, parsed.data.planId);
+  if (!board) return { status: 'error', messageKey: 'errors.planNotFound' };
+
+  let outcome: ReviewOutcome;
+
+  try {
+    outcome = await runReview(board);
+  } catch (error) {
+    if (error instanceof LlmNotConfiguredError) {
+      return { status: 'error', messageKey: 'errors.notConfigured' };
+    }
+
+    console.error('[weekly-plans] review failed', error);
+
+    return {
+      status: 'error',
+      messageKey: 'errors.reviewFailed',
+      detail: error instanceof Error ? error.message.slice(0, 300) : undefined,
+    };
+  }
+
+  try {
+    await saveReview({
+      clinicId,
+      planId: parsed.data.planId,
+      model: outcome.model,
+      verdict: outcome.review.verdict,
+      summaryAr: outcome.review.summaryAr,
+      findings: outcome.review.findings,
+      checks: outcome.review.checks,
+    });
+
+    // The same audit table generation writes to, so what a week costs is one
+    // query rather than two: `scope` is what tells the two kinds of call apart.
+    await recordGeneration({
+      clinicId,
+      planId: parsed.data.planId,
+      scope: 'review',
+      instruction: null,
+      model: outcome.model,
+      promptTokens: outcome.usage.promptTokens,
+      completionTokens: outcome.usage.completionTokens,
+      durationMs: outcome.durationMs,
+      status: 'ok',
+    }).catch(() => {});
+  } catch (error) {
+    console.error('[weekly-plans] storing the review failed', error);
+    return { status: 'error', messageKey: 'errors.unexpected' };
+  }
+
+  revalidateBoard(locale, board.clientId);
   return { status: 'done' };
 }
 
