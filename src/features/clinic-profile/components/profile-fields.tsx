@@ -413,16 +413,30 @@ export function ScheduleFields({
         </span>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-border">
+      {/*
+        `@container/hours`, and the three rules below ask this box how wide it
+        is rather than asking the window.
+
+        The table is inside a dialog, and a dialog's width has almost nothing to
+        do with the viewport's: on a tablet the window clears every `sm:` step
+        in the file while the dialog it opens is a few hundred pixels narrower
+        than the desktop one those steps were measured on. So the three fixed
+        columns switched on at a width where they did not fit, and the two time
+        controls — native `<input type="time">`, which WebKit will not shrink
+        below the size of the value it is drawing — were painted over the day
+        beside them. A container query asks the question that decides the
+        answer, which is how much room *this table* has.
+      */}
+      <div className="@container/hours overflow-hidden rounded-lg border border-border">
         {/*
           The column headings, once. `من` and `إلى` used to be printed above
           every single control — fourteen 12px labels down a seven-row table,
           which is the tell that they belong to the columns and not to the
-          fields. Hidden below `sm`, where the row wraps and the columns stop
-          being columns; the controls keep their own `aria-label` either way, so
+          fields. Hidden wherever the row wraps and the columns stop being
+          columns; the controls keep their own `aria-label` either way, so
           nothing depends on the headings being on screen.
         */}
-        <div className="hidden grid-cols-[minmax(9rem,1fr)_9rem_9rem] items-center gap-4 border-b border-border bg-muted px-3 py-2 text-label text-muted-foreground sm:grid">
+        <div className="hidden grid-cols-[minmax(0,1fr)_8rem_8rem] items-center gap-4 border-b border-border bg-muted px-3 py-2 text-label text-muted-foreground @min-[28rem]/hours:grid">
           <span>{t('day')}</span>
           <span>{t('opens')}</span>
           <span>{t('closes')}</span>
@@ -443,8 +457,8 @@ export function ScheduleFields({
                   **A grid, and one row per day.** The columns are declared
                   once, here and on the heading above, so a row cannot reflow
                   out of alignment with its own headings. It still collapses
-                  below `sm`, where the columns genuinely stop fitting and
-                  stacking is the honest answer.
+                  under the container query on the box above, where the columns
+                  genuinely stop fitting and stacking is the honest answer.
 
                   A closed row cools its whole background rather than only
                   greying its label, so "which days are we open" is answerable
@@ -452,7 +466,7 @@ export function ScheduleFields({
                   seven switches.
                 */
                 className={cn(
-                  'grid grid-cols-1 items-center gap-x-4 gap-y-2 px-3 py-1.5 transition-colors sm:grid-cols-[minmax(9rem,1fr)_9rem_9rem]',
+                  'grid grid-cols-1 items-center gap-x-4 gap-y-2 px-3 py-1.5 transition-colors @min-[28rem]/hours:grid-cols-[minmax(0,1fr)_8rem_8rem]',
                   !day.isWorking && 'bg-muted/40',
                 )}
               >
@@ -531,7 +545,7 @@ export function ScheduleFields({
                   by a line as you corrected the other one.
                 */}
                 {day.isWorking && rowError ? (
-                  <FieldError className="w-full ps-2 sm:col-span-3">
+                  <FieldError className="w-full ps-2 @min-[28rem]/hours:col-span-3">
                     {t(`validation.${rowError}`, { max: 0 })}
                   </FieldError>
                 ) : null}
