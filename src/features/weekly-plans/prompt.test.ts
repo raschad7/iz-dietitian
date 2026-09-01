@@ -11,6 +11,8 @@ const CATALOG: PromptDish[] = [
     baseKcal: 618.4,
     baseProtein: 21.7,
     nutritionCategory: 'balanced',
+    proteinSource: 'legume',
+    carbBase: 'rice',
   },
   {
     slug: 'labaneh-zeit-pita',
@@ -22,6 +24,8 @@ const CATALOG: PromptDish[] = [
     baseKcal: 381.2,
     baseProtein: 18.4,
     nutritionCategory: 'high_protein',
+    proteinSource: 'dairy',
+    carbBase: 'bread',
   },
 ];
 
@@ -202,11 +206,23 @@ describe('buildPrompt — json schema', () => {
     expect(slotSchemaOf(jsonSchema, 'lunch').properties.dish.enum).toEqual(['mujaddara-salad']);
   });
 
-  test('alternatives are constrained to the same per-slot dishes', () => {
+  /**
+   * The model is not asked for substitutes any more — `generate.ts` computes them
+   * from the catalog, which is arithmetic it already has and a third of the output
+   * the model was spending on the same three dishes every day.
+   */
+  test('a meal asks for a dish, a portion and a reason, and nothing else', () => {
     const { jsonSchema } = buildPrompt(input());
     const lunch = slotSchemaOf(jsonSchema, 'lunch');
 
-    expect(lunch.properties.alternatives.items.properties.dish.enum).toEqual(['mujaddara-salad']);
+    expect(Object.keys(lunch.properties).sort()).toEqual(['dish', 'rationaleAr', 'servings']);
+  });
+
+  test('the week carries one summary of its own', () => {
+    const { jsonSchema } = buildPrompt(input());
+
+    expect(propertiesOf(jsonSchema).summaryAr).toEqual({ type: 'string' });
+    expect(jsonSchema.required).toEqual(['summaryAr', 'days']);
   });
 
   test('a day is keyed by slot, so no slot can be missing or duplicated', () => {
@@ -232,7 +248,7 @@ describe('buildPrompt — json schema', () => {
     expect(day.additionalProperties).toBe(false);
     expect(lunch.additionalProperties).toBe(false);
 
-    expect(lunch.required).toEqual(['dish', 'servings', 'rationaleAr', 'alternatives']);
+    expect(lunch.required).toEqual(['dish', 'servings', 'rationaleAr']);
     expect(Object.keys(lunch.properties).sort()).toEqual([...lunch.required].sort());
   });
 
@@ -248,6 +264,10 @@ describe('buildPrompt — json schema', () => {
 });
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+function propertiesOf(schema: Record<string, unknown>): any {
+  return (schema as any).properties;
+}
+
 function daySchemaOf(schema: Record<string, unknown>): any {
   return (schema as any).properties.days.items;
 }

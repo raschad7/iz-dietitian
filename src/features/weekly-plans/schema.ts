@@ -153,7 +153,7 @@ export const weekStartDateSchema = z
   .trim()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'expected YYYY-MM-DD');
 
-export const GENERATION_SCOPES = ['week', 'day', 'meal'] as const;
+export const GENERATION_SCOPES = ['week', 'day', 'meal', 'review'] as const;
 export type GenerationScope = (typeof GENERATION_SCOPES)[number];
 
 /**
@@ -386,21 +386,24 @@ export const generatedMealSchema = z.object({
   dish: z.string().trim().min(1).max(120),
   servings: z.coerce.number().min(MIN_SERVINGS).max(MAX_SERVINGS),
   rationaleAr: z.string().trim().max(2000).default(''),
-  alternatives: z
-    .array(
-      z.object({
-        dish: z.string().trim().min(1).max(120),
-        servings: z.coerce.number().min(MIN_SERVINGS).max(MAX_SERVINGS),
-      }),
-    )
-    .max(3)
-    .default([]),
 });
 
 export type GeneratedMeal = z.infer<typeof generatedMealSchema> & { slotKey: string };
 
+/**
+ * How long a week's summary may be before it stops being one.
+ *
+ * It is read in a list of weeks, in a table cell, beside the dates it is meant to
+ * tell apart. Three sentences is the most that reads at that size; anything
+ * longer is trimmed rather than refused, for the same reason an over-long
+ * rationale is.
+ */
+export const MAX_SUMMARY_LENGTH = 400;
+
 /** The canonical shape the rest of the feature works in, after parsing. */
 export type GeneratedPlan = {
+  /** The model's description of this week as a whole. Empty when it wrote none. */
+  summaryAr: string;
   days: { dayOfWeek: number; meals: GeneratedMeal[] }[];
 };
 
@@ -430,14 +433,20 @@ export function parseGeneratedPlan(raw: unknown, slotKeys: readonly string[]): G
   // over a `Record<string, …>` widens every known field's inferred type, including
   // `dayOfWeek`, which then has to be cast back. This is the same validation with
   // types that mean what they say.
-  const { days } = z
-    .object({ days: z.array(z.record(z.string(), z.unknown())).min(1).max(7) })
+  const { summaryAr, days } = z
+    .object({
+      // Defaulted rather than required: a plan whose summary went missing is a
+      // plan, and refusing thirty-five meals over a caption would be absurd.
+      summaryAr: z.string().trim().max(4000).default(''),
+      days: z.array(z.record(z.string(), z.unknown())).min(1).max(7),
+    })
     .parse(raw);
 
   const dayOfWeek = z.number().int().min(0).max(6);
   const slot = generatedMealSchema.optional();
 
   return {
+    summaryAr,
     days: days.map((day) => ({
       dayOfWeek: dayOfWeek.parse(day.dayOfWeek),
       // Only the client's own slots are read, so a slot the model invented is

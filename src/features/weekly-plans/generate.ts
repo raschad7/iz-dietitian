@@ -16,11 +16,13 @@ import { buildPrompt, type PromptDish, type PromptInput } from './prompt';
 import { getLlmTransport, LlmTransportError, type LlmResult } from './llm';
 import {
   MAX_RATIONALE_LENGTH,
+  MAX_SUMMARY_LENGTH,
   mealTypeForSlot,
   parseGeneratedPlan,
   type GeneratedPlan,
   type GenerationScope,
 } from './schema';
+import { repairVariety, type VarietyReport } from './variety';
 import { DAY_TOLERANCE, driftState } from './drift';
 import type { DishIngredientDetail } from './nutrition';
 import { chooseServings, nextServings, portionedKcal } from './portioning';
@@ -77,6 +79,10 @@ export type ReconcileResult = {
   warnings: ReconcileWarning[];
   /** Slots left empty — what the banner counts. */
   unfilled: number;
+  /** The model's description of the week, trimmed. Null when it wrote none. */
+  summaryAr: string | null;
+  /** What the variety pass changed, for the audit row. */
+  variety: VarietyReport;
 };
 
 /**
@@ -208,51 +214,20 @@ export function reconcile({
         chooseServings(dish.recipe, budget.kcal) ??
         bestServings(dish.baseKcal, budget.kcal) ??
         snapServings(returnedMeal.servings);
-      const seen = new Set([dish.slug]);
-      const options: ReconciledOption[] = [];
-
-      for (const alternative of returnedMeal.alternatives) {
-        // The chosen dish offered as its own alternative is noise, and the
-        // options table's unique index would reject a repeat anyway.
-        if (seen.has(alternative.dish)) continue;
-
-        const alternativeDish = resolve(
-          alternative.dish,
-          mealType,
-          dayOfWeek,
-          budget.slotKey,
-        );
-        if (!alternativeDish) continue;
-
-        seen.add(alternative.dish);
-        // Same again: an alternative is only a substitute if its portion hits the
-        // same budget, so the portion is computed rather than accepted.
-        const alternativeServings =
-          chooseServings(alternativeDish.recipe, budget.kcal) ??
-          bestServings(alternativeDish.baseKcal, budget.kcal) ??
-          snapServings(alternative.servings);
-
-        options.push({
-          dishId: alternativeDish.id,
-          slug: alternativeDish.slug,
-          servings: alternativeServings,
-          // Recorded rather than filtered: an alternative that is 40% lighter is
-          // still a dish the dietitian might want, it just is not a like-for-like
-          // swap, and the panel says so. Measured at the portioned amount, which
-          // is what the meal would actually hold if it were swapped in.
-          isSimilar: isSimilar(
-            portionedKcal(alternativeDish.recipe, alternativeServings) ||
-              alternativeDish.baseKcal * alternativeServings,
-            budget.kcal,
-          ),
-        });
-      }
+      const options = alternativesFor({
+        dish,
+        mealType,
+        budgetKcal: budget.kcal,
+        catalog,
+        blocked,
+        rotation: dayOfWeek + index,
+      });
 
       const meal: ReconciledMeal = {
         ...base,
         dishId: dish.id,
         servings,
-        rationaleAr: truncateRationale(returnedMeal.rationaleAr),
+        rationaleAr: truncate(returnedMeal.rationaleAr, MAX_RATIONALE_LENGTH),
         options,
       };
 
@@ -263,7 +238,105 @@ export function reconcile({
     balanceDay(filled);
   }
 
-  return { meals, warnings, unfilled };
+  // Variety last: it swaps dishes, and a swapped dish is portioned by the same
+  // chooser, so it must run after every meal has one to swap away from.
+  const variety = repairVariety({ meals, catalog, allergens });
+
+  return {
+    meals,
+    warnings,
+    unfilled,
+    summaryAr: truncate(plan.summaryAr, MAX_SUMMARY_LENGTH),
+    variety,
+  };
+}
+
+/**
+ * How many substitutes a meal carries.
+ *
+ * Three, the number the meal panel and the printed sheet both show.
+ */
+const ALTERNATIVES_PER_MEAL = 3;
+
+/**
+ * How wide a pool the three are drawn from.
+ *
+ * Every dish in it fits the slot and the budget, so any three would do; drawing
+ * from eight and rotating the start is what stops the same trio appearing under
+ * every lunch of the week. The plan that prompted this offered
+ * `دجاج مع كسكس وخضار · برغل مع دجاج · بازيلا ولحمة مع رز` on all seven days,
+ * which reads as a form letter rather than as a choice.
+ */
+const ALTERNATIVE_POOL = 8;
+
+/**
+ * The substitutes for one meal, computed rather than asked for.
+ *
+ * The model used to return these: three slugs per meal, a third of its output,
+ * and it spent them on the same three dishes every day. Nothing about the
+ * question needs a model — "which dishes fit this slot at this budget" is
+ * arithmetic over a catalog we hold, and doing it here makes the answer vary by
+ * construction and the response smaller by a third.
+ *
+ * `rotation` shifts where in the ranked pool the three are taken from, so the
+ * same slot on a different day offers different ones. It is the day plus the slot
+ * index rather than a random number, because a plan that regenerates into
+ * different alternatives every time it is read is a plan nobody trusts.
+ */
+function alternativesFor({
+  dish,
+  mealType,
+  budgetKcal,
+  catalog,
+  blocked,
+  rotation,
+}: {
+  dish: CatalogDish;
+  mealType: string;
+  budgetKcal: number;
+  catalog: readonly CatalogDish[];
+  blocked: ReadonlySet<string>;
+  rotation: number;
+}): ReconciledOption[] {
+  const ranked: { option: ReconciledOption; gap: number }[] = [];
+
+  for (const candidate of catalog) {
+    if (candidate.id === dish.id) continue;
+    if (!candidate.mealTypes.includes(mealType)) continue;
+    if (candidate.allergenTags.some((tag) => blocked.has(tag))) continue;
+
+    const servings =
+      chooseServings(candidate.recipe, budgetKcal) ??
+      bestServings(candidate.baseKcal, budgetKcal);
+    if (servings === null) continue;
+
+    const kcal = portionedKcal(candidate.recipe, servings) || candidate.baseKcal * servings;
+
+    ranked.push({
+      option: {
+        dishId: candidate.id,
+        slug: candidate.slug,
+        servings,
+        // Recorded rather than filtered: an alternative that is 40% lighter is
+        // still a dish the dietitian might want, it just is not a like-for-like
+        // swap, and the panel says so.
+        isSimilar: isSimilar(kcal, budgetKcal),
+      },
+      gap: Math.abs(kcal - budgetKcal),
+    });
+  }
+
+  ranked.sort((a, b) => a.gap - b.gap);
+
+  const pool = ranked.slice(0, ALTERNATIVE_POOL);
+  if (pool.length <= ALTERNATIVES_PER_MEAL) return pool.map((entry) => entry.option);
+
+  const start = ((rotation % pool.length) + pool.length) % pool.length;
+
+  return Array.from(
+    { length: ALTERNATIVES_PER_MEAL },
+    (_, index) => pool[(start + index) % pool.length]!.option,
+  );
 }
 
 /** One filled meal and the recipe its portion is computed from. */
@@ -347,11 +420,11 @@ function balanceDay(entries: readonly BalanceEntry[]): void {
  * of one has not made a clinical error. An empty string becomes null so the UI can
  * distinguish "no explanation" from "an explanation that is blank".
  */
-function truncateRationale(value: string): string | null {
+function truncate(value: string, limit: number): string | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
-  if (trimmed.length <= MAX_RATIONALE_LENGTH) return trimmed;
-  return `${trimmed.slice(0, MAX_RATIONALE_LENGTH - 1).trimEnd()}…`;
+  if (trimmed.length <= limit) return trimmed;
+  return `${trimmed.slice(0, limit - 1).trimEnd()}…`;
 }
 
 export class GenerationFailedError extends Error {

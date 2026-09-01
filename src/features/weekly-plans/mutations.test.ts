@@ -121,6 +121,8 @@ function outcome(meals: ReconciledMeal[]) {
     meals,
     warnings: [],
     unfilled: meals.filter((entry) => entry.dishId === null).length,
+    summaryAr: null,
+    variety: { repaired: 0, unresolved: 0 },
     model: 'test-model',
     usage: { promptTokens: 10, completionTokens: 20 },
     durationMs: 5,

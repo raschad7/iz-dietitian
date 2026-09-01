@@ -38,6 +38,17 @@ export type PromptDish = {
    * separate on the wire exactly as they are in the data.
    */
   nutritionCategory: string;
+  /**
+   * What the dish's protein is and what it is eaten with, derived from the recipe
+   * by `dish-composition.ts`.
+   *
+   * The model used to see a name and a calorie count, which is why it could put
+   * chickpeas in eight meals of a week while obeying every rule it was given: the
+   * repetition a person notices is in the ingredients, and the ingredients were
+   * not on the wire.
+   */
+  proteinSource: string;
+  carbBase: string;
 };
 
 export type PromptClient = {
@@ -100,12 +111,23 @@ function buildSystem(): string {
     'Rules:',
     '- Choose meals ONLY from the provided dish catalog, by slug. There are no other dishes.',
     '- Every requested day must appear, and every slot in a day must be filled.',
-    '- Match each slot to its calorie budget as closely as the catalog allows, by adjusting servings.',
-    `- servings must be a multiple of ${SERVING_STEP}, between ${MIN_SERVINGS} and ${MAX_SERVINGS}.`,
-    '- Vary the week. Do not repeat the same dish more than twice across all days, and never on consecutive days in the same slot.',
-    '- Honour the dietitian instructions and the client dislikes. Instructions outrank variety.',
+    '- Match each slot to its calorie budget as closely as the catalog allows. Prefer a dish whose base energy is near the budget over a small dish eaten several times over: portions are set afterwards by arithmetic, they are capped at what a person serves, and a 90 kcal snack cannot be stretched to fill a 250 kcal slot.',
+    `- servings is a hint only, and is recomputed. Give a multiple of ${SERVING_STEP} between ${MIN_SERVINGS} and ${MAX_SERVINGS}.`,
+    '- Aim at the daily protein target as well as the calorie target. Protein comes from the dishes you choose; nothing downstream can add it.',
+    '',
+    'Variety, which is what makes a plan look like food rather than output:',
+    '- Never the same dish twice in one day, and no more than twice in the week.',
+    '- Never the same protein_source twice in one day. Chicken at lunch and chicken at dinner is one meal served twice.',
+    '- No protein_source more than three times in the week, and use at least four different ones.',
+    '- Include fish at least twice in a week where the catalog allows it.',
+    '- Vary carb_base across the day and the week; not rice at every lunch.',
+    '- A day needs a shape: something warm and cooked at lunch or dinner, not two cold salads.',
+    '- Do not repeat the same dish in the same slot on consecutive days.',
+    '',
+    'Honour the dietitian instructions and the client dislikes. Instructions outrank variety.',
+    '',
     `- rationaleAr: ONE short sentence in Arabic (under ${MAX_RATIONALE_LENGTH} characters) saying why this dish suits this client. Plain, concrete, no marketing language.`,
-    '- alternatives: up to 3 other catalog dishes that fit the same slot and land within 15% of the same calorie budget. Never repeat the chosen dish.',
+    '- summaryAr: two or three sentences of Arabic describing THIS week as a whole — what it is built around, what makes it different from an ordinary week, and anything the dietitian asked for that shaped it. It is read in a list beside other weeks, so it must say what distinguishes this one. Never mention calories or the client by name.',
     '',
     'The catalog already excludes anything the client is allergic to. Choose freely within it.',
   ].join('\n');
@@ -157,10 +179,15 @@ function describeCatalog(catalog: readonly PromptDish[]): string {
       `${Math.round(dish.baseKcal)}kcal`,
       `${Math.round(dish.baseProtein)}g`,
       dish.nutritionCategory,
+      dish.proteinSource,
+      dish.carbBase,
     ].join('\t'),
   );
 
-  return ['slug\tname\tmeal_types\ttags\tbase_kcal\tbase_protein\tnutrition', ...rows].join('\n');
+  return [
+    'slug\tname\tmeal_types\ttags\tbase_kcal\tbase_protein\tnutrition\tprotein_source\tcarb_base',
+    ...rows,
+  ].join('\n');
 }
 
 function describeBudgets(budgets: readonly SlotBudget[]): string {
@@ -257,17 +284,8 @@ function buildJsonSchema(
         dish,
         servings: { type: 'number' },
         rationaleAr: { type: 'string' },
-        alternatives: {
-          type: 'array',
-          items: {
-            type: 'object',
-            additionalProperties: false,
-            properties: { dish, servings: { type: 'number' } },
-            required: ['dish', 'servings'],
-          },
-        },
       },
-      required: ['dish', 'servings', 'rationaleAr', 'alternatives'],
+      required: ['dish', 'servings', 'rationaleAr'],
     };
   };
 
@@ -279,6 +297,7 @@ function buildJsonSchema(
     type: 'object',
     additionalProperties: false,
     properties: {
+      summaryAr: { type: 'string' },
       days: {
         type: 'array',
         items: {
@@ -292,6 +311,6 @@ function buildJsonSchema(
         },
       },
     },
-    required: ['days'],
+    required: ['summaryAr', 'days'],
   };
 }
