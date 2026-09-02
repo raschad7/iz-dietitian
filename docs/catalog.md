@@ -291,31 +291,39 @@ exactly what the client was given.
   the file checksum are derived by `bun run db:build-catalog` and must never be
   hand-edited.
 
-## Order of work
+## Order of work — all done, 2026-09-02
 
-Each wave is shippable on its own.
+Kept as the record of what was built, in the order it was built.
 
 0. **Machinery.** The four axis columns, the computed labels, the counting-unit
-   rule, free items, whole servings for street and restaurant, **sides**, the
-   grid and the new failures in `db:check`, and a backfill of the four axes onto
-   the existing dishes. No new data beyond the handful of side dishes the
-   mechanism cannot be exercised without — a صحن سلطة has to exist before a meal
-   can carry one.
-1. **Foods.** Fill the categories to roughly 220, including the local rows that
-   need a table, a label or a documented derivation.
-2. **Street and restaurant.** Shawarma, falafel sandwich, ka'ek with egg,
-   manaqish, broasted, burger, pizza. The largest hole and the one nothing
-   substitutes for.
-3. **Assembled plates.** Around twenty by hand: grilled chicken breast with
-   basmati and salad, fajita, pasta bolognese, tuna salad, grilled fish with
-   sautéed vegetables, kabsa, oats with milk and fruit, vegetable omelette.
-4. **Snacks, 150–400 kcal.** The measured gap.
-5. **Breakfasts**, then **lunches and dinners**, until the grid is full.
-6. **Retag and retire**, then rebuild the catalog page filters around the four
-   axes. Done: the `tags` column is dropped, both filter panels and the clinic
-   dish form ask the four questions, and the colour a meal card paints is its
+   rule, free items, whole servings for street and restaurant, sides, and the
+   grid inside `db:check`.
+1. **Foods.** 98 → 145, including labaneh and freekeh, which USDA has no row for
+   and which carry a cited source of their own.
+2. **Street and restaurant.** Shawarma, falafel sandwich, manaqish, broasted,
+   burger, pizza, shish tawook. Not one of them needed a new food.
+3. **Assembled plates.** Chicken with rice and salad, fajita, pasta bolognese,
+   kabsa, freekeh with chicken — written by hand rather than as a template.
+4. **Snacks, 100–400 kcal.** The band that produced the guava.
+5. **Breakfasts, lunches and dinners**, until the grid was full: 277 dishes.
+6. **The tag bag removed.** The `tags` column is dropped, both filter panels and
+   the clinic dish form ask the four questions, and a meal card's colour is its
    `source`.
-7. **The client's measuring guide** — the hand-measure sheet, printable.
-8. **Reviewer sweep.** Generate ten weeks across different client profiles and
-   run `bun run plan:review` over each. It found three real data errors on its
-   first ever run for under half a cent.
+7. **The client's measuring guide** — every unit in the catalog with its weight,
+   and how to picture one with a hand.
+8. **Reviewer sweep.** `bun run plan:sweep` plans ten weeks against the whole
+   catalog without a database and without a charge; `--ai` adds the reviewing
+   model. It found six real problems on its first two runs, all fixed.
+
+### What is left, and why
+
+- **A pastry base.** No `عجينة`, no `كعك`. See the sourcing section above.
+- **Nabulsi, akkawi, jameed, halva, kunafa cheese.** Same reason — no source
+  worth citing yet.
+- **Beverages.** Parked deliberately. Tea with sugar is a real clinical gap.
+- **The labaneh row is provisional** until a Palestinian product label replaces
+  it.
+- **A price per kilo on each food**, which would make `cost` computed rather than
+  typed, and would make a shopping list with a total on it possible.
+- **The assembled-plate template**, if writing combinations by hand ever starts
+  to hurt.
