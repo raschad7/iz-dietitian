@@ -36,6 +36,13 @@ import { db } from '@/db';
 import { normalizeArabic } from '@/features/weekly-plans/arabic-normalize';
 import { readMealSnapshot } from '@/features/weekly-plans/nutrition-snapshot';
 
+import {
+  coverage,
+  formatCoverage,
+  type CoverageReport,
+} from '@/features/weekly-plans/coverage';
+import { baseServingKcal, type DishIngredientDetail } from '@/features/weekly-plans/nutrition';
+
 import { catalogChecksum } from './build-catalog-dataset';
 import { readCatalogDataset } from './seed-catalog-foods';
 import { readDishDataset } from './seed-dishes';
@@ -406,6 +413,53 @@ async function checkFrozenPlans(): Promise<Check> {
   };
 }
 
+/**
+ * The committed datasets as the coverage grid wants them.
+ *
+ * Builds each dish's recipe from `catalog-foods.json` so the base energy and the
+ * protein source are computed the same way the application computes them — from
+ * the grams and the food, never from a number written beside the dish.
+ */
+export function coverageFromDatasets(): CoverageReport {
+  const foods = new Map(readCatalogDataset().map((food) => [food.sourceRef, food]));
+
+  return coverage(
+    readDishDataset().map((dish) => {
+      const recipe = dish.ingredients.flatMap((ingredient, index) => {
+        const food = foods.get(String(ingredient.fdcId));
+        if (!food) return [];
+
+        return [
+          {
+            quantityGrams: ingredient.grams,
+            food: {
+              id: food.slug,
+              nameAr: food.nameAr,
+              nameEn: food.nameEn,
+              category: food.category,
+              ...(food.nutrition as Record<string, number | null>),
+            },
+            isPrimary: ingredient.primary ?? false,
+            sortOrder: index,
+          } as DishIngredientDetail,
+        ];
+      });
+
+      return {
+        slug: dish.slug,
+        mealTypes: dish.mealTypes,
+        source: dish.source,
+        effort: dish.effort,
+        cost: dish.cost,
+        occasion: dish.occasion,
+        isSide: dish.isSide,
+        baseKcal: baseServingKcal(recipe),
+        recipe,
+      };
+    }),
+  );
+}
+
 if (import.meta.main) {
   const [database] = await db.execute<{ name: string }>(sql`select current_database() as name`);
   console.info(`database: ${database?.name ?? 'unknown'}\n`);
@@ -425,6 +479,9 @@ if (import.meta.main) {
     }
     process.exit(1);
   }
+
+  console.info('\ncoverage');
+  console.info(formatCoverage(coverageFromDatasets()));
 
   console.info('\nready.');
   process.exit(0);
