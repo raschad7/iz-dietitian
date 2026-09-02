@@ -64,6 +64,7 @@ function ingredient(line: Line, index: number): MealIngredientLine {
     portionQuantity: line.portionQuantity ?? null,
     isPrimary: line.primary ?? false,
     sortOrder: index,
+    side: null,
     food: {
       id: line.id,
       nameAr: line.nameAr,

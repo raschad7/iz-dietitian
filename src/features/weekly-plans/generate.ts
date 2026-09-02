@@ -12,7 +12,7 @@
  * orchestration around it.
  */
 
-import { buildPrompt, type PromptDish, type PromptInput } from './prompt';
+import { buildPrompt, MAX_SIDES, type PromptDish, type PromptInput } from './prompt';
 import { getLlmTransport, LlmTransportError, type LlmResult } from './llm';
 import {
   isFixedPortion,
@@ -66,6 +66,13 @@ export type ReconciledMeal = {
   servings: number;
   rationaleAr: string | null;
   options: ReconciledOption[];
+  /**
+   * Dishes standing beside the main, in the order they were written.
+   *
+   * Ids, not slugs, and never more than `MAX_SIDES`. Each is served at one
+   * serving — there is no multiplier here because a side does not take one.
+   */
+  sideDishIds: string[];
 };
 
 export type ReconcileWarning =
@@ -102,15 +109,19 @@ export function reconcile({
   days,
   budgets,
   catalog,
+  sides = [],
   allergens,
 }: {
   plan: GeneratedPlan;
   days: readonly number[];
   budgets: readonly SlotBudget[];
   catalog: readonly CatalogDish[];
+  /** What may stand beside a main. Empty means sides are simply never attached. */
+  sides?: readonly CatalogDish[];
   allergens: readonly string[];
 }): ReconcileResult {
   const bySlug = new Map(catalog.map((dish) => [dish.slug, dish]));
+  const sideBySlug = new Map(sides.map((dish) => [dish.slug, dish]));
   const blocked = new Set(allergens);
   const warnings: ReconcileWarning[] = [];
 
@@ -185,7 +196,14 @@ export function reconcile({
       if (!returnedMeal) {
         warnings.push({ kind: 'missing_meal', dayOfWeek, slotKey: budget.slotKey });
         unfilled += 1;
-        meals.push({ ...base, dishId: null, servings: 1, rationaleAr: null, options: [] });
+        meals.push({
+          ...base,
+          dishId: null,
+          servings: 1,
+          rationaleAr: null,
+          options: [],
+          sideDishIds: [],
+        });
         continue;
       }
 
@@ -193,7 +211,14 @@ export function reconcile({
 
       if (!dish) {
         unfilled += 1;
-        meals.push({ ...base, dishId: null, servings: 1, rationaleAr: null, options: [] });
+        meals.push({
+          ...base,
+          dishId: null,
+          servings: 1,
+          rationaleAr: null,
+          options: [],
+          sideDishIds: [],
+        });
         continue;
       }
 
@@ -230,6 +255,7 @@ export function reconcile({
         servings,
         rationaleAr: truncate(returnedMeal.rationaleAr, MAX_RATIONALE_LENGTH),
         options,
+        sideDishIds: resolveSides(returnedMeal.sides, sideBySlug, blocked),
       };
 
       meals.push(meal);
@@ -343,6 +369,36 @@ function alternativesFor({
 }
 
 /** One filled meal and the recipe its portion is computed from. */
+/**
+ * The sides a meal may actually carry, from the slugs the model wrote.
+ *
+ * Silently drops anything unusable rather than warning: a side is a garnish on
+ * the plan, and a week that lost a salad is not a week worth reporting a problem
+ * about. What it must never do is let one through — an unknown slug, a dish
+ * carrying one of this client's allergens, a repeat, or a fourth item — because
+ * each of those becomes something a client is told to eat.
+ */
+function resolveSides(
+  slugs: readonly string[],
+  sideBySlug: ReadonlyMap<string, CatalogDish>,
+  blocked: ReadonlySet<string>,
+): string[] {
+  const ids: string[] = [];
+
+  for (const slug of slugs) {
+    if (ids.length >= MAX_SIDES) break;
+
+    const side = sideBySlug.get(slug);
+    if (!side) continue;
+    if (side.allergenTags.some((tag) => blocked.has(tag))) continue;
+    if (ids.includes(side.id)) continue;
+
+    ids.push(side.id);
+  }
+
+  return ids;
+}
+
 type BalanceEntry = {
   meal: ReconciledMeal;
   recipe: readonly DishIngredientDetail[];
@@ -468,6 +524,8 @@ export async function runGeneration(
   input: PromptInput,
   catalog: readonly CatalogDish[],
   allergens: readonly string[],
+  /** What may stand beside a main. Last, and optional, so every existing caller reads unchanged. */
+  sides: readonly CatalogDish[] = [],
 ): Promise<GenerationOutcome> {
   const transport = getLlmTransport();
   const payload = buildPrompt(input);
@@ -514,6 +572,7 @@ export async function runGeneration(
         days: input.days,
         budgets: input.budgets,
         catalog,
+        sides,
         allergens,
       }),
       model: result.model,

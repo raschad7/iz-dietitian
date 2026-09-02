@@ -33,6 +33,7 @@ import {
   loadCatalog,
   previousPlanSlugs,
   toPromptCatalog,
+  toPromptSides,
   type ClientContext,
 } from './queries';
 import {
@@ -198,6 +199,7 @@ function promptInput({
     },
     budgets,
     catalog: toPromptCatalog(catalog),
+    sides: toPromptSides(catalog),
     instruction,
     previousSlugs: previous,
     days,
@@ -274,6 +276,7 @@ export async function generateWeekAction(
       }),
       toPromptCatalog(ready.catalog),
       ready.allergens,
+      toPromptSides(ready.catalog),
     );
   } catch (error) {
     // The audit row is written for failures too — those are the interesting ones.
@@ -388,6 +391,7 @@ async function regenerate({
       }),
       toPromptCatalog(ready.catalog),
       ready.allergens,
+      toPromptSides(ready.catalog),
     );
   } catch (error) {
     await recordGeneration({

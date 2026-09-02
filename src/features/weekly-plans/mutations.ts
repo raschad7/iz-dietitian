@@ -5,6 +5,7 @@ import {
   clients,
   weeklyPlanGenerations,
   weeklyPlanMealOptions,
+  weeklyPlanMealSides,
   weeklyPlanReviews,
   weeklyPlanMeals,
   weeklyPlans,
@@ -14,7 +15,7 @@ import { recomputeDayAdherence } from '@/features/portal/mutations';
 import type { GenerationOutcome, ReconciledMeal } from './generate';
 import { mealIngredientLines } from './meal-ingredients';
 import { buildMealSnapshot } from './nutrition-snapshot';
-import { loadDishesByIds, ownAmountsByMeal } from './queries';
+import { loadDishesByIds, ownAmountsByMeal, sidesByMealId } from './queries';
 import type { GenerationScope } from './schema';
 import { planWeekDays, weekDateForDay } from './week';
 
@@ -112,6 +113,30 @@ async function insertOptions(
   });
 
   if (values.length) await tx.insert(weeklyPlanMealOptions).values(values);
+}
+
+/**
+ * The dishes standing beside each meal.
+ *
+ * Same shape as `insertOptions` and written in the same transaction, because a
+ * meal without its salad is as wrong as a meal without its alternatives — both
+ * are part of what the dietitian was shown when the plan was produced.
+ */
+async function insertSides(
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  inserted: { id: string; dayOfWeek: number; slotKey: string }[],
+  meals: readonly ReconciledMeal[],
+): Promise<void> {
+  const idBySlot = new Map(inserted.map((row) => [`${row.dayOfWeek}:${row.slotKey}`, row.id]));
+
+  const values = meals.flatMap((meal) => {
+    const mealId = idBySlot.get(`${meal.dayOfWeek}:${meal.slotKey}`);
+    if (!mealId) return [];
+
+    return meal.sideDishIds.map((dishId, index) => ({ mealId, dishId, sortOrder: index }));
+  });
+
+  if (values.length) await tx.insert(weeklyPlanMealSides).values(values);
 }
 
 /** The audit row. Written for failures too — those are the interesting ones. */
@@ -240,6 +265,7 @@ export async function createPlanFromGeneration(input: {
       });
 
     await insertOptions(tx, inserted, input.outcome.meals);
+    await insertSides(tx, inserted, input.outcome.meals);
 
     for (const { dayOfWeek, date } of planWeekDays(input.weekStartDate)) {
       await recomputeDayAdherence(tx, {
@@ -308,6 +334,7 @@ export async function replaceMeals(
       });
 
     await insertOptions(tx, inserted, meals);
+    await insertSides(tx, inserted, meals);
 
     await tx
       .update(weeklyPlans)
@@ -464,6 +491,14 @@ async function snapshotPlanMeals(
     tx,
   );
 
+  // And its sides, on the same transaction and through the same loader. A frozen
+  // meal that omitted its salad would publish a calorie count the printed plan
+  // disagrees with — the exact failure snapshotting exists to prevent.
+  const sidesByMeal = await sidesByMealId(
+    populated.map((meal) => meal.id),
+    tx,
+  );
+
   for (const meal of populated) {
     const dish = dishById.get(meal.dishId);
     if (!dish) throw new SnapshotFailedError(planId, meal.id, meal.dishId);
@@ -472,6 +507,7 @@ async function snapshotPlanMeals(
       recipe: dish.ingredients,
       servings: meal.servings,
       stored: ownAmounts.get(meal.id),
+      sides: sidesByMeal.get(meal.id) ?? [],
     });
 
     await tx

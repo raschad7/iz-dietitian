@@ -110,6 +110,7 @@ function meal(overrides: Partial<ReconciledMeal> = {}): ReconciledMeal {
     sortOrder: 0,
     dishId: dishIds[0]!,
     servings: 1,
+    sideDishIds: [],
     rationaleAr: 'سبب',
     options: [{ dishId: dishIds[1]!, slug: 'test-lunch-b', servings: 1, isSimilar: true }],
     ...overrides,

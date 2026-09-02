@@ -1,6 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 
-import { buildPrompt, EmptySlotCatalogError, type PromptDish, type PromptInput } from './prompt';
+import {
+  buildPrompt,
+  EmptySlotCatalogError,
+  MAX_SIDES,
+  type PromptDish,
+  type PromptInput,
+} from './prompt';
 
 const CATALOG: PromptDish[] = [
   {
@@ -62,6 +68,7 @@ function input(overrides: Partial<PromptInput> = {}): PromptInput {
     },
     budgets: BUDGETS,
     catalog: CATALOG,
+    sides: [],
     instruction: 'تحضير أسهل وتكلفة أقل',
     previousSlugs: ['fattoush', 'musakhan'],
     days: [0, 1, 2, 3, 4, 5, 6],
@@ -219,11 +226,16 @@ describe('buildPrompt — json schema', () => {
    * from the catalog, which is arithmetic it already has and a third of the output
    * the model was spending on the same three dishes every day.
    */
-  test('a meal asks for a dish, a portion and a reason, and nothing else', () => {
+  test('a meal asks for a dish, a portion, a reason and its sides, and nothing else', () => {
     const { jsonSchema } = buildPrompt(input());
     const lunch = slotSchemaOf(jsonSchema, 'lunch');
 
-    expect(Object.keys(lunch.properties).sort()).toEqual(['dish', 'rationaleAr', 'servings']);
+    expect(Object.keys(lunch.properties).sort()).toEqual([
+      'dish',
+      'rationaleAr',
+      'servings',
+      'sides',
+    ]);
   });
 
   test('the week carries one summary of its own', () => {
@@ -256,7 +268,7 @@ describe('buildPrompt — json schema', () => {
     expect(day.additionalProperties).toBe(false);
     expect(lunch.additionalProperties).toBe(false);
 
-    expect(lunch.required).toEqual(['dish', 'servings', 'rationaleAr']);
+    expect(lunch.required).toEqual(['dish', 'servings', 'rationaleAr', 'sides']);
     expect(Object.keys(lunch.properties).sort()).toEqual([...lunch.required].sort());
   });
 
@@ -283,3 +295,61 @@ function daySchemaOf(schema: Record<string, unknown>): any {
 function slotSchemaOf(schema: Record<string, unknown>, slotKey: string): any {
   return daySchemaOf(schema).properties[slotKey];
 }
+
+/**
+ * A side is not a meal. The enum is what makes that unrepresentable rather than
+ * merely instructed — the model cannot name a salad where a lunch belongs, and it
+ * cannot name a lunch where a salad belongs.
+ */
+describe('buildPrompt — sides', () => {
+  const salad: PromptDish = {
+    slug: 'green-salad-plate',
+    nameAr: 'صحن سلطة',
+    mealTypes: ['lunch', 'dinner'],
+    tags: [],
+    source: 'home',
+    effort: 'no_cook',
+    cost: 'cheap',
+    occasion: 'everyday',
+    baseKcal: 85,
+    baseProtein: 2,
+    nutritionCategory: 'balanced',
+    proteinSource: 'none',
+    carbBase: 'none',
+  };
+
+  test('a side never appears in a slot dish enum', () => {
+    const { jsonSchema } = buildPrompt({ ...input(), sides: [salad] });
+    const lunch = slotSchemaOf(jsonSchema, 'lunch');
+
+    expect((lunch.properties.dish as { enum: string[] }).enum).not.toContain('green-salad-plate');
+  });
+
+  test('the sides array accepts only the side catalog, and at most two', () => {
+    const { jsonSchema } = buildPrompt({ ...input(), sides: [salad] });
+    const lunch = slotSchemaOf(jsonSchema, 'lunch');
+    const sides = lunch.properties.sides as {
+      maxItems: number;
+      items: { enum?: string[] };
+    };
+
+    expect(sides.maxItems).toBe(MAX_SIDES);
+    expect(sides.items.enum).toEqual(['green-salad-plate']);
+  });
+
+  /** With nothing to attach, the array is typed as never having items at all. */
+  test('an empty side catalog produces an array that can hold nothing', () => {
+    const { jsonSchema } = buildPrompt(input());
+    const lunch = slotSchemaOf(jsonSchema, 'lunch');
+
+    expect((lunch.properties.sides as { maxItems: number }).maxItems).toBe(0);
+  });
+
+  test('the user prompt lists the sides and says they are not meals', () => {
+    const { user } = buildPrompt({ ...input(), sides: [salad] });
+
+    expect(user).toContain('## Sides');
+    expect(user).toContain('صحن سلطة');
+    expect(user).toContain('never instead of one');
+  });
+});

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import { reconcile, type CatalogDish } from './generate';
+import { MAX_SIDES } from './prompt';
 import type { DishIngredientDetail } from './nutrition';
 import { parseGeneratedPlan } from './schema';
 
@@ -457,5 +458,91 @@ describe('parseGeneratedPlan', () => {
 
     expect(parsed.days[0]!.meals[0]!.rationaleAr).toBe('');
     expect(parsed.summaryAr).toBe('');
+  });
+});
+
+/**
+ * A side is a garnish on the plan: an unusable one is dropped without a warning,
+ * because a week that lost a salad is not a week worth reporting a problem about.
+ * What must never happen is one getting through — each of these is something a
+ * client would otherwise be told to eat.
+ */
+describe('reconcile — sides', () => {
+  const salad: CatalogDish = {
+    id: 'side-salad',
+    slug: 'green-salad-plate',
+    nameAr: 'صحن سلطة',
+    mealTypes: ['lunch', 'dinner'],
+    tags: [],
+    source: 'home',
+    effort: 'no_cook',
+    cost: 'cheap',
+    occasion: 'everyday',
+    allergenTags: [],
+    baseKcal: 85,
+    baseProtein: 2,
+    nutritionCategory: 'balanced',
+    proteinSource: 'none',
+    carbBase: 'none',
+    recipe: recipeOf(85),
+  };
+
+  const yogurt: CatalogDish = { ...salad, id: 'side-yogurt', slug: 'yogurt-cup', nameAr: 'كوب لبن' };
+  const nutty: CatalogDish = {
+    ...salad,
+    id: 'side-nuts',
+    slug: 'nut-side',
+    allergenTags: ['nuts'],
+  };
+
+  function withSides(sides: string[], catalogSides: CatalogDish[], allergens: string[] = []) {
+    const result = reconcile({
+      plan: {
+        summaryAr: '',
+        days: [
+          {
+            dayOfWeek: 0,
+            meals: [{ slotKey: 'lunch', dish: 'mujaddara', servings: 1, rationaleAr: '', sides }],
+          },
+        ],
+      },
+      days: [0],
+      budgets: BUDGETS,
+      catalog: CATALOG,
+      sides: catalogSides,
+      allergens,
+    });
+
+    return result.meals.find((meal) => meal.slotKey === 'lunch')!;
+  }
+
+  test('carries the sides the model asked for, in order', () => {
+    expect(withSides(['green-salad-plate', 'yogurt-cup'], [salad, yogurt]).sideDishIds).toEqual([
+      'side-salad',
+      'side-yogurt',
+    ]);
+  });
+
+  test('a slug that is not a side is dropped, not turned into a meal', () => {
+    expect(withSides(['mujaddara'], [salad]).sideDishIds).toEqual([]);
+  });
+
+  test('a side carrying the client allergen never reaches the plate', () => {
+    expect(withSides(['nut-side'], [nutty], ['nuts']).sideDishIds).toEqual([]);
+  });
+
+  test('the same side twice is one side', () => {
+    expect(withSides(['green-salad-plate', 'green-salad-plate'], [salad]).sideDishIds).toEqual([
+      'side-salad',
+    ]);
+  });
+
+  test('a plate stops at two things beside the main', () => {
+    const many = ['green-salad-plate', 'yogurt-cup', 'nut-side'];
+    expect(withSides(many, [salad, yogurt, nutty]).sideDishIds).toHaveLength(MAX_SIDES);
+  });
+
+  test('a meal with no sides asked for carries none', () => {
+    expect(withSides([], [salad]).sideDishIds).toEqual([]);
   });
 });

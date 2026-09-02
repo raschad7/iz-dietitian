@@ -295,6 +295,13 @@
       "when": 1788331282265,
       "tag": "0041_square_mauler",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1788334616658,
+      "tag": "0042_charming_miss_america",
+      "breakpoints": true
     }
   ]
 }

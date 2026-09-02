@@ -20,6 +20,9 @@ import type { SlotBudget } from './targets';
 import { MAX_RATIONALE_LENGTH, mealTypeForSlot, type GenerationScope } from './schema';
 import { MAX_SERVINGS, MIN_SERVINGS, SERVING_STEP } from './similar';
 
+/** At most two things beside a main. A third is a buffet, not a plate. */
+export const MAX_SIDES = 2;
+
 /** A catalog entry, as the model sees it. */
 export type PromptDish = {
   slug: string;
@@ -83,8 +86,17 @@ export type PromptInput = {
   client: PromptClient;
   /** Slots with their calorie budgets, already normalised by `slotBudgets`. */
   budgets: readonly SlotBudget[];
-  /** Allergen-filtered and active only. */
+  /** Allergen-filtered and active only. Mains — never a side. */
   catalog: readonly PromptDish[];
+  /**
+   * What may be put *beside* a meal: صحن سلطة، كوب شوربة، كوب لبن.
+   *
+   * A separate list rather than a flag inside `catalog`, because the model is
+   * answering a different question about them. A main is chosen against a budget;
+   * a side is chosen to complete a plate, always at one serving, and it may never
+   * be the meal itself.
+   */
+  sides: readonly PromptDish[];
   /** This week's note from the dietitian. */
   instruction: string | null;
   /** Dish slugs used in the previous plan, so the model can vary deliberately. */
@@ -135,6 +147,8 @@ function buildSystem(): string {
     '- A day needs a shape: something warm and cooked at lunch or dinner, not two cold salads.',
     '- `source` says where the client gets a dish: home, street, restaurant or shop. Plan home cooking unless the instruction says they eat out, then use that many street or restaurant meals and no more.',
     '- Respect `effort` and `cost` when the instruction asks for them. A client who cooks only at the weekend cannot be given four `long` dishes on weekdays.',
+    '- Add sides to lunch and dinner the way a dietitian writes a plate: a salad with most of them, a soup or a cup of yogurt where it fits. Breakfast and snacks rarely need one. At most two, and never a side on its own.',
+    '- A side is one serving and is NOT counted against the slot budget you were given — that budget is for the main. Choose the main first.',
     '- Do not repeat the same dish in the same slot on consecutive days.',
     '',
     'Honour the dietitian instructions and the client dislikes. Instructions outrank variety.',
@@ -228,7 +242,7 @@ function describeBudgets(budgets: readonly SlotBudget[]): string {
 }
 
 export function buildPrompt(input: PromptInput): PromptPayload {
-  const { client, budgets, catalog, instruction, previousSlugs, days } = input;
+  const { client, budgets, catalog, sides, instruction, previousSlugs, days } = input;
 
   const sections: string[] = [
     '## Client',
@@ -240,6 +254,15 @@ export function buildPrompt(input: PromptInput): PromptPayload {
     '## Dish catalog',
     describeCatalog(catalog),
   ];
+
+  if (sides.length) {
+    sections.push(
+      '',
+      '## Sides',
+      'These may be added beside a main, never instead of one. Each is one serving and is not scaled.',
+      describeCatalog(sides),
+    );
+  }
 
   if (previousSlugs.length) {
     sections.push(
@@ -263,7 +286,7 @@ export function buildPrompt(input: PromptInput): PromptPayload {
   return {
     system: buildSystem(),
     user: sections.join('\n'),
-    jsonSchema: buildJsonSchema(catalog, budgets, days),
+    jsonSchema: buildJsonSchema(catalog, sides, budgets, days),
   };
 }
 
@@ -296,9 +319,12 @@ export class EmptySlotCatalogError extends Error {
  */
 function buildJsonSchema(
   catalog: readonly PromptDish[],
+  sides: readonly PromptDish[],
   budgets: readonly SlotBudget[],
   days: readonly number[],
 ): Record<string, unknown> {
+  const sideSlugs = sides.map((dish) => dish.slug);
+
   const mealForSlot = (slotKey: string) => {
     const slugs = catalog
       .filter((dish) => dish.mealTypes.includes(mealTypeForSlot(slotKey)))
@@ -308,6 +334,14 @@ function buildJsonSchema(
 
     const dish = { type: 'string', enum: slugs };
 
+    // Strict mode has no optional properties, so `sides` is required and may be
+    // empty. An enum of the side slugs is what makes "a side is not a meal"
+    // unrepresentable rather than merely instructed — with no sides in the
+    // catalog the array is typed as never having items at all.
+    const sideList = sideSlugs.length
+      ? { type: 'array', maxItems: MAX_SIDES, items: { type: 'string', enum: sideSlugs } }
+      : { type: 'array', maxItems: 0, items: { type: 'string' } };
+
     return {
       type: 'object',
       additionalProperties: false,
@@ -315,8 +349,9 @@ function buildJsonSchema(
         dish,
         servings: { type: 'number' },
         rationaleAr: { type: 'string' },
+        sides: sideList,
       },
-      required: ['dish', 'servings', 'rationaleAr'],
+      required: ['dish', 'servings', 'rationaleAr', 'sides'],
     };
   };
 

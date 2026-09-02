@@ -439,6 +439,14 @@ export const generatedMealSchema = z.object({
   dish: z.string().trim().min(1).max(120),
   servings: z.coerce.number().min(MIN_SERVINGS).max(MAX_SERVINGS),
   rationaleAr: z.string().trim().max(2000).default(''),
+  /**
+   * Slugs of dishes to stand beside the main — صحن سلطة، كوب شوربة.
+   *
+   * Defaulted rather than required, so a response written before sides existed,
+   * or one from a model that omitted the key, parses into a meal with no sides
+   * instead of failing the whole week.
+   */
+  sides: z.array(z.string().trim().min(1).max(120)).default([]),
 });
 
 export type GeneratedMeal = z.infer<typeof generatedMealSchema> & { slotKey: string };

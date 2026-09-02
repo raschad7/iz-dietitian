@@ -61,6 +61,7 @@ function line(id: string, grams: number, kcal: number, index: number): MealIngre
     portionQuantity: null,
     isPrimary: index === 0,
     sortOrder: index,
+    side: null,
     food: {
       id,
       nameAr: id,

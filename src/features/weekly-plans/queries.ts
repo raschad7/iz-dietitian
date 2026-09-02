@@ -29,6 +29,7 @@ import {
   dishes,
   weeklyPlanMealIngredients,
   weeklyPlanMealOptions,
+  weeklyPlanMealSides,
   weeklyPlanMeals,
   weeklyPlanReviews,
   weeklyPlans,
@@ -51,6 +52,7 @@ import {
   mealTotals,
   scaleRecipe,
   type MealIngredientLine,
+  type SideRecipe,
 } from './meal-ingredients';
 import {
   baseServingKcal,
@@ -252,10 +254,51 @@ export async function ownAmountsByMeal(
     .where(inArray(weeklyPlanMealIngredients.mealId, [...mealIds]))
     .orderBy(asc(weeklyPlanMealIngredients.sortOrder));
 
-  for (const { mealId, ...line } of rows) {
+  for (const { mealId, ...row } of rows) {
+    // Stored rows are always the main: `mealIngredientLines` keeps sides out of
+    // this table entirely, so a materialised meal has nothing to attribute.
+    const line: MealIngredientLine = { ...row, side: null };
     const bucket = byMeal.get(mealId);
     if (bucket) bucket.push(line);
     else byMeal.set(mealId, [line]);
+  }
+
+  return byMeal;
+}
+
+/**
+ * The sides attached to each meal, with the recipe each contributes.
+ *
+ * Takes an executor for the same reason `loadDishesByIds` does: publishing freezes
+ * a plan inside one transaction, and a side read outside it would be a row from
+ * before the transaction started.
+ */
+export async function sidesByMealId(
+  mealIds: readonly string[],
+  executor: DbExecutor = db,
+): Promise<Map<string, SideRecipe[]>> {
+  const byMeal = new Map<string, SideRecipe[]>();
+  if (!mealIds.length) return byMeal;
+
+  const rows = await executor
+    .select({ mealId: weeklyPlanMealSides.mealId, dishId: weeklyPlanMealSides.dishId })
+    .from(weeklyPlanMealSides)
+    .where(inArray(weeklyPlanMealSides.mealId, [...mealIds]))
+    .orderBy(asc(weeklyPlanMealSides.sortOrder));
+
+  if (!rows.length) return byMeal;
+
+  const dishes = await loadDishesByIds([...new Set(rows.map((row) => row.dishId))], executor);
+  const dishById = new Map(dishes.map((dish) => [dish.id, dish]));
+
+  for (const row of rows) {
+    const dish = dishById.get(row.dishId);
+    if (!dish) continue;
+
+    const entry: SideRecipe = { id: dish.id, nameAr: dish.nameAr, recipe: dish.ingredients };
+    const bucket = byMeal.get(row.mealId);
+    if (bucket) bucket.push(entry);
+    else byMeal.set(row.mealId, [entry]);
   }
 
   return byMeal;
@@ -501,34 +544,47 @@ export async function loadDishesByIds(
  * is a different question asked at a different point.
  */
 export function toPromptCatalog(catalog: readonly DishDetail[]): CatalogDish[] {
-  return catalog
-    .filter((dish) => !dish.isSide)
-    .map((dish) => ({
-      id: dish.id,
-      slug: dish.slug,
-      nameAr: dish.nameAr,
-      mealTypes: dish.mealTypes,
-      tags: dish.tags,
-      source: dish.source,
-      effort: dish.effort,
-      cost: dish.cost,
-      occasion: dish.occasion,
-      allergenTags: dish.allergenTags,
-      baseKcal: baseServingKcal(dish.ingredients),
-      baseProtein: dishTotals(dish.ingredients, 1).protein.value,
-      // Carried for `chooseServings`, which has to portion a recipe to know what a
-      // multiplier produces. Never reaches the model: `describeCatalog` writes the
-      // columns it wants by name.
-      recipe: dish.ingredients,
-      // Computed here, sent to the model as a fact rather than a question — kept
-      // separate from `tags`, which stay purely practical.
-      nutritionCategory: nutritionCategory(dishTotals(dish.ingredients, 1)),
-      // What repeats when a week feels repetitive. Derived from the recipe for the
-      // same reason the nutrition label is: a tag someone types can disagree with
-      // the food, and this one has to be able to carry a rule.
-      proteinSource: proteinSource(dish.ingredients),
-      carbBase: carbBase(dish.ingredients),
-    }));
+  return catalog.filter((dish) => !dish.isSide).map(toCatalogDish);
+}
+
+/**
+ * The other half of the same catalog: what may stand *beside* a meal.
+ *
+ * Same shape, asked a different question. Kept as its own list rather than a flag
+ * the caller has to remember to check, because every place that reads the catalog
+ * is choosing a meal, and the one place that is not should have to say so.
+ */
+export function toPromptSides(catalog: readonly DishDetail[]): CatalogDish[] {
+  return catalog.filter((dish) => dish.isSide).map(toCatalogDish);
+}
+
+function toCatalogDish(dish: DishDetail): CatalogDish {
+  return {
+    id: dish.id,
+    slug: dish.slug,
+    nameAr: dish.nameAr,
+    mealTypes: dish.mealTypes,
+    tags: dish.tags,
+    source: dish.source,
+    effort: dish.effort,
+    cost: dish.cost,
+    occasion: dish.occasion,
+    allergenTags: dish.allergenTags,
+    baseKcal: baseServingKcal(dish.ingredients),
+    baseProtein: dishTotals(dish.ingredients, 1).protein.value,
+    // Carried for `chooseServings`, which has to portion a recipe to know what a
+    // multiplier produces. Never reaches the model: `describeCatalog` writes the
+    // columns it wants by name.
+    recipe: dish.ingredients,
+    // Computed here, sent to the model as a fact rather than a question — kept
+    // separate from `tags`, which stay purely practical.
+    nutritionCategory: nutritionCategory(dishTotals(dish.ingredients, 1)),
+    // What repeats when a week feels repetitive. Derived from the recipe for the
+    // same reason the nutrition label is: a tag someone types can disagree with
+    // the food, and this one has to be able to carry a rule.
+    proteinSource: proteinSource(dish.ingredients),
+    carbBase: carbBase(dish.ingredients),
+  };
 }
 
 export type CatalogEntry = DishDetail & {
@@ -1796,6 +1852,17 @@ async function assembleBoard(plan: PlanRow): Promise<Board> {
         .orderBy(asc(weeklyPlanMealOptions.sortOrder))
     : [];
 
+  const sideRows = mealIds.length
+    ? await db
+        .select({
+          mealId: weeklyPlanMealSides.mealId,
+          dishId: weeklyPlanMealSides.dishId,
+        })
+        .from(weeklyPlanMealSides)
+        .where(inArray(weeklyPlanMealSides.mealId, mealIds))
+        .orderBy(asc(weeklyPlanMealSides.sortOrder))
+    : [];
+
   // Only the dishes this plan references, and by id rather than through the catalog:
   // a plan may hold a dish the client has since become allergic to, or one that has
   // since been retired, and either way the card must show what is actually planned
@@ -1803,6 +1870,7 @@ async function assembleBoard(plan: PlanRow): Promise<Board> {
   const referenced = new Set<string>();
   for (const meal of mealRows) if (meal.dishId) referenced.add(meal.dishId);
   for (const option of optionRows) referenced.add(option.dishId);
+  for (const side of sideRows) referenced.add(side.dishId);
 
   const dishById = new Map((await loadDishesByIds([...referenced])).map((dish) => [dish.id, dish]));
 
@@ -1812,6 +1880,17 @@ async function assembleBoard(plan: PlanRow): Promise<Board> {
   // Each meal carries the budget it was generated against, so the board shows the
   // same figure the model was given even after the client's profile has moved on.
   const budgetByMeal = new Map(mealRows.map((meal) => [meal.id, meal.budgetKcal]));
+
+  const sidesByMeal = new Map<string, SideRecipe[]>();
+  for (const side of sideRows) {
+    const dish = dishById.get(side.dishId);
+    if (!dish) continue;
+
+    const entry: SideRecipe = { id: dish.id, nameAr: dish.nameAr, recipe: dish.ingredients };
+    const bucket = sidesByMeal.get(side.mealId);
+    if (bucket) bucket.push(entry);
+    else sidesByMeal.set(side.mealId, [entry]);
+  }
 
   const optionsByMeal = new Map<string, BoardOption[]>();
   for (const option of optionRows) {
@@ -1856,7 +1935,12 @@ async function assembleBoard(plan: PlanRow): Promise<Board> {
     // built from this one array, so the numbers and the list cannot describe two
     // different meals.
     const lines = dish
-      ? mealIngredientLines({ recipe: dish.ingredients, servings: meal.servings, stored })
+      ? mealIngredientLines({
+          recipe: dish.ingredients,
+          servings: meal.servings,
+          stored,
+          sides: sidesByMeal.get(meal.id) ?? [],
+        })
       : [];
 
     // The one branch between a frozen record and a live calculation. Keyed on the

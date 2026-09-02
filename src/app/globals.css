@@ -7968,6 +7968,13 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
     color: var(--n-400);
   }
 
+  /* Names a side once, where its own amounts begin. Without it a printed plate
+     trails loose lettuce and tomato nobody can attribute to صحن سلطة. */
+  .plan-print-side {
+    font-weight: 700;
+    color: var(--n-900);
+  }
+
   /* What to eat instead. Quieter than the meal it replaces, and set off by a
      rule on the reading edge so it does not read as more of the recipe. */
   .plan-print-alts {

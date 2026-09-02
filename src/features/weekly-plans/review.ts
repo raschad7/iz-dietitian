@@ -125,8 +125,11 @@ export function renderPlanForReview(board: Board): string {
 
       for (const line of meal.lines) {
         const amount = ingredientAmount(line, 'ar');
+        // A side's lines carry its name, so the reader can tell "the lunch is
+        // short" from "the lunch is fine and the salad is doing the work".
+        const from = line.side ? `[${line.side.nameAr}] ` : '';
         out.push(
-          `    · ${localizedName(line.food, 'ar')} ${amount.kind === 'portion' ? amount.text : `${amount.grams} غ`}`,
+          `    · ${from}${localizedName(line.food, 'ar')} ${amount.kind === 'portion' ? amount.text : `${amount.grams} غ`}`,
         );
       }
 
@@ -200,7 +203,10 @@ export function arithmeticFindings(board: Board): string[] {
       for (const line of meal.lines) {
         const name = localizedName(line.food, 'ar');
 
-        if (line.isPrimary) {
+        // Only the main's primary lines count toward repetition. A salad beside
+        // every lunch is a dietitian doing their job, not a week eating the same
+        // thing twice.
+        if (line.isPrimary && !line.side) {
           weekUse.set(name, (weekUse.get(name) ?? 0) + 1);
           dayUse.set(name, (dayUse.get(name) ?? 0) + 1);
         }

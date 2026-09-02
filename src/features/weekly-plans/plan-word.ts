@@ -127,6 +127,7 @@ const WORD_STYLES = `
   .plan-print-portions { font-size: 10pt; color: #46443B; margin: 3pt 0 0 0; }
   .plan-print-amount { font-weight: bold; color: #1C1B17; }
   .plan-print-sep { color: #A8A493; }
+  .plan-print-side { font-weight: bold; color: #1C1B17; }
   .plan-print-alts { font-size: 9.5pt; color: #605D50; margin: 4pt 0 0 0; }
   .plan-print-alts-label { font-weight: bold; color: #46443B; }
   .plan-print-alt-kcal { color: #837F6E; }

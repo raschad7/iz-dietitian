@@ -351,6 +351,50 @@ export const weeklyPlanMealOptions = pgTable(
 );
 
 /**
+ * A dish standing beside a meal — صحن سلطة، كوب شوربة، كوب لبن.
+ *
+ * A real lunch is often more than one thing: "ملوخية، 6 معالق أرز، صحن سلطة" is
+ * three items a client can see and tick, not one dish name that cannot be taken
+ * apart. The meal keeps exactly one `dish_id` for its main, and the accompaniments
+ * hang here.
+ *
+ * No `servings` column, unlike `weekly_plan_meal_options`. A side is one serving
+ * by definition — a plate of salad is a plate of salad whether the lunch beside it
+ * is 500 kcal or 900 — and a column nobody may set to anything but 1 is a column
+ * that will eventually be set to something else. What varies about a meal is its
+ * main; that is what the budget multiplier is for.
+ *
+ * `restrict` on the dish, matching options and the meal itself: retiring a dish
+ * that a written plan still serves has to fail loudly rather than empty a meal
+ * a client is eating from.
+ */
+export const weeklyPlanMealSides = pgTable(
+  'weekly_plan_meal_sides',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+
+    mealId: uuid('meal_id')
+      .notNull()
+      .references(() => weeklyPlanMeals.id, { onDelete: 'cascade' }),
+
+    dishId: uuid('dish_id')
+      .notNull()
+      .references(() => dishes.id, { onDelete: 'restrict' }),
+
+    /** The order they are written in, so a plate reads the way it was composed. */
+    sortOrder: integer('sort_order').notNull().default(0),
+
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('weekly_plan_meal_sides_meal_id_idx').on(table.mealId, table.sortOrder),
+    // The same salad twice beside one meal is a mistake, not a double helping.
+    uniqueIndex('weekly_plan_meal_sides_dish_idx').on(table.mealId, table.dishId),
+  ],
+);
+
+/**
  * One row per call to the model.
  *
  * Not decoration. Three weeks from now the only way to answer "why did Tuesday
@@ -451,4 +495,6 @@ export type WeeklyPlanMealIngredient = typeof weeklyPlanMealIngredients.$inferSe
 export type NewWeeklyPlanMealIngredient = typeof weeklyPlanMealIngredients.$inferInsert;
 export type WeeklyPlanMealOption = typeof weeklyPlanMealOptions.$inferSelect;
 export type NewWeeklyPlanMealOption = typeof weeklyPlanMealOptions.$inferInsert;
+export type WeeklyPlanMealSide = typeof weeklyPlanMealSides.$inferSelect;
+export type NewWeeklyPlanMealSide = typeof weeklyPlanMealSides.$inferInsert;
 export type WeeklyPlanGeneration = typeof weeklyPlanGenerations.$inferSelect;
