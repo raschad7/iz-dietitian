@@ -297,7 +297,15 @@ export async function seedDishes(): Promise<{ dishes: number; ingredients: numbe
   // recorded. `data/dishes.json` carries the same note per ingredient, written by
   // hand from the same source, so comparing them is what still catches an fdcId
   // that has moved onto a different food now that no USDA table is in the database.
-  const noteBySourceRef = new Map(readCatalogDataset().map((food) => [food.sourceRef, food.note]));
+  const catalogFoodsByRef = new Map(readCatalogDataset().map((food) => [food.sourceRef, food]));
+  const noteBySourceRef = new Map(
+    // The note assertion is a check that an fdcId still points at the food it
+    // pointed at when the recipe was written. A food that is not from USDA has no
+    // fdcId to drift, so there is nothing to assert.
+    [...catalogFoodsByRef.values()]
+      .filter((food) => food.sourceType === 'usda_sr_legacy')
+      .map((food) => [food.sourceRef, food.note] as const),
+  );
 
   for (const dish of records) {
     for (const ingredient of dish.ingredients) {
@@ -310,8 +318,8 @@ export async function seedDishes(): Promise<{ dishes: number; ingredients: numbe
         continue;
       }
 
-      const note = noteBySourceRef.get(key) ?? '';
-      if (!note.startsWith(ingredient.note.slice(0, 24))) {
+      const note = noteBySourceRef.get(key);
+      if (note !== undefined && !note.startsWith(ingredient.note.slice(0, 24))) {
         mismatches.push(
           `${dish.slug}: fdcId ${ingredient.fdcId} is "${note}", data/dishes.json says "${ingredient.note}"`,
         );

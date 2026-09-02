@@ -316,6 +316,13 @@
       "when": 1788335854294,
       "tag": "0044_giant_the_call",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1788336858127,
+      "tag": "0045_clear_mandarin",
+      "breakpoints": true
     }
   ]
 }

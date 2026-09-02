@@ -1,0 +1,1 @@
+ALTER TABLE "catalog_foods" ADD COLUMN "source_note" text;

@@ -19,6 +19,8 @@ import { NUTRIENT_KEYS } from './nutrition';
  */
 
 const foods = readCatalogDataset();
+/** The derived half of the catalog — everything the offline dump can speak for. */
+const usdaFoods = foods.filter((food) => food.sourceType === 'usda_sr_legacy');
 const dishes = (
   JSON.parse(readFileSync('data/dishes.json', 'utf8')) as {
     dishes: { slug: string; ingredients: { fdcId: number }[] }[];
@@ -57,9 +59,17 @@ describe('the committed catalog', () => {
 
   test('carries a real source reference for every food', () => {
     for (const food of foods) {
-      expect(food.sourceType).toBe('usda_sr_legacy');
       expect(food.sourceRef).toMatch(/^\d+$/);
       expect(food.note.length).toBeGreaterThan(0);
+
+      if (food.sourceType === 'usda_sr_legacy') continue;
+
+      // A food USDA has no row for has to say in words where its numbers came
+      // from, and sit in the reserved id range so it can never be mistaken for
+      // an FDC id. Labaneh and freekeh are not in SR Legacy and never will be —
+      // it is a final 2018 release.
+      expect(food.sourceNote?.length ?? 0).toBeGreaterThan(0);
+      expect(Number(food.sourceRef)).toBeGreaterThanOrEqual(900000);
     }
   });
 });
@@ -300,7 +310,7 @@ describe('portions', () => {
   test('are exactly what the derivation produces from the offline source', () => {
     const usda = readUsdaReference();
 
-    for (const food of foods) {
+    for (const food of usdaFoods) {
       const source = usda.get(Number(food.sourceRef));
       expect(source).toBeDefined();
 
@@ -319,7 +329,7 @@ describe('portions', () => {
   test('and the nutrition is the source values, copied unchanged', () => {
     const usda = readUsdaReference();
 
-    for (const food of foods) {
+    for (const food of usdaFoods) {
       const source = usda.get(Number(food.sourceRef))!;
 
       // Including the checksum on the description, which is what would catch an

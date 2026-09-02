@@ -16,8 +16,8 @@
   "dishes": [
     {
       "slug": "labaneh-zeit-pita",
-      "nameAr": "لبن يوناني بزيت الزيتون مع خبز",
-      "nameEn": "Greek yogurt with olive oil and pita",
+      "nameAr": "لبنة بزيت الزيتون مع خبز",
+      "nameEn": "Labneh with olive oil and pita",
       "mealTypes": [
         "breakfast",
         "dinner"
@@ -39,10 +39,12 @@
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
         {
-          "fdcId": 170903,
-          "grams": 150,
-          "note": "Yogurt, Greek, plain, lowfat",
-          "primary": true
+          "fdcId": 900001,
+          "grams": 45,
+          "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
+          "primary": true,
+          "unit": "Tablespoon",
+          "count": 3
         },
         {
           "fdcId": 171413,
@@ -530,8 +532,8 @@
     },
     {
       "slug": "labaneh-walnut-honey",
-      "nameAr": "لبن يوناني مع جوز وعسل",
-      "nameEn": "Greek yogurt with walnuts and honey",
+      "nameAr": "لبنة مع جوز وعسل",
+      "nameEn": "Labneh with walnuts and honey",
       "mealTypes": [
         "breakfast"
       ],
@@ -552,10 +554,12 @@
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
         {
-          "fdcId": 170903,
-          "grams": 120,
-          "note": "Yogurt, Greek, plain, lowfat",
-          "primary": true
+          "fdcId": 900001,
+          "grams": 45,
+          "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
+          "primary": true,
+          "unit": "Tablespoon",
+          "count": 3
         },
         {
           "fdcId": 170187,
@@ -1355,8 +1359,8 @@
     },
     {
       "slug": "labaneh-cucumber-snack",
-      "nameAr": "لبن يوناني مع خيار",
-      "nameEn": "Greek yogurt with cucumber",
+      "nameAr": "لبنة مع خيار",
+      "nameEn": "Labneh with cucumber",
       "mealTypes": [
         "snack"
       ],
@@ -1375,10 +1379,12 @@
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
         {
-          "fdcId": 170903,
-          "grams": 120,
-          "note": "Yogurt, Greek, plain, lowfat",
-          "primary": true
+          "fdcId": 900001,
+          "grams": 30,
+          "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
+          "primary": true,
+          "unit": "Tablespoon",
+          "count": 2
         },
         {
           "fdcId": 168409,
@@ -2761,8 +2767,8 @@
     },
     {
       "slug": "labaneh-cucumber-dinner",
-      "nameAr": "لبن يوناني مع خيار وخبز",
-      "nameEn": "Greek yogurt with cucumber and pita",
+      "nameAr": "لبنة مع خيار وخبز",
+      "nameEn": "Labneh with cucumber and pita",
       "mealTypes": [
         "dinner"
       ],
@@ -2783,10 +2789,12 @@
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
         {
-          "fdcId": 170903,
-          "grams": 180,
-          "note": "Yogurt, Greek, plain, lowfat",
-          "primary": true
+          "fdcId": 900001,
+          "grams": 45,
+          "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
+          "primary": true,
+          "unit": "Tablespoon",
+          "count": 3
         },
         {
           "fdcId": 168409,

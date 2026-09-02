@@ -9,9 +9,15 @@
  *
  * ## The two halves of the file
  *
- * **Curated** — `slug`, `nameAr`, `nameEn`, `state`, `category`, `sourceType`,
- * `sourceRef`, `aliasesAr`, `aliasesEn`, `extraPortions`. Written by a person,
- * read here, copied through untouched. This script never edits curation.
+ * **Curated** — `slug`, `nameAr`, `nameEn`, `state`, `category`, `countedAs`,
+ * `sourceType`, `sourceRef`, `aliasesAr`, `aliasesEn`, `extraPortions`. Written
+ * by a person, read here, copied through untouched. This script never edits
+ * curation.
+ *
+ * A food whose `sourceType` is not `usda_sr_legacy` is curated **entirely**,
+ * `nutrition` and `portions` included, because there is no upstream row to derive
+ * them from. `sourceRef` then has to say where the numbers came from — a
+ * published table, or a product label and the date it was read.
  *
  * **Derived** — `note`, `nutrition`, `portions`, and the file's `checksum`. Read
  * out of `data/usda-sr-legacy.ndjson` by `sourceRef`, and rewritten on every run.
@@ -61,6 +67,8 @@ type CuratedFood = {
   category: string;
   sourceType: string;
   sourceRef: string;
+  /** Where a non-USDA number came from. Required when `sourceType` is not USDA. */
+  sourceNote?: string;
   note: string;
   nutrition: Record<string, number | null>;
   portions: PortionSeed[];
@@ -152,6 +160,27 @@ function build(): void {
   const problems: string[] = [];
 
   const foods = file.foods.map((curated) => {
+    // A food USDA has no row for carries its own numbers, and they are curation
+    // like every other hand-written field: read, copied through, never rewritten.
+    // Labaneh and freekeh are not in SR Legacy and never will be — it is a final
+    // 2018 release — so the alternative to this branch is calling labaneh Greek
+    // yogurt, which is what the catalog used to do.
+    if (curated.sourceType !== 'usda_sr_legacy') {
+      if (!curated.nutrition || typeof curated.nutrition.kcal !== 'number') {
+        problems.push(`${curated.slug}: ${curated.sourceType} food carries no nutrition of its own`);
+      }
+      if (!curated.sourceNote?.trim()) {
+        problems.push(`${curated.slug}: ${curated.sourceType} food must cite where its numbers came from`);
+      }
+      // The reserved range, so a recipe can reference it by `fdcId` without ever
+      // colliding with a real FoodData Central id.
+      if (!(Number(curated.sourceRef) >= 900000)) {
+        problems.push(`${curated.slug}: a non-USDA food needs a sourceRef of 900000 or above`);
+      }
+
+      return curated;
+    }
+
     const source = usda.get(Number(curated.sourceRef));
 
     if (!source) {

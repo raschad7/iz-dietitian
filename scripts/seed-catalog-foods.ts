@@ -73,6 +73,8 @@ export type CuratedFood = {
   countedAs?: string;
   sourceType: string;
   sourceRef: string;
+  /** Where a non-USDA number came from, in words. Absent for a USDA row. */
+  sourceNote?: string;
   note: string;
   nutrition: Record<string, number | null>;
   /**
@@ -237,6 +239,7 @@ function foodValues(food: CuratedFood) {
     potassium: nutrition.potassium,
     verificationStatus: 'verified',
     sourceType: food.sourceType,
+    sourceNote: food.sourceNote ?? null,
     sourceRef: food.sourceRef,
     isActive: true,
   };
@@ -323,6 +326,7 @@ export async function seedCatalogFoods(options: { apply?: boolean } = {}): Promi
           potassium: sql`excluded.potassium`,
           verificationStatus: sql`excluded.verification_status`,
           sourceType: sql`excluded.source_type`,
+          sourceNote: sql`excluded.source_note`,
           sourceRef: sql`excluded.source_ref`,
           updatedAt: new Date(),
         },

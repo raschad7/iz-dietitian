@@ -128,8 +128,27 @@ export const catalogFoods = pgTable(
     /** `usda_sr_legacy` | `clinic_entered`. Where the numbers came from. */
     sourceType: text('source_type').notNull(),
 
-    /** The upstream identifier, e.g. an FDC id as text. Null for clinic-entered rows. */
+    /**
+     * The upstream identifier, e.g. an FDC id as text. Null for clinic-entered rows.
+     *
+     * Ids at or above 900000 are **not** FoodData Central. They are the reserved
+     * range for foods USDA has no row for — labaneh, freekeh — so that a recipe
+     * can reference one by the same `fdcId` field as everything else and the two
+     * numbering spaces can never collide.
+     */
     sourceRef: text('source_ref'),
+
+    /**
+     * Where a non-USDA number actually came from, in words.
+     *
+     * A published composition table with its date, or a brand, product and the day
+     * its panel was read. Null for a USDA row, where `source_ref` is the citation.
+     *
+     * It is stored rather than kept in a comment because a provisional number has
+     * to be able to say it is provisional: labneh brands range 150–200 kcal per
+     * 100 g, and the row that says so is the one a dietitian can act on.
+     */
+    sourceNote: text('source_note'),
 
     /** Retired foods stay for the recipes that use them, but stop being offered. */
     isActive: boolean('is_active').notNull().default(true),
