@@ -59,6 +59,15 @@ export type PortionableLine = {
   /** How many of that portion one base serving is. */
   portionQuantity?: number | null;
   isPrimary?: boolean;
+  /**
+   * Written without a number and never scaled — شرائح خضار، صحن سلطة.
+   *
+   * Its energy still counts, so the day's total stays true; what it does not do
+   * is grow when the meal around it does. A dietitian writes vegetables free on
+   * purpose, and a plan that answered "1.4 plates of cucumber slices" would have
+   * turned an instruction into arithmetic.
+   */
+  isFree?: boolean;
 };
 
 /** One line's amount in a meal, in both the unit it is written in and grams. */
@@ -190,9 +199,17 @@ export function lineCeiling(line: PortionableLine): number | null {
 
 /** Whether a line is seasoning: present for taste, negligible for energy. */
 export function isSeasoning(line: PortionableLine): boolean {
+  // Marked by a person, and therefore final. شرائح خضار beside a breakfast is
+  // written with no number at all by a dietitian, and it should not acquire one
+  // because the meal around it grew.
+  if (line.isFree) return true;
+
   if (SEASONING_CATEGORIES.has(line.food.category ?? '')) return true;
   if (line.isPrimary) return false;
 
+  // The threshold stays as a floor for lines nobody has marked. It guesses well —
+  // a teaspoon of oil, a pinch of salt — but it is a guess, and `isFree` exists so
+  // that a 40 kcal plate of cucumber can be free too.
   return (line.food.kcal * line.quantityGrams) / 100 < SEASONING_KCAL;
 }
 

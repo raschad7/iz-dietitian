@@ -259,11 +259,13 @@
         {
           "fdcId": 168409,
           "grams": 80,
+          "free": true,
           "note": "Cucumber, with peel, raw"
         },
         {
           "fdcId": 170457,
           "grams": 80,
+          "free": true,
           "note": "Tomatoes, red, ripe, raw, year round average"
         },
         {
@@ -510,11 +512,13 @@
         {
           "fdcId": 170457,
           "grams": 80,
+          "free": true,
           "note": "Tomatoes, red, ripe, raw, year round average"
         },
         {
           "fdcId": 168409,
           "grams": 80,
+          "free": true,
           "note": "Cucumber, with peel, raw"
         },
         {
@@ -3473,6 +3477,7 @@
         {
           "fdcId": 170457,
           "grams": 80,
+          "free": true,
           "note": "Tomatoes, red, ripe, raw, year round average"
         }
       ]
@@ -4550,11 +4555,13 @@
         {
           "fdcId": 169247,
           "grams": 30,
+          "free": true,
           "note": "Lettuce, cos or romaine, raw"
         },
         {
           "fdcId": 170457,
           "grams": 40,
+          "free": true,
           "note": "Tomatoes, red, ripe, raw, year round average"
         },
         {
@@ -4607,6 +4614,7 @@
         {
           "fdcId": 170457,
           "grams": 40,
+          "free": true,
           "note": "Tomatoes, red, ripe, raw, year round average"
         },
         {
@@ -4656,11 +4664,13 @@
         {
           "fdcId": 169247,
           "grams": 30,
+          "free": true,
           "note": "Lettuce, cos or romaine, raw"
         },
         {
           "fdcId": 170457,
           "grams": 40,
+          "free": true,
           "note": "Tomatoes, red, ripe, raw, year round average"
         }
       ]
@@ -4910,6 +4920,7 @@
         {
           "fdcId": 170457,
           "grams": 60,
+          "free": true,
           "note": "Tomatoes, red, ripe, raw, year round average"
         },
         {
@@ -5200,6 +5211,7 @@
         {
           "fdcId": 170457,
           "grams": 40,
+          "free": true,
           "note": "Tomatoes, red, ripe, raw, year round average"
         }
       ]
@@ -5246,11 +5258,13 @@
         {
           "fdcId": 168409,
           "grams": 60,
+          "free": true,
           "note": "Cucumber, with peel, raw"
         },
         {
           "fdcId": 170457,
           "grams": 60,
+          "free": true,
           "note": "Tomatoes, red, ripe, raw, year round average"
         }
       ]

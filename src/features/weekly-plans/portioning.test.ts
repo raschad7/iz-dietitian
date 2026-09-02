@@ -328,3 +328,45 @@ describe('chooseServings', () => {
     expect(nextServings(sandwich, 1, -1, { wholeOnly: true })).toBeNull();
   });
 });
+
+describe('free lines', () => {
+  /**
+   * شرائح خضار appears in nearly every meal of a real plan with no amount on it.
+   * A plan that answered "1.4 plates of cucumber slices" would have turned an
+   * instruction into arithmetic.
+   */
+  test('a free line never moves, however the meal is scaled', () => {
+    const veg: PortionableLine = { quantityGrams: 120, food: food('vegetables', 30), isFree: true };
+
+    expect(portionLine(veg, 3).quantityGrams).toBe(120);
+    expect(portionLine(veg, 0.5).quantityGrams).toBe(120);
+  });
+
+  test('a free line still counts toward the meal', () => {
+    const veg: PortionableLine = { quantityGrams: 100, food: food('vegetables', 30), isFree: true };
+    expect(portionedKcal([veg], 2)).toBe(30);
+  });
+
+  /** The flag is final: a primary line the energy threshold would scale stays put. */
+  test('marking wins over the threshold and over isPrimary', () => {
+    const salad: PortionableLine = {
+      quantityGrams: 200,
+      food: food('vegetables', 40),
+      isPrimary: true,
+      isFree: true,
+    };
+
+    expect(portionLine(salad, 2).quantityGrams).toBe(200);
+    expect(isSeasoning(salad)).toBe(true);
+  });
+
+  test('an unmarked line above the threshold still scales', () => {
+    const salad: PortionableLine = {
+      quantityGrams: 200,
+      food: food('vegetables', 40),
+      isPrimary: true,
+    };
+
+    expect(portionLine(salad, 2).quantityGrams).toBeGreaterThan(200);
+  });
+});

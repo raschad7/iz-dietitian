@@ -195,6 +195,21 @@ export const dishIngredients = pgTable(
      */
     isPrimary: boolean('is_primary').notNull().default(false),
 
+    /**
+     * Written without a number, and never scaled — شرائح خضار، صحن السلطة beside
+     * a plate.
+     *
+     * A dietitian writes vegetables free on purpose: they appear in nearly every
+     * meal of a real plan with no amount on them at all. The energy is still
+     * counted, so the day's total stays true; what a free line never does is grow
+     * because the meal around it did.
+     *
+     * `portioning.ts` already froze anything under 15 kcal by guessing. This is
+     * the same rule stated instead of inferred, which is what lets a 40 kcal plate
+     * of cucumber be free too.
+     */
+    isFree: boolean('is_free').notNull().default(false),
+
     sortOrder: integer('sort_order').notNull().default(0),
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

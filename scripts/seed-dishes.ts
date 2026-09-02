@@ -72,6 +72,13 @@ type IngredientRecord = {
    */
   primary?: boolean;
   /**
+   * Written without a number, and never scaled — شرائح خضار beside a breakfast.
+   *
+   * Its energy is still counted; what it never does is grow because the meal
+   * around it did. Absent means false.
+   */
+  free?: boolean;
+  /**
    * The household unit this amount is counted in, by its English portion label
    * (`Loaf`, `Piece`, `Cup`).
    *
@@ -440,6 +447,7 @@ export async function seedDishes(): Promise<{ dishes: number; ingredients: numbe
           portionId: ingredient.unit ? portionIdFor(foodId, ingredient.unit) : null,
           portionQuantity: ingredient.unit ? (ingredient.count ?? null) : null,
           isPrimary: ingredient.primary ?? false,
+          isFree: ingredient.free ?? false,
           sortOrder: index,
         };
       });

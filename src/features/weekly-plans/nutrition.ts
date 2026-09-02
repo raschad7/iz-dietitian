@@ -244,6 +244,17 @@ export type DishIngredientDetail = {
    * Never an input to any total. It decides what is offered, not what is counted.
    */
   isPrimary: boolean;
+  /**
+   * Written without a number, and never scaled by a serving multiplier.
+   *
+   * شرائح خضار beside a breakfast, the salad beside a lunch. Its energy is
+   * counted like any other line — the day's total has to stay true — but the
+   * amount is what the dietitian wrote and stays there.
+   *
+   * Optional, and absent means false, so every line written before the flag
+   * existed behaves exactly as it did.
+   */
+  isFree?: boolean;
   /** The recipe's own order, so a meal reads the way it was written. */
   sortOrder: number;
 };

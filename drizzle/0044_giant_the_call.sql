@@ -1,0 +1,1 @@
+ALTER TABLE "dish_ingredients" ADD COLUMN "is_free" boolean DEFAULT false NOT NULL;

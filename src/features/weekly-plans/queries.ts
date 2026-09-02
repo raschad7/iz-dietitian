@@ -198,6 +198,7 @@ const recipeColumns = {
   quantityGrams: dishIngredients.quantityGrams,
   portionQuantity: dishIngredients.portionQuantity,
   isPrimary: dishIngredients.isPrimary,
+  isFree: dishIngredients.isFree,
   sortOrder: dishIngredients.sortOrder,
   portion: portionColumns,
   food: foodColumns,
@@ -209,6 +210,8 @@ type RecipeRow = {
   portionQuantity: number | null;
   /** Whether this line carries a `−/+` control on the board. */
   isPrimary: boolean;
+  /** Written without a number and never scaled — شرائح خضار. */
+  isFree: boolean;
   sortOrder: number;
   /**
    * Null when the line was entered in grams, or when the portion it was entered in
@@ -318,6 +321,7 @@ function attachRecipes<D extends { id: string }>(
       portion: row.portion,
       portionQuantity: row.portionQuantity,
       isPrimary: row.isPrimary,
+      isFree: row.isFree,
       sortOrder: row.sortOrder,
     };
 
