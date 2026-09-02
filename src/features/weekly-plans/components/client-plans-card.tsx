@@ -110,16 +110,24 @@ export function ClientPlansCard({
 
         <CardContent className="flex flex-col gap-4">
           {/*
-            The model's account of the week, above the figures.
+            The model's notes on this week, above the figures.
+
+            It used to be a paragraph describing the plan — "a varied week of
+            Palestinian home dishes with different starches" — which is a caption
+            for something the dietitian is already looking at. It is a short list
+            of things to *act on* now: what to confirm with the client, where the
+            week is likely to fail, what the instruction made impossible.
+
+            Rendered as a list because that is what it is. Each line arrives
+            prefixed with "- " and the bullet is drawn rather than printed, so a
+            model that forgets the dash still produces a readable row.
 
             Shown in Arabic in both locales, as the meal rationale already is: it
-            is the model's own sentence about this client's week, and translating
-            it would mean generating a second one that could disagree with the
+            is the model's own writing about this client's week, and translating
+            it would mean generating a second version that could disagree with the
             first. A week built by hand has none, and shows none.
           */}
-          {current.summaryAr ? (
-            <p className="text-body-sm text-muted-foreground">{current.summaryAr}</p>
-          ) : null}
+          <PlanNotes text={current.summaryAr} label={t('planNotes')} />
 
           {/*
             Two tiles, not three. "Last edited" was a third, and a `StatTile`
@@ -249,5 +257,55 @@ export function ClientPlansCard({
         </Card>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * The model's notes on a week, as the short list they are.
+ *
+ * ## Why it parses rather than prints
+ *
+ * The notes arrive as one text column — the same `summary_ar` that used to hold
+ * a paragraph — with each note on its own line behind a `- `. Splitting them
+ * here rather than storing them apart keeps the change to one prompt and one
+ * renderer, and it means a plan written before the change still renders: a
+ * single paragraph with no dashes comes back as one row, which is exactly what
+ * it is.
+ *
+ * The dash is stripped and the bullet is drawn, so a model that forgets the
+ * prefix produces the same list as one that remembers, and neither produces a
+ * line beginning with a stray hyphen.
+ */
+function PlanNotes({ text, label }: { text: string | null; label: string }) {
+  const notes = (text ?? '')
+    .split('\n')
+    .map((line) => line.replace(/^\s*[-–—•*]\s*/, '').trim())
+    .filter(Boolean);
+
+  if (notes.length === 0) return null;
+
+  return (
+    <section>
+      <h4 className="pb-1.5 text-caption font-semibold text-muted-foreground">{label}</h4>
+      <ul className="flex flex-col gap-1.5">
+        {notes.map((note) => (
+          <li
+            key={note}
+            /* `ps-4` with the marker absolutely placed at the inline start, so
+               the second line of a wrapped note aligns under the first rather
+               than under the bullet — and it mirrors with the locale, which a
+               `list-disc` marker in a mixed-direction column does not. */
+            className="relative ps-4 text-body-sm leading-relaxed text-muted-foreground"
+            dir="auto"
+          >
+            <span
+              aria-hidden
+              className="absolute start-0 top-[0.55em] size-1.5 rounded-full bg-border"
+            />
+            {note}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
