@@ -49,6 +49,25 @@ export type VarietyMeal = {
  */
 const MAX_WEEK_USES = 3;
 
+/**
+ * How often one **dish** may appear in a week.
+ *
+ * The prompt has always asked for this and nothing enforced it, which was
+ * invisible while the only rule with teeth was about protein: a dish repeating
+ * usually repeats its protein too, and the protein ceiling caught it on the way
+ * past.
+ *
+ * `none` is the hole. A فتوش is a bread salad and its protein source is `none`,
+ * which is exempt below — so a generated week came back with فتوش at dinner on
+ * Thursday, Friday and Saturday, three nights running, having broken no rule this
+ * module could state. The exemption is right about *proteins* and was being asked
+ * a question about *dishes*.
+ *
+ * Twice, not three times: a dish a client sees twice in a week is variety, and a
+ * third is the point at which they notice.
+ */
+const MAX_DISH_WEEK_USES = 2;
+
 /** Sources that may repeat freely: not having a protein is not a kind of protein. */
 const EXEMPT: ReadonlySet<ProteinSource> = new Set(['none']);
 
@@ -94,6 +113,7 @@ export function repairVariety({
   };
 
   const weekSources = new Map<ProteinSource, number>();
+  const weekDishes = new Map<string, number>();
   const daySources = new Map<number, Set<ProteinSource>>();
   const dayDishes = new Map<number, Set<string>>();
 
@@ -113,6 +133,7 @@ export function repairVariety({
     const current = source(dish);
     const repeats =
       dishes.has(dish.id) ||
+      (weekDishes.get(dish.id) ?? 0) >= MAX_DISH_WEEK_USES ||
       (!EXEMPT.has(current) &&
         (day.has(current) || (weekSources.get(current) ?? 0) >= MAX_WEEK_USES));
 
@@ -125,6 +146,7 @@ export function repairVariety({
         daySources: day,
         dayDishes: dishes,
         weekSources,
+        weekDishes,
       });
 
       if (replacement) {
@@ -135,6 +157,7 @@ export function repairVariety({
         day.add(source(replacement.dish));
         dishes.add(replacement.dish.id);
         bump(weekSources, source(replacement.dish));
+        countDish(weekDishes, replacement.dish.id);
         continue;
       }
 
@@ -146,6 +169,7 @@ export function repairVariety({
     day.add(current);
     dishes.add(dish.id);
     bump(weekSources, current);
+    countDish(weekDishes, dish.id);
   }
 
   return report;
@@ -153,6 +177,11 @@ export function repairVariety({
 
 function bump(counts: Map<ProteinSource, number>, key: ProteinSource): void {
   counts.set(key, (counts.get(key) ?? 0) + 1);
+}
+
+/** The same tally, keyed by dish id. Separate only because the key types differ. */
+function countDish(counts: Map<string, number>, dishId: string): void {
+  counts.set(dishId, (counts.get(dishId) ?? 0) + 1);
 }
 
 /**
@@ -170,6 +199,7 @@ function findReplacement({
   daySources,
   dayDishes,
   weekSources,
+  weekDishes,
 }: {
   meal: VarietyMeal;
   catalog: readonly CatalogDish[];
@@ -178,6 +208,7 @@ function findReplacement({
   daySources: ReadonlySet<ProteinSource>;
   dayDishes: ReadonlySet<string>;
   weekSources: ReadonlyMap<ProteinSource, number>;
+  weekDishes: ReadonlyMap<string, number>;
 }): { dish: CatalogDish; servings: number } | null {
   const mealType = mealTypeForSlot(meal.slotKey);
 
@@ -188,6 +219,9 @@ function findReplacement({
     if (!candidate.mealTypes.includes(mealType)) continue;
     if (candidate.allergenTags.some((tag) => blocked.has(tag))) continue;
     if (dayDishes.has(candidate.id)) continue;
+    // A replacement that has already carried the week twice is the repeat the
+    // repair was called to remove, moved somewhere else.
+    if ((weekDishes.get(candidate.id) ?? 0) >= MAX_DISH_WEEK_USES) continue;
 
     const candidateSource = source(candidate);
 

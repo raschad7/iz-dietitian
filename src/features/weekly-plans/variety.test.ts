@@ -187,3 +187,74 @@ describe('varietyProfile', () => {
     expect(varietyProfile(meals, CATALOG).proteinSources).toEqual({ poultry: 2, fish: 1 });
   });
 });
+
+/**
+ * The hole the sides work exposed.
+ *
+ * A generated week came back with فتوش at dinner on three consecutive nights and
+ * broke no rule this module could state: a bread salad's protein source is `none`,
+ * `none` is exempt from the week ceiling, and there was no ceiling on the *dish*.
+ * The exemption is right about proteins and was being asked about dishes.
+ */
+describe('a dish repeating', () => {
+  test('a third appearance in one week is repaired', () => {
+    const catalog = [
+      dish('salad', 'vegetables', 'lettuce'),
+      dish('soup', 'vegetables', 'zucchini'),
+      dish('stew', 'vegetables', 'okra'),
+    ];
+
+    const meals = [
+      meal(0, 'dinner', 'salad'),
+      meal(1, 'dinner', 'salad'),
+      meal(2, 'dinner', 'salad'),
+    ];
+
+    const report = repairVariety({ meals, catalog, allergens: [] });
+
+    expect(report.repaired).toBe(1);
+    expect(meals.map((one) => one.dishId)).not.toEqual(['salad', 'salad', 'salad']);
+    expect(new Set(meals.map((one) => one.dishId)).size).toBe(2);
+  });
+
+  /*
+   * Twice is variety, and repairing it would spend a replacement on something
+   * nobody would call a repeat.
+   */
+  test('twice in a week is left alone', () => {
+    const catalog = [
+      dish('salad', 'vegetables', 'lettuce'),
+      dish('soup', 'vegetables', 'zucchini'),
+    ];
+
+    const meals = [meal(0, 'dinner', 'salad'), meal(3, 'dinner', 'salad')];
+    const report = repairVariety({ meals, catalog, allergens: [] });
+
+    expect(report.repaired).toBe(0);
+    expect(meals.map((one) => one.dishId)).toEqual(['salad', 'salad']);
+  });
+
+  /* The replacement must not be a dish that has already carried the week twice. */
+  test('the substitute is not itself a third repeat', () => {
+    const catalog = [
+      dish('salad', 'vegetables', 'lettuce'),
+      dish('soup', 'vegetables', 'zucchini'),
+      dish('stew', 'vegetables', 'okra'),
+    ];
+
+    const meals = [
+      meal(0, 'dinner', 'soup'),
+      meal(1, 'dinner', 'soup'),
+      meal(2, 'dinner', 'salad'),
+      meal(3, 'dinner', 'salad'),
+      meal(4, 'dinner', 'salad'),
+    ];
+
+    repairVariety({ meals, catalog, allergens: [] });
+
+    const counts = new Map<string, number>();
+    for (const one of meals) counts.set(one.dishId!, (counts.get(one.dishId!) ?? 0) + 1);
+
+    expect([...counts.values()].every((count) => count <= 2)).toBe(true);
+  });
+});
