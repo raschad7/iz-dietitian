@@ -395,6 +395,11 @@ export async function loadCatalog(
       nameEn: dishes.nameEn,
       mealTypes: dishes.mealTypes,
       tags: dishes.tags,
+      source: dishes.source,
+      effort: dishes.effort,
+      cost: dishes.cost,
+      occasion: dishes.occasion,
+      isSide: dishes.isSide,
       allergenTags: dishes.allergenTags,
       baseServingLabel: dishes.baseServingLabel,
       isActive: dishes.isActive,
@@ -455,6 +460,11 @@ export async function loadDishesByIds(
       nameEn: dishes.nameEn,
       mealTypes: dishes.mealTypes,
       tags: dishes.tags,
+      source: dishes.source,
+      effort: dishes.effort,
+      cost: dishes.cost,
+      occasion: dishes.occasion,
+      isSide: dishes.isSide,
       allergenTags: dishes.allergenTags,
       baseServingLabel: dishes.baseServingLabel,
       isActive: dishes.isActive,
@@ -481,30 +491,44 @@ export async function loadDishesByIds(
   return attachRecipes(dishRows, ingredientRows);
 }
 
-/** The catalog reduced to what generation needs: identity, tags, and energy per serving. */
+/**
+ * The catalog reduced to what generation needs: identity, tags, and energy per
+ * serving.
+ *
+ * **Sides are dropped here.** صحن سلطة is not a dinner, and a dish that belongs
+ * beside a meal must never be offered as one — not as a main and not as an
+ * alternative. They reach a plan through `weekly_plan_meal_sides` instead, which
+ * is a different question asked at a different point.
+ */
 export function toPromptCatalog(catalog: readonly DishDetail[]): CatalogDish[] {
-  return catalog.map((dish) => ({
-    id: dish.id,
-    slug: dish.slug,
-    nameAr: dish.nameAr,
-    mealTypes: dish.mealTypes,
-    tags: dish.tags,
-    allergenTags: dish.allergenTags,
-    baseKcal: baseServingKcal(dish.ingredients),
-    baseProtein: dishTotals(dish.ingredients, 1).protein.value,
-    // Carried for `chooseServings`, which has to portion a recipe to know what a
-    // multiplier produces. Never reaches the model: `describeCatalog` writes the
-    // columns it wants by name.
-    recipe: dish.ingredients,
-    // Computed here, sent to the model as a fact rather than a question — kept
-    // separate from `tags`, which stay purely practical.
-    nutritionCategory: nutritionCategory(dishTotals(dish.ingredients, 1)),
-    // What repeats when a week feels repetitive. Derived from the recipe for the
-    // same reason the nutrition label is: a tag someone types can disagree with
-    // the food, and this one has to be able to carry a rule.
-    proteinSource: proteinSource(dish.ingredients),
-    carbBase: carbBase(dish.ingredients),
-  }));
+  return catalog
+    .filter((dish) => !dish.isSide)
+    .map((dish) => ({
+      id: dish.id,
+      slug: dish.slug,
+      nameAr: dish.nameAr,
+      mealTypes: dish.mealTypes,
+      tags: dish.tags,
+      source: dish.source,
+      effort: dish.effort,
+      cost: dish.cost,
+      occasion: dish.occasion,
+      allergenTags: dish.allergenTags,
+      baseKcal: baseServingKcal(dish.ingredients),
+      baseProtein: dishTotals(dish.ingredients, 1).protein.value,
+      // Carried for `chooseServings`, which has to portion a recipe to know what a
+      // multiplier produces. Never reaches the model: `describeCatalog` writes the
+      // columns it wants by name.
+      recipe: dish.ingredients,
+      // Computed here, sent to the model as a fact rather than a question — kept
+      // separate from `tags`, which stay purely practical.
+      nutritionCategory: nutritionCategory(dishTotals(dish.ingredients, 1)),
+      // What repeats when a week feels repetitive. Derived from the recipe for the
+      // same reason the nutrition label is: a tag someone types can disagree with
+      // the food, and this one has to be able to carry a rule.
+      proteinSource: proteinSource(dish.ingredients),
+      carbBase: carbBase(dish.ingredients),
+    }));
 }
 
 export type CatalogEntry = DishDetail & {
@@ -771,6 +795,11 @@ export async function getClinicDishForEdit(clinicId: string, dishId: string): Pr
       baseServingLabel: dishes.baseServingLabel,
       mealTypes: dishes.mealTypes,
       tags: dishes.tags,
+      source: dishes.source,
+      effort: dishes.effort,
+      cost: dishes.cost,
+      occasion: dishes.occasion,
+      isSide: dishes.isSide,
       allergenTags: dishes.allergenTags,
     })
     .from(dishes)
@@ -840,6 +869,11 @@ export async function getDishDetailForClinic(
       nameEn: dishes.nameEn,
       mealTypes: dishes.mealTypes,
       tags: dishes.tags,
+      source: dishes.source,
+      effort: dishes.effort,
+      cost: dishes.cost,
+      occasion: dishes.occasion,
+      isSide: dishes.isSide,
       allergenTags: dishes.allergenTags,
       baseServingLabel: dishes.baseServingLabel,
     })

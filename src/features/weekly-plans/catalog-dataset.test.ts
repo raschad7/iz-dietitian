@@ -352,8 +352,8 @@ describe('coverage of the shipped dish catalog', () => {
    * the dataset is exactly the kind of change nobody notices until a plan is short
    * a meal.
    */
-  test('is 113 dishes and 474 ingredients', () => {
-    expect(dishes).toHaveLength(113);
-    expect(dishes.reduce((total, dish) => total + dish.ingredients.length, 0)).toBe(474);
+  test('is 114 dishes and 481 ingredients', () => {
+    expect(dishes).toHaveLength(114);
+    expect(dishes.reduce((total, dish) => total + dish.ingredients.length, 0)).toBe(481);
   });
 });

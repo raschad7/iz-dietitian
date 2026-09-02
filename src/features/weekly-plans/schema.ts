@@ -69,8 +69,61 @@ export const DISH_TAGS = [
   'vegetarian',
 ] as const;
 
+/**
+ * The four **declared axes** — see `docs/catalog.md`.
+ *
+ * Unlike `DISH_TAGS` these are fields, not a bag: every dish carries exactly one
+ * value on each of the four, and none may be absent. A tag bag lets a dish end
+ * up describing nothing, which is how `no_cook` came to sit on two dishes out of
+ * a hundred and thirteen.
+ *
+ * They hold only what the recipe cannot know. Anything derivable from the
+ * ingredients — vegetarian, allergens, protein source, carb base, the nutrition
+ * category — is computed and must never be added here, or a dish could be
+ * labelled to contradict its own food.
+ *
+ * `DISH_TAGS` stays for now: the catalog page's filters still read it, and they
+ * are rebuilt on top of these axes in a later wave.
+ */
+
+/** Where a client obtains the dish. Drives `isFixedPortion`. */
+export const DISH_SOURCES = ['home', 'street', 'restaurant', 'shop'] as const;
+
+/** How much work it is. Replaces the overlapping `quick`/`easy_prep`/`no_cook`. */
+export const DISH_EFFORTS = ['no_cook', 'quick', 'medium', 'long'] as const;
+
+/** Price relative to the local basket, not an absolute figure. */
+export const DISH_COSTS = ['cheap', 'normal', 'expensive'] as const;
+
+/** When the dish belongs. Keeps كنافة out of a Tuesday afternoon. */
+export const DISH_OCCASIONS = ['everyday', 'family', 'ramadan', 'festive'] as const;
+
 export type MealType = (typeof MEAL_TYPES)[number];
 export type DishTag = (typeof DISH_TAGS)[number];
+export type DishSource = (typeof DISH_SOURCES)[number];
+export type DishEffort = (typeof DISH_EFFORTS)[number];
+export type DishCost = (typeof DISH_COSTS)[number];
+export type DishOccasion = (typeof DISH_OCCASIONS)[number];
+
+/**
+ * Whether a dish is sold in whole units.
+ *
+ * Nobody eats 0.7 of a shawarma sandwich. Street and restaurant food arrives as
+ * a thing, not as a weight, so the serving multiplier has to move in whole steps
+ * — the same rule `UNIT_STEPS` applies to a single line, applied to the dish.
+ *
+ * Derived from `source` rather than stored: a dish that is bought ready-made is
+ * exactly the set that cannot be subdivided, and a second column would only
+ * create the chance for the two to disagree.
+ *
+ * Takes a plain `string` because that is how a source arrives — out of a text
+ * column, through types that pass the catalog vocabulary along without narrowing
+ * it. The closed set is enforced once, at the seed. Anything unrecognised is not
+ * fixed, which is the safe answer: a dish keeps being divisible.
+ */
+export function isFixedPortion(source: string): boolean {
+  return source === 'street' || source === 'restaurant';
+}
 
 export const PLAN_STATUSES = ['draft', 'published', 'archived'] as const;
 export type PlanStatus = (typeof PLAN_STATUSES)[number];

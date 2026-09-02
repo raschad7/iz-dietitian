@@ -288,6 +288,13 @@
       "when": 1788268014091,
       "tag": "0040_abandoned_leper_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1788331282265,
+      "tag": "0041_square_mauler",
+      "breakpoints": true
     }
   ]
 }

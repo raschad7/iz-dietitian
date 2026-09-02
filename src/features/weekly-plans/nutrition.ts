@@ -257,6 +257,19 @@ export type DishDetail = {
   nameEn: string;
   mealTypes: string[];
   tags: string[];
+  /**
+   * The four declared axes, and whether the dish is a side.
+   *
+   * Typed as plain strings here for the same reason `tags` is: this module is the
+   * nutrition arithmetic, and narrowing them would drag the catalog vocabulary
+   * into a file that only ever passes them through. The closed sets live in
+   * `schema.ts` and are enforced at the seed.
+   */
+  source: string;
+  effort: string;
+  cost: string;
+  occasion: string;
+  isSide: boolean;
   allergenTags: string[];
   baseServingLabel: string;
   /** False for a retired dish. It stays readable on the plans that already use it. */

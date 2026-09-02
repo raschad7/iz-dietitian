@@ -27,6 +27,11 @@
         "quick",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "lactose",
         "gluten"
@@ -46,10 +51,10 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64.0,
+          "grams": 64,
           "note": "Bread, pita, whole-wheat",
           "unit": "Loaf",
-          "count": 1.0,
+          "count": 1,
           "primary": true
         },
         {
@@ -72,6 +77,11 @@
         "vegetarian",
         "portable"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "sesame",
         "gluten"
@@ -101,10 +111,10 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64.0,
+          "grams": 64,
           "note": "Bread, pita, whole-wheat",
           "unit": "Loaf",
-          "count": 1.0,
+          "count": 1,
           "primary": true
         }
       ]
@@ -121,6 +131,11 @@
         "economical",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "gluten"
       ],
@@ -154,10 +169,10 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60.0,
+          "grams": 60,
           "note": "Bread, pita, white, enriched",
           "unit": "Loaf",
-          "count": 1.0,
+          "count": 1,
           "primary": true
         }
       ]
@@ -173,6 +188,11 @@
         "economical",
         "quick"
       ],
+      "source": "home",
+      "effort": "quick",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "egg",
         "gluten"
@@ -199,10 +219,10 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64.0,
+          "grams": 64,
           "note": "Bread, pita, whole-wheat",
           "unit": "Loaf",
-          "count": 1.0,
+          "count": 1,
           "primary": true
         }
       ]
@@ -219,6 +239,11 @@
         "quick",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "lactose",
         "gluten"
@@ -248,10 +273,10 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64.0,
+          "grams": 64,
           "note": "Bread, pita, whole-wheat",
           "unit": "Loaf",
-          "count": 1.0,
+          "count": 1,
           "primary": true
         }
       ]
@@ -268,6 +293,11 @@
         "portable",
         "vegetarian"
       ],
+      "source": "shop",
+      "effort": "medium",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "gluten",
         "sesame"
@@ -308,6 +338,11 @@
         "economical",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "quick",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "lactose",
         "gluten"
@@ -328,10 +363,10 @@
         },
         {
           "fdcId": 173944,
-          "grams": 118.0,
+          "grams": 118,
           "note": "Bananas, raw",
           "unit": "Piece",
-          "count": 1.0,
+          "count": 1,
           "primary": true
         }
       ]
@@ -348,6 +383,11 @@
         "vegetarian",
         "portable"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "lactose",
         "gluten"
@@ -368,10 +408,10 @@
         },
         {
           "fdcId": 168191,
-          "grams": 24.0,
+          "grams": 24,
           "note": "Dates, medjool",
           "unit": "Piece",
-          "count": 1.0,
+          "count": 1,
           "primary": true
         }
       ]
@@ -388,6 +428,11 @@
         "economical",
         "quick"
       ],
+      "source": "home",
+      "effort": "quick",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "egg",
         "gluten"
@@ -442,6 +487,11 @@
         "quick",
         "portable"
       ],
+      "source": "home",
+      "effort": "quick",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "egg"
       ],
@@ -483,6 +533,11 @@
         "quick",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "lactose",
         "nuts",
@@ -508,10 +563,10 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64.0,
+          "grams": 64,
           "note": "Bread, pita, whole-wheat",
           "unit": "Loaf",
-          "count": 1.0,
+          "count": 1,
           "primary": true
         }
       ]
@@ -528,6 +583,11 @@
         "economical",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "sesame",
         "lactose",
@@ -577,6 +637,11 @@
         "quick",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "lactose",
         "gluten"
@@ -601,10 +666,10 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64.0,
+          "grams": 64,
           "note": "Bread, pita, whole-wheat",
           "unit": "Loaf",
-          "count": 1.0,
+          "count": 1,
           "primary": true
         }
       ]
@@ -620,6 +685,11 @@
       "tags": [
         "quick"
       ],
+      "source": "home",
+      "effort": "quick",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "egg",
         "gluten"
@@ -663,6 +733,11 @@
         "vegetarian",
         "portable"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "sesame",
         "gluten"
@@ -681,10 +756,10 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64.0,
+          "grams": 64,
           "note": "Bread, pita, whole-wheat",
           "unit": "Loaf",
-          "count": 1.0,
+          "count": 1,
           "primary": true
         }
       ]
@@ -700,6 +775,11 @@
       "tags": [
         "portable"
       ],
+      "source": "shop",
+      "effort": "medium",
+      "cost": "expensive",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "gluten"
       ],
@@ -745,6 +825,11 @@
         "portable",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "nuts"
       ],
@@ -752,10 +837,10 @@
       "ingredients": [
         {
           "fdcId": 171688,
-          "grams": 182.0,
+          "grams": 182,
           "note": "Apples, raw, with skin",
           "unit": "Piece",
-          "count": 1.0,
+          "count": 1,
           "primary": true
         },
         {
@@ -778,6 +863,11 @@
         "economical",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "nuts"
       ],
@@ -785,10 +875,10 @@
       "ingredients": [
         {
           "fdcId": 173944,
-          "grams": 118.0,
+          "grams": 118,
           "note": "Bananas, raw",
           "unit": "Piece",
-          "count": 1.0,
+          "count": 1,
           "primary": true
         },
         {
@@ -811,6 +901,11 @@
         "economical",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حبة كبيرة",
       "ingredients": [
@@ -837,6 +932,11 @@
         "economical",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -860,6 +960,11 @@
         "economical",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": true,
       "allergenTags": [
         "lactose"
       ],
@@ -885,6 +990,11 @@
         "economical",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "sesame"
       ],
@@ -920,6 +1030,11 @@
         "economical",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -952,6 +1067,11 @@
         "portable",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "nuts"
       ],
@@ -959,7 +1079,7 @@
       "ingredients": [
         {
           "fdcId": 168191,
-          "grams": 36.0,
+          "grams": 36,
           "note": "Dates, medjool",
           "unit": "Piece",
           "count": 1.5,
@@ -984,15 +1104,20 @@
         "economical",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
         {
           "fdcId": 167765,
-          "grams": 286.0,
+          "grams": 286,
           "note": "Watermelon, raw",
           "unit": "Piece",
-          "count": 1.0,
+          "count": 1,
           "primary": true
         }
       ]
@@ -1009,6 +1134,11 @@
         "economical",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -1035,15 +1165,20 @@
         "economical",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حبة واحدة",
       "ingredients": [
         {
           "fdcId": 169118,
-          "grams": 178.0,
+          "grams": 178,
           "note": "Pears, raw",
           "unit": "Piece",
-          "count": 1.0,
+          "count": 1,
           "primary": true
         }
       ]
@@ -1059,6 +1194,11 @@
         "quick",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -1082,6 +1222,11 @@
         "portable",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -1106,6 +1251,11 @@
         "quick",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "lactose"
       ],
@@ -1139,6 +1289,11 @@
         "economical",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة صغيرة",
       "ingredients": [
@@ -1162,12 +1317,17 @@
         "economical",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
         {
           "fdcId": 169949,
-          "grams": 99.0,
+          "grams": 99,
           "note": "Plums, raw",
           "unit": "Piece",
           "count": 1.5,
@@ -1192,6 +1352,11 @@
         "quick",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "lactose"
       ],
@@ -1222,6 +1387,11 @@
         "portable",
         "economical"
       ],
+      "source": "home",
+      "effort": "quick",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "egg"
       ],
@@ -1248,6 +1418,11 @@
         "portable",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -1303,6 +1478,11 @@
         "economical",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "long",
+      "cost": "cheap",
+      "occasion": "family",
+      "isSide": false,
       "allergenTags": [
         "nuts"
       ],
@@ -1351,6 +1531,11 @@
         "lunch"
       ],
       "tags": [],
+      "source": "home",
+      "effort": "long",
+      "cost": "normal",
+      "occasion": "family",
+      "isSide": false,
       "allergenTags": [
         "gluten",
         "nuts"
@@ -1396,6 +1581,11 @@
       "tags": [
         "economical"
       ],
+      "source": "home",
+      "effort": "long",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -1440,6 +1630,11 @@
       "tags": [
         "portable"
       ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -1482,6 +1677,11 @@
         "lunch"
       ],
       "tags": [],
+      "source": "home",
+      "effort": "medium",
+      "cost": "expensive",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "sesame"
       ],
@@ -1528,6 +1728,11 @@
         "economical",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -1570,6 +1775,11 @@
         "lunch"
       ],
       "tags": [],
+      "source": "home",
+      "effort": "long",
+      "cost": "expensive",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -1619,6 +1829,11 @@
       "tags": [
         "portable"
       ],
+      "source": "home",
+      "effort": "long",
+      "cost": "normal",
+      "occasion": "family",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -1663,6 +1878,11 @@
       "tags": [
         "economical"
       ],
+      "source": "home",
+      "effort": "long",
+      "cost": "cheap",
+      "occasion": "family",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -1707,6 +1927,11 @@
       "tags": [
         "portable"
       ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "lactose",
         "gluten"
@@ -1751,6 +1976,11 @@
         "lunch"
       ],
       "tags": [],
+      "source": "home",
+      "effort": "long",
+      "cost": "expensive",
+      "occasion": "family",
+      "isSide": false,
       "allergenTags": [
         "fish"
       ],
@@ -1795,6 +2025,11 @@
         "quick",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "quick",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "gluten"
       ],
@@ -1839,6 +2074,11 @@
       "tags": [
         "economical"
       ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "gluten"
       ],
@@ -1876,6 +2116,11 @@
         "lunch"
       ],
       "tags": [],
+      "source": "home",
+      "effort": "long",
+      "cost": "expensive",
+      "occasion": "family",
+      "isSide": false,
       "allergenTags": [
         "lactose",
         "nuts"
@@ -1921,6 +2166,11 @@
         "quick",
         "portable"
       ],
+      "source": "home",
+      "effort": "quick",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "fish"
       ],
@@ -1963,6 +2213,11 @@
         "lunch"
       ],
       "tags": [],
+      "source": "home",
+      "effort": "medium",
+      "cost": "expensive",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "fish",
         "gluten"
@@ -2005,6 +2260,11 @@
         "economical",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -2051,6 +2311,11 @@
         "economical",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "sesame"
       ],
@@ -2091,6 +2356,11 @@
       "tags": [
         "economical"
       ],
+      "source": "home",
+      "effort": "long",
+      "cost": "expensive",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -2137,6 +2407,11 @@
         "economical",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "gluten"
       ],
@@ -2182,6 +2457,11 @@
         "economical",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -2223,6 +2503,11 @@
         "quick",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "quick",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -2259,6 +2544,11 @@
         "lunch"
       ],
       "tags": [],
+      "source": "home",
+      "effort": "medium",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -2298,6 +2588,11 @@
         "quick",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "quick",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -2336,6 +2631,11 @@
         "quick",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "gluten"
       ],
@@ -2358,7 +2658,7 @@
         },
         {
           "fdcId": 174915,
-          "grams": 30.0,
+          "grams": 30,
           "note": "Bread, pita, white, enriched",
           "unit": "Loaf",
           "count": 0.5,
@@ -2393,6 +2693,11 @@
         "portable",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "gluten"
       ],
@@ -2448,6 +2753,11 @@
         "economical",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "lactose",
         "gluten"
@@ -2486,6 +2796,11 @@
         "dinner"
       ],
       "tags": [],
+      "source": "home",
+      "effort": "medium",
+      "cost": "expensive",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "fish"
       ],
@@ -2531,6 +2846,11 @@
         "quick",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "quick",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": true,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -2574,6 +2894,11 @@
         "quick",
         "economical"
       ],
+      "source": "home",
+      "effort": "quick",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "egg"
       ],
@@ -2618,6 +2943,11 @@
         "quick",
         "portable"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "fish"
       ],
@@ -2662,6 +2992,11 @@
         "economical",
         "quick"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "fish",
         "gluten"
@@ -2709,6 +3044,11 @@
         "quick",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "sesame",
         "gluten"
@@ -2755,6 +3095,11 @@
         "economical",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "lactose"
       ],
@@ -2795,6 +3140,11 @@
         "quick",
         "portable"
       ],
+      "source": "home",
+      "effort": "quick",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -2838,6 +3188,11 @@
         "economical",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "quick",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "lactose"
       ],
@@ -2877,6 +3232,11 @@
         "economical",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "lactose"
       ],
@@ -2912,6 +3272,11 @@
         "economical",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "sesame",
         "lactose",
@@ -2959,6 +3324,11 @@
         "economical",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -2997,6 +3367,11 @@
         "economical",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "lactose"
       ],
@@ -3041,6 +3416,11 @@
         "economical",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "lactose",
         "gluten"
@@ -3060,10 +3440,10 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64.0,
+          "grams": 64,
           "note": "Bread, pita, whole-wheat",
           "unit": "Loaf",
-          "count": 1.0,
+          "count": 1,
           "primary": true
         },
         {
@@ -3085,6 +3465,11 @@
         "filling",
         "local"
       ],
+      "source": "home",
+      "effort": "long",
+      "cost": "cheap",
+      "occasion": "family",
+      "isSide": false,
       "allergenTags": [
         "nuts"
       ],
@@ -3137,6 +3522,11 @@
         "filling",
         "local"
       ],
+      "source": "home",
+      "effort": "long",
+      "cost": "normal",
+      "occasion": "family",
+      "isSide": false,
       "allergenTags": [
         "gluten"
       ],
@@ -3183,6 +3573,11 @@
         "filling",
         "local"
       ],
+      "source": "home",
+      "effort": "long",
+      "cost": "expensive",
+      "occasion": "family",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -3229,6 +3624,11 @@
         "filling",
         "local"
       ],
+      "source": "home",
+      "effort": "long",
+      "cost": "expensive",
+      "occasion": "family",
+      "isSide": false,
       "allergenTags": [
         "gluten",
         "nuts"
@@ -3278,6 +3678,11 @@
         "vegetarian",
         "filling"
       ],
+      "source": "street",
+      "effort": "medium",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "sesame",
         "gluten"
@@ -3286,18 +3691,18 @@
       "ingredients": [
         {
           "fdcId": 172455,
-          "grams": 102.0,
+          "grams": 102,
           "note": "Falafel, home-prepared",
           "unit": "Piece",
-          "count": 6.0,
+          "count": 6,
           "primary": true
         },
         {
           "fdcId": 174915,
-          "grams": 60.0,
+          "grams": 60,
           "note": "Bread, pita, white, enriched",
           "unit": "Loaf",
-          "count": 1.0,
+          "count": 1,
           "primary": true
         },
         {
@@ -3336,6 +3741,11 @@
         "vegetarian",
         "filling"
       ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "gluten"
       ],
@@ -3377,6 +3787,11 @@
         "local",
         "filling"
       ],
+      "source": "home",
+      "effort": "long",
+      "cost": "expensive",
+      "occasion": "family",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -3422,6 +3837,11 @@
         "local",
         "filling"
       ],
+      "source": "home",
+      "effort": "long",
+      "cost": "expensive",
+      "occasion": "family",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -3469,6 +3889,11 @@
         "local",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -3511,6 +3936,11 @@
         "local",
         "filling"
       ],
+      "source": "home",
+      "effort": "long",
+      "cost": "expensive",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -3553,6 +3983,11 @@
         "filling",
         "local"
       ],
+      "source": "home",
+      "effort": "long",
+      "cost": "expensive",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -3601,6 +4036,11 @@
         "vegetarian",
         "local"
       ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -3642,6 +4082,11 @@
       "tags": [
         "filling"
       ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -3680,6 +4125,11 @@
         "filling",
         "local"
       ],
+      "source": "home",
+      "effort": "long",
+      "cost": "expensive",
+      "occasion": "family",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -3725,6 +4175,11 @@
         "filling",
         "local"
       ],
+      "source": "home",
+      "effort": "long",
+      "cost": "expensive",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -3776,6 +4231,11 @@
       "tags": [
         "filling"
       ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "expensive",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "fish"
       ],
@@ -3825,6 +4285,11 @@
         "local",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "long",
+      "cost": "cheap",
+      "occasion": "family",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -3874,6 +4339,11 @@
         "portable",
         "filling"
       ],
+      "source": "street",
+      "effort": "medium",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "gluten"
       ],
@@ -3887,10 +4357,10 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60.0,
+          "grams": 60,
           "note": "Bread, pita, white, enriched",
           "unit": "Loaf",
-          "count": 1.0,
+          "count": 1,
           "primary": true
         },
         {
@@ -3925,6 +4395,11 @@
       "tags": [
         "filling"
       ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "expensive",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -3971,6 +4446,11 @@
         "filling",
         "local"
       ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "gluten"
       ],
@@ -4018,6 +4498,11 @@
         "portable",
         "easy_prep"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "fish",
         "gluten"
@@ -4066,6 +4551,11 @@
         "portable",
         "easy_prep"
       ],
+      "source": "home",
+      "effort": "quick",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "egg",
         "gluten"
@@ -4111,6 +4601,11 @@
         "portable",
         "easy_prep"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "gluten"
       ],
@@ -4151,6 +4646,11 @@
       "tags": [
         "filling"
       ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "gluten"
       ],
@@ -4198,6 +4698,11 @@
         "vegetarian",
         "filling"
       ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "gluten"
       ],
@@ -4243,6 +4748,11 @@
         "quick",
         "economical"
       ],
+      "source": "home",
+      "effort": "quick",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "fish"
       ],
@@ -4291,6 +4801,11 @@
         "quick",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "lactose",
         "nuts"
@@ -4305,7 +4820,7 @@
         },
         {
           "fdcId": 173944,
-          "grams": 59.0,
+          "grams": 59,
           "note": "Bananas, raw",
           "unit": "Piece",
           "count": 0.5,
@@ -4335,6 +4850,11 @@
         "economical",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "quick",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "egg",
         "gluten"
@@ -4351,10 +4871,10 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64.0,
+          "grams": 64,
           "note": "Bread, pita, whole-wheat",
           "unit": "Loaf",
-          "count": 1.0,
+          "count": 1,
           "primary": true
         },
         {
@@ -4381,6 +4901,11 @@
         "quick",
         "portable"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -4422,6 +4947,11 @@
       "tags": [
         "filling"
       ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "gluten"
       ],
@@ -4467,6 +4997,11 @@
         "portable",
         "filling"
       ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "fish",
         "gluten"
@@ -4514,6 +5049,11 @@
         "economical",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "quick",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "lactose",
         "gluten"
@@ -4534,7 +5074,7 @@
         },
         {
           "fdcId": 171688,
-          "grams": 91.0,
+          "grams": 91,
           "note": "Apples, raw, with skin",
           "unit": "Piece",
           "count": 0.5
@@ -4552,6 +5092,11 @@
       "tags": [
         "filling"
       ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "expensive",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "fish"
       ],
@@ -4592,6 +5137,11 @@
         "quick",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "quick",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "egg",
         "lactose"
@@ -4636,6 +5186,11 @@
         "economical",
         "vegetarian"
       ],
+      "source": "home",
+      "effort": "quick",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "egg",
         "gluten"
@@ -4652,10 +5207,10 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64.0,
+          "grams": 64,
           "note": "Bread, pita, whole-wheat",
           "unit": "Loaf",
-          "count": 1.0,
+          "count": 1,
           "primary": true
         },
         {
@@ -4683,6 +5238,11 @@
         "vegetarian",
         "no_cook"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "lactose"
       ],
@@ -4701,7 +5261,7 @@
         },
         {
           "fdcId": 173944,
-          "grams": 59.0,
+          "grams": 59,
           "note": "Bananas, raw",
           "unit": "Piece",
           "count": 0.5,
@@ -4729,6 +5289,11 @@
         "vegetarian",
         "easy_prep"
       ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "expensive",
+      "occasion": "everyday",
+      "isSide": false,
       "allergenTags": [
         "nuts"
       ],
@@ -4746,11 +5311,71 @@
         },
         {
           "fdcId": 168191,
-          "grams": 24.0,
+          "grams": 24,
           "note": "Dates, medjool",
           "unit": "Piece",
-          "count": 1.0,
+          "count": 1,
           "primary": true
+        }
+      ]
+    },
+    {
+      "slug": "green-salad-plate",
+      "nameAr": "صحن سلطة",
+      "nameEn": "Green salad plate",
+      "mealTypes": [
+        "lunch",
+        "dinner"
+      ],
+      "tags": [
+        "economical",
+        "quick",
+        "vegetarian"
+      ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": true,
+      "allergenTags": [],
+      "baseServingLabel": "صحن واحد",
+      "ingredients": [
+        {
+          "fdcId": 169247,
+          "grams": 60,
+          "note": "Lettuce, cos or romaine, raw",
+          "primary": true
+        },
+        {
+          "fdcId": 170457,
+          "grams": 70,
+          "note": "Tomatoes, red, ripe, raw, year round average",
+          "primary": true
+        },
+        {
+          "fdcId": 168409,
+          "grams": 60,
+          "note": "Cucumber, with peel, raw"
+        },
+        {
+          "fdcId": 170005,
+          "grams": 15,
+          "note": "Onions, spring or scallions (includes tops and bulb), raw"
+        },
+        {
+          "fdcId": 171413,
+          "grams": 5,
+          "note": "Oil, olive, salad or cooking"
+        },
+        {
+          "fdcId": 167747,
+          "grams": 10,
+          "note": "Lemon juice, raw"
+        },
+        {
+          "fdcId": 170416,
+          "grams": 5,
+          "note": "Parsley, fresh"
         }
       ]
     }

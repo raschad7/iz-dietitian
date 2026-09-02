@@ -49,6 +49,17 @@ export type PromptDish = {
    */
   proteinSource: string;
   carbBase: string;
+  /**
+   * The four declared axes — see `docs/catalog.md`.
+   *
+   * `source` is the one that changes what the model can do: until it existed, a
+   * plan silently assumed every client goes home and cooks, and "he buys lunch
+   * near work" was an instruction with nothing to resolve against.
+   */
+  source: string;
+  effort: string;
+  cost: string;
+  occasion: string;
 };
 
 export type PromptClient = {
@@ -122,6 +133,8 @@ function buildSystem(): string {
     '- Include fish at least twice in a week where the catalog allows it.',
     '- Vary carb_base across the day and the week; not rice at every lunch.',
     '- A day needs a shape: something warm and cooked at lunch or dinner, not two cold salads.',
+    '- `source` says where the client gets a dish: home, street, restaurant or shop. Plan home cooking unless the instruction says they eat out, then use that many street or restaurant meals and no more.',
+    '- Respect `effort` and `cost` when the instruction asks for them. A client who cooks only at the weekend cannot be given four `long` dishes on weekdays.',
     '- Do not repeat the same dish in the same slot on consecutive days.',
     '',
     'Honour the dietitian instructions and the client dislikes. Instructions outrank variety.',
@@ -181,11 +194,29 @@ function describeCatalog(catalog: readonly PromptDish[]): string {
       dish.nutritionCategory,
       dish.proteinSource,
       dish.carbBase,
+      dish.source,
+      dish.effort,
+      dish.cost,
+      dish.occasion,
     ].join('\t'),
   );
 
   return [
-    'slug\tname\tmeal_types\ttags\tbase_kcal\tbase_protein\tnutrition\tprotein_source\tcarb_base',
+    [
+      'slug',
+      'name',
+      'meal_types',
+      'tags',
+      'base_kcal',
+      'base_protein',
+      'nutrition',
+      'protein_source',
+      'carb_base',
+      'source',
+      'effort',
+      'cost',
+      'occasion',
+    ].join('\t'),
     ...rows,
   ].join('\n');
 }

@@ -6,6 +6,15 @@ import {
   validateDishRecords,
   type DishRecord,
 } from '../../../scripts/seed-dishes';
+import { isMember } from '@/lib/enum';
+
+import {
+  DISH_COSTS,
+  DISH_EFFORTS,
+  DISH_OCCASIONS,
+  DISH_SOURCES,
+  isFixedPortion,
+} from './schema';
 
 /**
  * The seed import is the last gate before curated dishes reach the database, so
@@ -20,6 +29,11 @@ const base: DishRecord = {
   nameEn: 'Grilled chicken',
   mealTypes: ['lunch'],
   tags: ['economical', 'quick'],
+  source: 'home',
+  effort: 'medium',
+  cost: 'normal',
+  occasion: 'everyday',
+  isSide: false,
   allergenTags: [],
   baseServingLabel: 'حصة',
   ingredients: [{ fdcId: 171077, grams: 150, note: 'Chicken' }],
@@ -149,5 +163,62 @@ describe('the shipped dish catalog', () => {
         expect(raw.has(ingredient.fdcId)).toBe(false);
       }
     }
+  });
+});
+
+/**
+ * The axes are the reason `tags` stopped being enough: a bag can describe
+ * nothing, and a dish that describes nothing cannot be filtered, planned around,
+ * or told apart from any other. The seed is where "exactly one value, always" is
+ * actually enforced.
+ */
+describe('validateDishRecords declared axes', () => {
+  test('rejects a value outside the closed set', () => {
+    const problems = validateDishRecords([{ ...base, source: 'takeaway' }]);
+    expect(problems.some((p) => p.includes('unknown source "takeaway"'))).toBe(true);
+  });
+
+  test('a missing axis is a problem, not a default', () => {
+    const { effort: _effort, ...withoutEffort } = base;
+    const problems = validateDishRecords([withoutEffort as DishRecord]);
+
+    expect(problems).toEqual(['grilled-chicken: no effort']);
+  });
+
+  test('isSide has to be stated — a dish is a meal or it is not', () => {
+    const { isSide: _isSide, ...withoutSide } = base;
+    const problems = validateDishRecords([withoutSide as DishRecord]);
+
+    expect(problems).toEqual(['grilled-chicken: no isSide']);
+  });
+
+  test('every shipped dish carries all four axes and says whether it is a side', () => {
+    for (const dish of readDishDataset()) {
+      expect(isMember(DISH_SOURCES, dish.source)).toBe(true);
+      expect(isMember(DISH_EFFORTS, dish.effort)).toBe(true);
+      expect(isMember(DISH_COSTS, dish.cost)).toBe(true);
+      expect(isMember(DISH_OCCASIONS, dish.occasion)).toBe(true);
+      expect(typeof dish.isSide).toBe('boolean');
+    }
+  });
+
+  test('only what a person eats beside a meal is a side', () => {
+    const sides = readDishDataset().filter((dish) => dish.isSide);
+
+    // Few by nature. A catalog where a third of the dishes are sides has stopped
+    // meaning anything by the word.
+    expect(sides.length).toBeGreaterThan(0);
+    expect(sides.length / readDishDataset().length).toBeLessThan(0.1);
+  });
+});
+
+describe('isFixedPortion', () => {
+  test('what you buy ready-made comes whole; what you cook does not', () => {
+    expect(isFixedPortion('street')).toBe(true);
+    expect(isFixedPortion('restaurant')).toBe(true);
+    expect(isFixedPortion('home')).toBe(false);
+    // A packet is opened, not portioned by the shop — a client can eat half a
+    // tub of yogurt, but not half a sandwich the shop already assembled.
+    expect(isFixedPortion('shop')).toBe(false);
   });
 });

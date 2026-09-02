@@ -81,6 +81,34 @@ export const dishes = pgTable(
      */
     allergenTags: text('allergen_tags').array().notNull(),
 
+    /**
+     * The four declared axes — `DISH_SOURCES`, `DISH_EFFORTS`, `DISH_COSTS`,
+     * `DISH_OCCASIONS` in `schema.ts`, and `docs/catalog.md` for why they exist.
+     *
+     * Columns rather than another array: exactly one value each, never absent.
+     * That is the whole difference between a category and a tag — a tag bag can
+     * describe nothing, and `tags` above is the proof.
+     *
+     * `source` is the load-bearing one. It is what lets a plan be built for a
+     * client who buys lunch instead of cooking it, and it decides which dishes
+     * may only be served whole.
+     */
+    source: text('source').notNull().default('home'),
+    effort: text('effort').notNull().default('medium'),
+    cost: text('cost').notNull().default('normal'),
+    occasion: text('occasion').notNull().default('everyday'),
+
+    /**
+     * Whether the dish belongs *beside* a meal rather than being one.
+     *
+     * صحن سلطة، كوب شوربة، كوب لبن. A side is never chosen as a meal's main and
+     * never scaled by the budget; it is attached at one serving through
+     * `weekly_plan_meal_sides`. This is what lets a lunch read
+     * "ملوخية · 6 معالق أرز · صحن سلطة" — three things a client can see and tick
+     * — instead of one dish name that cannot be taken apart.
+     */
+    isSide: boolean('is_side').notNull().default(false),
+
     /** e.g. "حصة واحدة" — what one unit of `dish_ingredients` adds up to. */
     baseServingLabel: text('base_serving_label').notNull(),
 

@@ -30,7 +30,14 @@ import {
   dishes,
   type NewDish,
 } from '@/db/schema';
-import { DISH_TAGS, MEAL_TYPES } from '@/features/weekly-plans/schema';
+import {
+  DISH_COSTS,
+  DISH_EFFORTS,
+  DISH_OCCASIONS,
+  DISH_SOURCES,
+  DISH_TAGS,
+  MEAL_TYPES,
+} from '@/features/weekly-plans/schema';
 import { isMember } from '@/lib/enum';
 
 import { readCatalogDataset } from './seed-catalog-foods';
@@ -84,6 +91,13 @@ export type DishRecord = {
   nameEn: string;
   mealTypes: string[];
   tags: string[];
+  /** The four declared axes. Required on every dish — see `docs/catalog.md`. */
+  source: string;
+  effort: string;
+  cost: string;
+  occasion: string;
+  /** A side sits beside a meal rather than being one. */
+  isSide: boolean;
   allergenTags: string[];
   baseServingLabel: string;
   ingredients: IngredientRecord[];
@@ -125,6 +139,22 @@ export function validateDishRecords(records: DishRecord[]): string[] {
         problems.push(`${dish.slug}: unknown or deprecated tag "${tag}"`);
       }
     }
+
+    // Each of the four axes carries exactly one value, and a missing one is the
+    // failure the axes exist to prevent: a dish that describes nothing.
+    for (const [axis, allowed, value] of [
+      ['source', DISH_SOURCES, dish.source],
+      ['effort', DISH_EFFORTS, dish.effort],
+      ['cost', DISH_COSTS, dish.cost],
+      ['occasion', DISH_OCCASIONS, dish.occasion],
+    ] as const) {
+      if (value === undefined) problems.push(`${dish.slug}: no ${axis}`);
+      else if (!isMember(allowed, value)) {
+        problems.push(`${dish.slug}: unknown ${axis} "${value}"`);
+      }
+    }
+
+    if (typeof dish.isSide !== 'boolean') problems.push(`${dish.slug}: no isSide`);
 
     for (const ingredient of dish.ingredients) {
       if (!(ingredient.grams > 0)) {
@@ -300,6 +330,11 @@ export async function seedDishes(): Promise<{ dishes: number; ingredients: numbe
     nameEn: dish.nameEn,
     mealTypes: dish.mealTypes,
     tags: dish.tags,
+    source: dish.source,
+    effort: dish.effort,
+    cost: dish.cost,
+    occasion: dish.occasion,
+    isSide: dish.isSide,
     allergenTags: dish.allergenTags,
     baseServingLabel: dish.baseServingLabel,
     isActive: true,
@@ -318,6 +353,11 @@ export async function seedDishes(): Promise<{ dishes: number; ingredients: numbe
           nameEn: sqlExcluded('name_en'),
           mealTypes: sqlExcluded('meal_types'),
           tags: sqlExcluded('tags'),
+          source: sqlExcluded('source'),
+          effort: sqlExcluded('effort'),
+          cost: sqlExcluded('cost'),
+          occasion: sqlExcluded('occasion'),
+          isSide: sqlExcluded('is_side'),
           allergenTags: sqlExcluded('allergen_tags'),
           baseServingLabel: sqlExcluded('base_serving_label'),
           isActive: sqlExcluded('is_active'),

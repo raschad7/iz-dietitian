@@ -8,6 +8,10 @@ const CATALOG: PromptDish[] = [
     nameAr: 'مجدرة مع سلطة خضراء',
     mealTypes: ['lunch', 'dinner'],
     tags: ['economical', 'vegetarian'],
+    source: 'home',
+    effort: 'medium',
+    cost: 'normal',
+    occasion: 'everyday',
     baseKcal: 618.4,
     baseProtein: 21.7,
     nutritionCategory: 'balanced',
@@ -21,6 +25,10 @@ const CATALOG: PromptDish[] = [
     // Practical tags only — "high protein" is not among them; it rides in the
     // separate nutritionCategory field below, computed from the recipe.
     tags: ['quick'],
+    source: 'home',
+    effort: 'medium',
+    cost: 'normal',
+    occasion: 'everyday',
     baseKcal: 381.2,
     baseProtein: 18.4,
     nutritionCategory: 'high_protein',

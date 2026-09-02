@@ -61,8 +61,8 @@ describe('a fresh database', () => {
     await seedCatalogFoods({ apply: true });
     const result = await seedDishes();
 
-    expect(result.dishes).toBe(113);
-    expect(result.ingredients).toBe(474);
+    expect(result.dishes).toBe(114);
+    expect(result.ingredients).toBe(481);
 
     // `catalog_food_id` is NOT NULL since Phase 2, so this asserts the join
     // resolves rather than merely that a column is populated.
@@ -70,11 +70,11 @@ describe('a fresh database', () => {
       .select({ n: sql<number>`cast(count(*) as int)` })
       .from(dishIngredients)
       .innerJoin(catalogFoods, eq(catalogFoods.id, dishIngredients.catalogFoodId));
-    expect(rows[0]!.n).toBe(474);
+    expect(rows[0]!.n).toBe(481);
 
     // And the whole catalog reads back through the app's own loader, recipes intact.
     const catalog = await loadCatalog(await createTestClinic());
-    expect(catalog).toHaveLength(113);
+    expect(catalog).toHaveLength(114);
     expect(catalog.every((dish) => dish.ingredients.length > 0)).toBe(true);
   });
 
@@ -117,7 +117,7 @@ describe('a fresh database', () => {
 
 describe('dish nutrition after the migration', () => {
   /**
-   * Parity, for all 113 dishes at once.
+   * Parity, for all 114 dishes at once.
    *
    * "Before and after" cannot mean "against the old `foods` table" any more — that
    * table is gone. What it means instead is the stronger statement: every total the
