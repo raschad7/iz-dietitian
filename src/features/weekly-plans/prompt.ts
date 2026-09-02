@@ -145,6 +145,7 @@ function buildSystem(): string {
     '- A day needs a shape: something warm and cooked at lunch or dinner, not two cold salads.',
     '- `source` says where the client gets a dish: home, street, restaurant or shop. Plan home cooking unless the instruction says they eat out, then use that many street or restaurant meals and no more.',
     '- Respect `effort` and `cost` when the instruction asks for them. A client who cooks only at the weekend cannot be given four `long` dishes on weekdays.',
+    '- `occasion` says when a dish belongs. Use `ramadan` and `festive` dishes ONLY when the instruction says the week is Ramadan or a holiday; an ordinary week is `everyday` and `family`. A كنافة on a Tuesday afternoon is the mistake this rule exists to prevent.',
     '- Add sides to lunch and dinner the way a dietitian writes a plate: a salad with most of them, a soup or a cup of yogurt where it fits. Breakfast and snacks rarely need one. At most two, and never a side on its own.',
     '- A side is one serving and is NOT counted against the slot budget you were given — that budget is for the main. Choose the main first.',
     '- Do not repeat the same dish in the same slot on consecutive days.',

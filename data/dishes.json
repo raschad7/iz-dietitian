@@ -719,13 +719,12 @@
       "nameAr": "صفيحة لحم",
       "nameEn": "Sfeeha with minced beef",
       "mealTypes": [
-        "breakfast",
         "lunch"
       ],
       "source": "shop",
-      "effort": "medium",
+      "effort": "long",
       "cost": "expensive",
-      "occasion": "everyday",
+      "occasion": "family",
       "isSide": false,
       "allergenTags": [
         "gluten"
@@ -2019,6 +2018,18 @@
           "fdcId": 167747,
           "grams": 8,
           "note": "Lemon juice, raw"
+        },
+        {
+          "fdcId": 169247,
+          "grams": 60,
+          "free": true,
+          "note": "Lettuce, cos or romaine, raw"
+        },
+        {
+          "fdcId": 170457,
+          "grams": 60,
+          "free": true,
+          "note": "Tomatoes, red, ripe, raw, year round average"
         }
       ]
     },
@@ -3607,6 +3618,14 @@
           "fdcId": 169230,
           "grams": 5,
           "note": "Garlic, raw"
+        },
+        {
+          "fdcId": 174916,
+          "grams": 64,
+          "note": "Bread, pita, whole-wheat",
+          "primary": true,
+          "unit": "Loaf",
+          "count": 1
         }
       ]
     },
@@ -3706,14 +3725,13 @@
       "nameEn": "Spicy potatoes",
       "mealTypes": [
         "lunch",
-        "dinner",
-        "snack"
+        "dinner"
       ],
       "source": "home",
       "effort": "medium",
       "cost": "cheap",
       "occasion": "everyday",
-      "isSide": false,
+      "isSide": true,
       "allergenTags": [],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
@@ -5184,8 +5202,8 @@
     },
     {
       "slug": "kaak-egg-street",
-      "nameAr": "كعك بالبيض",
-      "nameEn": "Ka'ek with egg",
+      "nameAr": "خبز بالبيض والزعتر",
+      "nameEn": "Bread with egg and zaatar",
       "mealTypes": [
         "breakfast"
       ],
@@ -5377,8 +5395,8 @@
     },
     {
       "slug": "sfeeha-shop",
-      "nameAr": "صفيحة من الفرن",
-      "nameEn": "Bakery meat sfeeha",
+      "nameAr": "خبز باللحمة والبندورة",
+      "nameEn": "Bakery bread with meat and tomato",
       "mealTypes": [
         "breakfast",
         "lunch",
@@ -8607,8 +8625,8 @@
     },
     {
       "slug": "ramadan-soup-lentil",
-      "nameAr": "شوربة عدس رمضان",
-      "nameEn": "Ramadan lentil soup",
+      "nameAr": "شوربة عدس بالكمون",
+      "nameEn": "Cumin lentil soup",
       "mealTypes": [
         "dinner"
       ],
@@ -10354,8 +10372,8 @@
     },
     {
       "slug": "ramadan-fattoush",
-      "nameAr": "فتوش رمضان",
-      "nameEn": "Ramadan fattoush",
+      "nameAr": "فتوش بالخبز المحمّص",
+      "nameEn": "Fattoush with toasted bread",
       "mealTypes": [
         "dinner"
       ],
@@ -10528,8 +10546,8 @@
     },
     {
       "slug": "ramadan-jallab-dates",
-      "nameAr": "تمر مع مكسرات - إفطار",
-      "nameEn": "Iftar dates with nuts",
+      "nameAr": "تمر مع مكسرات",
+      "nameEn": "Dates with nuts",
       "mealTypes": [
         "snack"
       ],
@@ -10706,8 +10724,8 @@
     },
     {
       "slug": "festive-lamb-rice-plate",
-      "nameAr": "لحم مع أرز - مناسبة",
-      "nameEn": "Festive lamb with rice",
+      "nameAr": "لحم مع أرز ولبن",
+      "nameEn": "Lamb with rice and yogurt",
       "mealTypes": [
         "lunch"
       ],
@@ -11791,8 +11809,8 @@
     },
     {
       "slug": "ramadan-rice-chicken-iftar",
-      "nameAr": "أرز بالدجاج - إفطار",
-      "nameEn": "Iftar rice with chicken",
+      "nameAr": "أرز بالدجاج",
+      "nameEn": "Rice with chicken",
       "mealTypes": [
         "dinner"
       ],
@@ -11834,8 +11852,8 @@
     },
     {
       "slug": "ramadan-fatteh-iftar",
-      "nameAr": "فتة إفطار",
-      "nameEn": "Iftar fatteh",
+      "nameAr": "فتة باللبن",
+      "nameEn": "Fatteh with yogurt",
       "mealTypes": [
         "dinner"
       ],
@@ -11884,8 +11902,8 @@
     },
     {
       "slug": "ramadan-juice-dates-snack",
-      "nameAr": "تمر مع لبن - إفطار",
-      "nameEn": "Iftar dates with yogurt",
+      "nameAr": "تمر مع لبن",
+      "nameEn": "Dates with yogurt",
       "mealTypes": [
         "snack"
       ],
@@ -12358,6 +12376,63 @@
           "fdcId": 173412,
           "grams": 20,
           "note": "Butter oil, anhydrous"
+        }
+      ]
+    },
+    {
+      "slug": "grilled-meat-breakfast",
+      "nameAr": "لحمة مشوية مع خبز وخضار",
+      "nameEn": "Grilled meat with bread",
+      "mealTypes": [
+        "breakfast",
+        "lunch"
+      ],
+      "tags": [],
+      "source": "home",
+      "effort": "quick",
+      "cost": "expensive",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "gluten"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 171792,
+          "grams": 110,
+          "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
+          "primary": true
+        },
+        {
+          "fdcId": 174916,
+          "grams": 64,
+          "note": "Bread, pita, whole-wheat",
+          "primary": true,
+          "unit": "Loaf",
+          "count": 1
+        },
+        {
+          "fdcId": 171413,
+          "grams": 10,
+          "note": "Oil, olive, salad or cooking"
+        },
+        {
+          "fdcId": 170000,
+          "grams": 30,
+          "note": "Onions, raw"
+        },
+        {
+          "fdcId": 170457,
+          "grams": 60,
+          "free": true,
+          "note": "Tomatoes, red, ripe, raw, year round average"
+        },
+        {
+          "fdcId": 168409,
+          "grams": 50,
+          "free": true,
+          "note": "Cucumber, with peel, raw"
         }
       ]
     }

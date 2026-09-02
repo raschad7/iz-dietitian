@@ -41,7 +41,8 @@ import {
   formatCoverage,
   type CoverageReport,
 } from '@/features/weekly-plans/coverage';
-import { baseServingKcal, type DishIngredientDetail } from '@/features/weekly-plans/nutrition';
+import { datasetCatalog } from '@/features/weekly-plans/dataset-catalog';
+import { baseServingKcal } from '@/features/weekly-plans/nutrition';
 
 import { catalogChecksum } from './build-catalog-dataset';
 import { readCatalogDataset } from './seed-catalog-foods';
@@ -421,42 +422,18 @@ async function checkFrozenPlans(): Promise<Check> {
  * the grams and the food, never from a number written beside the dish.
  */
 export function coverageFromDatasets(): CoverageReport {
-  const foods = new Map(readCatalogDataset().map((food) => [food.sourceRef, food]));
-
   return coverage(
-    readDishDataset().map((dish) => {
-      const recipe = dish.ingredients.flatMap((ingredient, index) => {
-        const food = foods.get(String(ingredient.fdcId));
-        if (!food) return [];
-
-        return [
-          {
-            quantityGrams: ingredient.grams,
-            food: {
-              id: food.slug,
-              nameAr: food.nameAr,
-              nameEn: food.nameEn,
-              category: food.category,
-              ...(food.nutrition as Record<string, number | null>),
-            },
-            isPrimary: ingredient.primary ?? false,
-            sortOrder: index,
-          } as DishIngredientDetail,
-        ];
-      });
-
-      return {
-        slug: dish.slug,
-        mealTypes: dish.mealTypes,
-        source: dish.source,
-        effort: dish.effort,
-        cost: dish.cost,
-        occasion: dish.occasion,
-        isSide: dish.isSide,
-        baseKcal: baseServingKcal(recipe),
-        recipe,
-      };
-    }),
+    datasetCatalog().map((dish) => ({
+      slug: dish.slug,
+      mealTypes: dish.mealTypes,
+      source: dish.source,
+      effort: dish.effort,
+      cost: dish.cost,
+      occasion: dish.occasion,
+      isSide: dish.isSide,
+      baseKcal: baseServingKcal(dish.ingredients),
+      recipe: dish.ingredients,
+    })),
   );
 }
 

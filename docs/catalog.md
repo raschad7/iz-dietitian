@@ -205,6 +205,13 @@ USDA SR Legacy has no row for labaneh, nabulsi or akkawi cheese, freekeh,
 molokhia, jameed, kunafa, halva or baklava — this was checked directly against
 the dataset.
 
+**Nor does it have a dough.** There is no `عجينة`, no `كعك`, no pastry base, so a
+صفيحة and a كعك were written as pita plus a filling — right on the calories,
+wrong on the reading, because the client sees "خبز عربي أبيض" under a name that
+promised pastry. The reviewer caught exactly that on its second sweep. Those
+dishes are named after what they contain until there is a dough worth citing;
+that is the next food to source.
+
 **Consumer calorie sites are not a source.** Searching them returns 10 kcal and
 37 kcal for the same molokhia, and 5.6 g against 10.9 g of protein for the same
 labaneh. Numbers like that break the first law. Published tables worth using:

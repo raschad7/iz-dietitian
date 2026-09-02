@@ -22,6 +22,7 @@
     "db:setup": "bun run scripts/setup-database.ts",
     "db:check": "bun run scripts/check-catalog-readiness.ts",
     "plan:review": "bun run scripts/review-plan.ts",
+    "plan:sweep": "bun run scripts/review-sweep.ts",
     "db:build-catalog": "bun run scripts/build-catalog-dataset.ts",
     "db:build-food-dataset": "bun run scripts/build-food-dataset.ts",
     "db:reset": "bun run scripts/db-reset.ts",
