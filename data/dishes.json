@@ -9570,6 +9570,3793 @@
           "primary": true
         }
       ]
+    },
+    {
+      "slug": "maqluba-chicken-large",
+      "nameAr": "مقلوبة دجاج",
+      "nameEn": "Chicken maqluba",
+      "mealTypes": [
+        "lunch"
+      ],
+      "tags": [
+        "filling",
+        "local"
+      ],
+      "source": "home",
+      "effort": "long",
+      "cost": "normal",
+      "occasion": "family",
+      "isSide": false,
+      "allergenTags": [
+        "nuts"
+      ],
+      "baseServingLabel": "صحن مقلوبة",
+      "ingredients": [
+        {
+          "fdcId": 172388,
+          "grams": 170,
+          "note": "Chicken, broilers or fryers, thigh, meat only, cooked, roasted",
+          "primary": true
+        },
+        {
+          "fdcId": 168878,
+          "grams": 250,
+          "note": "Rice, white, long-grain, regular, enriched, cooked",
+          "primary": true,
+          "unit": "Tablespoon",
+          "count": 10
+        },
+        {
+          "fdcId": 169228,
+          "grams": 140,
+          "note": "Eggplant, raw"
+        },
+        {
+          "fdcId": 169986,
+          "grams": 100,
+          "note": "Cauliflower, raw"
+        },
+        {
+          "fdcId": 171025,
+          "grams": 25,
+          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+        },
+        {
+          "fdcId": 170591,
+          "grams": 10,
+          "note": "Nuts, pine nuts, dried"
+        }
+      ]
+    },
+    {
+      "slug": "mansaf-lamb",
+      "nameAr": "منسف",
+      "nameEn": "Mansaf",
+      "mealTypes": [
+        "lunch"
+      ],
+      "tags": [
+        "filling",
+        "local"
+      ],
+      "source": "home",
+      "effort": "long",
+      "cost": "expensive",
+      "occasion": "festive",
+      "isSide": false,
+      "allergenTags": [
+        "lactose",
+        "gluten",
+        "nuts"
+      ],
+      "baseServingLabel": "صحن منسف",
+      "ingredients": [
+        {
+          "fdcId": 172544,
+          "grams": 170,
+          "note": "Lamb, ground, cooked, broiled",
+          "primary": true
+        },
+        {
+          "fdcId": 168878,
+          "grams": 250,
+          "note": "Rice, white, long-grain, regular, enriched, cooked",
+          "primary": true,
+          "unit": "Tablespoon",
+          "count": 10
+        },
+        {
+          "fdcId": 171284,
+          "grams": 220,
+          "note": "Yogurt, plain, whole milk"
+        },
+        {
+          "fdcId": 174915,
+          "grams": 30.0,
+          "note": "Bread, pita, white, enriched",
+          "unit": "Loaf",
+          "count": 0.5
+        },
+        {
+          "fdcId": 170591,
+          "grams": 12,
+          "note": "Nuts, pine nuts, dried"
+        },
+        {
+          "fdcId": 173412,
+          "grams": 10,
+          "note": "Butter oil, anhydrous"
+        }
+      ]
+    },
+    {
+      "slug": "ouzi-rice-meat",
+      "nameAr": "أوزي باللحم",
+      "nameEn": "Ouzi with meat",
+      "mealTypes": [
+        "lunch"
+      ],
+      "tags": [
+        "filling",
+        "local"
+      ],
+      "source": "home",
+      "effort": "long",
+      "cost": "expensive",
+      "occasion": "family",
+      "isSide": false,
+      "allergenTags": [
+        "nuts"
+      ],
+      "baseServingLabel": "صحن أوزي",
+      "ingredients": [
+        {
+          "fdcId": 172544,
+          "grams": 150,
+          "note": "Lamb, ground, cooked, broiled",
+          "primary": true
+        },
+        {
+          "fdcId": 168878,
+          "grams": 250,
+          "note": "Rice, white, long-grain, regular, enriched, cooked",
+          "primary": true,
+          "unit": "Tablespoon",
+          "count": 10
+        },
+        {
+          "fdcId": 170419,
+          "grams": 70,
+          "note": "Peas, green, raw"
+        },
+        {
+          "fdcId": 170393,
+          "grams": 60,
+          "note": "Carrots, raw"
+        },
+        {
+          "fdcId": 173412,
+          "grams": 18,
+          "note": "Butter oil, anhydrous"
+        },
+        {
+          "fdcId": 170567,
+          "grams": 12,
+          "note": "Nuts, almonds"
+        }
+      ]
+    },
+    {
+      "slug": "musakhan-full",
+      "nameAr": "مسخّن كامل",
+      "nameEn": "Full musakhan",
+      "mealTypes": [
+        "lunch"
+      ],
+      "tags": [
+        "filling",
+        "local"
+      ],
+      "source": "home",
+      "effort": "long",
+      "cost": "normal",
+      "occasion": "family",
+      "isSide": false,
+      "allergenTags": [
+        "gluten",
+        "nuts"
+      ],
+      "baseServingLabel": "صحن مسخّن",
+      "ingredients": [
+        {
+          "fdcId": 172388,
+          "grams": 180,
+          "note": "Chicken, broilers or fryers, thigh, meat only, cooked, roasted",
+          "primary": true
+        },
+        {
+          "fdcId": 174916,
+          "grams": 128,
+          "note": "Bread, pita, whole-wheat",
+          "primary": true,
+          "unit": "Loaf",
+          "count": 2
+        },
+        {
+          "fdcId": 170000,
+          "grams": 180,
+          "note": "Onions, raw"
+        },
+        {
+          "fdcId": 171413,
+          "grams": 35,
+          "note": "Oil, olive, salad or cooking"
+        },
+        {
+          "fdcId": 170591,
+          "grams": 12,
+          "note": "Nuts, pine nuts, dried"
+        }
+      ]
+    },
+    {
+      "slug": "kabsa-chicken-large",
+      "nameAr": "كبسة دجاج كبيرة",
+      "nameEn": "Large chicken kabsa",
+      "mealTypes": [
+        "lunch"
+      ],
+      "tags": [
+        "filling"
+      ],
+      "source": "home",
+      "effort": "long",
+      "cost": "normal",
+      "occasion": "family",
+      "isSide": false,
+      "allergenTags": [],
+      "baseServingLabel": "صحن كبسة",
+      "ingredients": [
+        {
+          "fdcId": 172388,
+          "grams": 190,
+          "note": "Chicken, broilers or fryers, thigh, meat only, cooked, roasted",
+          "primary": true
+        },
+        {
+          "fdcId": 168878,
+          "grams": 275,
+          "note": "Rice, white, long-grain, regular, enriched, cooked",
+          "primary": true,
+          "unit": "Tablespoon",
+          "count": 11
+        },
+        {
+          "fdcId": 170000,
+          "grams": 60,
+          "note": "Onions, raw"
+        },
+        {
+          "fdcId": 170393,
+          "grams": 60,
+          "note": "Carrots, raw"
+        },
+        {
+          "fdcId": 170459,
+          "grams": 35,
+          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)"
+        },
+        {
+          "fdcId": 171025,
+          "grams": 22,
+          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+        }
+      ]
+    },
+    {
+      "slug": "qidreh-lamb-large",
+      "nameAr": "قدرة باللحم",
+      "nameEn": "Lamb qidreh",
+      "mealTypes": [
+        "lunch"
+      ],
+      "tags": [
+        "filling",
+        "local"
+      ],
+      "source": "home",
+      "effort": "long",
+      "cost": "expensive",
+      "occasion": "family",
+      "isSide": false,
+      "allergenTags": [],
+      "baseServingLabel": "صحن قدرة",
+      "ingredients": [
+        {
+          "fdcId": 172544,
+          "grams": 160,
+          "note": "Lamb, ground, cooked, broiled",
+          "primary": true
+        },
+        {
+          "fdcId": 168878,
+          "grams": 250,
+          "note": "Rice, white, long-grain, regular, enriched, cooked",
+          "primary": true,
+          "unit": "Tablespoon",
+          "count": 10
+        },
+        {
+          "fdcId": 173757,
+          "grams": 90,
+          "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt"
+        },
+        {
+          "fdcId": 169230,
+          "grams": 12,
+          "note": "Garlic, raw"
+        },
+        {
+          "fdcId": 173412,
+          "grams": 20,
+          "note": "Butter oil, anhydrous"
+        }
+      ]
+    },
+    {
+      "slug": "kofta-tray-large",
+      "nameAr": "صينية كفتة بالبطاطا",
+      "nameEn": "Kofta and potato tray",
+      "mealTypes": [
+        "lunch"
+      ],
+      "tags": [
+        "filling"
+      ],
+      "source": "home",
+      "effort": "long",
+      "cost": "expensive",
+      "occasion": "family",
+      "isSide": false,
+      "allergenTags": [
+        "sesame"
+      ],
+      "baseServingLabel": "صحن صينية",
+      "ingredients": [
+        {
+          "fdcId": 171792,
+          "grams": 180,
+          "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
+          "primary": true
+        },
+        {
+          "fdcId": 170440,
+          "grams": 260,
+          "note": "Potatoes, boiled, cooked without skin, flesh, without salt",
+          "primary": true
+        },
+        {
+          "fdcId": 168604,
+          "grams": 30,
+          "note": "Seeds, sesame butter, tahini, type of kernels unspecified"
+        },
+        {
+          "fdcId": 170000,
+          "grams": 60,
+          "note": "Onions, raw"
+        },
+        {
+          "fdcId": 171413,
+          "grams": 20,
+          "note": "Oil, olive, salad or cooking"
+        }
+      ]
+    },
+    {
+      "slug": "pasta-bechamel-large",
+      "nameAr": "مكرونة بالبشاميل",
+      "nameEn": "Pasta with bechamel",
+      "mealTypes": [
+        "lunch"
+      ],
+      "tags": [
+        "filling"
+      ],
+      "source": "home",
+      "effort": "long",
+      "cost": "normal",
+      "occasion": "family",
+      "isSide": false,
+      "allergenTags": [
+        "gluten",
+        "lactose"
+      ],
+      "baseServingLabel": "قطعة صينية",
+      "ingredients": [
+        {
+          "fdcId": 169737,
+          "grams": 250,
+          "note": "Pasta, cooked, enriched, without added salt",
+          "primary": true
+        },
+        {
+          "fdcId": 171792,
+          "grams": 130,
+          "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
+          "primary": true
+        },
+        {
+          "fdcId": 170857,
+          "grams": 110,
+          "note": "Cream, fluid, light (coffee cream or table cream)"
+        },
+        {
+          "fdcId": 170847,
+          "grams": 70,
+          "note": "Cheese, mozzarella, part skim milk"
+        },
+        {
+          "fdcId": 173410,
+          "grams": 15,
+          "note": "Butter, salted"
+        }
+      ]
+    },
+    {
+      "slug": "shawarma-plate-large",
+      "nameAr": "صحن شاورما مع أرز",
+      "nameEn": "Shawarma plate with rice",
+      "mealTypes": [
+        "lunch"
+      ],
+      "tags": [
+        "filling"
+      ],
+      "source": "restaurant",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [],
+      "baseServingLabel": "صحن شاورما",
+      "ingredients": [
+        {
+          "fdcId": 171477,
+          "grams": 180,
+          "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
+          "primary": true
+        },
+        {
+          "fdcId": 168878,
+          "grams": 225,
+          "note": "Rice, white, long-grain, regular, enriched, cooked",
+          "primary": true,
+          "unit": "Tablespoon",
+          "count": 9
+        },
+        {
+          "fdcId": 169230,
+          "grams": 10,
+          "note": "Garlic, raw"
+        },
+        {
+          "fdcId": 171025,
+          "grams": 20,
+          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+        },
+        {
+          "fdcId": 169264,
+          "grams": 70,
+          "note": "Potatoes, french fried, all types, salt added in processing, frozen, home-prepared, oven heated"
+        },
+        {
+          "fdcId": 168558,
+          "grams": 30,
+          "note": "Pickles, cucumber, dill or kosher dill"
+        }
+      ]
+    },
+    {
+      "slug": "fish-fried-rice-large",
+      "nameAr": "سمك مقلي مع أرز صيادية",
+      "nameEn": "Fried fish with sayadieh rice",
+      "mealTypes": [
+        "lunch"
+      ],
+      "tags": [
+        "filling"
+      ],
+      "source": "home",
+      "effort": "long",
+      "cost": "expensive",
+      "occasion": "family",
+      "isSide": false,
+      "allergenTags": [
+        "fish",
+        "nuts"
+      ],
+      "baseServingLabel": "صحن صيادية",
+      "ingredients": [
+        {
+          "fdcId": 175177,
+          "grams": 200,
+          "note": "Fish, tilapia, cooked, dry heat",
+          "primary": true
+        },
+        {
+          "fdcId": 168878,
+          "grams": 225,
+          "note": "Rice, white, long-grain, regular, enriched, cooked",
+          "primary": true,
+          "unit": "Tablespoon",
+          "count": 9
+        },
+        {
+          "fdcId": 170000,
+          "grams": 90,
+          "note": "Onions, raw"
+        },
+        {
+          "fdcId": 171025,
+          "grams": 25,
+          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+        },
+        {
+          "fdcId": 170591,
+          "grams": 10,
+          "note": "Nuts, pine nuts, dried"
+        }
+      ]
+    },
+    {
+      "slug": "stuffed-vegetables-large",
+      "nameAr": "محشي مشكل",
+      "nameEn": "Mixed stuffed vegetables",
+      "mealTypes": [
+        "lunch"
+      ],
+      "tags": [
+        "filling",
+        "local"
+      ],
+      "source": "home",
+      "effort": "long",
+      "cost": "normal",
+      "occasion": "family",
+      "isSide": false,
+      "allergenTags": [],
+      "baseServingLabel": "صحن محشي",
+      "ingredients": [
+        {
+          "fdcId": 169291,
+          "grams": 200,
+          "note": "Squash, summer, zucchini, includes skin, raw",
+          "primary": true
+        },
+        {
+          "fdcId": 168878,
+          "grams": 200,
+          "note": "Rice, white, long-grain, regular, enriched, cooked",
+          "primary": true,
+          "unit": "Tablespoon",
+          "count": 8
+        },
+        {
+          "fdcId": 171792,
+          "grams": 110,
+          "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
+          "primary": true
+        },
+        {
+          "fdcId": 170459,
+          "grams": 45,
+          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)"
+        },
+        {
+          "fdcId": 171413,
+          "grams": 22,
+          "note": "Oil, olive, salad or cooking"
+        }
+      ]
+    },
+    {
+      "slug": "broasted-plate-large",
+      "nameAr": "صحن بروستد كامل",
+      "nameEn": "Full broasted plate",
+      "mealTypes": [
+        "lunch"
+      ],
+      "tags": [
+        "filling"
+      ],
+      "source": "restaurant",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "gluten"
+      ],
+      "baseServingLabel": "صحن بروستد",
+      "ingredients": [
+        {
+          "fdcId": 171477,
+          "grams": 200,
+          "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
+          "primary": true
+        },
+        {
+          "fdcId": 169264,
+          "grams": 200,
+          "note": "Potatoes, french fried, all types, salt added in processing, frozen, home-prepared, oven heated",
+          "primary": true
+        },
+        {
+          "fdcId": 171025,
+          "grams": 22,
+          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+        },
+        {
+          "fdcId": 169230,
+          "grams": 10,
+          "note": "Garlic, raw"
+        },
+        {
+          "fdcId": 174915,
+          "grams": 60,
+          "note": "Bread, pita, white, enriched",
+          "unit": "Loaf",
+          "count": 1
+        },
+        {
+          "fdcId": 168558,
+          "grams": 30,
+          "note": "Pickles, cucumber, dill or kosher dill"
+        }
+      ]
+    },
+    {
+      "slug": "chicken-rice-dinner-large",
+      "nameAr": "دجاج مع أرز وخضار - عشاء",
+      "nameEn": "Chicken, rice and vegetables",
+      "mealTypes": [
+        "dinner"
+      ],
+      "tags": [
+        "filling"
+      ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 171477,
+          "grams": 160,
+          "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
+          "primary": true
+        },
+        {
+          "fdcId": 168878,
+          "grams": 175,
+          "note": "Rice, white, long-grain, regular, enriched, cooked",
+          "primary": true,
+          "unit": "Tablespoon",
+          "count": 7
+        },
+        {
+          "fdcId": 169961,
+          "grams": 100,
+          "note": "Beans, snap, green, raw"
+        },
+        {
+          "fdcId": 171413,
+          "grams": 14,
+          "note": "Oil, olive, salad or cooking"
+        }
+      ]
+    },
+    {
+      "slug": "meat-bulgur-dinner-large",
+      "nameAr": "برغل باللحمة",
+      "nameEn": "Bulgur with meat",
+      "mealTypes": [
+        "dinner",
+        "lunch"
+      ],
+      "tags": [
+        "filling"
+      ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "expensive",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "gluten"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 170287,
+          "grams": 230,
+          "note": "Bulgur, cooked",
+          "primary": true
+        },
+        {
+          "fdcId": 171792,
+          "grams": 140,
+          "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
+          "primary": true
+        },
+        {
+          "fdcId": 170459,
+          "grams": 40,
+          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)"
+        },
+        {
+          "fdcId": 170000,
+          "grams": 50,
+          "note": "Onions, raw"
+        },
+        {
+          "fdcId": 171413,
+          "grams": 16,
+          "note": "Oil, olive, salad or cooking"
+        }
+      ]
+    },
+    {
+      "slug": "fish-potato-dinner-large",
+      "nameAr": "سمك مع بطاطا بالفرن",
+      "nameEn": "Baked fish with potato",
+      "mealTypes": [
+        "dinner"
+      ],
+      "tags": [
+        "filling"
+      ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "expensive",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "fish"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 175168,
+          "grams": 170,
+          "note": "Fish, salmon, Atlantic, farmed, cooked, dry heat",
+          "primary": true
+        },
+        {
+          "fdcId": 170440,
+          "grams": 230,
+          "note": "Potatoes, boiled, cooked without skin, flesh, without salt",
+          "primary": true
+        },
+        {
+          "fdcId": 171413,
+          "grams": 16,
+          "note": "Oil, olive, salad or cooking"
+        },
+        {
+          "fdcId": 167747,
+          "grams": 10,
+          "note": "Lemon juice, raw"
+        },
+        {
+          "fdcId": 169247,
+          "grams": 60,
+          "free": true,
+          "note": "Lettuce, cos or romaine, raw"
+        }
+      ]
+    },
+    {
+      "slug": "chickpea-tahini-dinner-large",
+      "nameAr": "فتة حمص بالطحينة",
+      "nameEn": "Hummus fatteh",
+      "mealTypes": [
+        "dinner"
+      ],
+      "tags": [
+        "vegetarian",
+        "economical"
+      ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "gluten",
+        "sesame",
+        "lactose"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 173757,
+          "grams": 220,
+          "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt",
+          "primary": true
+        },
+        {
+          "fdcId": 174915,
+          "grams": 90.0,
+          "note": "Bread, pita, white, enriched",
+          "primary": true,
+          "unit": "Loaf",
+          "count": 1.5
+        },
+        {
+          "fdcId": 168604,
+          "grams": 30,
+          "note": "Seeds, sesame butter, tahini, type of kernels unspecified"
+        },
+        {
+          "fdcId": 171284,
+          "grams": 150,
+          "note": "Yogurt, plain, whole milk"
+        },
+        {
+          "fdcId": 171413,
+          "grams": 12,
+          "note": "Oil, olive, salad or cooking"
+        }
+      ]
+    },
+    {
+      "slug": "cheese-egg-tray-dinner",
+      "nameAr": "صينية بيض وجبنة وخضار",
+      "nameEn": "Egg, cheese and vegetable tray",
+      "mealTypes": [
+        "dinner",
+        "lunch"
+      ],
+      "tags": [],
+      "source": "home",
+      "effort": "medium",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "egg",
+        "lactose"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 171287,
+          "grams": 150,
+          "note": "Egg, whole, raw, fresh",
+          "primary": true,
+          "unit": "Piece",
+          "count": 3
+        },
+        {
+          "fdcId": 170847,
+          "grams": 80,
+          "note": "Cheese, mozzarella, part skim milk",
+          "primary": true
+        },
+        {
+          "fdcId": 170440,
+          "grams": 180,
+          "note": "Potatoes, boiled, cooked without skin, flesh, without salt"
+        },
+        {
+          "fdcId": 170427,
+          "grams": 60,
+          "note": "Peppers, sweet, green, raw"
+        },
+        {
+          "fdcId": 171413,
+          "grams": 14,
+          "note": "Oil, olive, salad or cooking"
+        }
+      ]
+    },
+    {
+      "slug": "turkey-pasta-dinner-large",
+      "nameAr": "مكرونة مع حبش وخضار",
+      "nameEn": "Pasta with turkey and vegetables",
+      "mealTypes": [
+        "dinner"
+      ],
+      "tags": [
+        "filling"
+      ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "gluten",
+        "lactose"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 169737,
+          "grams": 220,
+          "note": "Pasta, cooked, enriched, without added salt",
+          "primary": true
+        },
+        {
+          "fdcId": 171496,
+          "grams": 140,
+          "note": "Turkey, whole, breast, meat only, cooked, roasted",
+          "primary": true
+        },
+        {
+          "fdcId": 170379,
+          "grams": 100,
+          "note": "Broccoli, raw"
+        },
+        {
+          "fdcId": 170857,
+          "grams": 60,
+          "note": "Cream, fluid, light (coffee cream or table cream)"
+        },
+        {
+          "fdcId": 171413,
+          "grams": 10,
+          "note": "Oil, olive, salad or cooking"
+        }
+      ]
+    },
+    {
+      "slug": "sardine-toast-breakfast",
+      "nameAr": "سردين مع توست",
+      "nameEn": "Sardines on toast",
+      "mealTypes": [
+        "breakfast"
+      ],
+      "tags": [
+        "economical"
+      ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "fish",
+        "gluten"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 175139,
+          "grams": 100,
+          "note": "Fish, sardine, Atlantic, canned in oil, drained solids with bone",
+          "primary": true
+        },
+        {
+          "fdcId": 172688,
+          "grams": 70,
+          "note": "Bread, whole-wheat, commercially prepared",
+          "primary": true
+        },
+        {
+          "fdcId": 167747,
+          "grams": 10,
+          "note": "Lemon juice, raw"
+        },
+        {
+          "fdcId": 171413,
+          "grams": 8,
+          "note": "Oil, olive, salad or cooking"
+        },
+        {
+          "fdcId": 170457,
+          "grams": 60,
+          "free": true,
+          "note": "Tomatoes, red, ripe, raw, year round average"
+        }
+      ]
+    },
+    {
+      "slug": "salmon-avocado-toast-breakfast",
+      "nameAr": "توست بالسلمون",
+      "nameEn": "Salmon toast",
+      "mealTypes": [
+        "breakfast"
+      ],
+      "tags": [],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "expensive",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "fish",
+        "gluten",
+        "lactose"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 175168,
+          "grams": 90,
+          "note": "Fish, salmon, Atlantic, farmed, cooked, dry heat",
+          "primary": true
+        },
+        {
+          "fdcId": 172688,
+          "grams": 70,
+          "note": "Bread, whole-wheat, commercially prepared",
+          "primary": true
+        },
+        {
+          "fdcId": 173418,
+          "grams": 30,
+          "note": "Cheese, cream"
+        },
+        {
+          "fdcId": 168409,
+          "grams": 50,
+          "free": true,
+          "note": "Cucumber, with peel, raw"
+        }
+      ]
+    },
+    {
+      "slug": "tuna-egg-breakfast-plate",
+      "nameAr": "صحن تونة وبيض",
+      "nameEn": "Tuna and egg plate",
+      "mealTypes": [
+        "breakfast",
+        "lunch"
+      ],
+      "tags": [],
+      "source": "home",
+      "effort": "quick",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "fish",
+        "egg",
+        "gluten"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 171986,
+          "grams": 110,
+          "note": "Fish, tuna, light, canned in water, without salt, drained solids",
+          "primary": true
+        },
+        {
+          "fdcId": 173424,
+          "grams": 100,
+          "note": "Egg, whole, cooked, hard-boiled",
+          "primary": true,
+          "unit": "Piece",
+          "count": 2
+        },
+        {
+          "fdcId": 174916,
+          "grams": 64,
+          "note": "Bread, pita, whole-wheat",
+          "unit": "Loaf",
+          "count": 1
+        },
+        {
+          "fdcId": 171413,
+          "grams": 12,
+          "note": "Oil, olive, salad or cooking"
+        },
+        {
+          "fdcId": 169247,
+          "grams": 50,
+          "free": true,
+          "note": "Lettuce, cos or romaine, raw"
+        }
+      ]
+    },
+    {
+      "slug": "foul-hummus-breakfast-large",
+      "nameAr": "فول وحمص مع خبز",
+      "nameEn": "Foul and hummus with bread",
+      "mealTypes": [
+        "breakfast"
+      ],
+      "tags": [
+        "vegetarian",
+        "economical"
+      ],
+      "source": "home",
+      "effort": "quick",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "gluten",
+        "sesame"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 173753,
+          "grams": 170,
+          "note": "Broadbeans (fava beans), mature seeds, cooked, boiled, without salt",
+          "primary": true
+        },
+        {
+          "fdcId": 173800,
+          "grams": 130,
+          "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
+          "primary": true
+        },
+        {
+          "fdcId": 174916,
+          "grams": 64,
+          "note": "Bread, pita, whole-wheat",
+          "unit": "Loaf",
+          "count": 1
+        },
+        {
+          "fdcId": 168604,
+          "grams": 20,
+          "note": "Seeds, sesame butter, tahini, type of kernels unspecified"
+        },
+        {
+          "fdcId": 171413,
+          "grams": 14,
+          "note": "Oil, olive, salad or cooking"
+        }
+      ]
+    },
+    {
+      "slug": "eggs-cheese-zaatar-breakfast",
+      "nameAr": "بيض وجبنة وزعتر",
+      "nameEn": "Eggs, cheese and zaatar",
+      "mealTypes": [
+        "breakfast"
+      ],
+      "tags": [],
+      "source": "home",
+      "effort": "quick",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "egg",
+        "lactose",
+        "gluten"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 171287,
+          "grams": 100,
+          "note": "Egg, whole, raw, fresh",
+          "primary": true,
+          "unit": "Piece",
+          "count": 2
+        },
+        {
+          "fdcId": 173420,
+          "grams": 60,
+          "note": "Cheese, feta",
+          "primary": true
+        },
+        {
+          "fdcId": 174916,
+          "grams": 64,
+          "note": "Bread, pita, whole-wheat",
+          "unit": "Loaf",
+          "count": 1
+        },
+        {
+          "fdcId": 170938,
+          "grams": 5,
+          "note": "Spices, thyme, dried"
+        },
+        {
+          "fdcId": 171413,
+          "grams": 16,
+          "note": "Oil, olive, salad or cooking"
+        },
+        {
+          "fdcId": 170457,
+          "grams": 60,
+          "free": true,
+          "note": "Tomatoes, red, ripe, raw, year round average"
+        }
+      ]
+    },
+    {
+      "slug": "egg-shakshuka-lunch",
+      "nameAr": "شكشوكة على الغداء",
+      "nameEn": "Shakshuka for lunch",
+      "mealTypes": [
+        "lunch"
+      ],
+      "tags": [
+        "economical"
+      ],
+      "source": "home",
+      "effort": "quick",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "egg",
+        "gluten"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 171287,
+          "grams": 200,
+          "note": "Egg, whole, raw, fresh",
+          "primary": true,
+          "unit": "Piece",
+          "count": 4
+        },
+        {
+          "fdcId": 170457,
+          "grams": 250,
+          "note": "Tomatoes, red, ripe, raw, year round average",
+          "primary": true
+        },
+        {
+          "fdcId": 174916,
+          "grams": 64,
+          "note": "Bread, pita, whole-wheat",
+          "unit": "Loaf",
+          "count": 1
+        },
+        {
+          "fdcId": 170427,
+          "grams": 70,
+          "note": "Peppers, sweet, green, raw"
+        },
+        {
+          "fdcId": 171413,
+          "grams": 16,
+          "note": "Oil, olive, salad or cooking"
+        }
+      ]
+    },
+    {
+      "slug": "egg-fried-rice-lunch",
+      "nameAr": "أرز مقلي بالبيض والخضار",
+      "nameEn": "Egg fried rice",
+      "mealTypes": [
+        "lunch",
+        "dinner"
+      ],
+      "tags": [
+        "economical"
+      ],
+      "source": "home",
+      "effort": "quick",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "egg"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 171287,
+          "grams": 150,
+          "note": "Egg, whole, raw, fresh",
+          "primary": true,
+          "unit": "Piece",
+          "count": 3
+        },
+        {
+          "fdcId": 168878,
+          "grams": 175,
+          "note": "Rice, white, long-grain, regular, enriched, cooked",
+          "primary": true,
+          "unit": "Tablespoon",
+          "count": 7
+        },
+        {
+          "fdcId": 170419,
+          "grams": 70,
+          "note": "Peas, green, raw"
+        },
+        {
+          "fdcId": 170393,
+          "grams": 60,
+          "note": "Carrots, raw"
+        },
+        {
+          "fdcId": 171025,
+          "grams": 16,
+          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+        }
+      ]
+    },
+    {
+      "slug": "oats-peanut-banana-snack",
+      "nameAr": "شوفان مع زبدة الفول السوداني",
+      "nameEn": "Oats with peanut butter",
+      "mealTypes": [
+        "snack"
+      ],
+      "tags": [
+        "vegetarian"
+      ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "nuts",
+        "lactose"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 173904,
+          "grams": 45,
+          "note": "Cereals, oats, regular and quick, not fortified, dry",
+          "primary": true
+        },
+        {
+          "fdcId": 172470,
+          "grams": 25,
+          "note": "Peanut butter, smooth style, without salt",
+          "primary": true
+        },
+        {
+          "fdcId": 173944,
+          "grams": 59.0,
+          "note": "Bananas, raw",
+          "unit": "Piece",
+          "count": 0.5
+        },
+        {
+          "fdcId": 171267,
+          "grams": 120,
+          "note": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D"
+        }
+      ]
+    },
+    {
+      "slug": "cheese-egg-toast-snack",
+      "nameAr": "توست بالبيض والجبنة",
+      "nameEn": "Egg and cheese toast",
+      "mealTypes": [
+        "snack",
+        "breakfast"
+      ],
+      "tags": [],
+      "source": "home",
+      "effort": "quick",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "gluten",
+        "egg",
+        "lactose"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 172688,
+          "grams": 70,
+          "note": "Bread, whole-wheat, commercially prepared",
+          "primary": true
+        },
+        {
+          "fdcId": 173424,
+          "grams": 50,
+          "note": "Egg, whole, cooked, hard-boiled",
+          "primary": true,
+          "unit": "Piece",
+          "count": 1
+        },
+        {
+          "fdcId": 173414,
+          "grams": 30,
+          "note": "Cheese, cheddar (Includes foods for USDA's Food Distribution Program)"
+        },
+        {
+          "fdcId": 170457,
+          "grams": 50,
+          "free": true,
+          "note": "Tomatoes, red, ripe, raw, year round average"
+        }
+      ]
+    },
+    {
+      "slug": "yogurt-granola-nuts-snack",
+      "nameAr": "لبن يوناني مع شوفان ومكسرات",
+      "nameEn": "Greek yogurt with oats and nuts",
+      "mealTypes": [
+        "snack"
+      ],
+      "tags": [
+        "vegetarian"
+      ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "lactose",
+        "nuts"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 170903,
+          "grams": 200,
+          "note": "Yogurt, Greek, plain, lowfat",
+          "primary": true
+        },
+        {
+          "fdcId": 173904,
+          "grams": 30,
+          "note": "Cereals, oats, regular and quick, not fortified, dry",
+          "primary": true
+        },
+        {
+          "fdcId": 170567,
+          "grams": 15,
+          "note": "Nuts, almonds"
+        },
+        {
+          "fdcId": 169640,
+          "grams": 12,
+          "note": "Honey"
+        }
+      ]
+    },
+    {
+      "slug": "half-shawarma-snack",
+      "nameAr": "نص سندويش شاورما",
+      "nameEn": "Half shawarma sandwich",
+      "mealTypes": [
+        "snack"
+      ],
+      "tags": [
+        "portable"
+      ],
+      "source": "street",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "gluten"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 174915,
+          "grams": 60,
+          "note": "Bread, pita, white, enriched",
+          "primary": true,
+          "unit": "Loaf",
+          "count": 1
+        },
+        {
+          "fdcId": 171477,
+          "grams": 70,
+          "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
+          "primary": true
+        },
+        {
+          "fdcId": 169230,
+          "grams": 5,
+          "note": "Garlic, raw"
+        },
+        {
+          "fdcId": 168558,
+          "grams": 20,
+          "note": "Pickles, cucumber, dill or kosher dill"
+        }
+      ]
+    },
+    {
+      "slug": "falafel-plate-snack",
+      "nameAr": "أقراص فلافل مع طحينة",
+      "nameEn": "Falafel with tahini",
+      "mealTypes": [
+        "snack"
+      ],
+      "tags": [
+        "portable",
+        "vegetarian",
+        "economical"
+      ],
+      "source": "street",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "sesame"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 172455,
+          "grams": 80,
+          "note": "Falafel, home-prepared",
+          "primary": true
+        },
+        {
+          "fdcId": 168604,
+          "grams": 20,
+          "note": "Seeds, sesame butter, tahini, type of kernels unspecified",
+          "primary": true
+        },
+        {
+          "fdcId": 170457,
+          "grams": 50,
+          "free": true,
+          "note": "Tomatoes, red, ripe, raw, year round average"
+        }
+      ]
+    },
+    {
+      "slug": "mixed-nuts-fruit-snack",
+      "nameAr": "مكسرات مع فواكه مجففة",
+      "nameEn": "Mixed nuts with dried fruit",
+      "mealTypes": [
+        "snack"
+      ],
+      "tags": [
+        "portable",
+        "vegetarian"
+      ],
+      "source": "shop",
+      "effort": "no_cook",
+      "cost": "expensive",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "nuts"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 170567,
+          "grams": 20,
+          "note": "Nuts, almonds",
+          "primary": true
+        },
+        {
+          "fdcId": 170187,
+          "grams": 15,
+          "note": "Nuts, walnuts, english"
+        },
+        {
+          "fdcId": 168191,
+          "grams": 48,
+          "note": "Dates, medjool",
+          "unit": "Piece",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "slug": "cheese-bread-olives-snack",
+      "nameAr": "خبز مع جبنة وزيتون",
+      "nameEn": "Bread with cheese and olives",
+      "mealTypes": [
+        "snack",
+        "breakfast"
+      ],
+      "tags": [
+        "economical",
+        "vegetarian"
+      ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "gluten",
+        "lactose"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 174916,
+          "grams": 64,
+          "note": "Bread, pita, whole-wheat",
+          "primary": true,
+          "unit": "Loaf",
+          "count": 1
+        },
+        {
+          "fdcId": 173420,
+          "grams": 50,
+          "note": "Cheese, feta",
+          "primary": true
+        },
+        {
+          "fdcId": 169096,
+          "grams": 25,
+          "note": "Olives, pickled, canned or bottled, green"
+        },
+        {
+          "fdcId": 168409,
+          "grams": 50,
+          "free": true,
+          "note": "Cucumber, with peel, raw"
+        }
+      ]
+    },
+    {
+      "slug": "ramadan-fattoush",
+      "nameAr": "فتوش رمضان",
+      "nameEn": "Ramadan fattoush",
+      "mealTypes": [
+        "dinner"
+      ],
+      "tags": [
+        "vegetarian",
+        "economical"
+      ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "ramadan",
+      "isSide": false,
+      "allergenTags": [
+        "gluten"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 169247,
+          "grams": 100,
+          "note": "Lettuce, cos or romaine, raw",
+          "primary": true
+        },
+        {
+          "fdcId": 170457,
+          "grams": 100,
+          "note": "Tomatoes, red, ripe, raw, year round average"
+        },
+        {
+          "fdcId": 168409,
+          "grams": 80,
+          "note": "Cucumber, with peel, raw"
+        },
+        {
+          "fdcId": 174915,
+          "grams": 30.0,
+          "note": "Bread, pita, white, enriched",
+          "primary": true,
+          "unit": "Loaf",
+          "count": 0.5
+        },
+        {
+          "fdcId": 171413,
+          "grams": 15,
+          "note": "Oil, olive, salad or cooking"
+        },
+        {
+          "fdcId": 167747,
+          "grams": 12,
+          "note": "Lemon juice, raw"
+        }
+      ]
+    },
+    {
+      "slug": "ramadan-chicken-soup",
+      "nameAr": "شوربة دجاج بالشعيرية",
+      "nameEn": "Chicken vermicelli soup",
+      "mealTypes": [
+        "dinner"
+      ],
+      "tags": [],
+      "source": "home",
+      "effort": "medium",
+      "cost": "normal",
+      "occasion": "ramadan",
+      "isSide": false,
+      "allergenTags": [
+        "gluten",
+        "egg"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 171477,
+          "grams": 90,
+          "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
+          "primary": true
+        },
+        {
+          "fdcId": 168919,
+          "grams": 120,
+          "note": "Noodles, egg, cooked, enriched, with added salt",
+          "primary": true
+        },
+        {
+          "fdcId": 170393,
+          "grams": 60,
+          "note": "Carrots, raw"
+        },
+        {
+          "fdcId": 171413,
+          "grams": 10,
+          "note": "Oil, olive, salad or cooking"
+        }
+      ]
+    },
+    {
+      "slug": "ramadan-sambousek-cheese",
+      "nameAr": "سمبوسك بالجبنة",
+      "nameEn": "Cheese sambousek",
+      "mealTypes": [
+        "snack"
+      ],
+      "tags": [
+        "vegetarian"
+      ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "normal",
+      "occasion": "ramadan",
+      "isSide": false,
+      "allergenTags": [
+        "gluten",
+        "lactose"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 168894,
+          "grams": 55,
+          "note": "Wheat flour, white, all-purpose, enriched, bleached",
+          "primary": true
+        },
+        {
+          "fdcId": 170847,
+          "grams": 60,
+          "note": "Cheese, mozzarella, part skim milk",
+          "primary": true
+        },
+        {
+          "fdcId": 171025,
+          "grams": 12,
+          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+        }
+      ]
+    },
+    {
+      "slug": "ramadan-maqluba",
+      "nameAr": "مقلوبة رمضان",
+      "nameEn": "Ramadan maqluba",
+      "mealTypes": [
+        "lunch",
+        "dinner"
+      ],
+      "tags": [
+        "filling",
+        "local"
+      ],
+      "source": "home",
+      "effort": "long",
+      "cost": "normal",
+      "occasion": "ramadan",
+      "isSide": false,
+      "allergenTags": [],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 172388,
+          "grams": 150,
+          "note": "Chicken, broilers or fryers, thigh, meat only, cooked, roasted",
+          "primary": true
+        },
+        {
+          "fdcId": 168878,
+          "grams": 200,
+          "note": "Rice, white, long-grain, regular, enriched, cooked",
+          "primary": true,
+          "unit": "Tablespoon",
+          "count": 8
+        },
+        {
+          "fdcId": 169228,
+          "grams": 120,
+          "note": "Eggplant, raw"
+        },
+        {
+          "fdcId": 171025,
+          "grams": 20,
+          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+        }
+      ]
+    },
+    {
+      "slug": "ramadan-jallab-dates",
+      "nameAr": "تمر مع مكسرات - إفطار",
+      "nameEn": "Iftar dates with nuts",
+      "mealTypes": [
+        "snack"
+      ],
+      "tags": [
+        "vegetarian",
+        "portable"
+      ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "ramadan",
+      "isSide": false,
+      "allergenTags": [
+        "nuts"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 168191,
+          "grams": 72,
+          "note": "Dates, medjool",
+          "primary": true,
+          "unit": "Piece",
+          "count": 3
+        },
+        {
+          "fdcId": 170567,
+          "grams": 15,
+          "note": "Nuts, almonds",
+          "primary": true
+        }
+      ]
+    },
+    {
+      "slug": "ramadan-lentil-soup-bread",
+      "nameAr": "شوربة عدس مع خبز",
+      "nameEn": "Lentil soup with bread",
+      "mealTypes": [
+        "dinner"
+      ],
+      "tags": [
+        "vegetarian",
+        "economical"
+      ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "cheap",
+      "occasion": "ramadan",
+      "isSide": false,
+      "allergenTags": [
+        "gluten"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 174284,
+          "grams": 65,
+          "note": "Lentils, pink or red, raw",
+          "primary": true
+        },
+        {
+          "fdcId": 174916,
+          "grams": 32.0,
+          "note": "Bread, pita, whole-wheat",
+          "primary": true,
+          "unit": "Loaf",
+          "count": 0.5
+        },
+        {
+          "fdcId": 170393,
+          "grams": 50,
+          "note": "Carrots, raw"
+        },
+        {
+          "fdcId": 171413,
+          "grams": 10,
+          "note": "Oil, olive, salad or cooking"
+        }
+      ]
+    },
+    {
+      "slug": "festive-mixed-nuts-plate",
+      "nameAr": "صحن مكسرات",
+      "nameEn": "Plate of mixed nuts",
+      "mealTypes": [
+        "snack"
+      ],
+      "tags": [
+        "vegetarian"
+      ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "expensive",
+      "occasion": "festive",
+      "isSide": false,
+      "allergenTags": [
+        "nuts"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 170184,
+          "grams": 20,
+          "note": "Nuts, pistachio nuts, raw",
+          "primary": true
+        },
+        {
+          "fdcId": 170162,
+          "grams": 20,
+          "note": "Nuts, cashew nuts, raw"
+        },
+        {
+          "fdcId": 170567,
+          "grams": 15,
+          "note": "Nuts, almonds"
+        }
+      ]
+    },
+    {
+      "slug": "festive-chocolate-cake",
+      "nameAr": "كيك بالشوكولاتة",
+      "nameEn": "Chocolate cake",
+      "mealTypes": [
+        "snack"
+      ],
+      "tags": [
+        "vegetarian"
+      ],
+      "source": "shop",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "festive",
+      "isSide": false,
+      "allergenTags": [
+        "gluten",
+        "egg",
+        "lactose"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 172706,
+          "grams": 70,
+          "note": "Cake, sponge, commercially prepared",
+          "primary": true
+        },
+        {
+          "fdcId": 167587,
+          "grams": 20,
+          "note": "Candies, milk chocolate"
+        }
+      ]
+    },
+    {
+      "slug": "festive-fruit-platter",
+      "nameAr": "صحن فواكه",
+      "nameEn": "Fruit platter",
+      "mealTypes": [
+        "snack"
+      ],
+      "tags": [
+        "vegetarian"
+      ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "festive",
+      "isSide": false,
+      "allergenTags": [],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 167765,
+          "grams": 200,
+          "note": "Watermelon, raw",
+          "primary": true
+        },
+        {
+          "fdcId": 174683,
+          "grams": 100,
+          "note": "Grapes, red or green (European type, such as Thompson seedless), raw"
+        },
+        {
+          "fdcId": 171688,
+          "grams": 91.0,
+          "note": "Apples, raw, with skin (Includes foods for USDA's Food Distribution Program)",
+          "unit": "Piece",
+          "count": 0.5
+        }
+      ]
+    },
+    {
+      "slug": "festive-lamb-rice-plate",
+      "nameAr": "لحم مع أرز - مناسبة",
+      "nameEn": "Festive lamb with rice",
+      "mealTypes": [
+        "lunch"
+      ],
+      "tags": [
+        "filling"
+      ],
+      "source": "home",
+      "effort": "long",
+      "cost": "expensive",
+      "occasion": "festive",
+      "isSide": false,
+      "allergenTags": [
+        "nuts",
+        "lactose"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 172544,
+          "grams": 160,
+          "note": "Lamb, ground, cooked, broiled",
+          "primary": true
+        },
+        {
+          "fdcId": 168878,
+          "grams": 225,
+          "note": "Rice, white, long-grain, regular, enriched, cooked",
+          "primary": true,
+          "unit": "Tablespoon",
+          "count": 9
+        },
+        {
+          "fdcId": 170567,
+          "grams": 15,
+          "note": "Nuts, almonds"
+        },
+        {
+          "fdcId": 173412,
+          "grams": 18,
+          "note": "Butter oil, anhydrous"
+        },
+        {
+          "fdcId": 171284,
+          "grams": 150,
+          "note": "Yogurt, plain, whole milk"
+        }
+      ]
+    },
+    {
+      "slug": "foul-street-breakfast",
+      "nameAr": "فول من العربة",
+      "nameEn": "Street foul",
+      "mealTypes": [
+        "breakfast"
+      ],
+      "tags": [
+        "economical",
+        "vegetarian",
+        "portable"
+      ],
+      "source": "street",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "gluten"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 173753,
+          "grams": 220,
+          "note": "Broadbeans (fava beans), mature seeds, cooked, boiled, without salt",
+          "primary": true
+        },
+        {
+          "fdcId": 174915,
+          "grams": 60,
+          "note": "Bread, pita, white, enriched",
+          "primary": true,
+          "unit": "Loaf",
+          "count": 1
+        },
+        {
+          "fdcId": 171413,
+          "grams": 14,
+          "note": "Oil, olive, salad or cooking"
+        },
+        {
+          "fdcId": 167747,
+          "grams": 10,
+          "note": "Lemon juice, raw"
+        },
+        {
+          "fdcId": 170457,
+          "grams": 50,
+          "free": true,
+          "note": "Tomatoes, red, ripe, raw, year round average"
+        }
+      ]
+    },
+    {
+      "slug": "hummus-plate-street",
+      "nameAr": "صحن حمص من المطعم",
+      "nameEn": "Restaurant hummus plate",
+      "mealTypes": [
+        "breakfast",
+        "lunch"
+      ],
+      "tags": [
+        "vegetarian"
+      ],
+      "source": "restaurant",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "sesame",
+        "gluten"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 173757,
+          "grams": 180,
+          "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt",
+          "primary": true
+        },
+        {
+          "fdcId": 168604,
+          "grams": 30,
+          "note": "Seeds, sesame butter, tahini, type of kernels unspecified",
+          "primary": true
+        },
+        {
+          "fdcId": 174915,
+          "grams": 60,
+          "note": "Bread, pita, white, enriched",
+          "unit": "Loaf",
+          "count": 1
+        },
+        {
+          "fdcId": 171413,
+          "grams": 12,
+          "note": "Oil, olive, salad or cooking"
+        },
+        {
+          "fdcId": 167747,
+          "grams": 10,
+          "note": "Lemon juice, raw"
+        }
+      ]
+    },
+    {
+      "slug": "kebab-sandwich-street",
+      "nameAr": "سندويش كباب",
+      "nameEn": "Kebab sandwich",
+      "mealTypes": [
+        "lunch",
+        "dinner"
+      ],
+      "tags": [
+        "portable",
+        "filling"
+      ],
+      "source": "street",
+      "effort": "no_cook",
+      "cost": "expensive",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "gluten"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 174915,
+          "grams": 90.0,
+          "note": "Bread, pita, white, enriched",
+          "primary": true,
+          "unit": "Loaf",
+          "count": 1.5
+        },
+        {
+          "fdcId": 171792,
+          "grams": 120,
+          "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
+          "primary": true
+        },
+        {
+          "fdcId": 170000,
+          "grams": 40,
+          "note": "Onions, raw"
+        },
+        {
+          "fdcId": 170416,
+          "grams": 8,
+          "note": "Parsley, fresh"
+        },
+        {
+          "fdcId": 170457,
+          "grams": 40,
+          "free": true,
+          "note": "Tomatoes, red, ripe, raw, year round average"
+        }
+      ]
+    },
+    {
+      "slug": "cheese-manaqish-half-snack",
+      "nameAr": "نص منقوشة",
+      "nameEn": "Half manaqish",
+      "mealTypes": [
+        "snack",
+        "breakfast"
+      ],
+      "tags": [
+        "portable",
+        "vegetarian",
+        "economical"
+      ],
+      "source": "shop",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "gluten"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 174915,
+          "grams": 60,
+          "note": "Bread, pita, white, enriched",
+          "primary": true,
+          "unit": "Loaf",
+          "count": 1
+        },
+        {
+          "fdcId": 170938,
+          "grams": 8,
+          "note": "Spices, thyme, dried"
+        },
+        {
+          "fdcId": 171413,
+          "grams": 12,
+          "note": "Oil, olive, salad or cooking"
+        }
+      ]
+    },
+    {
+      "slug": "shawarma-arabi-restaurant",
+      "nameAr": "شاورما عربي - مطعم",
+      "nameEn": "Arabic shawarma wrap",
+      "mealTypes": [
+        "lunch",
+        "dinner"
+      ],
+      "tags": [
+        "portable",
+        "filling"
+      ],
+      "source": "restaurant",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "gluten"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 174915,
+          "grams": 120,
+          "note": "Bread, pita, white, enriched",
+          "primary": true,
+          "unit": "Loaf",
+          "count": 2
+        },
+        {
+          "fdcId": 171477,
+          "grams": 140,
+          "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
+          "primary": true
+        },
+        {
+          "fdcId": 169230,
+          "grams": 10,
+          "note": "Garlic, raw"
+        },
+        {
+          "fdcId": 171025,
+          "grams": 14,
+          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+        },
+        {
+          "fdcId": 169264,
+          "grams": 50,
+          "note": "Potatoes, french fried, all types, salt added in processing, frozen, home-prepared, oven heated"
+        },
+        {
+          "fdcId": 168558,
+          "grams": 25,
+          "note": "Pickles, cucumber, dill or kosher dill"
+        }
+      ]
+    },
+    {
+      "slug": "grilled-fish-restaurant",
+      "nameAr": "سمك مشوي - مطعم",
+      "nameEn": "Restaurant grilled fish",
+      "mealTypes": [
+        "lunch",
+        "dinner"
+      ],
+      "tags": [
+        "filling"
+      ],
+      "source": "restaurant",
+      "effort": "no_cook",
+      "cost": "expensive",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "fish"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 175177,
+          "grams": 200,
+          "note": "Fish, tilapia, cooked, dry heat",
+          "primary": true
+        },
+        {
+          "fdcId": 168878,
+          "grams": 150,
+          "note": "Rice, white, long-grain, regular, enriched, cooked",
+          "primary": true,
+          "unit": "Tablespoon",
+          "count": 6
+        },
+        {
+          "fdcId": 171413,
+          "grams": 15,
+          "note": "Oil, olive, salad or cooking"
+        },
+        {
+          "fdcId": 167747,
+          "grams": 12,
+          "note": "Lemon juice, raw"
+        },
+        {
+          "fdcId": 169247,
+          "grams": 60,
+          "free": true,
+          "note": "Lettuce, cos or romaine, raw"
+        }
+      ]
+    },
+    {
+      "slug": "maqluba-lamb-large",
+      "nameAr": "مقلوبة لحم",
+      "nameEn": "Lamb maqluba",
+      "mealTypes": [
+        "lunch"
+      ],
+      "tags": [
+        "filling",
+        "local"
+      ],
+      "source": "home",
+      "effort": "long",
+      "cost": "expensive",
+      "occasion": "family",
+      "isSide": false,
+      "allergenTags": [
+        "nuts"
+      ],
+      "baseServingLabel": "صحن مقلوبة",
+      "ingredients": [
+        {
+          "fdcId": 172544,
+          "grams": 160,
+          "note": "Lamb, ground, cooked, broiled",
+          "primary": true
+        },
+        {
+          "fdcId": 168878,
+          "grams": 250,
+          "note": "Rice, white, long-grain, regular, enriched, cooked",
+          "primary": true,
+          "unit": "Tablespoon",
+          "count": 10
+        },
+        {
+          "fdcId": 169228,
+          "grams": 150,
+          "note": "Eggplant, raw"
+        },
+        {
+          "fdcId": 171025,
+          "grams": 25,
+          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+        },
+        {
+          "fdcId": 170567,
+          "grams": 12,
+          "note": "Nuts, almonds"
+        }
+      ]
+    },
+    {
+      "slug": "maftoul-chicken-large",
+      "nameAr": "مفتول بالدجاج",
+      "nameEn": "Maftoul with chicken",
+      "mealTypes": [
+        "lunch"
+      ],
+      "tags": [
+        "filling",
+        "local"
+      ],
+      "source": "home",
+      "effort": "long",
+      "cost": "normal",
+      "occasion": "family",
+      "isSide": false,
+      "allergenTags": [
+        "gluten"
+      ],
+      "baseServingLabel": "صحن مفتول",
+      "ingredients": [
+        {
+          "fdcId": 172388,
+          "grams": 170,
+          "note": "Chicken, broilers or fryers, thigh, meat only, cooked, roasted",
+          "primary": true
+        },
+        {
+          "fdcId": 169700,
+          "grams": 280,
+          "note": "Couscous, cooked",
+          "primary": true
+        },
+        {
+          "fdcId": 173757,
+          "grams": 100,
+          "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt"
+        },
+        {
+          "fdcId": 170000,
+          "grams": 70,
+          "note": "Onions, raw"
+        },
+        {
+          "fdcId": 171413,
+          "grams": 25,
+          "note": "Oil, olive, salad or cooking"
+        }
+      ]
+    },
+    {
+      "slug": "bamia-meat-rice-large",
+      "nameAr": "بامية باللحمة مع أرز",
+      "nameEn": "Okra stew with meat and rice",
+      "mealTypes": [
+        "lunch"
+      ],
+      "tags": [
+        "filling",
+        "local"
+      ],
+      "source": "home",
+      "effort": "long",
+      "cost": "expensive",
+      "occasion": "family",
+      "isSide": false,
+      "allergenTags": [],
+      "baseServingLabel": "صحن بامية",
+      "ingredients": [
+        {
+          "fdcId": 171792,
+          "grams": 150,
+          "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
+          "primary": true
+        },
+        {
+          "fdcId": 168878,
+          "grams": 225,
+          "note": "Rice, white, long-grain, regular, enriched, cooked",
+          "primary": true,
+          "unit": "Tablespoon",
+          "count": 9
+        },
+        {
+          "fdcId": 169260,
+          "grams": 180,
+          "note": "Okra, raw"
+        },
+        {
+          "fdcId": 170459,
+          "grams": 45,
+          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)"
+        },
+        {
+          "fdcId": 171025,
+          "grams": 20,
+          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+        }
+      ]
+    },
+    {
+      "slug": "kibbeh-tray-large",
+      "nameAr": "كبة بالصينية",
+      "nameEn": "Kibbeh tray",
+      "mealTypes": [
+        "lunch"
+      ],
+      "tags": [
+        "filling",
+        "local"
+      ],
+      "source": "home",
+      "effort": "long",
+      "cost": "expensive",
+      "occasion": "festive",
+      "isSide": false,
+      "allergenTags": [
+        "gluten",
+        "nuts"
+      ],
+      "baseServingLabel": "قطعة صينية",
+      "ingredients": [
+        {
+          "fdcId": 170287,
+          "grams": 200,
+          "note": "Bulgur, cooked",
+          "primary": true
+        },
+        {
+          "fdcId": 171792,
+          "grams": 170,
+          "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
+          "primary": true
+        },
+        {
+          "fdcId": 170000,
+          "grams": 70,
+          "note": "Onions, raw"
+        },
+        {
+          "fdcId": 170591,
+          "grams": 15,
+          "note": "Nuts, pine nuts, dried"
+        },
+        {
+          "fdcId": 171025,
+          "grams": 25,
+          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+        }
+      ]
+    },
+    {
+      "slug": "molokhia-chicken-rice-large",
+      "nameAr": "ملوخية بالدجاج مع أرز",
+      "nameEn": "Molokhia with chicken and rice",
+      "mealTypes": [
+        "lunch"
+      ],
+      "tags": [
+        "filling",
+        "local"
+      ],
+      "source": "home",
+      "effort": "long",
+      "cost": "normal",
+      "occasion": "family",
+      "isSide": false,
+      "allergenTags": [],
+      "baseServingLabel": "صحن ملوخية",
+      "ingredients": [
+        {
+          "fdcId": 172388,
+          "grams": 170,
+          "note": "Chicken, broilers or fryers, thigh, meat only, cooked, roasted",
+          "primary": true
+        },
+        {
+          "fdcId": 168878,
+          "grams": 225,
+          "note": "Rice, white, long-grain, regular, enriched, cooked",
+          "primary": true,
+          "unit": "Tablespoon",
+          "count": 9
+        },
+        {
+          "fdcId": 168419,
+          "grams": 180,
+          "note": "Jute, potherb, raw"
+        },
+        {
+          "fdcId": 169230,
+          "grams": 12,
+          "note": "Garlic, raw"
+        },
+        {
+          "fdcId": 171025,
+          "grams": 22,
+          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+        }
+      ]
+    },
+    {
+      "slug": "grilled-meat-rice-restaurant",
+      "nameAr": "لحم مشوي مع أرز - مطعم",
+      "nameEn": "Restaurant grilled meat with rice",
+      "mealTypes": [
+        "lunch"
+      ],
+      "tags": [
+        "filling"
+      ],
+      "source": "restaurant",
+      "effort": "no_cook",
+      "cost": "expensive",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "gluten"
+      ],
+      "baseServingLabel": "صحن مشاوي",
+      "ingredients": [
+        {
+          "fdcId": 171792,
+          "grams": 190,
+          "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
+          "primary": true
+        },
+        {
+          "fdcId": 168878,
+          "grams": 225,
+          "note": "Rice, white, long-grain, regular, enriched, cooked",
+          "primary": true,
+          "unit": "Tablespoon",
+          "count": 9
+        },
+        {
+          "fdcId": 171025,
+          "grams": 20,
+          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+        },
+        {
+          "fdcId": 170000,
+          "grams": 50,
+          "note": "Onions, raw"
+        },
+        {
+          "fdcId": 174915,
+          "grams": 30.0,
+          "note": "Bread, pita, white, enriched",
+          "unit": "Loaf",
+          "count": 0.5
+        },
+        {
+          "fdcId": 170457,
+          "grams": 60,
+          "free": true,
+          "note": "Tomatoes, red, ripe, raw, year round average"
+        }
+      ]
+    },
+    {
+      "slug": "chicken-pasta-restaurant-large",
+      "nameAr": "مكرونة بالدجاج - مطعم",
+      "nameEn": "Restaurant chicken pasta",
+      "mealTypes": [
+        "lunch",
+        "dinner"
+      ],
+      "tags": [
+        "filling"
+      ],
+      "source": "restaurant",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "gluten",
+        "lactose"
+      ],
+      "baseServingLabel": "صحن باستا",
+      "ingredients": [
+        {
+          "fdcId": 169737,
+          "grams": 260,
+          "note": "Pasta, cooked, enriched, without added salt",
+          "primary": true
+        },
+        {
+          "fdcId": 171477,
+          "grams": 160,
+          "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
+          "primary": true
+        },
+        {
+          "fdcId": 170857,
+          "grams": 100,
+          "note": "Cream, fluid, light (coffee cream or table cream)"
+        },
+        {
+          "fdcId": 173414,
+          "grams": 40,
+          "note": "Cheese, cheddar (Includes foods for USDA's Food Distribution Program)"
+        },
+        {
+          "fdcId": 171413,
+          "grams": 12,
+          "note": "Oil, olive, salad or cooking"
+        }
+      ]
+    },
+    {
+      "slug": "foul-falafel-breakfast-large",
+      "nameAr": "فول وفلافل مع خبز",
+      "nameEn": "Foul and falafel with bread",
+      "mealTypes": [
+        "breakfast"
+      ],
+      "tags": [
+        "vegetarian",
+        "economical"
+      ],
+      "source": "street",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "gluten"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 173753,
+          "grams": 180,
+          "note": "Broadbeans (fava beans), mature seeds, cooked, boiled, without salt",
+          "primary": true
+        },
+        {
+          "fdcId": 172455,
+          "grams": 80,
+          "note": "Falafel, home-prepared",
+          "primary": true
+        },
+        {
+          "fdcId": 174915,
+          "grams": 60,
+          "note": "Bread, pita, white, enriched",
+          "unit": "Loaf",
+          "count": 1
+        },
+        {
+          "fdcId": 171413,
+          "grams": 14,
+          "note": "Oil, olive, salad or cooking"
+        },
+        {
+          "fdcId": 168558,
+          "grams": 25,
+          "note": "Pickles, cucumber, dill or kosher dill"
+        }
+      ]
+    },
+    {
+      "slug": "eggs-sujuk-breakfast",
+      "nameAr": "بيض مع لحمة وخبز",
+      "nameEn": "Eggs with meat and bread",
+      "mealTypes": [
+        "breakfast"
+      ],
+      "tags": [],
+      "source": "home",
+      "effort": "quick",
+      "cost": "expensive",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "egg",
+        "gluten"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 171287,
+          "grams": 150,
+          "note": "Egg, whole, raw, fresh",
+          "primary": true,
+          "unit": "Piece",
+          "count": 3
+        },
+        {
+          "fdcId": 171792,
+          "grams": 70,
+          "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
+          "primary": true
+        },
+        {
+          "fdcId": 174916,
+          "grams": 64,
+          "note": "Bread, pita, whole-wheat",
+          "unit": "Loaf",
+          "count": 1
+        },
+        {
+          "fdcId": 171413,
+          "grams": 14,
+          "note": "Oil, olive, salad or cooking"
+        },
+        {
+          "fdcId": 170457,
+          "grams": 60,
+          "free": true,
+          "note": "Tomatoes, red, ripe, raw, year round average"
+        }
+      ]
+    },
+    {
+      "slug": "breakfast-mezze-plate",
+      "nameAr": "صحن فطور مشكل",
+      "nameEn": "Mixed breakfast plate",
+      "mealTypes": [
+        "breakfast"
+      ],
+      "tags": [
+        "vegetarian"
+      ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "lactose",
+        "gluten"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 900001,
+          "grams": 45,
+          "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
+          "primary": true,
+          "unit": "Tablespoon",
+          "count": 3
+        },
+        {
+          "fdcId": 173420,
+          "grams": 45,
+          "note": "Cheese, feta",
+          "primary": true
+        },
+        {
+          "fdcId": 169096,
+          "grams": 30,
+          "note": "Olives, pickled, canned or bottled, green"
+        },
+        {
+          "fdcId": 174916,
+          "grams": 64,
+          "note": "Bread, pita, whole-wheat",
+          "unit": "Loaf",
+          "count": 1
+        },
+        {
+          "fdcId": 171413,
+          "grams": 14,
+          "note": "Oil, olive, salad or cooking"
+        },
+        {
+          "fdcId": 168409,
+          "grams": 60,
+          "free": true,
+          "note": "Cucumber, with peel, raw"
+        },
+        {
+          "fdcId": 170457,
+          "grams": 60,
+          "free": true,
+          "note": "Tomatoes, red, ripe, raw, year round average"
+        }
+      ]
+    },
+    {
+      "slug": "shish-tawook-plate-restaurant",
+      "nameAr": "صحن شيش طاووق",
+      "nameEn": "Shish tawook plate",
+      "mealTypes": [
+        "lunch",
+        "dinner"
+      ],
+      "tags": [
+        "filling"
+      ],
+      "source": "restaurant",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 171477,
+          "grams": 170,
+          "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
+          "primary": true
+        },
+        {
+          "fdcId": 168878,
+          "grams": 150,
+          "note": "Rice, white, long-grain, regular, enriched, cooked",
+          "primary": true,
+          "unit": "Tablespoon",
+          "count": 6
+        },
+        {
+          "fdcId": 169230,
+          "grams": 10,
+          "note": "Garlic, raw"
+        },
+        {
+          "fdcId": 171413,
+          "grams": 14,
+          "note": "Oil, olive, salad or cooking"
+        },
+        {
+          "fdcId": 169247,
+          "grams": 60,
+          "free": true,
+          "note": "Lettuce, cos or romaine, raw"
+        }
+      ]
+    },
+    {
+      "slug": "fattoush-restaurant",
+      "nameAr": "فتوش - مطعم",
+      "nameEn": "Restaurant fattoush",
+      "mealTypes": [
+        "dinner",
+        "lunch"
+      ],
+      "tags": [
+        "vegetarian"
+      ],
+      "source": "restaurant",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "gluten"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 169247,
+          "grams": 110,
+          "note": "Lettuce, cos or romaine, raw",
+          "primary": true
+        },
+        {
+          "fdcId": 170457,
+          "grams": 90,
+          "note": "Tomatoes, red, ripe, raw, year round average"
+        },
+        {
+          "fdcId": 168409,
+          "grams": 80,
+          "note": "Cucumber, with peel, raw"
+        },
+        {
+          "fdcId": 174915,
+          "grams": 30.0,
+          "note": "Bread, pita, white, enriched",
+          "primary": true,
+          "unit": "Loaf",
+          "count": 0.5
+        },
+        {
+          "fdcId": 171413,
+          "grams": 18,
+          "note": "Oil, olive, salad or cooking"
+        },
+        {
+          "fdcId": 167747,
+          "grams": 12,
+          "note": "Lemon juice, raw"
+        }
+      ]
+    },
+    {
+      "slug": "mixed-mezze-restaurant",
+      "nameAr": "مقبلات مشكلة - مطعم",
+      "nameEn": "Restaurant mezze",
+      "mealTypes": [
+        "dinner"
+      ],
+      "tags": [
+        "vegetarian"
+      ],
+      "source": "restaurant",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "sesame",
+        "gluten"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 173757,
+          "grams": 120,
+          "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt",
+          "primary": true
+        },
+        {
+          "fdcId": 168604,
+          "grams": 25,
+          "note": "Seeds, sesame butter, tahini, type of kernels unspecified"
+        },
+        {
+          "fdcId": 169228,
+          "grams": 90,
+          "note": "Eggplant, raw",
+          "primary": true
+        },
+        {
+          "fdcId": 174915,
+          "grams": 60,
+          "note": "Bread, pita, white, enriched",
+          "unit": "Loaf",
+          "count": 1
+        },
+        {
+          "fdcId": 171413,
+          "grams": 14,
+          "note": "Oil, olive, salad or cooking"
+        }
+      ]
+    },
+    {
+      "slug": "soup-restaurant",
+      "nameAr": "شوربة عدس - مطعم",
+      "nameEn": "Restaurant lentil soup",
+      "mealTypes": [
+        "dinner"
+      ],
+      "tags": [
+        "vegetarian"
+      ],
+      "source": "restaurant",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "gluten"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 172421,
+          "grams": 200,
+          "note": "Lentils, mature seeds, cooked, boiled, without salt",
+          "primary": true
+        },
+        {
+          "fdcId": 174915,
+          "grams": 30.0,
+          "note": "Bread, pita, white, enriched",
+          "unit": "Loaf",
+          "count": 0.5
+        },
+        {
+          "fdcId": 171413,
+          "grams": 8,
+          "note": "Oil, olive, salad or cooking"
+        },
+        {
+          "fdcId": 167747,
+          "grams": 10,
+          "note": "Lemon juice, raw"
+        }
+      ]
+    },
+    {
+      "slug": "chicken-wrap-restaurant",
+      "nameAr": "راب دجاج",
+      "nameEn": "Chicken wrap",
+      "mealTypes": [
+        "lunch",
+        "snack"
+      ],
+      "tags": [
+        "portable"
+      ],
+      "source": "restaurant",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "gluten",
+        "egg"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 174915,
+          "grams": 60,
+          "note": "Bread, pita, white, enriched",
+          "primary": true,
+          "unit": "Loaf",
+          "count": 1
+        },
+        {
+          "fdcId": 171477,
+          "grams": 100,
+          "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
+          "primary": true
+        },
+        {
+          "fdcId": 171009,
+          "grams": 15,
+          "note": "Salad dressing, mayonnaise, regular"
+        },
+        {
+          "fdcId": 169247,
+          "grams": 30,
+          "free": true,
+          "note": "Lettuce, cos or romaine, raw"
+        },
+        {
+          "fdcId": 170457,
+          "grams": 30,
+          "free": true,
+          "note": "Tomatoes, red, ripe, raw, year round average"
+        }
+      ]
+    },
+    {
+      "slug": "ramadan-rice-chicken-iftar",
+      "nameAr": "أرز بالدجاج - إفطار",
+      "nameEn": "Iftar rice with chicken",
+      "mealTypes": [
+        "dinner"
+      ],
+      "tags": [
+        "filling"
+      ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "normal",
+      "occasion": "ramadan",
+      "isSide": false,
+      "allergenTags": [
+        "nuts"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 171477,
+          "grams": 150,
+          "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
+          "primary": true
+        },
+        {
+          "fdcId": 168878,
+          "grams": 175,
+          "note": "Rice, white, long-grain, regular, enriched, cooked",
+          "primary": true,
+          "unit": "Tablespoon",
+          "count": 7
+        },
+        {
+          "fdcId": 171413,
+          "grams": 12,
+          "note": "Oil, olive, salad or cooking"
+        },
+        {
+          "fdcId": 170567,
+          "grams": 10,
+          "note": "Nuts, almonds"
+        }
+      ]
+    },
+    {
+      "slug": "ramadan-fatteh-iftar",
+      "nameAr": "فتة إفطار",
+      "nameEn": "Iftar fatteh",
+      "mealTypes": [
+        "dinner"
+      ],
+      "tags": [
+        "vegetarian"
+      ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "cheap",
+      "occasion": "ramadan",
+      "isSide": false,
+      "allergenTags": [
+        "gluten",
+        "lactose",
+        "sesame"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 173757,
+          "grams": 180,
+          "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt",
+          "primary": true
+        },
+        {
+          "fdcId": 174915,
+          "grams": 60,
+          "note": "Bread, pita, white, enriched",
+          "primary": true,
+          "unit": "Loaf",
+          "count": 1
+        },
+        {
+          "fdcId": 171284,
+          "grams": 170,
+          "note": "Yogurt, plain, whole milk"
+        },
+        {
+          "fdcId": 168604,
+          "grams": 22,
+          "note": "Seeds, sesame butter, tahini, type of kernels unspecified"
+        },
+        {
+          "fdcId": 171413,
+          "grams": 10,
+          "note": "Oil, olive, salad or cooking"
+        }
+      ]
+    },
+    {
+      "slug": "ramadan-juice-dates-snack",
+      "nameAr": "تمر مع لبن - إفطار",
+      "nameEn": "Iftar dates with yogurt",
+      "mealTypes": [
+        "snack"
+      ],
+      "tags": [
+        "vegetarian"
+      ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "cheap",
+      "occasion": "ramadan",
+      "isSide": false,
+      "allergenTags": [
+        "lactose"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 168191,
+          "grams": 72,
+          "note": "Dates, medjool",
+          "primary": true,
+          "unit": "Piece",
+          "count": 3
+        },
+        {
+          "fdcId": 171284,
+          "grams": 170,
+          "note": "Yogurt, plain, whole milk",
+          "primary": true
+        }
+      ]
+    },
+    {
+      "slug": "ramadan-sambousek-meat",
+      "nameAr": "سمبوسك باللحمة",
+      "nameEn": "Meat sambousek",
+      "mealTypes": [
+        "snack"
+      ],
+      "tags": [],
+      "source": "home",
+      "effort": "medium",
+      "cost": "expensive",
+      "occasion": "ramadan",
+      "isSide": false,
+      "allergenTags": [
+        "gluten"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 168894,
+          "grams": 55,
+          "note": "Wheat flour, white, all-purpose, enriched, bleached",
+          "primary": true
+        },
+        {
+          "fdcId": 171792,
+          "grams": 60,
+          "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
+          "primary": true
+        },
+        {
+          "fdcId": 170000,
+          "grams": 30,
+          "note": "Onions, raw"
+        },
+        {
+          "fdcId": 171025,
+          "grams": 12,
+          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+        }
+      ]
+    },
+    {
+      "slug": "ramadan-qatayef-cheese",
+      "nameAr": "قطايف بالجبنة",
+      "nameEn": "Qatayef with cheese",
+      "mealTypes": [
+        "snack"
+      ],
+      "tags": [
+        "vegetarian"
+      ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "normal",
+      "occasion": "ramadan",
+      "isSide": false,
+      "allergenTags": [
+        "gluten",
+        "lactose"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 168894,
+          "grams": 50,
+          "note": "Wheat flour, white, all-purpose, enriched, bleached",
+          "primary": true
+        },
+        {
+          "fdcId": 171248,
+          "grams": 70,
+          "note": "Cheese, ricotta, part skim milk",
+          "primary": true
+        },
+        {
+          "fdcId": 169655,
+          "grams": 20,
+          "note": "Sugars, granulated"
+        },
+        {
+          "fdcId": 173412,
+          "grams": 8,
+          "note": "Butter oil, anhydrous"
+        }
+      ]
+    },
+    {
+      "slug": "festive-maamoul-walnut",
+      "nameAr": "معمول بالجوز",
+      "nameEn": "Ma'moul with walnuts",
+      "mealTypes": [
+        "snack"
+      ],
+      "tags": [
+        "vegetarian"
+      ],
+      "source": "home",
+      "effort": "long",
+      "cost": "expensive",
+      "occasion": "festive",
+      "isSide": false,
+      "allergenTags": [
+        "gluten",
+        "nuts"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 168933,
+          "grams": 45,
+          "note": "Semolina, unenriched",
+          "primary": true
+        },
+        {
+          "fdcId": 170187,
+          "grams": 25,
+          "note": "Nuts, walnuts, english",
+          "primary": true
+        },
+        {
+          "fdcId": 173412,
+          "grams": 15,
+          "note": "Butter oil, anhydrous"
+        },
+        {
+          "fdcId": 169655,
+          "grams": 10,
+          "note": "Sugars, granulated"
+        }
+      ]
+    },
+    {
+      "slug": "festive-knafeh-half",
+      "nameAr": "نص قطعة كنافة",
+      "nameEn": "Half a knafeh piece",
+      "mealTypes": [
+        "snack"
+      ],
+      "tags": [
+        "vegetarian"
+      ],
+      "source": "shop",
+      "effort": "no_cook",
+      "cost": "expensive",
+      "occasion": "festive",
+      "isSide": false,
+      "allergenTags": [
+        "gluten",
+        "lactose"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 168933,
+          "grams": 25,
+          "note": "Semolina, unenriched",
+          "primary": true
+        },
+        {
+          "fdcId": 170847,
+          "grams": 40,
+          "note": "Cheese, mozzarella, part skim milk",
+          "primary": true
+        },
+        {
+          "fdcId": 169655,
+          "grams": 18,
+          "note": "Sugars, granulated"
+        },
+        {
+          "fdcId": 173412,
+          "grams": 8,
+          "note": "Butter oil, anhydrous"
+        }
+      ]
+    },
+    {
+      "slug": "festive-stuffed-chicken",
+      "nameAr": "دجاج محشي",
+      "nameEn": "Stuffed chicken",
+      "mealTypes": [
+        "lunch"
+      ],
+      "tags": [
+        "filling"
+      ],
+      "source": "home",
+      "effort": "long",
+      "cost": "expensive",
+      "occasion": "festive",
+      "isSide": false,
+      "allergenTags": [
+        "nuts"
+      ],
+      "baseServingLabel": "صحن دجاج محشي",
+      "ingredients": [
+        {
+          "fdcId": 171477,
+          "grams": 180,
+          "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
+          "primary": true
+        },
+        {
+          "fdcId": 168878,
+          "grams": 200,
+          "note": "Rice, white, long-grain, regular, enriched, cooked",
+          "primary": true,
+          "unit": "Tablespoon",
+          "count": 8
+        },
+        {
+          "fdcId": 170567,
+          "grams": 18,
+          "note": "Nuts, almonds"
+        },
+        {
+          "fdcId": 170591,
+          "grams": 10,
+          "note": "Nuts, pine nuts, dried"
+        },
+        {
+          "fdcId": 173412,
+          "grams": 18,
+          "note": "Butter oil, anhydrous"
+        }
+      ]
+    },
+    {
+      "slug": "festive-rice-pudding",
+      "nameAr": "رز بحليب",
+      "nameEn": "Rice pudding",
+      "mealTypes": [
+        "snack"
+      ],
+      "tags": [
+        "vegetarian"
+      ],
+      "source": "home",
+      "effort": "medium",
+      "cost": "cheap",
+      "occasion": "festive",
+      "isSide": false,
+      "allergenTags": [
+        "lactose",
+        "nuts"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 168878,
+          "grams": 100,
+          "note": "Rice, white, long-grain, regular, enriched, cooked",
+          "primary": true,
+          "unit": "Tablespoon",
+          "count": 4
+        },
+        {
+          "fdcId": 171265,
+          "grams": 200,
+          "note": "Milk, whole, 3.25% milkfat, with added vitamin D",
+          "primary": true
+        },
+        {
+          "fdcId": 169655,
+          "grams": 20,
+          "note": "Sugars, granulated"
+        },
+        {
+          "fdcId": 170184,
+          "grams": 8,
+          "note": "Nuts, pistachio nuts, raw"
+        }
+      ]
+    },
+    {
+      "slug": "warak-enab-meat-large",
+      "nameAr": "ورق عنب باللحمة",
+      "nameEn": "Stuffed vine leaves with meat",
+      "mealTypes": [
+        "lunch"
+      ],
+      "tags": [
+        "filling",
+        "local"
+      ],
+      "source": "home",
+      "effort": "long",
+      "cost": "expensive",
+      "occasion": "family",
+      "isSide": false,
+      "allergenTags": [],
+      "baseServingLabel": "صحن ورق عنب",
+      "ingredients": [
+        {
+          "fdcId": 169393,
+          "grams": 150,
+          "note": "Grape leaves, canned",
+          "primary": true
+        },
+        {
+          "fdcId": 168878,
+          "grams": 225,
+          "note": "Rice, white, long-grain, regular, enriched, cooked",
+          "primary": true,
+          "unit": "Tablespoon",
+          "count": 9
+        },
+        {
+          "fdcId": 171792,
+          "grams": 130,
+          "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
+          "primary": true
+        },
+        {
+          "fdcId": 171413,
+          "grams": 25,
+          "note": "Oil, olive, salad or cooking"
+        },
+        {
+          "fdcId": 167747,
+          "grams": 15,
+          "note": "Lemon juice, raw"
+        }
+      ]
+    },
+    {
+      "slug": "fasolia-meat-rice-large",
+      "nameAr": "فاصولياء باللحمة مع أرز",
+      "nameEn": "White bean stew with meat and rice",
+      "mealTypes": [
+        "lunch"
+      ],
+      "tags": [
+        "filling",
+        "local"
+      ],
+      "source": "home",
+      "effort": "long",
+      "cost": "expensive",
+      "occasion": "family",
+      "isSide": false,
+      "allergenTags": [],
+      "baseServingLabel": "صحن فاصولياء",
+      "ingredients": [
+        {
+          "fdcId": 175204,
+          "grams": 200,
+          "note": "Beans, white, mature seeds, canned",
+          "primary": true
+        },
+        {
+          "fdcId": 171792,
+          "grams": 140,
+          "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
+          "primary": true
+        },
+        {
+          "fdcId": 168878,
+          "grams": 200,
+          "note": "Rice, white, long-grain, regular, enriched, cooked",
+          "primary": true,
+          "unit": "Tablespoon",
+          "count": 8
+        },
+        {
+          "fdcId": 170459,
+          "grams": 40,
+          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)"
+        },
+        {
+          "fdcId": 171025,
+          "grams": 18,
+          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+        }
+      ]
+    },
+    {
+      "slug": "chicken-freekeh-large",
+      "nameAr": "فريكة بالدجاج - صحن كبير",
+      "nameEn": "Large freekeh with chicken",
+      "mealTypes": [
+        "lunch"
+      ],
+      "tags": [
+        "filling"
+      ],
+      "source": "home",
+      "effort": "long",
+      "cost": "normal",
+      "occasion": "family",
+      "isSide": false,
+      "allergenTags": [
+        "gluten",
+        "nuts"
+      ],
+      "baseServingLabel": "صحن فريكة",
+      "ingredients": [
+        {
+          "fdcId": 900002,
+          "grams": 100,
+          "note": "Freekeh, roasted green wheat, dry (manufacturer panels)",
+          "primary": true
+        },
+        {
+          "fdcId": 172388,
+          "grams": 180,
+          "note": "Chicken, broilers or fryers, thigh, meat only, cooked, roasted",
+          "primary": true
+        },
+        {
+          "fdcId": 170000,
+          "grams": 60,
+          "note": "Onions, raw"
+        },
+        {
+          "fdcId": 171413,
+          "grams": 22,
+          "note": "Oil, olive, salad or cooking"
+        },
+        {
+          "fdcId": 170567,
+          "grams": 15,
+          "note": "Nuts, almonds"
+        }
+      ]
+    },
+    {
+      "slug": "bulgur-lamb-large",
+      "nameAr": "برغل بلحم الغنم",
+      "nameEn": "Bulgur with lamb",
+      "mealTypes": [
+        "lunch"
+      ],
+      "tags": [
+        "filling",
+        "local"
+      ],
+      "source": "home",
+      "effort": "long",
+      "cost": "expensive",
+      "occasion": "family",
+      "isSide": false,
+      "allergenTags": [
+        "gluten"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 170287,
+          "grams": 250,
+          "note": "Bulgur, cooked",
+          "primary": true
+        },
+        {
+          "fdcId": 172544,
+          "grams": 160,
+          "note": "Lamb, ground, cooked, broiled",
+          "primary": true
+        },
+        {
+          "fdcId": 170000,
+          "grams": 60,
+          "note": "Onions, raw"
+        },
+        {
+          "fdcId": 170459,
+          "grams": 40,
+          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)"
+        },
+        {
+          "fdcId": 173412,
+          "grams": 20,
+          "note": "Butter oil, anhydrous"
+        }
+      ]
     }
   ]
 }

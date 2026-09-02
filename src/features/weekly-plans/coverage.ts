@@ -76,14 +76,20 @@ export const MIN_AWAY_FROM_HOME = 8;
 export const AWAY_SLOTS = ['breakfast', 'snack', 'lunch'] as const;
 
 /**
- * A tag on almost everything, or almost nothing, is not a filter.
+ * A value on almost nothing, or on virtually everything, is not a filter.
  *
- * `local` sat on 16 of 113 dishes in a catalog written for Palestine, and
- * `vegetarian` on 64 — one said nothing because it was rare, the other because it
- * was the majority. Both passed every check that existed at the time.
+ * `local` sat on 16 of 113 dishes in a catalog written for Palestine — too rare
+ * to say anything — and both floors exist because that passed every check there
+ * was at the time.
+ *
+ * The ceiling is 90%, not the 60% this started at. Sixty was a guess and the
+ * grown catalog disproved it: `source=home` sits on 84% and `occasion=everyday`
+ * on 80%, and both are simply true. Most food is cooked at home on an ordinary
+ * day. An axis is only useless when it is *nearly constant* — when the handful of
+ * rows that differ cannot be found by filtering for them.
  */
 export const DEAD_VALUE_FLOOR = 0.05;
-export const DEAD_VALUE_CEILING = 0.6;
+export const DEAD_VALUE_CEILING = 0.9;
 
 /** What the grid needs to know about one dish. */
 export type CoverageDish = {

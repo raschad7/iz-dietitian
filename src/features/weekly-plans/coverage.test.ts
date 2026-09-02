@@ -10,6 +10,7 @@ import {
   type CoverageDish,
 } from './coverage';
 import type { DishIngredientDetail, FoodNutrients } from './nutrition';
+import { coverageFromDatasets } from '../../../scripts/check-catalog-readiness';
 
 const EMPTY: FoodNutrients = {
   kcal: 0,
@@ -165,6 +166,19 @@ describe('deadAxisValues', () => {
     expect(spread.some((one) => one.axis === 'cost' && one.value === 'cheap')).toBe(false);
     expect(spread.some((one) => one.axis === 'cost' && one.value === 'expensive')).toBe(false);
   });
+
+  /**
+   * Most food is cooked at home on an ordinary day, and a majority is not a
+   * defect. The ceiling catches an axis that is *nearly constant*, not one with a
+   * dominant value — the earlier 60% would have failed the true catalog.
+   */
+  test('a large majority is allowed; near-constant is not', () => {
+    const majority = [...many(17, { source: 'home' }), ...many(3, { source: 'street' })];
+    expect(deadAxisValues(majority).some((one) => one.value === 'home')).toBe(false);
+
+    const constant = [...many(19, { source: 'home' }), dish({ slug: 'odd', source: 'street' })];
+    expect(deadAxisValues(constant).some((one) => one.value === 'home')).toBe(true);
+  });
 });
 
 describe('formatCoverage', () => {
@@ -174,5 +188,27 @@ describe('formatCoverage', () => {
     expect(text).toContain('3 mains');
     expect(text).toContain('*');
     expect(text).toContain(`wants ${MIN_PER_PROTEIN} each`);
+  });
+});
+
+/**
+ * The point of the grid, asserted against the catalog that ships.
+ *
+ * It went green on 2026-09-02 at 273 mains. Pinning it here is what stops a later
+ * edit quietly reopening a hole — the failure mode this module exists for is
+ * invisible from inside a plan.
+ */
+describe('the shipped catalog', () => {
+  test('fills every cell of the grid', () => {
+    const report = coverageFromDatasets();
+
+    expect(report.gaps).toEqual([]);
+    expect(report.proteinGaps).toEqual([]);
+    expect(report.awayGaps).toEqual([]);
+    expect(report.complete).toBe(true);
+  });
+
+  test('has no axis value too rare or too universal to filter on', () => {
+    expect(coverageFromDatasets().deadValues).toEqual([]);
   });
 });
