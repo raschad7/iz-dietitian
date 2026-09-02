@@ -131,15 +131,24 @@ function boardFrom(
   budgets: readonly SlotBudget[],
   meals: ReturnType<typeof reconcile>['meals'],
   catalog: readonly CatalogDish[],
+  sideCatalog: readonly CatalogDish[],
 ): Board {
-  const byId = new Map(catalog.map((dish) => [dish.id, dish]));
+  const byId = new Map([...catalog, ...sideCatalog].map((dish) => [dish.id, dish]));
   const days = DAYS_OF_WEEK.map((dayOfWeek) => {
     const dayMeals = meals
       .filter((meal) => meal.dayOfWeek === dayOfWeek)
       .map((meal) => {
         const dish = meal.dishId ? byId.get(meal.dishId) : undefined;
+        // Resolved the way the board resolves them, so the sweep reads the plate
+        // the dietitian would: the main plus whatever `reconcile` attached.
+        const sides = meal.sideDishIds.flatMap((id) => {
+          const side = byId.get(id);
+          return side
+            ? [{ id: side.id, nameAr: side.nameAr, nameEn: side.nameAr, recipe: side.recipe }]
+            : [];
+        });
         const lines = dish
-          ? mealIngredientLines({ recipe: dish.recipe, servings: meal.servings })
+          ? mealIngredientLines({ recipe: dish.recipe, servings: meal.servings, sides })
           : [];
 
         return {
@@ -168,6 +177,7 @@ function boardFrom(
               }
             : null,
           lines,
+          sides: sides.map(({ id, nameAr, nameEn }) => ({ id, nameAr, nameEn })),
           hasOwnAmounts: false,
           rationaleAr: meal.rationaleAr,
           totals: mealTotals(lines),
@@ -257,7 +267,7 @@ async function planFor(
     allergens: [],
   });
 
-  return { board: boardFrom(profile, budgets, outcome.meals, catalog), outcome };
+  return { board: boardFrom(profile, budgets, outcome.meals, catalog, sides), outcome };
 }
 
 /** Collapses "الأحد · غداء: …" into the sentence without the day, so like groups. */

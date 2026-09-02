@@ -76,6 +76,24 @@ export const MIN_AWAY_FROM_HOME = 8;
 export const AWAY_SLOTS = ['breakfast', 'snack', 'lunch'] as const;
 
 /**
+ * How many sides a slot needs before a week stops repeating one.
+ *
+ * The grid counted sides and checked nothing about them, and that is exactly how
+ * a catalog with **one salad in it** passed every check there was: `db:check`
+ * printed "sides: 4" and called the catalog complete, while every generated week
+ * came back with صحن سلطة on all fourteen lunches and dinners. The model was not
+ * being lazy — there was one answer to give.
+ *
+ * Eight, because a week has seven lunches and seven dinners and the prompt allows
+ * a side twice, so seven distinct ones per slot is the floor and eight leaves the
+ * model somewhere to go when two of them do not suit the plate.
+ */
+export const MIN_PER_SIDE_SLOT = 8;
+
+/** The slots a side can stand beside. Breakfast rarely takes one. */
+export const SIDE_SLOTS = ['lunch', 'dinner'] as const;
+
+/**
  * A value on almost nothing, or on virtually everything, is not a filter.
  *
  * `local` sat on 16 of 113 dishes in a catalog written for Palestine — too rare
@@ -113,6 +131,7 @@ export type CoverageCell = {
 
 export type ProteinGap = { slot: string; proteinSource: string; count: number };
 export type AwayGap = { slot: string; count: number };
+export type SideGap = { slot: string; count: number };
 export type AxisSpread = { axis: string; value: string; count: number; share: number };
 
 export type CoverageReport = {
@@ -124,6 +143,8 @@ export type CoverageReport = {
   gaps: CoverageCell[];
   proteinGaps: ProteinGap[];
   awayGaps: AwayGap[];
+  /** Slots with too few sides for a week to avoid repeating one. */
+  sideGaps: SideGap[];
   /** Axis values sitting on too few or too many dishes to filter anything. */
   deadValues: AxisSpread[];
   /** True when every cell and every floor is met. */
@@ -187,16 +208,27 @@ export function coverage(catalog: readonly CoverageDish[]): CoverageReport {
     if (count < MIN_AWAY_FROM_HOME) awayGaps.push({ slot, count });
   }
 
+  const sidesOnly = catalog.filter((dish) => dish.isSide);
+  const sideGaps: SideGap[] = [];
+  for (const slot of SIDE_SLOTS) {
+    const count = sidesOnly.filter((dish) => dish.mealTypes.includes(slot)).length;
+    if (count < MIN_PER_SIDE_SLOT) sideGaps.push({ slot, count });
+  }
+
   return {
     dishes: mains.length,
-    sides: catalog.length - mains.length,
+    sides: sidesOnly.length,
     cells,
     gaps: cells.filter((cell) => cell.short > 0).sort((a, b) => b.short - a.short),
     proteinGaps,
     awayGaps,
+    sideGaps,
     deadValues: deadAxisValues(mains),
     complete:
-      cells.every((cell) => cell.short === 0) && proteinGaps.length === 0 && awayGaps.length === 0,
+      cells.every((cell) => cell.short === 0) &&
+      proteinGaps.length === 0 &&
+      awayGaps.length === 0 &&
+      sideGaps.length === 0,
   };
 }
 
@@ -252,6 +284,12 @@ export function formatCoverage(report: CoverageReport): string {
   for (const gap of report.awayGaps) {
     out.push(
       `  ${gap.slot}: ${gap.count} dish(es) a client can buy rather than cook, wants ${MIN_AWAY_FROM_HOME}`,
+    );
+  }
+
+  for (const gap of report.sideGaps) {
+    out.push(
+      `  ${gap.slot}: ${gap.count} side(s) to stand beside a meal, wants ${MIN_PER_SIDE_SLOT}`,
     );
   }
 

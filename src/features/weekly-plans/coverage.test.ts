@@ -7,6 +7,7 @@ import {
   MIN_AWAY_FROM_HOME,
   MIN_PER_CELL,
   MIN_PER_PROTEIN,
+  MIN_PER_SIDE_SLOT,
   type CoverageDish,
 } from './coverage';
 import type { DishIngredientDetail, FoodNutrients } from './nutrition';
@@ -205,10 +206,69 @@ describe('the shipped catalog', () => {
     expect(report.gaps).toEqual([]);
     expect(report.proteinGaps).toEqual([]);
     expect(report.awayGaps).toEqual([]);
+    expect(report.sideGaps).toEqual([]);
     expect(report.complete).toBe(true);
+  });
+
+  /**
+   * The check that did not exist, and the reason every generated lunch carried
+   * the same صحن سلطة: the catalog held one salad, one soup, one plate of potatoes
+   * and one cup of yogurt, and the grid reported "sides: 4" without asking whether
+   * four was enough for a week.
+   */
+  test('holds enough sides for a week not to repeat one', () => {
+    const report = coverageFromDatasets();
+
+    expect(report.sides).toBeGreaterThanOrEqual(2 * MIN_PER_SIDE_SLOT);
   });
 
   test('has no axis value too rare or too universal to filter on', () => {
     expect(coverageFromDatasets().deadValues).toEqual([]);
+  });
+});
+
+/**
+ * A meal is often more than one thing, and the catalog has to be able to say so
+ * differently on Sunday and on Thursday.
+ */
+describe('sides', () => {
+  /** `n` sides for one slot, so the floor can be crossed without writing eight. */
+  function sides(n: number, slot: string): CoverageDish[] {
+    return Array.from({ length: n }, (_, index) =>
+      dish({ slug: `side-${slot}-${index}`, mealTypes: [slot], isSide: true }),
+    );
+  }
+
+  test('a slot with too few sides is a gap, and the catalog is not complete', () => {
+    const report = coverage([
+      ...sides(MIN_PER_SIDE_SLOT - 1, 'lunch'),
+      ...sides(MIN_PER_SIDE_SLOT, 'dinner'),
+    ]);
+
+    expect(report.sideGaps).toEqual([{ slot: 'lunch', count: MIN_PER_SIDE_SLOT - 1 }]);
+    expect(report.complete).toBe(false);
+  });
+
+  /*
+   * A side is not a meal, and counting one toward a slot's band would let a
+   * catalog of salads report itself as able to plan dinner.
+   */
+  test('sides are counted apart and never fill a slot', () => {
+    const report = coverage([
+      ...many(MIN_PER_CELL, { mealTypes: ['lunch'], baseKcal: 500 }),
+      ...sides(MIN_PER_SIDE_SLOT, 'lunch'),
+    ]);
+
+    expect(report.dishes).toBe(MIN_PER_CELL);
+    expect(report.sides).toBe(MIN_PER_SIDE_SLOT);
+    expect(report.cells.find((cell) => cell.slot === 'lunch' && cell.band[0] === 450)?.count).toBe(
+      MIN_PER_CELL,
+    );
+  });
+
+  test('the report names the slot that is short', () => {
+    const text = formatCoverage(coverage(sides(2, 'lunch')));
+
+    expect(text).toContain('lunch: 2 side(s)');
   });
 });
