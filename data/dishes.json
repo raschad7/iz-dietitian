@@ -4065,9 +4065,11 @@
       "ingredients": [
         {
           "fdcId": 167765,
-          "grams": 200,
+          "grams": 143,
           "note": "Watermelon, raw",
-          "primary": true
+          "primary": true,
+          "unit": "Slice",
+          "count": 0.5
         },
         {
           "fdcId": 174683,
@@ -12717,7 +12719,7 @@
           "fdcId": 167765,
           "grams": 286,
           "note": "Watermelon, raw",
-          "unit": "Piece",
+          "unit": "Slice",
           "count": 1,
           "primary": true
         }
