@@ -81,6 +81,21 @@ export const catalogFoods = pgTable(
      */
     category: text('category').notNull(),
 
+    /**
+     * The unit this food is **always** counted in — the `label_en` of one of its
+     * own portions — or null when it is measured by weight.
+     *
+     * An egg is a حبة, bread is a رغيف, cooked rice is a ملعقة. Before this column
+     * the recipe author decided per line, which is how the same egg appeared as
+     * "1 حبة" in one dish and "50 غ" in another. The seed refuses a recipe line
+     * that contradicts it.
+     *
+     * It matters more than it looks. Whole wheat pita is *fewer* calories per
+     * 100 g than white, but the loaf weighs 100 g instead of 60, so the loaf
+     * carries more. Only the unit tells that story; the gram hides it.
+     */
+    countedAs: text('counted_as'),
+
     kcal: real('kcal').notNull(),
     protein: real('protein').notNull(),
     fat: real('fat').notNull(),

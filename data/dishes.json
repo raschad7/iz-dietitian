@@ -469,9 +469,11 @@
         },
         {
           "fdcId": 174915,
-          "grams": 40,
+          "grams": 30.0,
           "note": "Bread, pita, white, enriched",
-          "primary": true
+          "primary": true,
+          "unit": "Loaf",
+          "count": 0.5
         }
       ]
     },
@@ -610,9 +612,11 @@
         },
         {
           "fdcId": 174915,
-          "grams": 40,
+          "grams": 30.0,
           "note": "Bread, pita, white, enriched",
-          "primary": true
+          "primary": true,
+          "unit": "Loaf",
+          "count": 0.5
         },
         {
           "fdcId": 168604,
@@ -698,9 +702,11 @@
       "ingredients": [
         {
           "fdcId": 171287,
-          "grams": 120,
+          "grams": 100,
           "note": "Egg, whole, raw, fresh",
-          "primary": true
+          "primary": true,
+          "unit": "Piece",
+          "count": 2
         },
         {
           "fdcId": 168462,
@@ -714,9 +720,11 @@
         },
         {
           "fdcId": 174916,
-          "grams": 40,
+          "grams": 32.0,
           "note": "Bread, pita, whole-wheat",
-          "primary": true
+          "primary": true,
+          "unit": "Loaf",
+          "count": 0.5
         }
       ]
     },
@@ -1399,9 +1407,11 @@
       "ingredients": [
         {
           "fdcId": 173424,
-          "grams": 60,
+          "grams": 50,
           "note": "Egg, whole, cooked, hard-boiled",
-          "primary": true
+          "primary": true,
+          "unit": "Piece",
+          "count": 1
         }
       ]
     },
@@ -1550,9 +1560,11 @@
         },
         {
           "fdcId": 174915,
-          "grams": 80,
+          "grams": 90.0,
           "note": "Bread, pita, white, enriched",
-          "primary": true
+          "primary": true,
+          "unit": "Loaf",
+          "count": 1.5
         },
         {
           "fdcId": 170000,
@@ -2440,9 +2452,11 @@
         },
         {
           "fdcId": 174916,
-          "grams": 50,
+          "grams": 64.0,
           "note": "Bread, pita, whole-wheat",
-          "primary": true
+          "primary": true,
+          "unit": "Loaf",
+          "count": 1.0
         }
       ]
     },
@@ -2782,9 +2796,11 @@
         },
         {
           "fdcId": 174916,
-          "grams": 40,
+          "grams": 32.0,
           "note": "Bread, pita, whole-wheat",
-          "primary": true
+          "primary": true,
+          "unit": "Loaf",
+          "count": 0.5
         }
       ]
     },
@@ -2906,9 +2922,11 @@
       "ingredients": [
         {
           "fdcId": 171287,
-          "grams": 120,
+          "grams": 100,
           "note": "Egg, whole, raw, fresh",
-          "primary": true
+          "primary": true,
+          "unit": "Piece",
+          "count": 2
         },
         {
           "fdcId": 170457,
@@ -3026,9 +3044,11 @@
         },
         {
           "fdcId": 174916,
-          "grams": 40,
+          "grams": 32.0,
           "note": "Bread, pita, whole-wheat",
-          "primary": true
+          "primary": true,
+          "unit": "Loaf",
+          "count": 0.5
         }
       ]
     },
@@ -3078,9 +3098,11 @@
         },
         {
           "fdcId": 174915,
-          "grams": 50,
+          "grams": 60.0,
           "note": "Bread, pita, white, enriched",
-          "primary": true
+          "primary": true,
+          "unit": "Loaf",
+          "count": 1.0
         }
       ]
     },
@@ -3307,9 +3329,11 @@
         },
         {
           "fdcId": 174916,
-          "grams": 50,
+          "grams": 64.0,
           "note": "Bread, pita, whole-wheat",
-          "primary": true
+          "primary": true,
+          "unit": "Loaf",
+          "count": 1.0
         }
       ]
     },
@@ -4517,9 +4541,11 @@
         },
         {
           "fdcId": 174915,
-          "grams": 70,
+          "grams": 60.0,
           "note": "Bread, pita, white, enriched",
-          "primary": true
+          "primary": true,
+          "unit": "Loaf",
+          "count": 1.0
         },
         {
           "fdcId": 169247,
@@ -4572,9 +4598,11 @@
         },
         {
           "fdcId": 174915,
-          "grams": 70,
+          "grams": 60.0,
           "note": "Bread, pita, white, enriched",
-          "primary": true
+          "primary": true,
+          "unit": "Loaf",
+          "count": 1.0
         },
         {
           "fdcId": 170457,
@@ -4619,9 +4647,11 @@
         },
         {
           "fdcId": 174915,
-          "grams": 70,
+          "grams": 60.0,
           "note": "Bread, pita, white, enriched",
-          "primary": true
+          "primary": true,
+          "unit": "Loaf",
+          "count": 1.0
         },
         {
           "fdcId": 169247,
@@ -5256,8 +5286,10 @@
         },
         {
           "fdcId": 171688,
-          "grams": 60,
-          "note": "Apples, raw, with skin"
+          "grams": 91.0,
+          "note": "Apples, raw, with skin",
+          "unit": "Piece",
+          "count": 0.5
         },
         {
           "fdcId": 173944,

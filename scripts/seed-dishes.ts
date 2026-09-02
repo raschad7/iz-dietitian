@@ -188,8 +188,51 @@ export function validateDishRecords(records: DishRecord[]): string[] {
   return problems;
 }
 
+/**
+ * Every recipe line written in the unit its food declares.
+ *
+ * The rule lives on the food (`countedAs`), so a dish cannot decide that this
+ * time an egg is 50 grams. Before it existed the same egg appeared as "1 حبة" in
+ * one recipe and "50 غ" in another, and a client reading both had no way to know
+ * they were the same thing.
+ *
+ * Only the positive direction is enforced. A food with no declared unit may still
+ * be counted where it reads better — بندورة by the slice, بطاطا by the piece —
+ * because "there is no one right unit for this" is a real answer.
+ *
+ * Takes the food dataset rather than reading the database, so it runs in a test.
+ */
+export function validateCountingUnits(
+  records: readonly DishRecord[],
+  foods: readonly { sourceRef: string; slug: string; countedAs?: string }[],
+): string[] {
+  const problems: string[] = [];
+  const byRef = new Map(foods.map((food) => [food.sourceRef, food]));
+
+  for (const dish of records) {
+    for (const ingredient of dish.ingredients) {
+      const food = byRef.get(String(ingredient.fdcId));
+      if (!food?.countedAs) continue;
+
+      if (ingredient.unit !== food.countedAs) {
+        problems.push(
+          `${dish.slug}: ${food.slug} is always counted in "${food.countedAs}", but this line says ${
+            ingredient.unit ? `"${ingredient.unit}"` : `${ingredient.grams} g`
+          }`,
+        );
+      }
+    }
+  }
+
+  return problems;
+}
+
 function validate(records: DishRecord[]): void {
-  const problems = validateDishRecords(records);
+  const problems = [
+    ...validateDishRecords(records),
+    ...validateCountingUnits(records, readCatalogDataset()),
+  ];
+
   if (problems.length) {
     throw new Error(`data/dishes.json is invalid:\n  ${problems.join('\n  ')}`);
   }

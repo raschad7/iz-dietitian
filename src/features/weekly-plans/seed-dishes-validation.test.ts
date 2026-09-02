@@ -3,9 +3,11 @@ import { describe, expect, test } from 'bun:test';
 import {
   MAX_PRIMARY_INGREDIENTS,
   readDishDataset,
+  validateCountingUnits,
   validateDishRecords,
   type DishRecord,
 } from '../../../scripts/seed-dishes';
+import { readCatalogDataset } from '../../../scripts/seed-catalog-foods';
 import { isMember } from '@/lib/enum';
 
 import {
@@ -220,5 +222,46 @@ describe('isFixedPortion', () => {
     // A packet is opened, not portioned by the shop — a client can eat half a
     // tub of yogurt, but not half a sandwich the shop already assembled.
     expect(isFixedPortion('shop')).toBe(false);
+  });
+});
+
+/**
+ * A food owns its unit; a recipe obeys it. Before this rule the same egg was
+ * "1 حبة" in one dish and "50 غ" in another, and nothing in the system could tell
+ * a reader those were the same thing.
+ */
+describe('validateCountingUnits', () => {
+  const egg = { sourceRef: '171287', slug: 'egg-raw', countedAs: 'Piece' };
+  const oil = { sourceRef: '171413', slug: 'olive-oil' };
+
+  function dishWith(ingredient: Record<string, unknown>): DishRecord {
+    return { ...base, ingredients: [{ fdcId: 171287, grams: 50, note: 'Egg', ...ingredient }] };
+  }
+
+  test('accepts a line written in the unit its food declares', () => {
+    const problems = validateCountingUnits([dishWith({ unit: 'Piece', count: 1 })], [egg]);
+    expect(problems).toEqual([]);
+  });
+
+  test('rejects grams where the food is always counted', () => {
+    const problems = validateCountingUnits([dishWith({})], [egg]);
+    expect(problems).toEqual([
+      'grilled-chicken: egg-raw is always counted in "Piece", but this line says 50 g',
+    ]);
+  });
+
+  test('rejects a different unit', () => {
+    const problems = validateCountingUnits([dishWith({ unit: 'Cup', count: 0.2 })], [egg]);
+    expect(problems[0]).toContain('but this line says "Cup"');
+  });
+
+  /** "There is no one right unit for this" is a real answer, and grams are it. */
+  test('a food that declares nothing may be written either way', () => {
+    const dish = { ...base, ingredients: [{ fdcId: 171413, grams: 10, note: 'Oil' }] };
+    expect(validateCountingUnits([dish], [oil])).toEqual([]);
+  });
+
+  test('the shipped catalog obeys its own declarations', () => {
+    expect(validateCountingUnits(readDishDataset(), readCatalogDataset())).toEqual([]);
   });
 });

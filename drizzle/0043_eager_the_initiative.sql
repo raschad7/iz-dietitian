@@ -1,0 +1,1 @@
+ALTER TABLE "catalog_foods" ADD COLUMN "counted_as" text;
