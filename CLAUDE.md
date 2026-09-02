@@ -17,6 +17,8 @@ language that no longer exist. The documents listed below are the current ones.
 - Read [`docs/development.md`](docs/development.md) for setup, environment files,
   migrations, commands, and test safety.
 - Read [`docs/design-system.md`](docs/design-system.md) before any UI work.
+- Read [`docs/catalog.md`](docs/catalog.md) before adding a food, a dish, or a
+  category.
 
 ## Repository rules
 
