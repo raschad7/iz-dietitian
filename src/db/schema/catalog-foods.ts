@@ -284,13 +284,22 @@ export const CATALOG_FOOD_CATEGORIES = [
   'legumes',
   'vegetables',
   'fruits',
-  'dairy_eggs',
+  // Split, because eggs and yogurt are never the same meal and the variety rules
+  // had to tell them apart by looking for the word "egg" in an English name.
+  'dairy',
+  'eggs',
   'meat',
   'poultry',
   'fish',
   'nuts_seeds',
   'fats_oils',
   'sweets',
+  // Tahini, garlic sauce, ketchup, cooking cream — small amounts that season a
+  // dish rather than compose it, and that the portion engine must not scale like
+  // an ingredient.
+  'sauces_condiments',
+  // Bought ready and eaten as itself: falafel, hummus, pickles, canned tuna.
+  'prepared',
   'herbs_spices',
   'other',
 ] as const;

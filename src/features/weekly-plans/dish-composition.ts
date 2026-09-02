@@ -72,6 +72,10 @@ function proteinSourceOf(food: DishIngredientDetail['food']): ProteinSource | nu
   if (category === 'fish') return 'fish';
   if (category === 'legumes') return 'legume';
   if (category === 'nuts_seeds') return 'nuts';
+  if (category === 'eggs') return 'egg';
+  if (category === 'dairy') return 'dairy';
+  // Kept for rows written before the categories were split, and for a clinic's
+  // own food that still carries the old value.
   if (category === 'dairy_eggs') return name.includes('egg') ? 'egg' : 'dairy';
 
   return null;

@@ -107,6 +107,8 @@ const UNIT_STEPS: Record<string, number> = {
  * tell an egg from an orange and the two have different answers.
  */
 const PIECE_CEILINGS: Record<string, number> = {
+  dairy: 3,
+  eggs: 3,
   dairy_eggs: 3,
   fruits: 3,
   vegetables: 3,
@@ -125,6 +127,8 @@ const GRAM_CEILINGS: Record<string, number> = {
   fish: 200,
   fruits: 400,
   vegetables: 500,
+  dairy: 400,
+  eggs: 400,
   dairy_eggs: 400,
 };
 

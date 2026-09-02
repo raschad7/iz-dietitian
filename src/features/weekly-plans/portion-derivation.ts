@@ -247,7 +247,7 @@ const SPOON_FAMILIES = new Set<Family>(['tbsp', 'tsp']);
  * would make one حبة mean 44 g of a raw egg and 50 g of a boiled one: the same egg
  * weighing two different amounts depending on whether it had been cooked.
  */
-const PREFERRED_SIZE: Record<string, string> = { dairy_eggs: 'large' };
+const PREFERRED_SIZE: Record<string, string> = { eggs: 'large', dairy_eggs: 'large' };
 
 /** Nothing a person is served in one sitting weighs this much. */
 const MAX_SERVABLE_GRAMS = 1000;

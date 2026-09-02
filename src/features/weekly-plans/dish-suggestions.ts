@@ -38,7 +38,7 @@ export type SuggestibleFood = {
  * `other` is deliberately absent: a clinic's own food lands there regardless of
  * what it is, so it is decided by name below instead.
  */
-const ANIMAL_CATEGORIES = ['meat', 'poultry', 'fish', 'dairy_eggs'] as const;
+const ANIMAL_CATEGORIES = ['meat', 'poultry', 'fish', 'dairy', 'eggs', 'dairy_eggs'] as const;
 
 /**
  * `normalizeArabic` plus the two foldings it deliberately refuses: ة→ه and ى→ي.
