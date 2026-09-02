@@ -7,6 +7,7 @@ import { type Locale } from '@/i18n/routing';
 import { requireStaffClinic } from '@/lib/session';
 
 import { clinicDishInputSchema, customFoodInputSchema } from './catalog-schema';
+import { DISH_AXES } from './schema';
 import type { CatalogFormState } from './catalog-form-state';
 import {
   createClinicDish,
@@ -47,14 +48,32 @@ function readDishId(formData: FormData): string {
   return String(formData.get('dishId') ?? '');
 }
 
-/** Assembles the raw (unvalidated) dish input from the editor's form fields. */
+/**
+ * Assembles the raw (unvalidated) dish input from the editor's form fields.
+ *
+ * The four axes are read **by name from `DISH_AXES`**, not listed here. This
+ * function used to send `tags: formData.getAll('tags')` — a field the form had
+ * already stopped rendering — and none of `source`, `effort`, `cost` or
+ * `occasion`, which it had started rendering. Every save failed
+ * `clinicDishInputSchema` on four missing required fields and came back as
+ * `errors.invalid`: "the information is not correct", about a form that was
+ * filled in correctly. Driving the read off the same list the form draws from is
+ * what makes the two unable to drift again.
+ */
 function readDishInput(formData: FormData): unknown {
+  const axes = Object.fromEntries(
+    DISH_AXES.map(({ key }) => [key, formData.get(key)]),
+  );
+
   return {
     nameAr: formData.get('nameAr'),
     nameEn: formData.get('nameEn'),
     baseServingLabel: formData.get('baseServingLabel'),
     mealTypes: formData.getAll('mealTypes'),
-    tags: formData.getAll('tags'),
+    ...axes,
+    // A checkbox posts nothing when it is off, so absence is `false` — the same
+    // reading the column's default gives.
+    isSide: formData.get('isSide') === 'on' || formData.get('isSide') === 'true',
     allergenTags: formData.getAll('allergenTags'),
     ingredients: JSON.parse((formData.get('ingredients') as string) ?? '[]'),
   };

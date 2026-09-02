@@ -188,6 +188,7 @@ export async function createClinicDish(clinicId: string, input: ClinicDishInput)
         effort: input.effort,
         cost: input.cost,
         occasion: input.occasion,
+        isSide: input.isSide,
         allergenTags: input.allergenTags,
         baseServingLabel: input.baseServingLabel,
       })
@@ -230,6 +231,7 @@ export async function updateClinicDish(
         effort: input.effort,
         cost: input.cost,
         occasion: input.occasion,
+        isSide: input.isSide,
         allergenTags: input.allergenTags,
         baseServingLabel: input.baseServingLabel,
         updatedAt: new Date(),

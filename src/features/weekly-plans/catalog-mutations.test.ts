@@ -48,6 +48,7 @@ const dishInput = (): ClinicDishInput => ({
   effort: 'medium',
   cost: 'normal',
   occasion: 'everyday',
+  isSide: false,
   allergenTags: [],
   baseServingLabel: 'حصة',
   ingredients: [{ foodId, quantityGrams: 200 }],

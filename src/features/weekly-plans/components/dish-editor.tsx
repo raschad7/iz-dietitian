@@ -33,7 +33,6 @@ import {
   type UnitOption,
 } from '../ingredient-units';
 import { dishTotals, nutritionCategory, type NutrientSource } from '../nutrition';
-import { dishSourceDotClasses } from '../meal-tag-tone';
 import type { RefinedFood } from '../ingredient-refine';
 import type { DishEditData, DishNameSuggestion, FoodSearchResult } from '../queries';
 import { DISH_AXES, MEAL_TYPES, type DishAxisKey } from '../schema';
@@ -103,6 +102,16 @@ type Blocker = 'name' | 'nameEn' | 'mealTypes' | 'ingredients';
  * doing nothing at all — the old arrangement needed a compile-time check to catch
  * a tag nobody had filed.
  */
+
+/**
+ * The two answers to "is this a meal or something beside one".
+ *
+ * Plain string values because `PillCheckboxGroup` is a set of strings and every
+ * other section in it is one; the boolean lives in state, and these are only how
+ * it is spelled on screen.
+ */
+const ROLE_MAIN = 'role:main';
+const ROLE_SIDE = 'role:side';
 
 /** Meal categories in the order the spec's chips read: breakfast, lunch, dinner, snack. */
 const MEAL_CATEGORY_ORDER = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
@@ -252,6 +261,16 @@ export function DishEditor({
     cost: dish?.cost ?? 'normal',
     occasion: dish?.occasion ?? 'everyday',
   }));
+  /**
+   * Whether this is a side rather than a meal.
+   *
+   * Asked here because it is the one property that decides what the dish *is*:
+   * a side is never offered for a slot and never scaled to a budget, so getting
+   * it wrong puts صحن سلطة on the board as somebody's dinner. Held as a boolean
+   * and offered as two pills, so the form has an answer from the moment it opens
+   * the way each axis does.
+   */
+  const [isSide, setIsSide] = useState<boolean>(() => dish?.isSide ?? false);
   const [allergenTags, setAllergenTags] = useState<string[]>(() => dish?.allergenTags ?? []);
   const [rows, setRows] = useState<IngredientRowState[]>(() =>
     dish ? dish.ingredients.map(rowFromIngredient) : [],
@@ -554,6 +573,7 @@ export function DishEditor({
       {DISH_AXES.map(({ key }) => (
         <input key={key} type="hidden" name={key} value={axes[key]} />
       ))}
+      <input type="hidden" name="isSide" value={isSide ? 'true' : 'false'} />
       {allergenTags.map((value) => (
         <input key={value} type="hidden" name="allergenTags" value={value} />
       ))}
@@ -794,17 +814,35 @@ export function DishEditor({
                       is cooked at home or bought, not both. */}
                   <PillCheckboxGroup
                     legend={t('editor.labelsLegend')}
-                    sections={DISH_AXES.map((axis) => ({
-                      key: axis.key,
-                      label: tDishes(axis.label),
-                      options: axis.values.map(({ value, message }) => ({
-                        value,
-                        label: tDishes(message),
-                        dot: axis.key === 'source' ? dishSourceDotClasses(value) : undefined,
+                    sections={[
+                      // First, because it decides what the dish *is*. The four
+                      // axes describe a dish; this one says whether the thing
+                      // being described can be a meal at all.
+                      {
+                        key: 'role',
+                        label: t('editor.roleLegend'),
+                        options: [
+                          { value: ROLE_MAIN, label: t('editor.roleMain') },
+                          { value: ROLE_SIDE, label: t('editor.roleSide') },
+                        ],
+                      },
+                      ...DISH_AXES.map((axis) => ({
+                        key: axis.key,
+                        label: tDishes(axis.label),
+                        options: axis.values.map(({ value, message }) => ({
+                          value,
+                          label: tDishes(message),
+                          dot: undefined,
+                        })),
                       })),
-                    }))}
-                    selected={DISH_AXES.map(({ key }) => axes[key])}
+                    ]}
+                    selected={[isSide ? ROLE_SIDE : ROLE_MAIN, ...DISH_AXES.map(({ key }) => axes[key])]}
                     onToggle={(value) => {
+                      if (value === ROLE_MAIN || value === ROLE_SIDE) {
+                        setIsSide(value === ROLE_SIDE);
+                        return;
+                      }
+
                       const axis = DISH_AXES.find((one) =>
                         one.values.some((entry) => entry.value === value),
                       );

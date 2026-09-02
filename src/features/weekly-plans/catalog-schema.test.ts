@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 
 import { clinicDishInputSchema, customFoodInputSchema } from './catalog-schema';
+import { DISH_AXES } from './schema';
 
 const validDish = {
   nameAr: 'دجاج مشوي',
   nameEn: 'Grilled chicken',
   mealTypes: ['lunch'],
-  tags: ['quick', 'economical'],
   source: 'home',
   effort: 'medium',
   cost: 'normal',
@@ -207,5 +207,40 @@ describe('customFoodInputSchema', () => {
         unitGrams: 0,
       }),
     ).toThrow();
+  });
+
+  /**
+   * The bug this pins.
+   *
+   * `readDishInput` in `catalog-actions.ts` built the payload from a hand-written
+   * list of field names. When the tag bag became four axes the form started
+   * posting `source`, `effort`, `cost` and `occasion` and that list was not
+   * updated — it still read a `tags` field nothing rendered. Every save failed
+   * this schema on four missing required fields and the dietitian was told "the
+   * information is not correct" about a form they had filled in correctly.
+   *
+   * The action reads the axes off `DISH_AXES` now. This asserts the other half:
+   * that every axis in that list is a field this schema actually requires, so a
+   * fifth axis cannot be added to one and forgotten in the other.
+   */
+  test('every declared axis is a required field, and a missing one is refused', () => {
+    for (const { key, values } of DISH_AXES) {
+      const { [key]: _dropped, ...withoutAxis } = validDish;
+
+      expect(() => clinicDishInputSchema.parse(withoutAxis)).toThrow();
+      expect(clinicDishInputSchema.parse({ ...validDish, [key]: values[0].value })[key]).toBe(
+        values[0].value,
+      );
+    }
+  });
+
+  /**
+   * A side is a dish that stands beside a meal rather than being one, and a form
+   * that does not ask the question is describing a main — which is what almost
+   * every clinic dish is.
+   */
+  test('a dish is a meal unless it says otherwise', () => {
+    expect(clinicDishInputSchema.parse(validDish).isSide).toBe(false);
+    expect(clinicDishInputSchema.parse({ ...validDish, isSide: true }).isSide).toBe(true);
   });
 });

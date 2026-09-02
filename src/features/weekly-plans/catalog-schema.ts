@@ -66,6 +66,15 @@ export const clinicDishInputSchema = z.object({
   effort: z.enum(DISH_EFFORTS),
   cost: z.enum(DISH_COSTS),
   occasion: z.enum(DISH_OCCASIONS),
+  /**
+   * Whether this belongs *beside* a meal instead of being one.
+   *
+   * Defaulted, because a form that does not ask the question is describing a
+   * main — which is what almost every clinic dish is. A side never reaches a
+   * slot as the meal: `toPromptCatalog` drops it, and it is attached through
+   * `weekly_plan_meal_sides` at one serving instead.
+   */
+  isSide: z.coerce.boolean().default(false),
   allergenTags: z.array(z.enum(ALLERGENS)),
   baseServingLabel: z.string().trim().min(1).max(60),
   ingredients: z.array(ingredientInputSchema).min(1),
