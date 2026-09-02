@@ -2145,8 +2145,8 @@
     "searchDishes": "Search dishes",
     "dishFilters": "Filters",
     "clearFilters": "Clear filters",
-    "colorKey": "Dish colour key",
-    "colorKeyUntagged": "No properties",
+    "colorKey": "The week's protein sources",
+    "colorKeyUntagged": "Unclassified",
     "filterTags": "Dish type",
     "filterForThisSlot": "Fits this slot",
     "dishOptions": {
@@ -2310,7 +2310,23 @@
         "medium": "Medium",
         "low": "Low"
       }
-    }
+    },
+    "proteinSources": {
+      "red_meat": "Red meat",
+      "poultry": "Chicken and turkey",
+      "fish": "Fish",
+      "egg": "Eggs",
+      "dairy": "Dairy",
+      "legume": "Legumes",
+      "nuts": "Nuts and seeds",
+      "none": "No main protein"
+    },
+    "sidesLabel": "Served with",
+    "sidesHint": "Optional · up to two",
+    "noSides": "Nothing beside this meal",
+    "addSide": "Add something beside it",
+    "removeSide": "Remove side",
+    "planNotes": "Notes for the dietitian"
   },
   "dishes": {
     "title": "Dish catalog",
@@ -2420,7 +2436,21 @@
       "egg": "Egg",
       "fish": "Fish",
       "sesame": "Sesame"
-    }
+    },
+    "proteinSources": {
+      "red_meat": "Red meat",
+      "poultry": "Chicken and turkey",
+      "fish": "Fish",
+      "egg": "Eggs",
+      "dairy": "Dairy",
+      "legume": "Legumes",
+      "nuts": "Nuts and seeds",
+      "none": "No main protein"
+    },
+    "proteinFilter": {
+      "label": "Protein source"
+    },
+    "sideDish": "Side dish"
   },
   "dishEditor": {
     "foodPicker": {
@@ -2533,7 +2563,10 @@
       "gramsPerServing": "{grams} g per serving",
       "kcalPer100g": "{kcal} kcal / 100 g",
       "suggested": "Proposed",
-      "saveAndAddAnother": "Save and add another"
+      "saveAndAddAnother": "Save and add another",
+      "roleLegend": "Kind of dish",
+      "roleMain": "A meal",
+      "roleSide": "A side"
     }
   },
   "whatsapp": {

@@ -24,7 +24,7 @@ import { NUTRIENT_UNITS } from '@/features/weekly-plans/nutrition';
 
 import { loadDishForEditAction } from '../catalog-actions';
 import { localizedName } from '../food-display';
-import { dishSourceDotClasses, highProteinDotClasses } from '../meal-tag-tone';
+import { proteinDotClasses, proteinMessageKey } from '../meal-tag-tone';
 import type { DishEditData } from '../queries';
 import { DISH_AXES, MEAL_TYPES, axisMessageKey, type MealType } from '../schema';
 
@@ -47,6 +47,13 @@ export type DishCardData = {
   protein: number;
   /** Computed from the recipe, never stored — see `nutritionCategory()`. */
   highProtein: boolean;
+  /**
+   * Where the dish's protein comes from — the dot beside the name, and the same
+   * value the meal card paints its rule with. Computed by `proteinSource()`.
+   */
+  proteinSource: string;
+  /** A dish that stands *beside* a meal rather than being one. */
+  isSide: boolean;
   /** Shared/built-in dish — read-only. */
   isSystem: boolean;
   hidden: boolean;
@@ -392,21 +399,22 @@ function DishRow({
     value: dish[key],
     message: axisMessageKey(key, dish[key]),
   }));
+  /*
+   * The qualities run: words, all of them.
+   *
+   * No dots here. A dot in this app means the dish's protein source, and that
+   * dot has its own place — beside the name, where the eye enters the row and
+   * where the board draws the matching rule. Putting a second kind of dot in
+   * this cell would teach the reader that a colour means "some property", which
+   * is what the old tag column taught and what made the palette worthless.
+   */
   const properties = [
+    ...(dish.isSide ? [{ key: 'side', label: t('sideDish') }] : []),
     ...(dish.highProtein
-      ? [
-          {
-            key: 'high-protein',
-            dot: highProteinDotClasses(),
-            label: t('nutritionFilters.high_protein'),
-          },
-        ]
+      ? [{ key: 'high-protein', label: t('nutritionFilters.high_protein') }]
       : []),
     ...axisChips.map((chip) => ({
       key: `${chip.key}:${chip.value}`,
-      // Only `source` wears a colour: it is the one the board paints its rules
-      // with, and four dots on one row would say nothing about which is which.
-      dot: chip.key === 'source' ? dishSourceDotClasses(chip.value) : null,
       label: t(chip.message),
     })),
   ];
@@ -431,6 +439,22 @@ function DishRow({
       <TableCell>
         <div className="flex min-w-0 flex-col">
           <div className="flex items-center gap-2">
+            {/*
+              The dish's colour, beside its name.
+
+              This is the one mark in the catalog, and it is the same mark the
+              planner paints across the top of the meal card — so a dietitian who
+              learns "teal is fish" in one place has learned it in both. It sits
+              here rather than in the qualities column because it is *identity*,
+              not a property: it belongs to the name the way a colour belongs to
+              a label, and it is what makes a page of twenty dishes scannable for
+              "what else is not chicken".
+            */}
+            <span
+              aria-hidden
+              className={proteinDotClasses(dish.proteinSource)}
+              title={t(proteinMessageKey(dish.proteinSource))}
+            />
             {/*
               `after:absolute after:inset-0` stretches this button over the whole
               row — see the `linked` prop on TableRow. A button rather than a
@@ -492,19 +516,10 @@ function DishRow({
 
               {properties.length > 0 && (
                 <span
-                  className="flex items-center gap-1"
+                  className="min-w-0 truncate text-caption text-muted-foreground"
                   title={format.list(properties.map((property) => property.label))}
                 >
-                  {shownProperties.map((property) =>
-                    property.dot ? (
-                      <span key={property.key} aria-hidden className={property.dot} />
-                    ) : null,
-                  )}
-                  {hiddenProperties.length > 0 && (
-                    <span className="text-caption text-muted-foreground tabular-nums" dir="ltr">
-                      {t('moreTags', { count: hiddenProperties.length })}
-                    </span>
-                  )}
+                  {format.list(shownProperties.map((property) => property.label))}
                 </span>
               )}
             </div>
@@ -548,7 +563,7 @@ function DishRow({
         ) : (
           <div className="flex min-w-0 flex-nowrap items-center gap-1 overflow-hidden">
             {shownProperties.map((property) => (
-              <TagChip key={property.key} dot={property.dot} label={property.label} />
+              <TagChip key={property.key} label={property.label} />
             ))}
             {hiddenProperties.length > 0 && (
               <PropertyOverflow
@@ -597,12 +612,11 @@ function DishRow({
   );
 }
 
-/** One tag in the qualities column: its colour dot, then its name. */
-function TagChip({ dot, label }: { dot: string | null; label: string }) {
+/** One tag in the qualities column. Words only — the colour lives by the name. */
+function TagChip({ label }: { label: string }) {
   return (
     <TooltipHint label={<span dir="auto">{label}</span>} className="relative min-w-0 shrink">
       <span className="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-full bg-muted px-2 py-0.5 text-caption font-medium text-foreground">
-        {dot && <span aria-hidden className={cn('shrink-0', dot)} />}
         <span className="truncate">{label}</span>
       </span>
     </TooltipHint>

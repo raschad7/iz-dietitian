@@ -1,56 +1,91 @@
 import { describe, expect, test } from 'bun:test';
 
 import {
-  DISH_SOURCE_ACCENT_CLASS,
-  HIGH_PROTEIN_ACCENT_CLASS,
-  dishSourceAccentClass,
-  dishSourceDotClasses,
+  PROTEIN_ACCENT_CLASS,
+  dishAccentClass,
+  proteinAccentClass,
+  proteinDotClasses,
+  proteinMessageKey,
 } from './meal-tag-tone';
-import { DISH_SOURCES } from './schema';
+import { PROTEIN_SOURCES } from './dish-composition';
+import type { DishIngredientDetail } from './nutrition';
 
-describe('dish source tone', () => {
+/** A recipe line carrying just enough for `proteinSource` to read it. */
+function line(category: string, protein: number, grams: number): DishIngredientDetail {
+  return {
+    quantityGrams: grams,
+    food: {
+      id: `${category}-${protein}`,
+      nameAr: category,
+      nameEn: category,
+      category,
+      kcal: 100,
+      protein,
+      carbs: 0,
+      fat: 0,
+    } as DishIngredientDetail['food'],
+    portion: null,
+    portionQuantity: null,
+    isPrimary: true,
+    sortOrder: 0,
+  } as DishIngredientDetail;
+}
+
+describe('protein source tone', () => {
   /*
-   * The catalog prints a dot per source and the planner paints one rule per meal
-   * from the same map, so two sources sharing a class is not a cosmetic slip — it
-   * is a legend that silently lies on both screens.
+   * The catalog prints a dot per protein source, the planner paints one rule per
+   * meal, and the board's colour key counts them — all from this one map. Two
+   * sources sharing a class is not a cosmetic slip; it is a legend that silently
+   * lies on three screens.
    */
-  test('every source, and the computed high-protein label, has its own colour', () => {
-    const classes = [
-      ...DISH_SOURCES.map((source) => DISH_SOURCE_ACCENT_CLASS[source]),
-      HIGH_PROTEIN_ACCENT_CLASS,
-    ];
+  test('every protein source has its own colour, and none is missing', () => {
+    const classes = PROTEIN_SOURCES.map((source) => PROTEIN_ACCENT_CLASS[source]);
 
     expect(classes.every(Boolean)).toBe(true);
     expect(new Set(classes).size).toBe(classes.length);
   });
 
   /*
-   * The regression the tag bag caused, and the reason `source` replaced it:
-   * everything that *listed* a dish's tags ran them through
-   * `membersOf(DISH_TAGS, …)` and showed catalog order, while the meal card took
-   * the first tag *as stored*. A dish saved `['local', 'filling']` led with lime
-   * in the catalog and painted clay on the board.
-   *
-   * A dish has exactly one source, so there is no order to disagree about. That
-   * is the whole fix, and it is why this file no longer has a priority rule to
-   * test.
+   * `none` is an answer, not a gap. A fruit snack and a plate of salad are
+   * genuinely "no main protein", and the whole point of moving the colour here
+   * was that every card gets one — so this must be a real class, not a fallback.
    */
-  test('the colour is the source itself, with nothing to resolve', () => {
-    expect(dishSourceAccentClass('home')).toBe('bg-planner-tag-local');
-    expect(dishSourceAccentClass('street')).toBe('bg-planner-tag-portable');
+  test('a dish with no protein is coloured, not left blank', () => {
+    expect(PROTEIN_ACCENT_CLASS.none).toBe('bg-planner-protein-none');
+    expect(proteinAccentClass('none')).toBe('bg-planner-protein-none');
   });
 
-  test('an unrecognised source falls back to the neutral divider', () => {
-    // A clinic row written before the axes existed, or a value from a future
-    // release. It draws grey rather than nothing.
-    expect(dishSourceAccentClass('takeaway')).toBe('bg-border');
-    expect(dishSourceAccentClass('')).toBe('bg-border');
+  test('an unrecognised value draws the neutral mark rather than nothing', () => {
+    expect(proteinAccentClass('shellfish')).toBe('bg-planner-protein-none');
+    expect(proteinAccentClass('')).toBe('bg-planner-protein-none');
+  });
+
+  /*
+   * The reason this axis replaced `source`: it is computed from the recipe, so
+   * the colour cannot be typed wrong and cannot go stale when the recipe changes.
+   */
+  test('a dish takes its colour from its own recipe', () => {
+    const chickenAndRice = [line('poultry', 31, 150), line('grains', 2.7, 200)];
+    const lentils = [line('legumes', 9, 200), line('grains', 2.7, 100)];
+
+    expect(dishAccentClass(chickenAndRice)).toBe('bg-planner-protein-poultry');
+    expect(dishAccentClass(lentils)).toBe('bg-planner-protein-legume');
   });
 
   test('a dot carries the fill plus the ring that makes it survive being 8px', () => {
-    const dot = dishSourceDotClasses('home');
+    const dot = proteinDotClasses('fish');
 
-    expect(dot).toContain('bg-planner-tag-local');
+    expect(dot).toContain('bg-planner-protein-fish');
     expect(dot).toContain('ring-inset');
+  });
+
+  /*
+   * next-intl only accepts keys it can see. An unrecognised value must resolve to
+   * a key that exists rather than throwing at render — the same guard
+   * `axisMessageKey` applies to the four axes.
+   */
+  test('a message key is always one the catalog actually has', () => {
+    expect(proteinMessageKey('fish')).toBe('proteinSources.fish');
+    expect(proteinMessageKey('shellfish')).toBe('proteinSources.none');
   });
 });

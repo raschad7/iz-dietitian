@@ -8,6 +8,7 @@ import { DishList, type DishCardData } from '@/features/weekly-plans/components/
 import { DishPagination } from '@/features/weekly-plans/components/dish-pagination';
 import { parseOwnerFilter } from '@/features/weekly-plans/catalog-ownership';
 import { nutritionCategory, roundForDisplay } from '@/features/weekly-plans/nutrition';
+import { PROTEIN_SOURCES, proteinSource } from '@/features/weekly-plans/dish-composition';
 import { listDishes } from '@/features/weekly-plans/queries';
 import { DISH_AXES, type DishAxisFilters } from '@/features/weekly-plans/schema';
 import { membersOf } from '@/lib/enum';
@@ -25,6 +26,8 @@ type PageProps = {
     cost?: string;
     occasion?: string;
     hp?: string;
+    /** A comma-separated list of protein sources — `?protein=fish,legume`. */
+    protein?: string;
     owner?: string;
     page?: string;
     hidden?: string;
@@ -43,6 +46,8 @@ export default async function DishesPage({ params, searchParams }: PageProps) {
 
   const query = await searchParams;
   const { q, mealType, hp, owner: ownerParam, page, hidden } = query;
+  // Narrowed against the closed set the same way the axes are below.
+  const proteinSources = membersOf(PROTEIN_SOURCES, (query.protein ?? '').split(',').filter(Boolean));
   const showHidden = hidden === '1';
   const highProtein = hp === '1';
   // Narrowed against the known set: a hand-edited `?owner=whatever` degrades to no
@@ -67,7 +72,17 @@ export default async function DishesPage({ params, searchParams }: PageProps) {
   const currentPage = Number.isInteger(parsedPage) && parsedPage >= 1 ? parsedPage : 1;
 
   const [result, t] = await Promise.all([
-    listDishes({ clinicId, q, mealType, axes, highProtein, owner, page: currentPage, hiddenOnly: showHidden }),
+    listDishes({
+      clinicId,
+      q,
+      mealType,
+      axes,
+      highProtein,
+      proteinSources,
+      owner,
+      page: currentPage,
+      hiddenOnly: showHidden,
+    }),
     getTranslations('dishes'),
   ]);
 
@@ -87,6 +102,12 @@ export default async function DishesPage({ params, searchParams }: PageProps) {
     // is a computed category, and the filter above narrows on the same function,
     // so the chip and the filter can never disagree.
     highProtein: nutritionCategory(dish.totals) === 'high_protein',
+    // The dish's colour, computed here from the same recipe the meal card
+    // computes it from. The row carries the answer rather than the ingredients
+    // because `DishCardData` is a summary — the recipe stays out until the
+    // drawer opens.
+    proteinSource: proteinSource(dish.ingredients),
+    isSide: dish.isSide,
     isSystem: dish.clinicId === null,
     hidden: dish.hidden,
   }));
@@ -100,6 +121,7 @@ export default async function DishesPage({ params, searchParams }: PageProps) {
     Boolean(mealType) ||
     DISH_AXES.some(({ key }) => axes[key].length > 0) ||
     highProtein ||
+    proteinSources.length > 0 ||
     Boolean(owner) ||
     showHidden;
 
@@ -126,6 +148,7 @@ export default async function DishesPage({ params, searchParams }: PageProps) {
           mealType={mealType}
           axes={axes}
           highProtein={highProtein}
+          proteinSources={proteinSources}
           owner={owner}
           showHidden={showHidden}
         >

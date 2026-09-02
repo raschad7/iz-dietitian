@@ -36,7 +36,6 @@ import {
   ALLERGENS,
   DISH_AXES,
   EMPTY_AXIS_FILTERS,
-  axisMessageKey,
   isFixedPortion,
   mealTypeForSlot,
   type DishAxisFilters,
@@ -55,7 +54,8 @@ const NUTRITION_FILTERS = ['high_protein'] as const satisfies readonly Nutrition
 /** The narrow union of categories actually offered as filters — so message keys
  * like `nutritionFilters.${entry}` stay resolvable. */
 type NutritionFilter = (typeof NUTRITION_FILTERS)[number];
-import { dishSourceDotClasses, highProteinDotClasses } from '../meal-tag-tone';
+import { dishDotClasses, proteinMessageKey } from '../meal-tag-tone';
+import { proteinSource } from '../dish-composition';
 import { chooseServings } from '../portioning';
 import { bestServings } from '../similar';
 import { PLANNER_THEME } from '../theme';
@@ -76,7 +76,7 @@ import type { RecentUse } from '../usage';
  */
 
 export function DishCatalog({
-  catalog,
+  catalog: wholeCatalog,
   usage,
   slot,
   editable,
@@ -113,6 +113,20 @@ export function DishCatalog({
   const activeMealType = mealType && !allMealTypes ? mealType : null;
   const needle = query.trim().toLowerCase();
   const budgetKcal = slot && slot.budgetKcal > 0 ? slot.budgetKcal : null;
+
+  /**
+   * Mains only. A side is not something you fill a slot with.
+   *
+   * صحن سلطة is a dish row like any other in the database, and this list is
+   * "what could go here" — so without the filter the drawer offered a plate of
+   * salad as somebody's dinner, and dropping one would have made it the meal
+   * rather than an accompaniment to it. The same rule `toPromptCatalog` applies
+   * to the model, applied to the human.
+   *
+   * Sides are chosen in the meal panel instead, beside the meal they stand next
+   * to — see `MealSides`.
+   */
+  const catalog = useMemo(() => wholeCatalog.filter((dish) => !dish.isSide), [wholeCatalog]);
 
   const context = useMemo<CatalogContext>(() => ({ usage, budgetKcal }), [usage, budgetKcal]);
 
@@ -315,7 +329,6 @@ export function DishCatalog({
                           disabled={!selected && count === 0}
                           onClick={() => toggleNutrition(entry)}
                         >
-                          <span aria-hidden className={highProteinDotClasses()} />
                           {t(`nutritionFilters.${entry}`)}
                           <ChipCount value={count} />
                         </FilterChip>
@@ -327,9 +340,14 @@ export function DishCatalog({
                   {/*
                     One group per axis, because they answer four different
                     questions and a single run of fifteen chips reads as fifteen
-                    interchangeable switches. Only `source` carries a dot: it is
-                    the axis the board paints its rules with, so the colour a
-                    dietitian learns here is the one they read on the week.
+                    interchangeable switches.
+
+                    No dots on any of them. A dot in the planner means the
+                    dish's protein source and only that — it is on every row of
+                    this rail, beside the name — so a second kind of dot in the
+                    filter would teach the reader that a colour means "some
+                    property", which is exactly what made the old tag palette
+                    unreadable.
                   */}
                   {DISH_AXES.map((axis) => (
                     <FilterGroup key={axis.key} label={t(axis.label)}>
@@ -344,9 +362,6 @@ export function DishCatalog({
                             disabled={!selected && count === 0}
                             onClick={() => toggleAxis(axis.key, value)}
                           >
-                            {axis.key === 'source' && (
-                              <span aria-hidden className={dishSourceDotClasses(value)} />
-                            )}
                             {t(message)}
                             <ChipCount value={count} />
                           </FilterChip>
@@ -387,7 +402,6 @@ export function DishCatalog({
 
           {nutrition.map((entry) => (
             <FilterChip key={entry} active onClick={() => toggleNutrition(entry)}>
-              <span aria-hidden className={highProteinDotClasses()} />
               {t(`nutritionFilters.${entry}`)}
               <Icon name="close" className="size-3.5" />
             </FilterChip>
@@ -402,9 +416,6 @@ export function DishCatalog({
                   active
                   onClick={() => toggleAxis(axis.key, value)}
                 >
-                  {axis.key === 'source' && (
-                    <span aria-hidden className={dishSourceDotClasses(value)} />
-                  )}
                   {t(message)}
                   <Icon name="close" className="size-3.5" />
                 </FilterChip>
@@ -639,12 +650,13 @@ function CatalogRow({
             dragged, so the board's rules stop being decoration the dietitian has
             to decode after the fact.
 
-            One dot, not a run of them, because a dish has exactly one source.
-            Under the tag bag this was up to three and the first one won, which
-            meant the rail promised a colour the card sometimes did not paint.
+            One dot, not a run of them, because a dish has exactly one protein
+            source and it is computed from the recipe. Under the tag bag this was
+            up to three and the first one won, which meant the rail promised a
+            colour the card sometimes did not paint.
           */}
-          <span className="shrink-0" title={t(axisMessageKey('source', dish.source))}>
-            <span aria-hidden className={dishSourceDotClasses(dish.source)} />
+          <span className="shrink-0" title={t(proteinMessageKey(proteinSource(dish.ingredients)))}>
+            <span aria-hidden className={dishDotClasses(dish.ingredients)} />
           </span>
         </span>
         <span className="mt-0.5 block text-caption text-muted-foreground">

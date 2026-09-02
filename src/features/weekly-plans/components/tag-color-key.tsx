@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 
 import { summariseTagColors } from '../board-tag-summary';
-import { dishSourceDotClasses } from '../meal-tag-tone';
+import { proteinDotClasses, proteinMessageKey } from '../meal-tag-tone';
 import type { BoardDay } from '../queries';
 
 /**
@@ -15,16 +15,16 @@ import type { BoardDay } from '../queries';
  * ## Why it reads the board instead of listing the palette
  *
  * A static legend of every mark is a chart of the design system, and it is wrong
- * about the thing in front of the reader: a week that uses two colours does not
- * need a key with four it does not contain. So this counts the board — the same
- * `source` the card itself paints with — and lists only the marks actually on
- * screen, each with how many meals wear it.
+ * about the thing in front of the reader: a week that uses three colours does not
+ * need a key with eight it does not contain. So this counts the board — the same
+ * protein source the card itself paints with — and lists only the marks actually
+ * on screen, each with how many meals wear it.
  *
- * That turns a legend into a reading, and since the axis became `source` it is a
- * reading a dietitian actually wants: "twenty-nine cooked at home, four from the
- * street, two from a restaurant" is a fact about whether this week is one the
- * client can live. It costs nothing extra to say — the counting is already done
- * to know which rows to draw.
+ * That turns a legend into a reading, and since the axis became protein source it
+ * is the reading a dietitian opens a board for: "chicken 7, dairy 5, legumes 4,
+ * fish 2" is the week's variety stated as a number, and it is the thing thirty-five
+ * cards make hard to see. It costs nothing extra to say — the counting is already
+ * done to know which rows to draw.
  *
  * The neutral row is included whenever untagged meals exist, because those cards
  * draw a grey rule and an unexplained mark is exactly what a key is for.
@@ -54,8 +54,8 @@ export function TagColorKey({ days }: { days: readonly BoardDay[] }) {
         {rows.map(({ tag, count }) => (
           <KeyRow
             key={tag}
-            dot={dishSourceDotClasses(tag)}
-            label={t(`axes.source.${tag}`)}
+            dot={proteinDotClasses(tag)}
+            label={t(proteinMessageKey(tag))}
             count={count}
           />
         ))}

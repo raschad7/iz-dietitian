@@ -158,11 +158,11 @@ async function mockSearch(locale: string, query: string): Promise<RefinedFood[]>
 
 /** Mock catalog rows — a mix of shared and clinic-owned dishes, one hidden. */
 const MOCK_DISHES: (DishCardData & { clinicId: string | null })[] = [
-  { id: 'd1', nameAr: 'مقلوبة دجاج', nameEn: 'Chicken Maqluba', mealTypes: ['lunch'], source: 'home', effort: 'medium', cost: 'normal', occasion: 'everyday', kcal: 610, carbs: 68, protein: 38, highProtein: false, isSystem: true, hidden: false, clinicId: null },
-  { id: 'd2', nameAr: 'مجدرة', nameEn: 'Mujaddara', mealTypes: ['lunch', 'dinner'], source: 'home', effort: 'medium', cost: 'normal', occasion: 'everyday', kcal: 430, carbs: 64, protein: 17, highProtein: false, isSystem: true, hidden: false, clinicId: null },
-  { id: 'd3', nameAr: 'سلطة دجاج', nameEn: 'Chicken salad', mealTypes: ['lunch'], source: 'home', effort: 'medium', cost: 'normal', occasion: 'everyday', kcal: 390, carbs: 12, protein: 42, highProtein: true, isSystem: false, hidden: false, clinicId: 'clinic-1' },
-  { id: 'd4', nameAr: 'شوربة عدس', nameEn: 'Lentil soup', mealTypes: ['dinner'], source: 'home', effort: 'medium', cost: 'normal', occasion: 'everyday', kcal: 210, carbs: 30, protein: 12, highProtein: false, isSystem: false, hidden: false, clinicId: 'clinic-1' },
-  { id: 'd5', nameAr: 'بيض مقلي', nameEn: 'Fried eggs', mealTypes: ['breakfast'], source: 'home', effort: 'medium', cost: 'normal', occasion: 'everyday', kcal: 180, carbs: 2, protein: 13, highProtein: true, isSystem: true, hidden: false, clinicId: null },
+  { id: 'd1', nameAr: 'مقلوبة دجاج', nameEn: 'Chicken Maqluba', mealTypes: ['lunch'], source: 'home', effort: 'medium', cost: 'normal', occasion: 'everyday', kcal: 610, carbs: 68, protein: 38, highProtein: false, proteinSource: 'poultry', isSide: false, isSystem: true, hidden: false, clinicId: null },
+  { id: 'd2', nameAr: 'مجدرة', nameEn: 'Mujaddara', mealTypes: ['lunch', 'dinner'], source: 'home', effort: 'medium', cost: 'normal', occasion: 'everyday', kcal: 430, carbs: 64, protein: 17, highProtein: false, proteinSource: 'legume', isSide: false, isSystem: true, hidden: false, clinicId: null },
+  { id: 'd3', nameAr: 'سلطة دجاج', nameEn: 'Chicken salad', mealTypes: ['lunch'], source: 'home', effort: 'medium', cost: 'normal', occasion: 'everyday', kcal: 390, carbs: 12, protein: 42, highProtein: true, proteinSource: 'poultry', isSide: false, isSystem: false, hidden: false, clinicId: 'clinic-1' },
+  { id: 'd4', nameAr: 'شوربة عدس', nameEn: 'Lentil soup', mealTypes: ['dinner'], source: 'home', effort: 'medium', cost: 'normal', occasion: 'everyday', kcal: 210, carbs: 30, protein: 12, highProtein: false, proteinSource: 'legume', isSide: true, isSystem: false, hidden: false, clinicId: 'clinic-1' },
+  { id: 'd5', nameAr: 'بيض مقلي', nameEn: 'Fried eggs', mealTypes: ['breakfast'], source: 'home', effort: 'medium', cost: 'normal', occasion: 'everyday', kcal: 180, carbs: 2, protein: 13, highProtein: true, proteinSource: 'egg', isSide: false, isSystem: true, hidden: false, clinicId: null },
 ];
 
 async function mockDishNameSearch(
@@ -236,6 +236,7 @@ function CatalogDemo({ locale }: { locale: string }) {
         mealType={mealType}
         axes={axes}
         highProtein={highProtein}
+        proteinSources={[]}
         owner={owner}
         showHidden={searchParams.get('hidden') === '1'}
       >

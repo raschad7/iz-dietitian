@@ -52,6 +52,7 @@ import {
   mealTotals,
   scaleRecipe,
   type MealIngredientLine,
+  type MealSide,
   type SideRecipe,
 } from './meal-ingredients';
 import {
@@ -301,7 +302,12 @@ export async function sidesByMealId(
     const dish = dishById.get(row.dishId);
     if (!dish) continue;
 
-    const entry: SideRecipe = { id: dish.id, nameAr: dish.nameAr, recipe: dish.ingredients };
+    const entry: SideRecipe = {
+      id: dish.id,
+      nameAr: dish.nameAr,
+      nameEn: dish.nameEn,
+      recipe: dish.ingredients,
+    };
     const bucket = byMeal.get(row.mealId);
     if (bucket) bucket.push(entry);
     else byMeal.set(row.mealId, [entry]);
@@ -654,6 +660,7 @@ export type DishEditData = {
   effort: string;
   cost: string;
   occasion: string;
+  isSide: boolean;
   allergenTags: string[];
   ingredients: {
     /** Carries the food's whole portion menu, so the editor can rebuild the unit list. */
@@ -752,6 +759,14 @@ export async function listDishes(input: {
   axes?: DishAxisFilters;
   /** Keep only dishes whose computed nutrition category is `high_protein`. */
   highProtein?: boolean;
+  /**
+   * Keep only dishes whose protein comes from one of these — OR within the list.
+   *
+   * Computed from the recipe by `proteinSource`, exactly like `highProtein`
+   * above and like the colour every surface paints, so the filter, the dot and
+   * the board can never disagree. Empty means "not narrowed".
+   */
+  proteinSources?: readonly string[];
   /** Ownership filter: shared/system dishes, the clinic's own, or (undefined) all. */
   owner?: OwnerFilter;
   page: number;
@@ -791,6 +806,9 @@ export async function listDishes(input: {
       // Computed from the recipe, never a stored tag — the filter can't disagree
       // with the dish's own numbers. See `nutritionCategory`.
       if (input.highProtein && nutritionCategory(dishTotals(dish.ingredients, 1)) !== 'high_protein') {
+        return false;
+      }
+      if (input.proteinSources?.length && !input.proteinSources.includes(proteinSource(dish.ingredients))) {
         return false;
       }
       if (!term) return true;
@@ -1436,6 +1454,17 @@ export type BoardMeal = {
    * reading this array is reading the same meal. Empty for an unfilled slot.
    */
   lines: MealIngredientLine[];
+  /**
+   * What stands beside this meal — صحن سلطة، كوب شوربة.
+   *
+   * Carried as its own list as well as folded into `lines`, because the two
+   * answer different questions. `lines` is *what the client eats*, which is why
+   * the sides are in it and why nothing downstream has to know they exist. This
+   * is *what the dietitian chose*, which is what the card prints and what the
+   * picker edits — and a list of ingredient rows cannot be edited back into a set
+   * of dishes.
+   */
+  sides: MealSide[];
   /** True once the dietitian has set amounts by hand and the dish multiplier no longer applies. */
   hasOwnAmounts: boolean;
   rationaleAr: string | null;
@@ -1894,7 +1923,12 @@ async function assembleBoard(plan: PlanRow): Promise<Board> {
     const dish = dishById.get(side.dishId);
     if (!dish) continue;
 
-    const entry: SideRecipe = { id: dish.id, nameAr: dish.nameAr, recipe: dish.ingredients };
+    const entry: SideRecipe = {
+      id: dish.id,
+      nameAr: dish.nameAr,
+      nameEn: dish.nameEn,
+      recipe: dish.ingredients,
+    };
     const bucket = sidesByMeal.get(side.mealId);
     if (bucket) bucket.push(entry);
     else sidesByMeal.set(side.mealId, [entry]);
@@ -1971,6 +2005,11 @@ async function assembleBoard(plan: PlanRow): Promise<Board> {
       timeOfDay: toTimeInput(meal.timeOfDay),
       dish: dish ? { ...dish, servings: meal.servings } : null,
       lines,
+      sides: (sidesByMeal.get(meal.id) ?? []).map(({ id, nameAr, nameEn }) => ({
+        id,
+        nameAr,
+        nameEn,
+      })),
       hasOwnAmounts: hasOwnAmounts(stored),
       rationaleAr: meal.rationaleAr,
       totals: nutrition.totals,

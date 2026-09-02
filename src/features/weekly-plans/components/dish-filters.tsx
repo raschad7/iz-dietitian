@@ -11,7 +11,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { usePathname, useRouter } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 import { type OwnerFilter } from '@/features/weekly-plans/catalog-ownership';
-import { dishSourceDotClasses, highProteinDotClasses } from '@/features/weekly-plans/meal-tag-tone';
+import { proteinDotClasses, proteinMessageKey } from '@/features/weekly-plans/meal-tag-tone';
+import { PROTEIN_SOURCES } from '@/features/weekly-plans/dish-composition';
 import {
   DISH_AXES,
   MEAL_TYPES,
@@ -102,6 +103,7 @@ export function DishFilters({
   mealType,
   axes,
   highProtein,
+  proteinSources,
   owner,
   showHidden,
   children,
@@ -110,6 +112,8 @@ export function DishFilters({
   mealType: string | undefined;
   axes: DishAxisFilters;
   highProtein: boolean;
+  /** The protein sources currently selected — OR within the list, empty for all. */
+  proteinSources: readonly string[];
   owner: OwnerFilter | undefined;
   /** Showing the hidden shelf *instead of* the catalog — see `listDishes`. */
   showHidden: boolean;
@@ -169,6 +173,14 @@ export function DishFilters({
     navigate({ [key]: next.join(',') });
   }
 
+  function toggleProtein(value: string) {
+    const next = proteinSources.includes(value)
+      ? proteinSources.filter((entry) => entry !== value)
+      : [...proteinSources, value];
+
+    navigate({ protein: next.join(',') });
+  }
+
   const activeMealType = MEAL_TAB_ORDER.find((type) => type === mealType) ?? null;
   const axisCount = DISH_AXES.reduce((total, { key }) => total + axes[key].length, 0);
   const qualityCount = axisCount + (highProtein ? 1 : 0);
@@ -176,7 +188,11 @@ export function DishFilters({
   // What the Clear control is allowed to act on. The search term is deliberately
   // not in it — see that button.
   const filterCount =
-    qualityCount + (showHidden ? 1 : 0) + (activeMealType ? 1 : 0) + (owner ? 1 : 0);
+    qualityCount +
+    proteinSources.length +
+    (showHidden ? 1 : 0) +
+    (activeMealType ? 1 : 0) +
+    (owner ? 1 : 0);
 
   return (
     /*
@@ -245,6 +261,38 @@ export function DishFilters({
               onSelect={() => navigate({ mealType: activeMealType === type ? '' : type })}
               icon={MEAL_ICON[type]}
               label={t(`mealTypes.${type}`)}
+            />
+          ))}
+        </ChoiceList>
+      </FacetPopover>
+
+      {/*
+        Protein source — the one facet that is *computed*, and the one the
+        colours mean.
+
+        It sits second because it is the question a dietitian actually asks of a
+        catalog ("what else could I put here that is not chicken"), and because
+        it is the only filter whose answer is already visible on every row as a
+        dot. Multi-select, since "fish or legumes" is one question with two
+        acceptable answers.
+      */}
+      <FacetPopover
+        icon="mealLunch"
+        facetLabel={t('proteinFilter.label')}
+        valueLabel={
+          proteinSources.length === 1 ? t(proteinMessageKey(proteinSources[0] ?? '')) : null
+        }
+        count={proteinSources.length > 1 ? proteinSources.length : undefined}
+      >
+        <ChoiceList label={t('proteinFilter.label')} role="group">
+          {PROTEIN_SOURCES.map((value) => (
+            <ChoiceRow
+              key={value}
+              role="checkbox"
+              selected={proteinSources.includes(value)}
+              onSelect={() => toggleProtein(value)}
+              dot={proteinDotClasses(value)}
+              label={t(proteinMessageKey(value))}
             />
           ))}
         </ChoiceList>
@@ -332,6 +380,7 @@ export function DishFilters({
             cost: '',
             occasion: '',
             hp: '',
+            protein: '',
             hidden: '',
           })
         }
@@ -441,9 +490,24 @@ function FacetPopover({
 }
 
 /** The rows of a single-select facet. */
-function ChoiceList({ label, children }: { label: string; children: React.ReactNode }) {
+function ChoiceList({
+  label,
+  role = 'radiogroup',
+  children,
+}: {
+  label: string;
+  /**
+   * `radiogroup` for a facet with one answer, `group` for one with several.
+   *
+   * The rows already carry `radio` or `checkbox` themselves; this keeps the
+   * container honest about which, because a `radiogroup` full of checkboxes is
+   * announced as a set of mutually exclusive options that are not.
+   */
+  role?: 'radiogroup' | 'group';
+  children: React.ReactNode;
+}) {
   return (
-    <div role="radiogroup" aria-label={label} className="flex flex-col gap-0.5 p-1.5">
+    <div role={role} aria-label={label} className="flex flex-col gap-0.5 p-1.5">
       {children}
     </div>
   );
@@ -544,7 +608,6 @@ function QualityPicker({
         key: HIGH_PROTEIN,
         axis: null as DishAxisKey | null,
         value: null as string | null,
-        dot: highProteinDotClasses(),
         label: t('nutritionFilters.high_protein'),
       },
       ...DISH_AXES.flatMap((axis) =>
@@ -552,9 +615,6 @@ function QualityPicker({
           key: `${axis.key}:${value}`,
           axis: axis.key,
           value,
-          // Only `source` wears a colour, because it is the axis the board paints
-          // its rules with. Fifteen coloured dots would be a palette, not a key.
-          dot: axis.key === 'source' ? dishSourceDotClasses(value) : null,
           label: t(message),
         })),
       ),
@@ -593,7 +653,6 @@ function QualityPicker({
             <ChoiceRow
               key={quality.key}
               role="checkbox"
-              dot={quality.dot ?? undefined}
               label={quality.label}
               selected={
                 quality.key === HIGH_PROTEIN

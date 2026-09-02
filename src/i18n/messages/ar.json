@@ -2145,8 +2145,8 @@
     "searchDishes": "ابحث في الأطباق",
     "dishFilters": "الفلاتر",
     "clearFilters": "مسح الفلاتر",
-    "colorKey": "دليل ألوان الأطباق",
-    "colorKeyUntagged": "بدون خصائص",
+    "colorKey": "مصدر البروتين في الأسبوع",
+    "colorKeyUntagged": "غير محدد",
     "filterTags": "تصنيف الطبق",
     "filterForThisSlot": "مناسبة لهذه الخانة",
     "dishOptions": {
@@ -2310,7 +2310,23 @@
         "medium": "متوسط",
         "low": "بسيط"
       }
-    }
+    },
+    "proteinSources": {
+      "red_meat": "لحوم حمراء",
+      "poultry": "دجاج وحبش",
+      "fish": "سمك",
+      "egg": "بيض",
+      "dairy": "ألبان وأجبان",
+      "legume": "بقوليات",
+      "nuts": "مكسرات وبذور",
+      "none": "بدون بروتين رئيسي"
+    },
+    "sidesLabel": "يُقدّم معه",
+    "sidesHint": "اختياري · حتى صنفين",
+    "noSides": "لا شيء بجانب هذه الوجبة",
+    "addSide": "أضف صنفاً بجانبها",
+    "removeSide": "إزالة الصنف الجانبي",
+    "planNotes": "ملاحظات للأخصائي"
   },
   "dishes": {
     "title": "كتالوج الأطباق",
@@ -2420,7 +2436,21 @@
       "egg": "بيض",
       "fish": "سمك",
       "sesame": "سمسم"
-    }
+    },
+    "proteinSources": {
+      "red_meat": "لحوم حمراء",
+      "poultry": "دجاج وحبش",
+      "fish": "سمك",
+      "egg": "بيض",
+      "dairy": "ألبان وأجبان",
+      "legume": "بقوليات",
+      "nuts": "مكسرات وبذور",
+      "none": "بدون بروتين رئيسي"
+    },
+    "proteinFilter": {
+      "label": "مصدر البروتين"
+    },
+    "sideDish": "طبق جانبي"
   },
   "dishEditor": {
     "foodPicker": {
@@ -2533,7 +2563,10 @@
       "gramsPerServing": "{grams} غرام للحصة",
       "kcalPer100g": "{kcal} سعرة / 100غ",
       "suggested": "مقترح",
-      "saveAndAddAnother": "حفظ وإضافة آخر"
+      "saveAndAddAnother": "حفظ وإضافة آخر",
+      "roleLegend": "نوع الطبق",
+      "roleMain": "طبق رئيسي",
+      "roleSide": "طبق جانبي"
     }
   },
   "whatsapp": {
