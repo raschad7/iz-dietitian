@@ -6,7 +6,7 @@ import { db } from '@/db';
 import { catalogFoodAliases, catalogFoodPortions, catalogFoods, dishIngredients, dishes } from '@/db/schema';
 
 import { seedCatalogFoods, readCatalogDataset } from '../../../scripts/seed-catalog-foods';
-import { seedDishes } from '../../../scripts/seed-dishes';
+import { readDishDataset, seedDishes } from '../../../scripts/seed-dishes';
 import { createTestCatalogFood, createTestClinic, resetDatabase } from '../../../tests/helpers';
 
 import { normalizeArabic } from './arabic-normalize';
@@ -61,8 +61,13 @@ describe('a fresh database', () => {
     await seedCatalogFoods({ apply: true });
     const result = await seedDishes();
 
-    expect(result.dishes).toBe(114);
-    expect(result.ingredients).toBe(481);
+    // Against the dataset, not a literal: what this asserts is that the seed wrote
+    // everything the committed file holds, which stays true as the catalog grows.
+    const dataset = readDishDataset();
+    const lines = dataset.reduce((total, dish) => total + dish.ingredients.length, 0);
+
+    expect(result.dishes).toBe(dataset.length);
+    expect(result.ingredients).toBe(lines);
 
     // `catalog_food_id` is NOT NULL since Phase 2, so this asserts the join
     // resolves rather than merely that a column is populated.
@@ -70,11 +75,11 @@ describe('a fresh database', () => {
       .select({ n: sql<number>`cast(count(*) as int)` })
       .from(dishIngredients)
       .innerJoin(catalogFoods, eq(catalogFoods.id, dishIngredients.catalogFoodId));
-    expect(rows[0]!.n).toBe(481);
+    expect(rows[0]!.n).toBe(lines);
 
     // And the whole catalog reads back through the app's own loader, recipes intact.
     const catalog = await loadCatalog(await createTestClinic());
-    expect(catalog).toHaveLength(114);
+    expect(catalog).toHaveLength(dataset.length);
     expect(catalog.every((dish) => dish.ingredients.length > 0)).toBe(true);
   });
 
@@ -117,7 +122,7 @@ describe('a fresh database', () => {
 
 describe('dish nutrition after the migration', () => {
   /**
-   * Parity, for all 114 dishes at once.
+   * Parity, for every dish in the dataset at once.
    *
    * "Before and after" cannot mean "against the old `foods` table" any more — that
    * table is gone. What it means instead is the stronger statement: every total the

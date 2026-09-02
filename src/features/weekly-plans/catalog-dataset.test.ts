@@ -357,13 +357,19 @@ describe('coverage of the shipped dish catalog', () => {
   });
 
   /**
-   * The shipped catalog's size, pinned. Not a vanity number: it is the figure the
-   * migration report claims, and a dish or ingredient silently disappearing from
-   * the dataset is exactly the kind of change nobody notices until a plan is short
-   * a meal.
+   * A floor rather than an exact figure.
+   *
+   * It used to pin the count, which meant every wave of catalog growth broke a
+   * test that was not about growth. What it is actually guarding is the opposite
+   * direction: a dish or a recipe silently *disappearing* from the dataset, which
+   * nobody notices until a plan is short a meal. `db:check` measures whether the
+   * catalog is big enough to plan from; that is a different question, and it has
+   * a grid.
    */
-  test('is 114 dishes and 481 ingredients', () => {
-    expect(dishes).toHaveLength(114);
-    expect(dishes.reduce((total, dish) => total + dish.ingredients.length, 0)).toBe(481);
+  test('never shrinks below the size the migration report claims', () => {
+    expect(dishes.length).toBeGreaterThanOrEqual(114);
+    expect(dishes.reduce((total, dish) => total + dish.ingredients.length, 0)).toBeGreaterThanOrEqual(
+      481,
+    );
   });
 });
