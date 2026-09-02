@@ -91,7 +91,10 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
   const candidates = board
     ? swapCandidatesByMealFromCatalog(
         board,
-        catalog.filter((dish) => dish.blockedBy.length === 0),
+        // Mains only, and clean of the client's allergens. An alternative to a
+        // lunch has to be a lunch: offering صحن سلطة as the replacement for
+        // مقلوبة would swap the meal for its own side dish.
+        catalog.filter((dish) => !dish.isSide && dish.blockedBy.length === 0),
       )
     : {};
 

@@ -51,6 +51,37 @@ function dish(id: string): DishDetail {
   };
 }
 
+/**
+ * A side's recipe: 100 g of a 90 kcal food, sharing its food id with nothing the
+ * main uses except where a test deliberately wants the collision.
+ */
+function sideRecipe() {
+  return [
+    {
+      quantityGrams: 100,
+      isPrimary: true,
+      sortOrder: 0,
+      food: {
+        id: 'shared-food',
+        nameAr: 'خس',
+        nameEn: 'lettuce',
+        kcal: 90,
+        protein: 2,
+        carbs: 6,
+        fat: 1,
+        fiber: null,
+        sugar: null,
+        saturatedFat: null,
+        sodium: null,
+        cholesterol: null,
+        calcium: null,
+        iron: null,
+        potassium: null,
+      },
+    },
+  ];
+}
+
 function meal(id: string, overrides: Partial<BoardMeal> = {}): BoardMeal {
   return {
     id,
@@ -58,6 +89,7 @@ function meal(id: string, overrides: Partial<BoardMeal> = {}): BoardMeal {
     label: 'غداء',
     timeOfDay: '14:00',
     dish: null,
+    sides: [],
     lines: [],
     hasOwnAmounts: false,
     rationaleAr: null,
@@ -305,5 +337,93 @@ describe('applyEdit', () => {
     const start = board([meal('m1')]);
 
     expect(applyEdit(start, { kind: 'clear', mealId: 'nope' })).toEqual(start);
+  });
+
+  /**
+   * A meal is often more than one thing, and every optimistic edit has to keep
+   * saying so.
+   *
+   * `withDish` rebuilt `lines` from `scaleRecipe` alone, which is the main's
+   * recipe and nothing else — so a press of the portion control made the salad
+   * blink out of the ingredient list and its calories off the card, until the
+   * server answered and put them back. The sides belong to the meal, not to the
+   * dish: `weekly_plan_meal_sides` is keyed on the meal, and the server keeps
+   * them across a swap too.
+   */
+  describe('sides', () => {
+    /** A meal carrying one main and one 90 kcal salad beside it. */
+    function withSalad(): Board {
+      return applyEdit(filled([meal('m1')], 'm1'), {
+        kind: 'sides',
+        mealId: 'm1',
+        sides: [{ id: 's1', nameAr: 'صحن سلطة', nameEn: 'Salad', recipe: sideRecipe() }],
+      });
+    }
+
+    test('attaching a side adds its lines and its calories', () => {
+      const next = withSalad().days[0]!.meals[0]!;
+
+      expect(next.sides.map((side) => side.id)).toEqual(['s1']);
+      expect(next.lines.filter((line) => line.side !== null)).toHaveLength(1);
+      expect(next.totals.kcal.value).toBeCloseTo(390, 6);
+    });
+
+    test('an empty set removes them, and takes their calories with it', () => {
+      const next = applyEdit(withSalad(), { kind: 'sides', mealId: 'm1', sides: [] });
+      const cleared = next.days[0]!.meals[0]!;
+
+      expect(cleared.sides).toEqual([]);
+      expect(cleared.lines.every((line) => line.side === null)).toBe(true);
+      expect(cleared.totals.kcal.value).toBeCloseTo(300, 6);
+    });
+
+    test('changing the portion of the main leaves the side exactly where it was', () => {
+      const next = applyEdit(withSalad(), { kind: 'servings', mealId: 'm1', servings: 2 });
+      const scaled = next.days[0]!.meals[0]!;
+
+      expect(scaled.sides.map((side) => side.id)).toEqual(['s1']);
+      // 600 for two servings of the main, plus the salad's unscaled 90.
+      expect(scaled.totals.kcal.value).toBeCloseTo(690, 6);
+    });
+
+    test('swapping the dish keeps the salad, as the server does', () => {
+      const next = applyEdit(withSalad(), {
+        kind: 'place',
+        mealId: 'm1',
+        dish: dish('d2'),
+        servings: 1,
+      });
+
+      expect(next.days[0]!.meals[0]!.sides.map((side) => side.id)).toEqual(['s1']);
+    });
+
+    /*
+     * An empty slot cannot carry a side — `setMealSides` refuses one — so the
+     * optimistic board must not leave a salad hanging on a cleared cell.
+     */
+    test('clearing the slot clears what was standing beside it', () => {
+      const next = applyEdit(withSalad(), { kind: 'clear', mealId: 'm1' });
+      const cleared = next.days[0]!.meals[0]!;
+
+      expect(cleared.sides).toEqual([]);
+      expect(cleared.lines).toEqual([]);
+    });
+
+    /*
+     * A salad standing beside a maqluba can hold the same tomato the maqluba
+     * does. One `−` press must move one of them.
+     */
+    test('editing an ingredient by hand does not reach into the side', () => {
+      const next = applyEdit(withSalad(), {
+        kind: 'ingredient',
+        mealId: 'm1',
+        foodId: 'shared-food',
+        quantityGrams: 50,
+        portionQuantity: null,
+      });
+
+      const line = next.days[0]!.meals[0]!.lines.find((one) => one.side !== null);
+      expect(line?.quantityGrams).toBe(100);
+    });
   });
 });

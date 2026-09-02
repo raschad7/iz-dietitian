@@ -281,6 +281,7 @@ describe('sides', () => {
   const salad: SideRecipe = {
     id: 'side-salad',
     nameAr: 'صحن سلطة',
+    nameEn: 'Green salad plate',
     recipe: [line('lettuce', 100, { sortOrder: 0 }), line('tomato', 50, { sortOrder: 1 })],
   };
 
@@ -293,7 +294,11 @@ describe('sides', () => {
 
     expect(lines.map((one) => one.food.id)).toEqual(['rice', 'lettuce', 'tomato']);
     expect(lines[0]!.side).toBeNull();
-    expect(lines[1]!.side).toEqual({ id: 'side-salad', nameAr: 'صحن سلطة' });
+    expect(lines[1]!.side).toEqual({
+      id: 'side-salad',
+      nameAr: 'صحن سلطة',
+      nameEn: 'Green salad plate',
+    });
   });
 
   /**
@@ -343,6 +348,7 @@ describe('sides', () => {
     const yogurt: SideRecipe = {
       id: 'side-yogurt',
       nameAr: 'كوب لبن',
+      nameEn: 'Cup of yogurt',
       recipe: [line('yogurt', 200, { sortOrder: 0 })],
     };
 

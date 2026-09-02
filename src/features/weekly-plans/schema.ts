@@ -411,6 +411,41 @@ export const setMealIngredientSchema = z
     'a portion and its count must be given together',
   );
 
+/**
+ * How many things may stand beside one main.
+ *
+ * The same cap the prompt gives the model (`MAX_SIDES`), stated again here
+ * because the dietitian's own hand is a second way in and a plate with five
+ * accompaniments is not a plate any more. Two is a salad and a soup, which is
+ * what a Palestinian lunch actually carries.
+ */
+export const MAX_MEAL_SIDES = 2;
+
+/**
+ * The whole set of sides on one meal, replaced at once.
+ *
+ * Not add-one / remove-one. A side has no identity of its own — it is a dish id
+ * in a set — so "the sides are now these" is both the simplest thing the client
+ * can say and the only one that cannot drift: two clicks racing each other
+ * produce one of the two answers rather than a merge of both. It also makes
+ * *removing the last one* the same write as changing one, which is the case the
+ * dietitian actually needs — a lunch does not always come with a salad.
+ *
+ * `dishIds` arrives as a comma-separated field because this posts from a form
+ * like every other edit. Empty means no sides.
+ */
+export const setMealSidesSchema = z.object({
+  ...editBase,
+  mealId: mealIdSchema,
+  dishIds: z.preprocess(
+    (value) =>
+      typeof value === 'string'
+        ? value.split(',').map((one) => one.trim()).filter(Boolean)
+        : value,
+    z.array(dishIdSchema).max(MAX_MEAL_SIDES),
+  ),
+});
+
 export const mealEditSchema = z.object({ ...editBase, mealId: mealIdSchema });
 
 export const addMealSchema = z.object({
@@ -533,14 +568,19 @@ export const generatedMealSchema = z.object({
 export type GeneratedMeal = z.infer<typeof generatedMealSchema> & { slotKey: string };
 
 /**
- * How long a week's summary may be before it stops being one.
+ * How long the dietitian's notes on a week may be.
  *
- * It is read in a list of weeks, in a table cell, beside the dates it is meant to
- * tell apart. Three sentences is the most that reads at that size; anything
- * longer is trimmed rather than refused, for the same reason an over-long
- * rationale is.
+ * `summary_ar` used to hold three sentences describing the week, and 400
+ * characters was the length at which that stopped being a summary. It holds
+ * **notes** now — two to four short things the dietitian can act on, one per
+ * line — and four Arabic lines with a day and a dish named in each do not fit in
+ * 400. 900 is roughly six such lines, which is past the point where a note stops
+ * being read anyway.
+ *
+ * Over-long text is trimmed rather than refused, for the same reason an over-long
+ * rationale is: the plan is still good.
  */
-export const MAX_SUMMARY_LENGTH = 400;
+export const MAX_SUMMARY_LENGTH = 900;
 
 /** The canonical shape the rest of the feature works in, after parsing. */
 export type GeneratedPlan = {

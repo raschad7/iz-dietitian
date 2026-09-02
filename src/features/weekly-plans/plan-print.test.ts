@@ -74,6 +74,7 @@ function meal(
           servings: 1,
         }
       : null,
+    sides: [],
     lines: [],
     hasOwnAmounts: false,
     rationaleAr: null,

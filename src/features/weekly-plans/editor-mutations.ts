@@ -6,6 +6,7 @@ import {
   dishes,
   weeklyPlanMealIngredients,
   weeklyPlanMealOptions,
+  weeklyPlanMealSides,
   weeklyPlanMeals,
   weeklyPlans,
   type NewWeeklyPlanMealIngredient,
@@ -14,7 +15,7 @@ import { recomputeDayAdherence } from '@/features/portal/mutations';
 
 import { MAX_INGREDIENT_GRAMS, mealIngredientLines } from './meal-ingredients';
 import { loadDishesByIds, ownAmountsByMeal, type DbExecutor } from './queries';
-import { DAYS_OF_WEEK } from './schema';
+import { DAYS_OF_WEEK, MAX_MEAL_SIDES } from './schema';
 import { snapServings } from './similar';
 import type { SkeletonMeal } from './skeleton';
 import { planWeekDays, weekDateForDay } from './week';
@@ -259,6 +260,89 @@ export async function placeDish(
 
     // A new dish means the hand-set amounts describe food that is no longer here.
     if (meal.dishId !== dishId) await clearOwnAmounts(tx, mealId);
+
+    await touchPlan(tx, planId);
+
+    return true;
+  });
+}
+
+/**
+ * Replaces everything standing beside one meal.
+ *
+ * The whole set at once — see `setMealSidesSchema` for why it is not add/remove.
+ *
+ * ## What it refuses
+ *
+ * A dish that is not `is_side` is rejected outright rather than filtered out. A
+ * main attached as a side would be served at one un-scaled portion beside another
+ * main, which is a second dinner on the plate and no number anywhere would say
+ * so. The same check keeps another clinic's dish off the plan: the lookup is
+ * scoped to shared dishes plus this clinic's own, exactly as `loadCatalog` is, so
+ * an id the caller does not own comes back as "not a side".
+ *
+ * ## Why it does not touch adherence
+ *
+ * A side does not change how many meals a day holds — it changes what one of
+ * them contains. `client_plan_adherence` counts meals, and this write cannot
+ * change that count, so it is one of the writes the module note above lists as
+ * not owing a recompute.
+ *
+ * Hand-set ingredient amounts survive. They belong to the main, and
+ * `mealIngredientLines` folds the sides in beside them either way — which is the
+ * whole reason sides resolve there rather than being materialised into
+ * `weekly_plan_meal_ingredients`.
+ */
+export async function setMealSides(
+  clinicId: string,
+  planId: string,
+  mealId: string,
+  dishIds: readonly string[],
+): Promise<boolean> {
+  const plan = await editablePlan(clinicId, planId);
+  if (!plan) return false;
+  if (dishIds.length > MAX_MEAL_SIDES) return false;
+
+  // Deduplicated before anything else: the table's unique index on (meal, dish)
+  // would reject the second copy mid-transaction, and "you already have that"
+  // is a worse answer than simply having it once.
+  const wanted = [...new Set(dishIds)];
+
+  if (wanted.length) {
+    const rows = await db
+      .select({ id: dishes.id })
+      .from(dishes)
+      .where(
+        and(
+          inArray(dishes.id, wanted),
+          eq(dishes.isSide, true),
+          eq(dishes.isActive, true),
+          or(isNull(dishes.clinicId), eq(dishes.clinicId, clinicId)),
+        ),
+      );
+
+    if (rows.length !== wanted.length) return false;
+  }
+
+  return db.transaction(async (tx) => {
+    const [meal] = await tx
+      .select({ id: weeklyPlanMeals.id, dishId: weeklyPlanMeals.dishId })
+      .from(weeklyPlanMeals)
+      .where(and(eq(weeklyPlanMeals.id, mealId), eq(weeklyPlanMeals.planId, planId)))
+      .limit(1);
+
+    if (!meal) return false;
+    // Nothing may stand beside nothing. An empty slot with a salad on it would
+    // count toward the day's calories while reading as unfilled.
+    if (!meal.dishId && wanted.length) return false;
+
+    await tx.delete(weeklyPlanMealSides).where(eq(weeklyPlanMealSides.mealId, mealId));
+
+    if (wanted.length) {
+      await tx.insert(weeklyPlanMealSides).values(
+        wanted.map((dishId, index) => ({ mealId, dishId, sortOrder: index })),
+      );
+    }
 
     await touchPlan(tx, planId);
 

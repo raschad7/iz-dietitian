@@ -11,6 +11,7 @@ function meal(slotKey: string, label: string, timeOfDay: string): BoardMeal {
     label,
     timeOfDay,
     dish: null,
+    sides: [],
     lines: [],
     hasOwnAmounts: false,
     rationaleAr: null,

@@ -10,6 +10,7 @@ import {
   dishIngredients,
   dishes,
   weeklyPlanMealOptions,
+  weeklyPlanMealSides,
   weeklyPlanMeals,
   weeklyPlans,
 } from '@/db/schema';
@@ -25,6 +26,7 @@ import {
   removeMeal,
   removeMealFromWeek,
   setMealServings,
+  setMealSides,
 } from './editor-mutations';
 import { planDishesBySlot } from './queries';
 import type { MealScheduleInput } from './schema';
@@ -701,5 +703,165 @@ describe('the edit writes', () => {
       expect((await adherenceRow(clientId, '2026-08-02'))?.totalMeals).toBe(1);
       expect((await adherenceRow(clientId, '2026-08-08'))?.totalMeals).toBe(1);
     });
+  });
+});
+
+/**
+ * A lunch is often more than one thing, and which thing is the dietitian's call.
+ *
+ * Every generated week came back with the same صحن سلطة on all fourteen lunches
+ * and dinners, and there was no write anywhere that could change or remove one.
+ * These pin the two halves of the fix: the set can be replaced, and it refuses
+ * everything that would put a second meal on the plate.
+ */
+describe('setMealSides', () => {
+  let planId: string;
+  let mainId: string;
+  let mealId: string;
+  let saladId: string;
+  let soupId: string;
+
+  /** A dish row with a recipe, marked as a side or not. */
+  async function seedSideDish(slug: string, isSide: boolean, clinic?: string): Promise<string> {
+    const [food] = await db
+      .insert(catalogFoods)
+      .values({
+        slug: `side-food-${randomUUID()}`,
+        nameAr: 'خضار',
+        nameEn: 'Vegetables',
+        normalizedNameAr: normalizeArabic('خضار'),
+        normalizedNameEn: normalizeArabic('Vegetables'),
+        state: 'raw',
+        category: 'vegetables',
+        sourceType: 'usda_sr_legacy',
+        kcal: 20,
+        protein: 1,
+        fat: 0,
+        carbs: 4,
+      })
+      .returning({ id: catalogFoods.id });
+
+    const [row] = await db
+      .insert(dishes)
+      .values({
+        slug,
+        nameAr: slug,
+        nameEn: slug,
+        clinicId: clinic ?? null,
+        mealTypes: ['lunch', 'dinner'],
+        allergenTags: [],
+        baseServingLabel: 'صحن',
+        isSide,
+      })
+      .returning({ id: dishes.id });
+
+    await db
+      .insert(dishIngredients)
+      .values({ dishId: row!.id, catalogFoodId: food!.id, quantityGrams: 150, sortOrder: 0 });
+
+    return row!.id;
+  }
+
+  async function attached(): Promise<string[]> {
+    const rows = await db
+      .select({ dishId: weeklyPlanMealSides.dishId })
+      .from(weeklyPlanMealSides)
+      .where(eq(weeklyPlanMealSides.mealId, mealId))
+      .orderBy(weeklyPlanMealSides.sortOrder);
+
+    return rows.map((row) => row.dishId);
+  }
+
+  beforeEach(async () => {
+    mainId = await seedSideDish('sides-main', false);
+    saladId = await seedSideDish('sides-salad', true);
+    soupId = await seedSideDish('sides-soup', true);
+
+    planId = (await createPlanFromSkeleton({
+      clinicId,
+      clientId,
+      weekStartDate: '2026-03-01',
+      kcalTarget: 2000,
+      meals: planSkeleton({ schedule, dailyKcal: 2000 }),
+    }))!;
+
+    const [meal] = await db
+      .select({ id: weeklyPlanMeals.id })
+      .from(weeklyPlanMeals)
+      .where(and(eq(weeklyPlanMeals.planId, planId), eq(weeklyPlanMeals.dayOfWeek, 0)))
+      .limit(1);
+
+    mealId = meal!.id;
+    await placeDish(clinicId, planId, mealId, mainId, 1);
+  });
+
+  test('attaches a side, and replaces the whole set on the next write', async () => {
+    expect(await setMealSides(clinicId, planId, mealId, [saladId])).toBe(true);
+    expect(await attached()).toEqual([saladId]);
+
+    // A different salad, not a second one — the client sends the finished set.
+    expect(await setMealSides(clinicId, planId, mealId, [soupId])).toBe(true);
+    expect(await attached()).toEqual([soupId]);
+  });
+
+  /*
+   * The case the whole control exists for: a lunch does not always come with a
+   * salad, and removing the last one has to be the same write as changing one.
+   */
+  test('an empty set removes everything, and is not a failure', async () => {
+    await setMealSides(clinicId, planId, mealId, [saladId, soupId]);
+    expect(await attached()).toHaveLength(2);
+
+    expect(await setMealSides(clinicId, planId, mealId, [])).toBe(true);
+    expect(await attached()).toEqual([]);
+  });
+
+  test('order is kept, because it is the order they are read in', async () => {
+    await setMealSides(clinicId, planId, mealId, [soupId, saladId]);
+    expect(await attached()).toEqual([soupId, saladId]);
+  });
+
+  /*
+   * A main attached as a side would be served at one un-scaled portion beside
+   * another main — a second dinner on the plate, with no number anywhere saying
+   * so.
+   */
+  test('a dish that is not a side is refused, and nothing is written', async () => {
+    await setMealSides(clinicId, planId, mealId, [saladId]);
+
+    expect(await setMealSides(clinicId, planId, mealId, [mainId])).toBe(false);
+    expect(await attached()).toEqual([saladId]);
+  });
+
+  test('another clinic’s side is refused the same way a forged id is', async () => {
+    const otherClinicId = await createTestClinic('Other Clinic');
+    const theirs = await seedSideDish('their-salad', true, otherClinicId);
+
+    expect(await setMealSides(clinicId, planId, mealId, [theirs])).toBe(false);
+    expect(await setMealSides(clinicId, planId, mealId, [randomUUID()])).toBe(false);
+    expect(await attached()).toEqual([]);
+  });
+
+  test('more than two is refused — a plate is not a buffet', async () => {
+    const third = await seedSideDish('sides-third', true);
+
+    expect(await setMealSides(clinicId, planId, mealId, [saladId, soupId, third])).toBe(false);
+    expect(await attached()).toEqual([]);
+  });
+
+  /*
+   * An empty slot with a salad on it would count toward the day's calories while
+   * still reading as unfilled, and the publish gate counts unfilled slots.
+   */
+  test('nothing may stand beside nothing', async () => {
+    await clearMeal(clinicId, planId, mealId);
+
+    expect(await setMealSides(clinicId, planId, mealId, [saladId])).toBe(false);
+    expect(await attached()).toEqual([]);
+  });
+
+  test('the same side twice is stored once rather than rejected', async () => {
+    expect(await setMealSides(clinicId, planId, mealId, [saladId, saladId])).toBe(true);
+    expect(await attached()).toEqual([saladId]);
   });
 });

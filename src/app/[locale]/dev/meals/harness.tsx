@@ -150,6 +150,7 @@ function meal(id: string, label: string, lines: readonly MealIngredientLine[]): 
     timeOfDay: '13:30',
     rationaleAr: 'وجبة متوازنة تناسب ميزانية الغداء.',
     lines: [...lines],
+    sides: [],
     hasOwnAmounts: false,
     totals: mealTotals(lines),
     grams: mealGrams(lines),
@@ -233,6 +234,7 @@ export function MealsHarness({ locale }: { locale: string }) {
         ),
       );
     },
+    setSides: () => {},
     resetIngredients: () => {
       setAmounts(FIXTURES[fixture].lines.map(ingredient));
       setTouched(false);

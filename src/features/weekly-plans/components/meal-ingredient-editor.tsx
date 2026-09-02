@@ -52,8 +52,18 @@ export function MealIngredientEditor({
   const t = useTranslations('weeklyPlans');
   const { setIngredient, resetIngredients } = useEditorActions();
 
-  const primary = primaryLines(lines);
-  const rest = lines.filter((line) => !line.isPrimary);
+  /*
+   * Only the *main's* primary lines get a stepper.
+   *
+   * A side is a whole dish standing beside the meal at one serving, and the
+   * server has no write that changes an amount inside one: `setMealIngredient`
+   * resolves the main's lines and refuses a food it does not find among them.
+   * Without this filter a salad's tomato would be offered a `−/+` that either
+   * did nothing or moved the main's tomato instead. The side's lines still
+   * appear below, read-only and grouped under their dish's name.
+   */
+  const primary = primaryLines(lines.filter((line) => line.side === null));
+  const rest = lines.filter((line) => !line.isPrimary || line.side !== null);
 
   // Nothing is marked on this dish, so there is nothing to put a control on. The
   // plain list is the honest rendering, not a fallback that hides a problem.

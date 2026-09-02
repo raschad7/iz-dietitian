@@ -51,7 +51,9 @@ export function MealIngredientAmounts({
           "صحن سلطة", and a plate stops looking like a plate. */}
       {sides.map((side) => (
         <div key={side.id} className="border-t border-border pt-2">
-          <p className="mb-1 text-body-sm font-medium">{side.nameAr}</p>
+          <p className="mb-1 text-body-sm font-medium" dir="auto">
+            {localizedName(side, locale)}
+          </p>
           <ul className="flex flex-col gap-1.5 text-body-sm">
             {side.lines.map((line) => (
               <IngredientRow key={lineKey(line)} line={line} locale={locale} />
@@ -77,10 +79,10 @@ function lineKey(line: MealIngredientLine): string {
 /** The main's lines, then each side with its own, in the order they were attached. */
 export function groupBySide(lines: readonly MealIngredientLine[]): {
   main: MealIngredientLine[];
-  sides: { id: string; nameAr: string; lines: MealIngredientLine[] }[];
+  sides: { id: string; nameAr: string; nameEn: string; lines: MealIngredientLine[] }[];
 } {
   const main: MealIngredientLine[] = [];
-  const sides: { id: string; nameAr: string; lines: MealIngredientLine[] }[] = [];
+  const sides: { id: string; nameAr: string; nameEn: string; lines: MealIngredientLine[] }[] = [];
 
   for (const line of lines) {
     if (!line.side) {
@@ -90,7 +92,14 @@ export function groupBySide(lines: readonly MealIngredientLine[]): {
 
     const group = sides.find((side) => side.id === line.side?.id);
     if (group) group.lines.push(line);
-    else sides.push({ id: line.side.id, nameAr: line.side.nameAr, lines: [line] });
+    else {
+      sides.push({
+        id: line.side.id,
+        nameAr: line.side.nameAr,
+        nameEn: line.side.nameEn,
+        lines: [line],
+      });
+    }
   }
 
   return { main, sides };

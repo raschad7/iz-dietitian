@@ -40,11 +40,13 @@ import {
   resetMealIngredientsAction,
   restoreWeekMealAction,
   setMealIngredientAction,
+  setMealSidesAction,
   setServingsAction,
 } from '../editor-actions';
 import { applyEdit, type BoardEdit } from '../editor-state';
 import { localizedName } from '../food-display';
-import { dishSourceAccentClass } from '../meal-tag-tone';
+import { proteinAccentClass } from '../meal-tag-tone';
+import { proteinSource } from '../dish-composition';
 import { initialPlanActionState, type PlanActionState } from '../form-state';
 import type { Board, BoardMeal } from '../queries';
 
@@ -182,12 +184,15 @@ export type DragPayload =
         kcal: number;
         servings: number;
         /**
-         * The dish's source, carried purely so the lifted card can draw the same
-         * coloured rule its resting self does. Without them the preview loses
-         * the one mark that says *which kind* of dish is in flight, at the
+         * The dish's protein source, carried purely so the lifted card can draw
+         * the same coloured rule its resting self does. Without it the preview
+         * loses the one mark that says *which kind* of dish is in flight, at the
          * moment that is the only thing on screen answering the question.
+         *
+         * Computed at drag start rather than here: the overlay has the preview,
+         * not the recipe.
          */
-        source: string;
+        protein: string;
       };
     };
 
@@ -756,6 +761,25 @@ export function BoardEditor({
                 mealId,
               });
             },
+            setSides: (mealId, sides) => {
+              runAction(
+                {
+                  kind: 'sides',
+                  mealId,
+                  sides: sides.map((dish) => ({
+                    id: dish.id,
+                    nameAr: dish.nameAr,
+                    nameEn: dish.nameEn,
+                    recipe: dish.ingredients,
+                  })),
+                },
+                setMealSidesAction,
+                // A comma-separated field rather than repeated entries: the
+                // schema reads one string, and an empty one is how "no sides at
+                // all" survives a `FormData` that drops absent keys.
+                { mealId, dishIds: sides.map((dish) => dish.id).join(',') },
+              );
+            },
             place: (mealId, dish, servings) => {
               runAction({ kind: 'place', mealId, dish, servings }, placeDishAction, {
                 mealId,
@@ -858,7 +882,7 @@ function DragPreview({
   // A meal's preview name was already localized when the drag started; a dish
   // dragged out of the catalog carries both names and is localized here.
   const name = isMeal ? payload.preview.dishName : localizedName(payload.dish, locale);
-  const source = isMeal ? payload.preview.source : payload.dish.source;
+  const protein = isMeal ? payload.preview.protein : proteinSource(payload.dish.ingredients);
   const kcal = isMeal ? payload.preview.kcal : payload.kcal;
 
   /*
@@ -910,7 +934,7 @@ function DragPreview({
       <span className="relative mt-1 flex shrink-0 items-baseline justify-center gap-2 px-2 pb-1.5 pt-2.5">
         <span
           aria-hidden
-          className={cn('absolute start-4 end-4 top-0 h-[3px] rounded-full', dishSourceAccentClass(source))}
+          className={cn('absolute start-4 end-4 top-0 h-[3px] rounded-full', proteinAccentClass(protein))}
         />
         <span className="inline-flex items-baseline gap-1 text-body-sm font-semibold tabular-nums" dir="ltr">
           {kcal}
@@ -950,6 +974,13 @@ export type EditorActions = {
   ) => void;
   /** Puts a meal back on its dish's recipe, discarding hand-set amounts. */
   resetIngredients: (mealId: string) => void;
+  /**
+   * Sets everything standing beside one meal — the whole set, not a difference.
+   *
+   * Takes the resolved dishes rather than ids so the optimistic board can cost
+   * them without a second lookup; the action posts only the ids.
+   */
+  setSides: (mealId: string, sides: readonly DishDetail[]) => void;
   clear: (mealId: string) => void;
   remove: (mealId: string) => void;
   /** Restores one day's skipped slot. The exception — see `addWeek`. */

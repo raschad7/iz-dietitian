@@ -10,7 +10,8 @@ import { cn } from '@/lib/utils';
 import { MEAL_TOLERANCE, driftState } from '@/features/weekly-plans/drift';
 import { roundForDisplay } from '@/features/weekly-plans/nutrition';
 import { localizedName } from '../food-display';
-import { dishSourceAccentClass } from '../meal-tag-tone';
+import { dishAccentClass } from '../meal-tag-tone';
+import { proteinSource } from '../dish-composition';
 import type { BoardMeal } from '../queries';
 
 import { useEditorActions } from './board-dnd';
@@ -88,7 +89,7 @@ export function MealCard({
             dishName: localizedName(meal.dish, locale),
             kcal,
             servings: meal.dish.servings,
-            source: meal.dish.source,
+            protein: proteinSource(meal.dish.ingredients),
           }
         : undefined,
     },
@@ -230,6 +231,30 @@ export function MealCard({
           <span className="mt-1 block text-caption text-muted-foreground">{t('retiredDish')}</span>
         )}
 
+        {/*
+          What else is on the plate.
+
+          A generated lunch is "مقلوبة و صحن سلطة", and until this line existed
+          the card said "مقلوبة" — the salad was in the calories, in the printout
+          and in the patient's list, and invisible on the one surface the
+          dietitian actually plans on. A meal that silently contains something is
+          worse than one that contains nothing.
+
+          A caption under the name rather than a chip beside it: it is the
+          *second* half of a sentence the name starts, and thirty-five cards have
+          no room for a second focal point. Clamped to one line and dotted so it
+          reads as a continuation, not a heading.
+        */}
+        {meal.dish && meal.sides.length > 0 && (
+          <span
+            className="mt-1 block truncate px-2 text-center text-caption text-muted-foreground"
+            dir="auto"
+            title={meal.sides.map((side) => localizedName(side, locale)).join('، ')}
+          >
+            + {meal.sides.map((side) => localizedName(side, locale)).join(' · ')}
+          </span>
+        )}
+
         {/* The figures, on the card rather than on a shelf. The tinted band and
             its hairline are gone: with the metadata row gone too, the card is
             one surface with a name at the top and its numbers at the foot, and
@@ -252,7 +277,7 @@ export function MealCard({
             aria-hidden
             className={cn(
               'absolute start-4 end-4 top-0 h-[3px] rounded-full',
-              meal.dish ? dishSourceAccentClass(meal.dish.source) : 'bg-border',
+              meal.dish ? dishAccentClass(meal.dish.ingredients) : 'bg-border',
             )}
           />
           <span
@@ -386,7 +411,7 @@ export function MealCardSnapshot({ meal }: { meal: BoardMeal }) {
           aria-hidden
           className={cn(
             'absolute start-4 end-4 top-0 h-[3px] rounded-full',
-            meal.dish ? dishSourceAccentClass(meal.dish.source) : 'bg-border',
+            meal.dish ? dishAccentClass(meal.dish.ingredients) : 'bg-border',
           )}
         />
         <span

@@ -18,7 +18,7 @@ import {
   type NutrientKey,
 } from '@/features/weekly-plans/nutrition';
 import { localizedName, secondaryName } from '../food-display';
-import { dishSourceAccentClass } from '../meal-tag-tone';
+import { dishAccentClass } from '../meal-tag-tone';
 
 import { swapMealAction } from '../actions';
 import { initialPlanActionState } from '../form-state';
@@ -29,6 +29,7 @@ import { useEditorActions } from './board-dnd';
 import { DishCatalog } from './dish-catalog';
 import { MealIngredientAmounts } from './meal-ingredient-amounts';
 import { MealIngredientEditor } from './meal-ingredient-editor';
+import { MealSides } from './meal-sides';
 
 /**
  * Everything about one meal: what it is, what it contains, why it was chosen, and
@@ -138,7 +139,7 @@ export function MealDetailPanel({
           {meal.dish && (
             <span
               aria-hidden
-              className={cn('mt-3 block h-1 w-20 rounded-full', dishSourceAccentClass(meal.dish.source))}
+              className={cn('mt-3 block h-1 w-20 rounded-full', dishAccentClass(meal.dish.ingredients))}
             />
           )}
         </div>
@@ -152,6 +153,20 @@ export function MealDetailPanel({
 
       <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-5 py-4">
         {meal.dish && <MealQuantity meal={meal} locale={locale} editable={editable} />}
+
+        {/* Directly under what the meal contains, because that is the question
+            it answers: the plate is the main plus these. Above the replacement
+            list, which is about the main only. */}
+        {meal.dish && (
+          <MealSides
+            mealId={meal.id}
+            slotKey={meal.slotKey}
+            sides={meal.sides}
+            catalog={catalog}
+            locale={locale}
+            editable={editable}
+          />
+        )}
 
         {/* Only a filled slot gets here: an empty one is answered by the catalog
             above, which is the same question asked earlier. */}

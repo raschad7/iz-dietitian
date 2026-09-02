@@ -81,8 +81,14 @@ export type MealIngredientLine = DishIngredientDetail & {
   side: MealSide | null;
 };
 
-/** A side dish attached to a meal, identified for display and grouping. */
-export type MealSide = { id: string; nameAr: string };
+/**
+ * A side dish attached to a meal, identified for display and grouping.
+ *
+ * Both names, because a side is now named on screen — on the meal card, in the
+ * picker that changes it, and in the ingredient list — and the app renders in
+ * Arabic or English from the same components.
+ */
+export type MealSide = { id: string; nameAr: string; nameEn: string };
 
 /** A side and the recipe it contributes, as the board and the writer hold it. */
 export type SideRecipe = MealSide & { recipe: readonly RecipeLine[] };
@@ -150,7 +156,7 @@ export function sideLines(sides: readonly SideRecipe[]): MealIngredientLine[] {
       ...line,
       isPrimary: false,
       sortOrder: SIDE_SORT_OFFSET * (index + 1) + line.sortOrder,
-      side: { id: side.id, nameAr: side.nameAr },
+      side: { id: side.id, nameAr: side.nameAr, nameEn: side.nameEn },
     })),
   );
 }
