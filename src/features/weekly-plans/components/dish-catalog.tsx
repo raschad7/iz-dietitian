@@ -32,7 +32,13 @@ import {
 } from '../catalog-filter';
 import { localizedName } from '../food-display';
 import type { CatalogEntry } from '../queries';
-import { ALLERGENS, DISH_TAGS, mealTypeForSlot, type DishTag } from '../schema';
+import {
+  ALLERGENS,
+  DISH_TAGS,
+  isFixedPortion,
+  mealTypeForSlot,
+  type DishTag,
+} from '../schema';
 
 import { EditorActionsContext } from './board-dnd';
 
@@ -419,7 +425,9 @@ export function DishCatalog({
             // Same chooser the generator uses, so a dish placed by hand arrives at
             // the portion it would have arrived at had the model picked it.
             const servings = slot
-              ? (chooseServings(dish.ingredients, slot.budgetKcal) ??
+              ? (chooseServings(dish.ingredients, slot.budgetKcal, {
+                  wholeOnly: isFixedPortion(dish.source),
+                }) ??
                 bestServings(dish.baseKcal, slot.budgetKcal) ??
                 1)
               : 1;

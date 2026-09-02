@@ -26,7 +26,7 @@
 import { carbBase, proteinSource, type ProteinSource } from './dish-composition';
 import type { CatalogDish } from './generate';
 import { chooseServings, portionedKcal } from './portioning';
-import { mealTypeForSlot } from './schema';
+import { isFixedPortion, mealTypeForSlot } from './schema';
 import { bestServings, isSimilar } from './similar';
 
 /** The fields a repair reads and writes. A subset of `ReconciledMeal`. */
@@ -197,7 +197,9 @@ function findReplacement({
     }
 
     const servings =
-      chooseServings(candidate.recipe, meal.budgetKcal) ??
+      chooseServings(candidate.recipe, meal.budgetKcal, {
+        wholeOnly: isFixedPortion(candidate.source),
+      }) ??
       bestServings(candidate.baseKcal, meal.budgetKcal);
     if (servings === null) continue;
 

@@ -15,6 +15,7 @@
 import { buildPrompt, type PromptDish, type PromptInput } from './prompt';
 import { getLlmTransport, LlmTransportError, type LlmResult } from './llm';
 import {
+  isFixedPortion,
   MAX_RATIONALE_LENGTH,
   MAX_SUMMARY_LENGTH,
   mealTypeForSlot,
@@ -211,7 +212,7 @@ export function reconcile({
       // plate. Falls back for a dish with no recipe or no energy, where no
       // multiplier means anything.
       const servings =
-        chooseServings(dish.recipe, budget.kcal) ??
+        chooseServings(dish.recipe, budget.kcal, { wholeOnly: isFixedPortion(dish.source) }) ??
         bestServings(dish.baseKcal, budget.kcal) ??
         snapServings(returnedMeal.servings);
       const options = alternativesFor({
@@ -232,7 +233,7 @@ export function reconcile({
       };
 
       meals.push(meal);
-      filled.push({ meal, recipe: dish.recipe });
+      filled.push({ meal, recipe: dish.recipe, wholeOnly: isFixedPortion(dish.source) });
     }
 
     balanceDay(filled);
@@ -306,7 +307,9 @@ function alternativesFor({
     if (candidate.allergenTags.some((tag) => blocked.has(tag))) continue;
 
     const servings =
-      chooseServings(candidate.recipe, budgetKcal) ??
+      chooseServings(candidate.recipe, budgetKcal, {
+        wholeOnly: isFixedPortion(candidate.source),
+      }) ??
       bestServings(candidate.baseKcal, budgetKcal);
     if (servings === null) continue;
 
@@ -340,7 +343,12 @@ function alternativesFor({
 }
 
 /** One filled meal and the recipe its portion is computed from. */
-type BalanceEntry = { meal: ReconciledMeal; recipe: readonly DishIngredientDetail[] };
+type BalanceEntry = {
+  meal: ReconciledMeal;
+  recipe: readonly DishIngredientDetail[];
+  /** True for a dish sold whole, which may only move a serving at a time. */
+  wholeOnly: boolean;
+};
 
 /** How many single-step adjustments one day is allowed. */
 const BALANCE_PASSES = 8;
@@ -387,7 +395,9 @@ function balanceDay(entries: readonly BalanceEntry[]): void {
     let mostRoom = -Infinity;
 
     for (const entry of entries) {
-      const servings = nextServings(entry.recipe, entry.meal.servings, direction);
+      const servings = nextServings(entry.recipe, entry.meal.servings, direction, {
+        wholeOnly: entry.wholeOnly,
+      });
       if (servings === null) continue;
 
       // Positive when this meal is short of its own budget in the direction the

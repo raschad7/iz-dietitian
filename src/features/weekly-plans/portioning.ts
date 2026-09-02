@@ -277,6 +277,21 @@ export function portionLine(line: PortionableLine, multiplier: number): Portione
   };
 }
 
+/**
+ * How a dish may be divided.
+ *
+ * `wholeOnly` is what a shawarma sandwich and a منقوشة need: they are sold as a
+ * thing, not as a weight, so a plan may say one or two of them and never 0.75.
+ * It follows from the dish's `source` through `isFixedPortion()` — the caller
+ * asks the catalog, not the arithmetic.
+ *
+ * The consequence is deliberate and visible: a whole-only dish will often miss
+ * its slot budget, because a منقوشة is 420 kcal whether the budget wanted 500 or
+ * not. Missing the number honestly is the correct answer; the alternative is
+ * `0.87 قرص`, which is a number nobody can eat.
+ */
+export type ServingOptions = { wholeOnly?: boolean };
+
 /** Energy of a portioned recipe, for choosing between multipliers. */
 export function portionedKcal(recipe: readonly PortionableLine[], multiplier: number): number {
   return recipe.reduce(
@@ -304,17 +319,19 @@ export function portionedKcal(recipe: readonly PortionableLine[], multiplier: nu
 export function chooseServings(
   recipe: readonly PortionableLine[],
   budgetKcal: number,
+  { wholeOnly = false }: ServingOptions = {},
 ): number | null {
   if (!recipe.length || !(budgetKcal > 0)) return null;
   if (!(portionedKcal(recipe, 1) > 0)) return null;
 
+  const step = wholeOnly ? 1 : SERVING_STEP;
   let best: number | null = null;
   let bestGap = Infinity;
 
   for (
-    let multiplier = MIN_SERVINGS;
+    let multiplier = wholeOnly ? 1 : MIN_SERVINGS;
     multiplier <= MAX_SERVINGS + 1e-9;
-    multiplier = clean(multiplier + SERVING_STEP)
+    multiplier = clean(multiplier + step)
   ) {
     const gap = Math.abs(portionedKcal(recipe, multiplier) - budgetKcal);
     const tied = Math.abs(gap - bestGap) <= 1e-9;
@@ -342,13 +359,16 @@ export function nextServings(
   recipe: readonly PortionableLine[],
   servings: number,
   direction: -1 | 1,
+  { wholeOnly = false }: ServingOptions = {},
 ): number | null {
   const from = portionedKcal(recipe, servings);
+  const step = wholeOnly ? 1 : SERVING_STEP;
+  const floor = wholeOnly ? 1 : MIN_SERVINGS;
 
   for (
-    let candidate = clean(servings + direction * SERVING_STEP);
-    candidate >= MIN_SERVINGS && candidate <= MAX_SERVINGS;
-    candidate = clean(candidate + direction * SERVING_STEP)
+    let candidate = clean(servings + direction * step);
+    candidate >= floor && candidate <= MAX_SERVINGS;
+    candidate = clean(candidate + direction * step)
   ) {
     if (Math.abs(portionedKcal(recipe, candidate) - from) > 1) return candidate;
   }

@@ -5,6 +5,7 @@ import {
   chooseServings,
   isSeasoning,
   lineCeiling,
+  nextServings,
   portionLine,
   portionedKcal,
   stepFromBase,
@@ -299,5 +300,31 @@ describe('chooseServings', () => {
   test('a recipe with no energy has no answer', () => {
     expect(chooseServings([{ quantityGrams: 100, food: food('vegetables', 0) }], 600)).toBeNull();
     expect(chooseServings([], 600)).toBeNull();
+  });
+
+  /**
+   * A shawarma sandwich is a thing, not a weight. The budget does not get to ask
+   * for three quarters of one, and missing the budget is the honest answer — the
+   * alternative is a number nobody can serve.
+   */
+  test('a dish sold whole never lands on a fraction', () => {
+    const sandwich: PortionableLine[] = [
+      { quantityGrams: 200, food: food('grains', 250), isPrimary: true },
+    ];
+
+    expect(chooseServings(sandwich, 700, { wholeOnly: true })).toBe(1);
+    expect(chooseServings(sandwich, 900, { wholeOnly: true })).toBe(2);
+    // The same budget, divisible: it can and does use a quarter step.
+    expect(chooseServings(sandwich, 700)).toBe(1.5);
+  });
+
+  test('a whole-only dish steps a serving at a time, or not at all', () => {
+    const sandwich: PortionableLine[] = [
+      { quantityGrams: 200, food: food('grains', 250), isPrimary: true },
+    ];
+
+    expect(nextServings(sandwich, 1, 1, { wholeOnly: true })).toBe(2);
+    // Nothing below one whole sandwich exists to step down to.
+    expect(nextServings(sandwich, 1, -1, { wholeOnly: true })).toBeNull();
   });
 });
