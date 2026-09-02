@@ -139,7 +139,60 @@ still leave "which dish is this meal's protein?" unanswerable.
 
 Sides are marked `is_side` in the catalog and **excluded from the generation
 catalog entirely**: a side may never be chosen as a meal, nor offered as an
-alternative to one. `toPromptCatalog` is where that is enforced.
+alternative to one. `toPromptCatalog` is where that is enforced for the model,
+`DishCatalog` for the dietitian's drawer, and `swapCandidatesByMealFromCatalog`
+for the replacement list.
+
+### A side is optional, and it is not the same one every day
+
+The first version of this shipped with **four sides, one of them a salad**, and
+every generated week came back with `صحن سلطة` on all fourteen lunches and
+dinners. The model was not being lazy — there was one answer to give. Two
+separate faults wearing one symptom, and both are fixed:
+
+- **The catalog holds seventeen sides**: eight salads, four soups, a plate of
+  labneh, a cup of yogurt, and بطاطا حرة. `db:check` now enforces a floor of
+  **8 per side-bearing slot** (`MIN_PER_SIDE_SLOT`), because a week has seven
+  lunches and seven dinners and the prompt allows a side twice. The grid used to
+  count sides and check nothing about them, which is exactly how four shipped.
+- **The dietitian can change or remove one.** `setMealSides` replaces the whole
+  set on a meal — add, swap and remove are one write — and `MealSides` in the
+  meal panel is the control. A lunch does not always come with a salad.
+
+The prompt says the same thing to the model: roughly half to two thirds of
+lunches and dinners carry one, never the same side twice in a day, and no side
+more than twice in a week.
+
+Sides are visible on the board. The meal card prints `+ صحن سلطة` under the dish
+name — before this line existed a meal silently contained something, which is
+worse than containing nothing.
+
+## What a colour means
+
+**In the planner, a colour means the dish's protein source, and nothing else.**
+The meal card's top rule, the dot beside a name in the catalog, the board's
+colour key and the catalog's protein filter all read one table
+(`meal-tag-tone.ts`), so a hue learned on one screen is the same fact on every
+other.
+
+This is the third answer to the question. It came from `tags` first, where a dish
+carried several and the card had to pick one; then from `source`, which at least
+gave every dish exactly one value. `source` was still the wrong fact to spend a
+palette on: **82% of the catalog is `home`**, so the board came out thirty-five
+cards in one colour — not a legend, a background.
+
+Protein source earns it because it is *computed* (so it cannot be typed wrong or
+go stale), *singular* (so there is never a question of which colour to paint),
+*complete* (`none` is an answer — a fruit snack, a plate of salad — so no card is
+ever left uncoloured), and *the thing a week is read for*: chicken three days
+running is what a dietitian scans a board to catch, and nothing else on the board
+says it. The eight values run 55 / 48 / 42 / 34 / 31 / 24 / 22 / 21 across the
+catalog.
+
+The four axes keep their place in the catalog **as words**. They read perfectly
+well as words; only one of them was ever coloured, which was the inconsistency.
+The `high_protein` chip lost its dot for the same reason — one kind of dot, one
+meaning.
 
 ## How a food is counted
 
@@ -155,6 +208,29 @@ that contradicts it.
 The reason this matters more than it looks: whole wheat pita is *fewer* calories
 per 100 g than white, but the loaf weighs 100 g instead of 60–80, so the loaf
 carries *more*. Only the unit tells that story. The gram hides it.
+
+### A piece is something one person eats
+
+The unit has to be a *thing*, not only a weight. A plan once said **بطيخ 1 حبة**
+— 286 g, USDA's own figure for a wedge, printed under the word for a whole
+watermelon. The number was right and the word was wrong, which is the worse of
+the two failures, because it survives anyone checking the arithmetic.
+
+Three rules in `portion-derivation.ts` keep that class of error out:
+
+- **`wedge` is a slice, not a piece.** شريحة is the word, and it was already in
+  the table.
+- **A piece is capped at 350 g** (`MAX_PIECE_GRAMS`), just above the heaviest
+  thing anyone eats whole here — a 336 g mango. It caught a 908 g cabbage and a
+  588 g cauliflower being offered as one حبة each.
+- **A whole plant is a purchase, not a portion.** A label whose unit word is
+  `head`, `melon`, `bunch`, `bulb` or `stalk` is skipped, and the food falls back
+  to the cup or the wedge — which is how it is actually served.
+
+A measure that only *yields* the food is refused too, but only for a countable
+unit: "1 wedge yields 5.9 g" is the juice out of a lemon wedge and is not a
+portion of lemon juice, while "1 can (12 oz) yields 211 g" is the drained weight
+of a tin and is the most useful number a canned food has.
 
 ## Free items
 
@@ -261,16 +337,20 @@ Crossed with two further floors:
 - at least **3 dishes per protein source** in every slot that takes one, so a
   week never has to repeat a protein to fill a day;
 - at least **8 dishes whose `source` is not `home`** in breakfast, snack and
-  lunch, so a client who eats out is plannable.
+  lunch, so a client who eats out is plannable;
+- at least **8 sides** for lunch and for dinner, so a week never has to repeat
+  one — see the note under **Sides**.
 
 That lands at roughly **270–300 dishes** over roughly **220 foods**. Those
 numbers are an estimate of where the grid fills, not a target to hit.
 
 `db:check` also fails on:
 
-- a declared axis whose value sits on more than 60% or fewer than 5% of dishes —
+- a declared axis whose value sits on more than 90% or fewer than 5% of dishes —
   the dead-tag detector that `local` (16 of 113) and `vegetarian` (64 of 113)
-  would both have tripped;
+  would both have tripped. The ceiling started at 60% and the grown catalog
+  disproved it: `source=home` is 84% and `occasion=everyday` is 80%, and both are
+  simply true;
 - a food with no household portion, or a recipe line that contradicts its food's
   counting unit;
 - a portion whose grams are USDA's *level measuring* spoon where a dietitian
@@ -306,14 +386,41 @@ Kept as the record of what was built, in the order it was built.
    kabsa, freekeh with chicken — written by hand rather than as a template.
 4. **Snacks, 100–400 kcal.** The band that produced the guava.
 5. **Breakfasts, lunches and dinners**, until the grid was full: 277 dishes.
-6. **The tag bag removed.** The `tags` column is dropped, both filter panels and
-   the clinic dish form ask the four questions, and a meal card's colour is its
-   `source`.
+6. **The tag bag removed.** The `tags` column is dropped, and both filter panels
+   and the clinic dish form ask the four questions.
 7. **The client's measuring guide** — every unit in the catalog with its weight,
    and how to picture one with a hand.
 8. **Reviewer sweep.** `bun run plan:sweep` plans ten weeks against the whole
    catalog without a database and without a charge; `--ai` adds the reviewing
    model. It found six real problems on its first two runs, all fixed.
+
+### Second pass — 2026-09-02, from a dietitian using it
+
+The first plans generated against the finished catalog turned up six things. All
+are fixed; each has its own note above.
+
+9. **The dish form could not be saved.** `readDishInput` still posted the deleted
+   `tags` field and never posted the four axes the form had started rendering, so
+   every save failed validation and said "the information is not correct" about a
+   correctly filled form. The action reads the axes off `DISH_AXES` now, and
+   `catalog-schema.test.ts` asserts the two lists agree.
+10. **The colour meant nothing.** `source` painted 82% of the board one hue. The
+    colour is the computed protein source now — see **What a colour means**.
+11. **One salad, on every lunch.** Seventeen sides, a floor in the grid, a
+    control in the meal panel, and a line on the card — see **Sides**.
+12. **بطيخ 1 حبة.** Three rules on what may be called a piece — see **A piece is
+    something one person eats**.
+13. **The week's summary was a caption.** `summary_ar` held a paragraph
+    describing the plan the dietitian was already looking at. It holds **notes**
+    now: two to four short things to act on — what to confirm with the client,
+    where the week is likely to fail, what the instruction made impossible. The
+    prompt names the note not to write.
+14. **A clinic can write its own side.** The dish editor asks whether the dish is
+    a meal or something beside one.
+
+Not a fault: **generation was already using the new dishes.** The plan that
+looked unchanged was generated at 08:29, before the seed ran at 10:22. The next
+one used sixteen of the new dishes out of thirty-five meals.
 
 ### What is left, and why
 
