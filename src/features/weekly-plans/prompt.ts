@@ -28,8 +28,6 @@ export type PromptDish = {
   slug: string;
   nameAr: string;
   mealTypes: readonly string[];
-  /** The **practical** tags only (cost, effort, cuisine). Nutrition is never in here. */
-  tags: readonly string[];
   /** Energy for one base serving, rounded — three significant figures is generous here. */
   baseKcal: number;
   baseProtein: number;
@@ -37,7 +35,7 @@ export type PromptDish = {
    * The **computed** nutrition label (`high_protein` | `high_carb` | `high_fat` |
    * `balanced`), derived server-side from the recipe. Given to the model so it
    * never has to guess whether a dish is high-protein — kept as its own field,
-   * distinct from the practical `tags`, so the two kinds of metadata stay
+   * distinct from the declared axes below, so the two kinds of metadata stay
    * separate on the wire exactly as they are in the data.
    */
   nutritionCategory: string;
@@ -202,7 +200,6 @@ function describeCatalog(catalog: readonly PromptDish[]): string {
       dish.slug,
       dish.nameAr,
       dish.mealTypes.join('|'),
-      dish.tags.join('|'),
       `${Math.round(dish.baseKcal)}kcal`,
       `${Math.round(dish.baseProtein)}g`,
       dish.nutritionCategory,
@@ -220,7 +217,6 @@ function describeCatalog(catalog: readonly PromptDish[]): string {
       'slug',
       'name',
       'meal_types',
-      'tags',
       'base_kcal',
       'base_protein',
       'nutrition',

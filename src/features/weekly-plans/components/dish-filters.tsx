@@ -11,8 +11,14 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { usePathname, useRouter } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 import { type OwnerFilter } from '@/features/weekly-plans/catalog-ownership';
-import { dishTagDotClasses, highProteinDotClasses } from '@/features/weekly-plans/meal-tag-tone';
-import { DISH_TAGS, MEAL_TYPES, type DishTag, type MealType } from '@/features/weekly-plans/schema';
+import { dishSourceDotClasses, highProteinDotClasses } from '@/features/weekly-plans/meal-tag-tone';
+import {
+  DISH_AXES,
+  MEAL_TYPES,
+  type DishAxisFilters,
+  type DishAxisKey,
+  type MealType,
+} from '@/features/weekly-plans/schema';
 
 /** How long to let someone keep typing before the catalog re-queries. */
 const SEARCH_DEBOUNCE_MS = 300;
@@ -94,7 +100,7 @@ const HIGH_PROTEIN = 'high_protein';
 export function DishFilters({
   q,
   mealType,
-  tags,
+  axes,
   highProtein,
   owner,
   showHidden,
@@ -102,7 +108,7 @@ export function DishFilters({
 }: {
   q: string | undefined;
   mealType: string | undefined;
-  tags: readonly DishTag[];
+  axes: DishAxisFilters;
   highProtein: boolean;
   owner: OwnerFilter | undefined;
   /** Showing the hidden shelf *instead of* the catalog — see `listDishes`. */
@@ -154,13 +160,18 @@ export function DishFilters({
     debounceRef.current = setTimeout(() => navigate({ q: value }), SEARCH_DEBOUNCE_MS);
   }
 
-  function toggleTag(tag: DishTag) {
-    const next = tags.includes(tag) ? tags.filter((entry) => entry !== tag) : [...tags, tag];
-    navigate({ tags: next.join(',') });
+  function toggleAxis(key: DishAxisKey, value: string) {
+    const selected = axes[key];
+    const next = selected.includes(value)
+      ? selected.filter((entry) => entry !== value)
+      : [...selected, value];
+
+    navigate({ [key]: next.join(',') });
   }
 
   const activeMealType = MEAL_TAB_ORDER.find((type) => type === mealType) ?? null;
-  const qualityCount = tags.length + (highProtein ? 1 : 0);
+  const axisCount = DISH_AXES.reduce((total, { key }) => total + axes[key].length, 0);
+  const qualityCount = axisCount + (highProtein ? 1 : 0);
 
   // What the Clear control is allowed to act on. The search term is deliberately
   // not in it — see that button.
@@ -262,14 +273,16 @@ export function DishFilters({
         and counts instead of naming a value — "Qualities 3" is readable where
         "Quick, Economical, Vegetarian" is not.
       */}
-      <FacetPopover icon="leaf" facetLabel={t('columns.tags')} count={qualityCount}>
+      <FacetPopover icon="leaf" facetLabel={t('columns.properties')} count={qualityCount}>
         <QualityPicker
-          tags={tags}
+          axes={axes}
           highProtein={highProtein}
           count={qualityCount}
-          onToggleTag={toggleTag}
+          onToggleAxis={toggleAxis}
           onToggleHighProtein={() => navigate({ hp: highProtein ? '' : '1' })}
-          onClear={() => navigate({ tags: '', hp: '' })}
+          onClear={() =>
+            navigate({ source: '', effort: '', cost: '', occasion: '', hp: '' })
+          }
         />
       </FacetPopover>
 
@@ -310,7 +323,18 @@ export function DishFilters({
         aria-label={t('clearFilters')}
         title={t('clearFilters')}
         disabled={filterCount === 0}
-        onClick={() => navigate({ mealType: '', owner: '', tags: '', hp: '', hidden: '' })}
+        onClick={() =>
+          navigate({
+            mealType: '',
+            owner: '',
+            source: '',
+            effort: '',
+            cost: '',
+            occasion: '',
+            hp: '',
+            hidden: '',
+          })
+        }
       >
         <Icon name="close" />
       </Button>
@@ -488,17 +512,17 @@ function ChoiceRow({
  * findable. The list scrolls only once there is more of it than the panel's cap.
  */
 function QualityPicker({
-  tags,
+  axes,
   highProtein,
   count,
-  onToggleTag,
+  onToggleAxis,
   onToggleHighProtein,
   onClear,
 }: {
-  tags: readonly DishTag[];
+  axes: DishAxisFilters;
   highProtein: boolean;
   count: number;
-  onToggleTag: (tag: DishTag) => void;
+  onToggleAxis: (key: DishAxisKey, value: string) => void;
   onToggleHighProtein: () => void;
   onClear: () => void;
 }) {
@@ -518,14 +542,22 @@ function QualityPicker({
     () => [
       {
         key: HIGH_PROTEIN,
+        axis: null as DishAxisKey | null,
+        value: null as string | null,
         dot: highProteinDotClasses(),
         label: t('nutritionFilters.high_protein'),
       },
-      ...DISH_TAGS.map((tag: DishTag) => ({
-        key: tag as string,
-        dot: dishTagDotClasses(tag),
-        label: t(`tags.${tag}`),
-      })),
+      ...DISH_AXES.flatMap((axis) =>
+        axis.values.map(({ value, message }) => ({
+          key: `${axis.key}:${value}`,
+          axis: axis.key,
+          value,
+          // Only `source` wears a colour, because it is the axis the board paints
+          // its rules with. Fifteen coloured dots would be a palette, not a key.
+          dot: axis.key === 'source' ? dishSourceDotClasses(value) : null,
+          label: t(message),
+        })),
+      ),
     ],
     [t],
   );
@@ -554,22 +586,24 @@ function QualityPicker({
       ) : (
         <div
           role="group"
-          aria-label={t('columns.tags')}
+          aria-label={t('columns.properties')}
           className="q-scroll-cue-y flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain p-1.5 [--scroll-cue-surface:var(--popover)]"
         >
           {shown.map((quality) => (
             <ChoiceRow
               key={quality.key}
               role="checkbox"
-              dot={quality.dot}
+              dot={quality.dot ?? undefined}
               label={quality.label}
               selected={
-                quality.key === HIGH_PROTEIN ? highProtein : tags.includes(quality.key as DishTag)
+                quality.key === HIGH_PROTEIN
+                  ? highProtein
+                  : Boolean(quality.axis && axes[quality.axis].includes(quality.value ?? ''))
               }
               onSelect={() =>
-                quality.key === HIGH_PROTEIN
+                quality.key === HIGH_PROTEIN || !quality.axis
                   ? onToggleHighProtein()
-                  : onToggleTag(quality.key as DishTag)
+                  : onToggleAxis(quality.axis, quality.value ?? '')
               }
             />
           ))}

@@ -323,6 +323,13 @@
       "when": 1788336858127,
       "tag": "0045_clear_mandarin",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1788344080933,
+      "tag": "0046_lethal_sentinels",
+      "breakpoints": true
     }
   ]
 }

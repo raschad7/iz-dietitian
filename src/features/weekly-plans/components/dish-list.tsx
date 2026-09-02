@@ -24,9 +24,9 @@ import { NUTRIENT_UNITS } from '@/features/weekly-plans/nutrition';
 
 import { loadDishForEditAction } from '../catalog-actions';
 import { localizedName } from '../food-display';
-import { dishTagDotClasses, highProteinDotClasses } from '../meal-tag-tone';
+import { dishSourceDotClasses, highProteinDotClasses } from '../meal-tag-tone';
 import type { DishEditData } from '../queries';
-import { DISH_TAGS, MEAL_TYPES, type MealType } from '../schema';
+import { DISH_AXES, MEAL_TYPES, axisMessageKey, type MealType } from '../schema';
 
 import { DishDetails } from './dish-details';
 import { DishEditorDialog } from './dish-editor-dialog';
@@ -38,7 +38,10 @@ export type DishCardData = {
   nameAr: string;
   nameEn: string;
   mealTypes: string[];
-  tags: string[];
+  source: string;
+  effort: string;
+  cost: string;
+  occasion: string;
   kcal: number;
   carbs: number;
   protein: number;
@@ -308,7 +311,7 @@ export function DishList({
             <TableRow>
               <TableHead>{t('columns.name')}</TableHead>
               <TableHead className="hidden md:table-cell">{t('columns.mealTypes')}</TableHead>
-              <TableHead className="hidden md:table-cell">{t('columns.tags')}</TableHead>
+              <TableHead className="hidden md:table-cell">{t('columns.properties')}</TableHead>
               <TableHead numeric className={cn('text-end', KCAL_COL)}>
                 {t('columns.kcal')}
               </TableHead>
@@ -382,7 +385,13 @@ function DishRow({
   const format = useFormatter();
 
   const mealTypes = membersOf(MEAL_TYPES, dish.mealTypes);
-  const tags = membersOf(DISH_TAGS, dish.tags);
+  // Every axis a dish carries, in offer order. Unlike the old tag bag this is
+  // always four things, so the column says the same amount about every dish.
+  const axisChips = DISH_AXES.map(({ key }) => ({
+    key,
+    value: dish[key],
+    message: axisMessageKey(key, dish[key]),
+  }));
   const properties = [
     ...(dish.highProtein
       ? [
@@ -393,10 +402,12 @@ function DishRow({
           },
         ]
       : []),
-    ...tags.map((tag) => ({
-      key: tag,
-      dot: dishTagDotClasses(tag),
-      label: t(`tags.${tag}`),
+    ...axisChips.map((chip) => ({
+      key: `${chip.key}:${chip.value}`,
+      // Only `source` wears a colour: it is the one the board paints its rules
+      // with, and four dots on one row would say nothing about which is which.
+      dot: chip.key === 'source' ? dishSourceDotClasses(chip.value) : null,
+      label: t(chip.message),
     })),
   ];
   const shownProperties = properties.slice(0, PROPERTY_LIMIT);
@@ -484,9 +495,11 @@ function DishRow({
                   className="flex items-center gap-1"
                   title={format.list(properties.map((property) => property.label))}
                 >
-                  {shownProperties.map((property) => (
-                    <span key={property.key} aria-hidden className={property.dot} />
-                  ))}
+                  {shownProperties.map((property) =>
+                    property.dot ? (
+                      <span key={property.key} aria-hidden className={property.dot} />
+                    ) : null,
+                  )}
                   {hiddenProperties.length > 0 && (
                     <span className="text-caption text-muted-foreground tabular-nums" dir="ltr">
                       {t('moreTags', { count: hiddenProperties.length })}
@@ -585,11 +598,11 @@ function DishRow({
 }
 
 /** One tag in the qualities column: its colour dot, then its name. */
-function TagChip({ dot, label }: { dot: string; label: string }) {
+function TagChip({ dot, label }: { dot: string | null; label: string }) {
   return (
     <TooltipHint label={<span dir="auto">{label}</span>} className="relative min-w-0 shrink">
       <span className="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-full bg-muted px-2 py-0.5 text-caption font-medium text-foreground">
-        <span aria-hidden className={cn('shrink-0', dot)} />
+        {dot && <span aria-hidden className={cn('shrink-0', dot)} />}
         <span className="truncate">{label}</span>
       </span>
     </TooltipHint>

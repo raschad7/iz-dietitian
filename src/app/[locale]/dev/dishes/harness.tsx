@@ -10,7 +10,7 @@ import { AddDishButton } from '@/features/weekly-plans/components/add-dish-butto
 import { DishEditorDialog } from '@/features/weekly-plans/components/dish-editor-dialog';
 import { DishFilters } from '@/features/weekly-plans/components/dish-filters';
 import { DishList, type DishCardData } from '@/features/weekly-plans/components/dish-list';
-import { DISH_TAGS } from '@/features/weekly-plans/schema';
+import { DISH_AXES, matchesAxes, type DishAxisFilters } from '@/features/weekly-plans/schema';
 import { membersOf } from '@/lib/enum';
 import { IngredientSearch } from '@/features/weekly-plans/components/food-picker';
 import { refineIngredientResults, type RefinedFood } from '@/features/weekly-plans/ingredient-refine';
@@ -158,11 +158,11 @@ async function mockSearch(locale: string, query: string): Promise<RefinedFood[]>
 
 /** Mock catalog rows — a mix of shared and clinic-owned dishes, one hidden. */
 const MOCK_DISHES: (DishCardData & { clinicId: string | null })[] = [
-  { id: 'd1', nameAr: 'مقلوبة دجاج', nameEn: 'Chicken Maqluba', mealTypes: ['lunch'], tags: ['local', 'filling'], kcal: 610, carbs: 68, protein: 38, highProtein: false, isSystem: true, hidden: false, clinicId: null },
-  { id: 'd2', nameAr: 'مجدرة', nameEn: 'Mujaddara', mealTypes: ['lunch', 'dinner'], tags: ['economical', 'vegetarian'], kcal: 430, carbs: 64, protein: 17, highProtein: false, isSystem: true, hidden: false, clinicId: null },
-  { id: 'd3', nameAr: 'سلطة دجاج', nameEn: 'Chicken salad', mealTypes: ['lunch'], tags: ['quick', 'filling'], kcal: 390, carbs: 12, protein: 42, highProtein: true, isSystem: false, hidden: false, clinicId: 'clinic-1' },
-  { id: 'd4', nameAr: 'شوربة عدس', nameEn: 'Lentil soup', mealTypes: ['dinner'], tags: ['economical', 'no_cook'], kcal: 210, carbs: 30, protein: 12, highProtein: false, isSystem: false, hidden: false, clinicId: 'clinic-1' },
-  { id: 'd5', nameAr: 'بيض مقلي', nameEn: 'Fried eggs', mealTypes: ['breakfast'], tags: ['quick'], kcal: 180, carbs: 2, protein: 13, highProtein: true, isSystem: true, hidden: false, clinicId: null },
+  { id: 'd1', nameAr: 'مقلوبة دجاج', nameEn: 'Chicken Maqluba', mealTypes: ['lunch'], source: 'home', effort: 'medium', cost: 'normal', occasion: 'everyday', kcal: 610, carbs: 68, protein: 38, highProtein: false, isSystem: true, hidden: false, clinicId: null },
+  { id: 'd2', nameAr: 'مجدرة', nameEn: 'Mujaddara', mealTypes: ['lunch', 'dinner'], source: 'home', effort: 'medium', cost: 'normal', occasion: 'everyday', kcal: 430, carbs: 64, protein: 17, highProtein: false, isSystem: true, hidden: false, clinicId: null },
+  { id: 'd3', nameAr: 'سلطة دجاج', nameEn: 'Chicken salad', mealTypes: ['lunch'], source: 'home', effort: 'medium', cost: 'normal', occasion: 'everyday', kcal: 390, carbs: 12, protein: 42, highProtein: true, isSystem: false, hidden: false, clinicId: 'clinic-1' },
+  { id: 'd4', nameAr: 'شوربة عدس', nameEn: 'Lentil soup', mealTypes: ['dinner'], source: 'home', effort: 'medium', cost: 'normal', occasion: 'everyday', kcal: 210, carbs: 30, protein: 12, highProtein: false, isSystem: false, hidden: false, clinicId: 'clinic-1' },
+  { id: 'd5', nameAr: 'بيض مقلي', nameEn: 'Fried eggs', mealTypes: ['breakfast'], source: 'home', effort: 'medium', cost: 'normal', occasion: 'everyday', kcal: 180, carbs: 2, protein: 13, highProtein: true, isSystem: true, hidden: false, clinicId: null },
 ];
 
 async function mockDishNameSearch(
@@ -201,20 +201,32 @@ function CatalogDemo({ locale }: { locale: string }) {
   const mealType = searchParams.get('mealType') ?? undefined;
   const owner = parseOwnerFilter(searchParams.get('owner') ?? undefined);
   const highProtein = searchParams.get('hp') === '1';
-  const tags = membersOf(DISH_TAGS, (searchParams.get('tags') ?? '').split(',').filter(Boolean));
+  const axes = Object.fromEntries(
+    DISH_AXES.map(({ key, values }) => [
+      key,
+      membersOf(
+        values.map((one) => one.value),
+        (searchParams.get(key) ?? '').split(',').filter(Boolean),
+      ),
+    ]),
+  ) as unknown as DishAxisFilters;
 
   const needle = normalizeArabic(q);
   const items = MOCK_DISHES.filter((dish) => {
     if (!matchesOwner(dish.clinicId, owner)) return false;
     if (needle && !normalizeArabic(dish.nameAr).includes(needle)) return false;
     if (mealType && !dish.mealTypes.includes(mealType)) return false;
-    if (tags.length && !tags.every((tag) => dish.tags.includes(tag))) return false;
+    if (!matchesAxes(dish, axes)) return false;
     if (highProtein && !dish.highProtein) return false;
     return true;
   });
 
   const filtered =
-    Boolean(q) || Boolean(mealType) || Boolean(owner) || highProtein || tags.length > 0;
+    Boolean(q) ||
+    Boolean(mealType) ||
+    Boolean(owner) ||
+    highProtein ||
+    DISH_AXES.some(({ key }) => axes[key].length > 0);
 
   return (
     <section className="flex flex-col gap-4">
@@ -222,7 +234,7 @@ function CatalogDemo({ locale }: { locale: string }) {
       <DishFilters
         q={q || undefined}
         mealType={mealType}
-        tags={tags}
+        axes={axes}
         highProtein={highProtein}
         owner={owner}
         showHidden={searchParams.get('hidden') === '1'}

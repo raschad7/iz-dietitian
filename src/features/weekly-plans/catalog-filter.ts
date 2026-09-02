@@ -1,7 +1,7 @@
 import { MEAL_TOLERANCE } from './drift';
 import type { NutritionCategory } from './nutrition';
 import type { CatalogEntry } from './queries';
-import type { DishTag } from './schema';
+import { matchesAxes, type DishAxisFilters } from './schema';
 import { bestServings } from './similar';
 import type { RecentUse } from './usage';
 
@@ -22,7 +22,14 @@ export type CatalogFilters = {
   /** The search box, already trimmed and lowercased. */
   needle: string;
   mealType: string | null;
-  tags: readonly DishTag[];
+  /**
+   * The four declared axes — see `docs/catalog.md`.
+   *
+   * Replaces the tag bag. A tag could describe nothing, so a dish could carry no
+   * useful label at all; an axis always has exactly one value, which is what makes
+   * "show me what he can buy near work" a filter rather than a hope.
+   */
+  axes: DishAxisFilters;
   /**
    * Computed nutrition categories to keep — e.g. `['high_protein']`. Matched
    * against the dish's `nutritionCategory`, which is derived from the recipe, so
@@ -43,18 +50,22 @@ export type CatalogContext = {
 /**
  * The catalog, narrowed.
  *
- * Every filter is **AND**. Picking "vegetarian" and then "high protein" asks for
- * dishes that are both, which is what adding a second chip reads as; under OR
- * every extra chip would return *more* rows, which is the opposite of what
- * pressing a filter is understood to do.
+ * Different filters are **AND**: search, then meal type, then the axes, then
+ * nutrition, then the options, each narrowing what the last one left.
+ *
+ * Within one axis it is **OR** — see `matchesAxes`. `street` and `restaurant` are
+ * two answers to one question and asking for both means either; `street` and
+ * `quick` are answers to two questions and asking for both means both. The old
+ * tag bag ANDed everything, which is why picking a second chip could only ever
+ * empty the list.
  *
  * Pure, and separate from the panel that renders it, because the semantics above
- * are the part worth pinning down — which way the tags combine, what "recently"
+ * are the part worth pinning down — how the chips combine, what "recently"
  * counts as, and at which portion a dish is measured against a budget.
  */
 export function filterCatalog(
   catalog: readonly CatalogEntry[],
-  { needle, mealType, tags, nutrition, options }: CatalogFilters,
+  { needle, mealType, axes, nutrition, options }: CatalogFilters,
   { usage, budgetKcal }: CatalogContext,
 ): CatalogEntry[] {
   return catalog.filter((dish) => {
@@ -64,7 +75,7 @@ export function filterCatalog(
     }
 
     if (mealType && !dish.mealTypes.includes(mealType)) return false;
-    if (!tags.every((tag) => dish.tags.includes(tag))) return false;
+    if (!matchesAxes(dish, axes)) return false;
     // Computed, not stored: a dish is "high protein" here only if its recipe is.
     if (nutrition.length && !nutrition.includes(dish.nutritionCategory)) return false;
 

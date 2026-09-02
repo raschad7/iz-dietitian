@@ -2171,15 +2171,36 @@
       "lunch": "غداء",
       "dinner": "عشاء"
     },
-    "tags": {
-      "economical": "اقتصادي",
-      "quick": "سريع التحضير",
-      "easy_prep": "سهل التحضير",
-      "no_cook": "بدون طهي",
-      "portable": "سهل الحمل",
-      "filling": "مُشبِع",
-      "local": "محلي",
-      "vegetarian": "نباتي"
+    "axes": {
+      "source": {
+        "home": "بيتي",
+        "street": "من الشارع",
+        "restaurant": "مطعم",
+        "shop": "جاهز من الدكان"
+      },
+      "effort": {
+        "no_cook": "بدون طبخ",
+        "quick": "سريع",
+        "medium": "متوسط",
+        "long": "يحتاج وقت"
+      },
+      "cost": {
+        "cheap": "اقتصادي",
+        "normal": "عادي",
+        "expensive": "مكلف"
+      },
+      "occasion": {
+        "everyday": "يومي",
+        "family": "عائلي",
+        "ramadan": "رمضان",
+        "festive": "مناسبات"
+      }
+    },
+    "axisLabels": {
+      "source": "مصدر الطبق",
+      "effort": "الجهد",
+      "cost": "التكلفة",
+      "occasion": "المناسبة"
     },
     "dropHere": "أفلت هنا",
     "addMeal": "إضافة وجبة",
@@ -2329,7 +2350,7 @@
     "columns": {
       "name": "الطبق",
       "mealTypes": "وقت الوجبة",
-      "tags": "الخصائص",
+      "properties": "الخصائص",
       "kcal": "السعرات",
       "carbs": "الكربوهيدرات",
       "protein": "البروتين",
@@ -2361,15 +2382,36 @@
       "lunch": "غداء",
       "dinner": "عشاء"
     },
-    "tags": {
-      "economical": "اقتصادي",
-      "quick": "سريع",
-      "easy_prep": "سهل التحضير",
-      "no_cook": "بدون طهي",
-      "portable": "قابل للنقل",
-      "filling": "مُشبِع",
-      "local": "محلي",
-      "vegetarian": "نباتي"
+    "axes": {
+      "source": {
+        "home": "بيتي",
+        "street": "من الشارع",
+        "restaurant": "مطعم",
+        "shop": "جاهز من الدكان"
+      },
+      "effort": {
+        "no_cook": "بدون طبخ",
+        "quick": "سريع",
+        "medium": "متوسط",
+        "long": "يحتاج وقت"
+      },
+      "cost": {
+        "cheap": "اقتصادي",
+        "normal": "عادي",
+        "expensive": "مكلف"
+      },
+      "occasion": {
+        "everyday": "يومي",
+        "family": "عائلي",
+        "ramadan": "رمضان",
+        "festive": "مناسبات"
+      }
+    },
+    "axisLabels": {
+      "source": "مصدر الطبق",
+      "effort": "الجهد",
+      "cost": "التكلفة",
+      "occasion": "المناسبة"
     },
     "allergens": {
       "nuts": "مكسرات",

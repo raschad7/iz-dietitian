@@ -2,7 +2,13 @@ import { z } from 'zod';
 
 import { ALLERGENS } from '@/features/clients/nutrition';
 
-import { DISH_TAGS, MEAL_TYPES } from './schema';
+import {
+  DISH_COSTS,
+  DISH_EFFORTS,
+  DISH_OCCASIONS,
+  DISH_SOURCES,
+  MEAL_TYPES,
+} from './schema';
 
 /**
  * Validation for dishes and foods a clinic creates in its own catalog.
@@ -52,10 +58,14 @@ export const clinicDishInputSchema = z.object({
   // unique regardless, and the catalog renders the English line only when present.
   nameEn: z.string().trim().max(120).optional().default(''),
   mealTypes: z.array(z.enum(MEAL_TYPES)).min(1),
-  // Only the practical tags, validated against the closed set: a removed tag
-  // (`high_protein`, `diabetic_friendly`) or an unknown one is rejected here, not
-  // silently stored. Nutrition is computed, never hand-tagged.
-  tags: z.array(z.enum(DISH_TAGS)),
+  // The four declared axes, each a single value from its own closed set. A dish
+  // that answers nothing is what the old tag bag allowed; here every one is
+  // required and an unknown value is rejected rather than silently stored.
+  // Nutrition stays computed and is never among them.
+  source: z.enum(DISH_SOURCES),
+  effort: z.enum(DISH_EFFORTS),
+  cost: z.enum(DISH_COSTS),
+  occasion: z.enum(DISH_OCCASIONS),
   allergenTags: z.array(z.enum(ALLERGENS)),
   baseServingLabel: z.string().trim().min(1).max(60),
   ingredients: z.array(ingredientInputSchema).min(1),

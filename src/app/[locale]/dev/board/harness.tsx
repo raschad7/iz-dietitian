@@ -95,7 +95,7 @@ function dish(
   nameAr: string,
   nameEn: string,
   lines: readonly MealIngredientLine[],
-  tags: string[],
+  source: string,
 ): DishDetail & { servings: number } {
   return {
     id: `${slug}-dish`,
@@ -104,8 +104,7 @@ function dish(
     nameAr,
     nameEn,
     mealTypes: ['lunch'],
-    tags,
-    source: 'home',
+    source,
     effort: 'medium',
     cost: 'normal',
     occasion: 'everyday',
@@ -134,14 +133,15 @@ const SLOTS: SlotFixture[] = [
 ];
 
 /** Names of realistic length, including two that have to wrap to a second line. */
-const DISHES: [string, string, string, string[]][] = [
-  ['fatteh', 'فتة حمص', 'Chickpea fatteh', ['quick']],
-  ['mozzarella', 'جبنة موزاريلا مع بندورة', 'Mozzarella with tomato', ['high_protein']],
-  ['hummus-tahini', 'حمص بالطحينة مع خبز', 'Hummus with tahini and bread', ['vegetarian']],
-  ['ful', 'فول مدمس', 'Ful medames', ['budget']],
-  ['eggs-zaatar', 'بيض مع زعتر وزيت', 'Eggs with zaatar and oil', ['quick']],
-  ['labneh-walnut', 'لبنة مع جوز وعسل', 'Labneh with walnuts and honey', ['high_protein']],
-  ['oats-milk', 'شوفان بالحليب والموز', 'Oats with milk and banana', ['high_carb']],
+/** slug, Arabic name, English name, and where the client gets it. */
+const DISHES: [string, string, string, string][] = [
+  ['fatteh', 'فتة حمص', 'Chickpea fatteh', 'home'],
+  ['mozzarella', 'جبنة موزاريلا مع بندورة', 'Mozzarella with tomato', 'home'],
+  ['hummus-tahini', 'حمص بالطحينة مع خبز', 'Hummus with tahini and bread', 'street'],
+  ['ful', 'فول مدمس', 'Ful medames', 'home'],
+  ['eggs-zaatar', 'بيض مع زعتر وزيت', 'Eggs with zaatar and oil', 'home'],
+  ['labneh-walnut', 'لبنة مع جوز وعسل', 'Labneh with walnuts and honey', 'shop'],
+  ['oats-milk', 'شوفان بالحليب والموز', 'Oats with milk and banana', 'home'],
 ];
 
 const WEEK_START = '2026-08-30';
@@ -149,14 +149,14 @@ const WEEK_START = '2026-08-30';
 function boardMeal(dayOfWeek: number, slot: SlotFixture, index: number): BoardMeal {
   // One slot skipped on Wednesday, so `SkippedSlot` is on screen; one slot left
   // unfilled on Thursday, so the empty card and the unfilled banner are too.
-  const [slug, nameAr, nameEn, tags] = DISHES[(dayOfWeek + index) % DISHES.length]!;
+  const [slug, nameAr, nameEn, source] = DISHES[(dayOfWeek + index) % DISHES.length]!;
   const unfilled = dayOfWeek === 4 && slot.slotKey === 'snack_2';
 
   // A little over on Wednesday and under on Friday, so the day header's drift
   // arrow and its amber are both drawn somewhere on the board.
   const scale = dayOfWeek === 3 ? 1.12 : dayOfWeek === 5 ? 0.88 : 1;
   const lines: MealIngredientLine[] = unfilled ? [] : recipe(slug, slot.budgetKcal * scale);
-  const chosen = unfilled ? null : dish(slug, nameAr, nameEn, lines, tags);
+  const chosen = unfilled ? null : dish(slug, nameAr, nameEn, lines, source);
 
   return {
     id: `${dayOfWeek}-${slot.slotKey}`,
@@ -237,11 +237,11 @@ function buildDay(dayOfWeek: number): BoardDay {
  * The dish drag out of the catalog is its own preview path — a full-width strip
  * becoming a card — and it cannot be looked at against an empty list.
  */
-const CATALOG: CatalogEntry[] = DISHES.map(([slug, nameAr, nameEn, tags], index) => {
+const CATALOG: CatalogEntry[] = DISHES.map(([slug, nameAr, nameEn, source], index) => {
   const lines = recipe(slug, 320 + index * 60);
 
   return {
-    ...dish(slug, nameAr, nameEn, lines, tags),
+    ...dish(slug, nameAr, nameEn, lines, source),
     baseKcal: Math.round(dishTotals(lines, 1).kcal.value),
     nutritionCategory: 'balanced' as const,
     blockedBy: [],

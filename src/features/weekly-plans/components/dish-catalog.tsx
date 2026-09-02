@@ -34,10 +34,13 @@ import { localizedName } from '../food-display';
 import type { CatalogEntry } from '../queries';
 import {
   ALLERGENS,
-  DISH_TAGS,
+  DISH_AXES,
+  EMPTY_AXIS_FILTERS,
+  axisMessageKey,
   isFixedPortion,
   mealTypeForSlot,
-  type DishTag,
+  type DishAxisFilters,
+  type DishAxisKey,
 } from '../schema';
 
 import { EditorActionsContext } from './board-dnd';
@@ -49,13 +52,10 @@ import { EditorActionsContext } from './board-dnd';
  */
 const NUTRITION_FILTERS = ['high_protein'] as const satisfies readonly NutritionCategory[];
 
-/** How many colour dots a rail row prints before it stops — it is 20rem wide. */
-const DOT_LIMIT = 3;
-
 /** The narrow union of categories actually offered as filters — so message keys
  * like `nutritionFilters.${entry}` stay resolvable. */
 type NutritionFilter = (typeof NUTRITION_FILTERS)[number];
-import { dishTagDotClasses, highProteinDotClasses } from '../meal-tag-tone';
+import { dishSourceDotClasses, highProteinDotClasses } from '../meal-tag-tone';
 import { chooseServings } from '../portioning';
 import { bestServings } from '../similar';
 import { PLANNER_THEME } from '../theme';
@@ -101,12 +101,10 @@ export function DishCatalog({
 }) {
   const t = useTranslations('weeklyPlans');
   const [query, setQuery] = useState('');
-  // Plural. One tag at a time made the panel unable to answer the question it
-  // exists for — "something vegetarian that is also quick" — and there was no
-  // way to tell, from the closed popover, which single tag was even on.
-  // `DishTag`, not `string`: next-intl only accepts message keys it can see, so
-  // a widened element type here makes `t('tags.' + entry)` unresolvable.
-  const [tags, setTags] = useState<readonly DishTag[]>([]);
+  // One selection per axis, several axes at once: the panel has to be able to
+  // answer "something from the street that is also cheap", and under the old tag
+  // bag every extra chip could only ever return fewer rows.
+  const [axes, setAxes] = useState<DishAxisFilters>(EMPTY_AXIS_FILTERS);
   const [nutrition, setNutrition] = useState<readonly NutritionFilter[]>([]);
   const [options, setOptions] = useState<readonly CatalogOption[]>([]);
   const [allMealTypes, setAllMealTypes] = useState(false);
@@ -123,7 +121,7 @@ export function DishCatalog({
   const shown = useMemo(() => {
     const matches = filterCatalog(
       catalog,
-      { needle, mealType: activeMealType, tags, nutrition, options },
+      { needle, mealType: activeMealType, axes, nutrition, options },
       context,
     );
 
@@ -137,7 +135,7 @@ export function DishCatalog({
 
       return fit(a) - fit(b);
     });
-  }, [catalog, needle, activeMealType, tags, nutrition, options, context, budgetKcal]);
+  }, [catalog, needle, activeMealType, axes, nutrition, options, context, budgetKcal]);
 
   /**
    * How many dishes each chip would leave, given everything already chosen.
@@ -153,11 +151,18 @@ export function DishCatalog({
    */
   const counts = useMemo(() => {
     const byChip: Record<string, number> = {};
-    const base = { needle, mealType: activeMealType, tags, nutrition, options };
+    const base = { needle, mealType: activeMealType, axes, nutrition, options };
 
-    for (const entry of DISH_TAGS) {
-      const next = tags.includes(entry) ? tags : [...tags, entry];
-      byChip[entry] = filterCatalog(catalog, { ...base, tags: next }, context).length;
+    for (const { key, values } of DISH_AXES) {
+      for (const { value } of values) {
+        const selected = axes[key];
+        const next = selected.includes(value) ? selected : [...selected, value];
+        byChip[`${key}:${value}`] = filterCatalog(
+          catalog,
+          { ...base, axes: { ...axes, [key]: next } },
+          context,
+        ).length;
+      }
     }
 
     for (const entry of NUTRITION_FILTERS) {
@@ -171,12 +176,26 @@ export function DishCatalog({
     }
 
     return byChip;
-  }, [catalog, needle, activeMealType, tags, nutrition, options, context]);
+  }, [catalog, needle, activeMealType, axes, nutrition, options, context]);
 
-  const activeCount = tags.length + nutrition.length + options.length + (activeMealType ? 1 : 0);
+  const axisCount = DISH_AXES.reduce((total, { key }) => total + axes[key].length, 0);
+  const activeCount = axisCount + nutrition.length + options.length + (activeMealType ? 1 : 0);
+
+  function toggleAxis(key: DishAxisKey, value: string): void {
+    setAxes((current) => {
+      const selected = current[key];
+
+      return {
+        ...current,
+        [key]: selected.includes(value)
+          ? selected.filter((one) => one !== value)
+          : [...selected, value],
+      };
+    });
+  }
 
   function clearFilters(): void {
-    setTags([]);
+    setAxes(EMPTY_AXIS_FILTERS);
     setNutrition([]);
     setOptions([]);
     setAllMealTypes(true);
@@ -303,30 +322,38 @@ export function DishCatalog({
                       );
                     })}
 
-                    {DISH_TAGS.map((entry) => {
-                      const selected = tags.includes(entry);
-                      const count = counts[entry] ?? 0;
-
-                      return (
-                        <FilterChip
-                          key={entry}
-                          active={selected}
-                          disabled={!selected && count === 0}
-                          onClick={() =>
-                            setTags((current) =>
-                              current.includes(entry)
-                                ? current.filter((value) => value !== entry)
-                                : [...current, entry],
-                            )
-                          }
-                        >
-                          <span aria-hidden className={dishTagDotClasses(entry)} />
-                          {t(`tags.${entry}`)}
-                          <ChipCount value={count} />
-                        </FilterChip>
-                      );
-                    })}
                   </FilterGroup>
+
+                  {/*
+                    One group per axis, because they answer four different
+                    questions and a single run of fifteen chips reads as fifteen
+                    interchangeable switches. Only `source` carries a dot: it is
+                    the axis the board paints its rules with, so the colour a
+                    dietitian learns here is the one they read on the week.
+                  */}
+                  {DISH_AXES.map((axis) => (
+                    <FilterGroup key={axis.key} label={t(axis.label)}>
+                      {axis.values.map(({ value, message }) => {
+                        const selected = axes[axis.key].includes(value);
+                        const count = counts[`${axis.key}:${value}`] ?? 0;
+
+                        return (
+                          <FilterChip
+                            key={value}
+                            active={selected}
+                            disabled={!selected && count === 0}
+                            onClick={() => toggleAxis(axis.key, value)}
+                          >
+                            {axis.key === 'source' && (
+                              <span aria-hidden className={dishSourceDotClasses(value)} />
+                            )}
+                            {t(message)}
+                            <ChipCount value={count} />
+                          </FilterChip>
+                        );
+                      })}
+                    </FilterGroup>
+                  ))}
             </PopoverContent>
           </Popover>
         </div>
@@ -366,17 +393,23 @@ export function DishCatalog({
             </FilterChip>
           ))}
 
-          {tags.map((entry) => (
-            <FilterChip
-              key={entry}
-              active
-              onClick={() => setTags((current) => current.filter((value) => value !== entry))}
-            >
-              <span aria-hidden className={dishTagDotClasses(entry)} />
-              {t(`tags.${entry}`)}
-              <Icon name="close" className="size-3.5" />
-            </FilterChip>
-          ))}
+          {DISH_AXES.flatMap((axis) =>
+            axis.values
+              .filter(({ value }) => axes[axis.key].includes(value))
+              .map(({ value, message }) => (
+                <FilterChip
+                  key={`${axis.key}:${value}`}
+                  active
+                  onClick={() => toggleAxis(axis.key, value)}
+                >
+                  {axis.key === 'source' && (
+                    <span aria-hidden className={dishSourceDotClasses(value)} />
+                  )}
+                  {t(message)}
+                  <Icon name="close" className="size-3.5" />
+                </FilterChip>
+              )),
+          )}
 
           {options.map((entry) => (
             <FilterChip key={entry} active onClick={() => toggleOption(entry)}>
@@ -565,9 +598,6 @@ function CatalogRow({
   });
 
   const blocked = dish.blockedBy.length > 0;
-  // Catalog order, so the leading dot is the same tag the meal card will paint —
-  // see `primaryDishTag`, which resolves through `DISH_TAGS` for this reason.
-  const dishTags = membersOf(DISH_TAGS, dish.tags).slice(0, DOT_LIMIT);
   const delta = budgetKcal === null ? null : kcal - budgetKcal;
   const deltaLabel = delta === null ? null : `${delta > 0 ? '+' : ''}${delta}`;
 
@@ -599,26 +629,23 @@ function CatalogRow({
           </span>
 
           {/*
-            The dish's colours, as bare dots.
+            Where this dish comes from, as one bare dot.
 
-            The rail is too narrow for labelled chips, and it does not need
-            them: the same dots are labelled one click away in this panel's own
-            filter popover, and the first of them is the colour this dish will
-            paint across the top of the card it becomes the moment it is
-            dropped. That last part is the point — the mark is visible *before*
-            the drop, on the row being dragged, so the board's rules stop being
-            decoration the dietitian has to decode after the fact.
+            The rail is too narrow for a labelled chip, and it does not need one:
+            the same dot is labelled one click away in this panel's own filter
+            popover, and it is the colour this dish will paint across the top of
+            the card it becomes the moment it is dropped. That last part is the
+            point — the mark is visible *before* the drop, on the row being
+            dragged, so the board's rules stop being decoration the dietitian has
+            to decode after the fact.
+
+            One dot, not a run of them, because a dish has exactly one source.
+            Under the tag bag this was up to three and the first one won, which
+            meant the rail promised a colour the card sometimes did not paint.
           */}
-          {dishTags.length > 0 && (
-            <span
-              className="flex shrink-0 items-center gap-1"
-              title={dishTags.map((tag) => t(`tags.${tag}`)).join('، ')}
-            >
-              {dishTags.map((tag) => (
-                <span key={tag} aria-hidden className={dishTagDotClasses(tag)} />
-              ))}
-            </span>
-          )}
+          <span className="shrink-0" title={t(axisMessageKey('source', dish.source))}>
+            <span aria-hidden className={dishSourceDotClasses(dish.source)} />
+          </span>
         </span>
         <span className="mt-0.5 block text-caption text-muted-foreground">
           {blocked ? (

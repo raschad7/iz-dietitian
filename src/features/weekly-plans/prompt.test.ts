@@ -13,7 +13,6 @@ const CATALOG: PromptDish[] = [
     slug: 'mujaddara-salad',
     nameAr: 'مجدرة مع سلطة خضراء',
     mealTypes: ['lunch', 'dinner'],
-    tags: ['economical', 'vegetarian'],
     source: 'home',
     effort: 'medium',
     cost: 'normal',
@@ -30,7 +29,6 @@ const CATALOG: PromptDish[] = [
     mealTypes: ['breakfast'],
     // Practical tags only — "high protein" is not among them; it rides in the
     // separate nutritionCategory field below, computed from the recipe.
-    tags: ['quick'],
     source: 'home',
     effort: 'medium',
     cost: 'normal',
@@ -167,19 +165,27 @@ describe('buildPrompt — content', () => {
     const { user } = buildPrompt(input());
 
     expect(user).toContain(
-      'mujaddara-salad\tمجدرة مع سلطة خضراء\tlunch|dinner\teconomical|vegetarian\t618kcal\t22g\tbalanced',
+      'mujaddara-salad\tمجدرة مع سلطة خضراء\tlunch|dinner\t618kcal\t22g\tbalanced',
     );
   });
 
-  test('keeps practical tags and computed nutrition in separate columns', () => {
+  /**
+   * The model is told what a dish *is* (its four declared axes) and what it
+   * *contains* (computed from the recipe) in separate columns, so a label it
+   * reads can never be one someone typed to contradict the food.
+   */
+  test('carries the declared axes and the computed nutrition in their own columns', () => {
     const { user } = buildPrompt(input());
 
-    // The header names both, distinctly.
-    expect(user).toContain('slug\tname\tmeal_types\ttags\tbase_kcal\tbase_protein\tnutrition');
+    expect(user).toContain(
+      'slug\tname\tmeal_types\tbase_kcal\tbase_protein\tnutrition\tprotein_source\tcarb_base\tsource\teffort\tcost\toccasion',
+    );
 
-    // labaneh is computed high_protein, but "high_protein" is NOT in its tags
-    // column — it appears only in the trailing computed-nutrition column.
-    expect(user).toContain('labaneh-zeit-pita\tلبنة بزيت الزيتون مع خبز\tbreakfast\tquick\t381kcal\t18g\thigh_protein');
+    // labaneh is computed high_protein, and that appears only in the nutrition
+    // column — there is nowhere on the wire for a hand-written one to live.
+    expect(user).toContain(
+      'labaneh-zeit-pita\tلبنة بزيت الزيتون مع خبز\tbreakfast\t381kcal\t18g\thigh_protein\tdairy\tbread\thome\tmedium\tnormal\teveryday',
+    );
   });
 
   test('names last week so the model can vary', () => {
@@ -306,7 +312,6 @@ describe('buildPrompt — sides', () => {
     slug: 'green-salad-plate',
     nameAr: 'صحن سلطة',
     mealTypes: ['lunch', 'dinner'],
-    tags: [],
     source: 'home',
     effort: 'no_cook',
     cost: 'cheap',

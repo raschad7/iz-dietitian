@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import { MEAL_TOLERANCE, driftState } from '@/features/weekly-plans/drift';
 import { roundForDisplay } from '@/features/weekly-plans/nutrition';
 import { localizedName } from '../food-display';
-import { dishTagAccentClass } from '../meal-tag-tone';
+import { dishSourceAccentClass } from '../meal-tag-tone';
 import type { BoardMeal } from '../queries';
 
 import { useEditorActions } from './board-dnd';
@@ -88,7 +88,7 @@ export function MealCard({
             dishName: localizedName(meal.dish, locale),
             kcal,
             servings: meal.dish.servings,
-            tags: meal.dish.tags,
+            source: meal.dish.source,
           }
         : undefined,
     },
@@ -252,7 +252,7 @@ export function MealCard({
             aria-hidden
             className={cn(
               'absolute start-4 end-4 top-0 h-[3px] rounded-full',
-              meal.dish ? dishTagAccentClass(meal.dish.tags) : 'bg-border',
+              meal.dish ? dishSourceAccentClass(meal.dish.source) : 'bg-border',
             )}
           />
           <span
@@ -386,7 +386,7 @@ export function MealCardSnapshot({ meal }: { meal: BoardMeal }) {
           aria-hidden
           className={cn(
             'absolute start-4 end-4 top-0 h-[3px] rounded-full',
-            meal.dish ? dishTagAccentClass(meal.dish.tags) : 'bg-border',
+            meal.dish ? dishSourceAccentClass(meal.dish.source) : 'bg-border',
           )}
         />
         <span

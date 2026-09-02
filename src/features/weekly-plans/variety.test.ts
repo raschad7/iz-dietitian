@@ -53,7 +53,6 @@ function dish(id: string, category: string, nameEn: string, kcal = 300): Catalog
     slug: id,
     nameAr: id,
     mealTypes: ['lunch', 'dinner'],
-    tags: [],
     source: 'home',
     effort: 'medium',
     cost: 'normal',

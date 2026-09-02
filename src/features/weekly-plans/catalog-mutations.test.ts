@@ -44,7 +44,10 @@ const dishInput = (): ClinicDishInput => ({
   nameAr: 'دجاج',
   nameEn: 'Chicken',
   mealTypes: ['lunch'],
-  tags: [],
+  source: 'home',
+  effort: 'medium',
+  cost: 'normal',
+  occasion: 'everyday',
   allergenTags: [],
   baseServingLabel: 'حصة',
   ingredients: [{ foodId, quantityGrams: 200 }],
@@ -97,7 +100,7 @@ describe('deleteClinicDish', () => {
 
     const [shared] = await db
       .insert(dishes)
-      .values({ slug: 's', nameAr: 's', nameEn: 's', mealTypes: ['lunch'], tags: [], allergenTags: [], baseServingLabel: 'x' })
+      .values({ slug: 's', nameAr: 's', nameEn: 's', mealTypes: ['lunch'], allergenTags: [], baseServingLabel: 'x' })
       .returning({ id: dishes.id });
     expect(await deleteClinicDish(clinicId, shared!.id)).toBe('not_found');
   });
@@ -132,7 +135,7 @@ describe('hide / unhide shared dishes', () => {
   test('hides a shared dish for this clinic and un-hides it', async () => {
     const [shared] = await db
       .insert(dishes)
-      .values({ slug: 's', nameAr: 's', nameEn: 's', mealTypes: ['lunch'], tags: [], allergenTags: [], baseServingLabel: 'x' })
+      .values({ slug: 's', nameAr: 's', nameEn: 's', mealTypes: ['lunch'], allergenTags: [], baseServingLabel: 'x' })
       .returning({ id: dishes.id });
 
     expect(await hideSharedDish(clinicId, shared!.id)).toBe(true);

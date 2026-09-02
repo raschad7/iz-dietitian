@@ -62,7 +62,6 @@ function meal(
           nameAr: `${dishName} بالعربية`,
           nameEn: dishName,
           mealTypes: [],
-          tags: [],
           source: 'home',
           effort: 'medium',
           cost: 'normal',

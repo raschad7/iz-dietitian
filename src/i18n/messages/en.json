@@ -2171,15 +2171,36 @@
       "lunch": "Lunch",
       "dinner": "Dinner"
     },
-    "tags": {
-      "economical": "Economical",
-      "quick": "Quick",
-      "easy_prep": "Easy prep",
-      "no_cook": "No cook",
-      "portable": "Portable",
-      "filling": "Filling",
-      "local": "Local",
-      "vegetarian": "Vegetarian"
+    "axes": {
+      "source": {
+        "home": "Home-cooked",
+        "street": "Street",
+        "restaurant": "Restaurant",
+        "shop": "Shop-bought"
+      },
+      "effort": {
+        "no_cook": "No cooking",
+        "quick": "Under 15 min",
+        "medium": "Under 45 min",
+        "long": "Needs time"
+      },
+      "cost": {
+        "cheap": "Cheap",
+        "normal": "Normal",
+        "expensive": "Expensive"
+      },
+      "occasion": {
+        "everyday": "Everyday",
+        "family": "Family",
+        "ramadan": "Ramadan",
+        "festive": "Festive"
+      }
+    },
+    "axisLabels": {
+      "source": "Where from",
+      "effort": "Effort",
+      "cost": "Cost",
+      "occasion": "Occasion"
     },
     "dropHere": "Drop here",
     "addMeal": "Add a meal",
@@ -2329,7 +2350,7 @@
     "columns": {
       "name": "Dish",
       "mealTypes": "Meal time",
-      "tags": "Qualities",
+      "properties": "Qualities",
       "kcal": "Calories",
       "carbs": "Carbs",
       "protein": "Protein",
@@ -2361,15 +2382,36 @@
       "lunch": "Lunch",
       "dinner": "Dinner"
     },
-    "tags": {
-      "economical": "Economical",
-      "quick": "Quick",
-      "easy_prep": "Easy prep",
-      "no_cook": "No cook",
-      "portable": "Portable",
-      "filling": "Filling",
-      "local": "Local",
-      "vegetarian": "Vegetarian"
+    "axes": {
+      "source": {
+        "home": "Home-cooked",
+        "street": "Street",
+        "restaurant": "Restaurant",
+        "shop": "Shop-bought"
+      },
+      "effort": {
+        "no_cook": "No cooking",
+        "quick": "Under 15 min",
+        "medium": "Under 45 min",
+        "long": "Needs time"
+      },
+      "cost": {
+        "cheap": "Cheap",
+        "normal": "Normal",
+        "expensive": "Expensive"
+      },
+      "occasion": {
+        "everyday": "Everyday",
+        "family": "Family",
+        "ramadan": "Ramadan",
+        "festive": "Festive"
+      }
+    },
+    "axisLabels": {
+      "source": "Where from",
+      "effort": "Effort",
+      "cost": "Cost",
+      "occasion": "Occasion"
     },
     "allergens": {
       "nuts": "Nuts",

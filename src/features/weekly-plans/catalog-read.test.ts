@@ -37,7 +37,10 @@ const dishInput = (): ClinicDishInput => ({
   nameAr: 'دجاج مشوي',
   nameEn: 'Grilled chicken',
   mealTypes: ['lunch'],
-  tags: ['quick'],
+  source: 'home',
+  effort: 'medium',
+  cost: 'normal',
+  occasion: 'everyday',
   allergenTags: [],
   baseServingLabel: 'حصة',
   ingredients: [{ foodId, quantityGrams: 200 }],
@@ -51,7 +54,10 @@ function seedSharedDish(slug: string) {
       nameAr: slug,
       nameEn: slug,
       mealTypes: ['lunch'],
-      tags: [],
+      source: 'home',
+      effort: 'medium',
+      cost: 'normal',
+      occasion: 'everyday',
       allergenTags: [],
       baseServingLabel: 'serving',
     })
@@ -111,7 +117,8 @@ describe('getClinicDishForEdit', () => {
     expect(data!.nameAr).toBe('دجاج مشوي');
     expect(data!.nameEn).toBe('Grilled chicken');
     expect(data!.mealTypes).toEqual(['lunch']);
-    expect(data!.tags).toEqual(['quick']);
+    expect(data!.source).toBe('home');
+    expect(data!.effort).toBe('medium');
     expect(data!.ingredients).toHaveLength(1);
     const ingredient = data!.ingredients[0]!;
     expect(ingredient.quantityGrams).toBe(200);

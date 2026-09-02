@@ -163,7 +163,6 @@ function meal(id: string, label: string, lines: readonly MealIngredientLine[]): 
       nameAr: 'صحن لبنة وخبز',
       nameEn: 'Labneh plate',
       mealTypes: ['lunch'],
-      tags: ['quick'],
       source: 'home',
       effort: 'medium',
       cost: 'normal',

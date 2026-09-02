@@ -44,7 +44,7 @@ import {
 } from '../editor-actions';
 import { applyEdit, type BoardEdit } from '../editor-state';
 import { localizedName } from '../food-display';
-import { dishTagAccentClass } from '../meal-tag-tone';
+import { dishSourceAccentClass } from '../meal-tag-tone';
 import { initialPlanActionState, type PlanActionState } from '../form-state';
 import type { Board, BoardMeal } from '../queries';
 
@@ -182,12 +182,12 @@ export type DragPayload =
         kcal: number;
         servings: number;
         /**
-         * The dish's tags, carried purely so the lifted card can draw the same
+         * The dish's source, carried purely so the lifted card can draw the same
          * coloured rule its resting self does. Without them the preview loses
          * the one mark that says *which kind* of dish is in flight, at the
          * moment that is the only thing on screen answering the question.
          */
-        tags: string[];
+        source: string;
       };
     };
 
@@ -858,7 +858,7 @@ function DragPreview({
   // A meal's preview name was already localized when the drag started; a dish
   // dragged out of the catalog carries both names and is localized here.
   const name = isMeal ? payload.preview.dishName : localizedName(payload.dish, locale);
-  const tags = isMeal ? payload.preview.tags : payload.dish.tags;
+  const source = isMeal ? payload.preview.source : payload.dish.source;
   const kcal = isMeal ? payload.preview.kcal : payload.kcal;
 
   /*
@@ -910,7 +910,7 @@ function DragPreview({
       <span className="relative mt-1 flex shrink-0 items-baseline justify-center gap-2 px-2 pb-1.5 pt-2.5">
         <span
           aria-hidden
-          className={cn('absolute start-4 end-4 top-0 h-[3px] rounded-full', dishTagAccentClass(tags))}
+          className={cn('absolute start-4 end-4 top-0 h-[3px] rounded-full', dishSourceAccentClass(source))}
         />
         <span className="inline-flex items-baseline gap-1 text-body-sm font-semibold tabular-nums" dir="ltr">
           {kcal}

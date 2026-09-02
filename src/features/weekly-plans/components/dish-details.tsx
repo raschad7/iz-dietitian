@@ -21,7 +21,7 @@ import { loadDishDetailAction } from '../catalog-actions';
 import { localizedName, localizedPortionLabel, secondaryName } from '../food-display';
 import { NUTRIENT_UNITS, roundForDisplay } from '../nutrition';
 import type { DishDetailView } from '../queries';
-import { ALLERGENS, DISH_TAGS, MEAL_TYPES } from '../schema';
+import { ALLERGENS, DISH_AXES, MEAL_TYPES, axisMessageKey } from '../schema';
 
 /**
  * The read-only dish detail drawer (spec §8).
@@ -79,7 +79,7 @@ export function DishDetails({
   const meta = detail
     ? [
         ...membersOf(MEAL_TYPES, detail.mealTypes).map((type) => t(`mealTypes.${type}`)),
-        ...membersOf(DISH_TAGS, detail.tags).map((tag) => t(`tags.${tag}`)),
+        ...DISH_AXES.map(({ key }) => t(axisMessageKey(key, detail[key]))),
       ].join(' · ')
     : '';
 

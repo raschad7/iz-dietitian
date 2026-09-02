@@ -22,11 +22,6 @@
         "breakfast",
         "dinner"
       ],
-      "tags": [
-        "economical",
-        "quick",
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "cheap",
@@ -73,11 +68,6 @@
       "mealTypes": [
         "breakfast",
         "dinner"
-      ],
-      "tags": [
-        "economical",
-        "vegetarian",
-        "portable"
       ],
       "source": "home",
       "effort": "no_cook",
@@ -128,10 +118,6 @@
       "mealTypes": [
         "breakfast",
         "dinner"
-      ],
-      "tags": [
-        "economical",
-        "vegetarian"
       ],
       "source": "home",
       "effort": "medium",
@@ -186,10 +172,6 @@
       "mealTypes": [
         "breakfast"
       ],
-      "tags": [
-        "economical",
-        "quick"
-      ],
       "source": "home",
       "effort": "quick",
       "cost": "cheap",
@@ -236,10 +218,6 @@
       "mealTypes": [
         "breakfast",
         "dinner"
-      ],
-      "tags": [
-        "quick",
-        "vegetarian"
       ],
       "source": "home",
       "effort": "no_cook",
@@ -292,11 +270,6 @@
       "mealTypes": [
         "breakfast"
       ],
-      "tags": [
-        "economical",
-        "portable",
-        "vegetarian"
-      ],
       "source": "shop",
       "effort": "medium",
       "cost": "cheap",
@@ -336,11 +309,6 @@
       "nameEn": "Oats with milk and banana",
       "mealTypes": [
         "breakfast"
-      ],
-      "tags": [
-        "quick",
-        "economical",
-        "vegetarian"
       ],
       "source": "home",
       "effort": "quick",
@@ -382,11 +350,6 @@
       "mealTypes": [
         "breakfast"
       ],
-      "tags": [
-        "quick",
-        "vegetarian",
-        "portable"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "normal",
@@ -427,10 +390,6 @@
       "mealTypes": [
         "breakfast",
         "dinner"
-      ],
-      "tags": [
-        "economical",
-        "quick"
       ],
       "source": "home",
       "effort": "quick",
@@ -489,10 +448,6 @@
         "breakfast",
         "dinner"
       ],
-      "tags": [
-        "quick",
-        "portable"
-      ],
       "source": "home",
       "effort": "quick",
       "cost": "normal",
@@ -536,10 +491,6 @@
       "nameEn": "Labneh with walnuts and honey",
       "mealTypes": [
         "breakfast"
-      ],
-      "tags": [
-        "quick",
-        "vegetarian"
       ],
       "source": "home",
       "effort": "no_cook",
@@ -588,10 +539,6 @@
       "mealTypes": [
         "breakfast",
         "lunch"
-      ],
-      "tags": [
-        "economical",
-        "vegetarian"
       ],
       "source": "home",
       "effort": "medium",
@@ -645,10 +592,6 @@
       "mealTypes": [
         "breakfast"
       ],
-      "tags": [
-        "quick",
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "normal",
@@ -693,9 +636,6 @@
       "mealTypes": [
         "breakfast",
         "dinner"
-      ],
-      "tags": [
-        "quick"
       ],
       "source": "home",
       "effort": "quick",
@@ -743,12 +683,6 @@
       "mealTypes": [
         "breakfast"
       ],
-      "tags": [
-        "quick",
-        "economical",
-        "vegetarian",
-        "portable"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "cheap",
@@ -787,9 +721,6 @@
       "mealTypes": [
         "breakfast",
         "lunch"
-      ],
-      "tags": [
-        "portable"
       ],
       "source": "shop",
       "effort": "medium",
@@ -836,11 +767,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "quick",
-        "portable",
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "normal",
@@ -872,12 +798,6 @@
       "nameEn": "Banana with peanuts",
       "mealTypes": [
         "snack"
-      ],
-      "tags": [
-        "quick",
-        "portable",
-        "economical",
-        "vegetarian"
       ],
       "source": "home",
       "effort": "no_cook",
@@ -911,12 +831,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "quick",
-        "portable",
-        "economical",
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "cheap",
@@ -942,12 +856,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "quick",
-        "portable",
-        "economical",
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "cheap",
@@ -970,11 +878,6 @@
       "nameEn": "Cup of plain yogurt",
       "mealTypes": [
         "snack"
-      ],
-      "tags": [
-        "quick",
-        "economical",
-        "vegetarian"
       ],
       "source": "home",
       "effort": "no_cook",
@@ -1000,11 +903,6 @@
       "nameEn": "Carrot sticks with hummus",
       "mealTypes": [
         "snack"
-      ],
-      "tags": [
-        "portable",
-        "economical",
-        "vegetarian"
       ],
       "source": "home",
       "effort": "no_cook",
@@ -1041,11 +939,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "quick",
-        "economical",
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "cheap",
@@ -1077,11 +970,6 @@
       "nameEn": "Dates with walnuts",
       "mealTypes": [
         "snack"
-      ],
-      "tags": [
-        "quick",
-        "portable",
-        "vegetarian"
       ],
       "source": "home",
       "effort": "no_cook",
@@ -1115,11 +1003,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "quick",
-        "economical",
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "cheap",
@@ -1144,11 +1027,6 @@
       "nameEn": "Fresh figs",
       "mealTypes": [
         "snack"
-      ],
-      "tags": [
-        "quick",
-        "economical",
-        "vegetarian"
       ],
       "source": "home",
       "effort": "no_cook",
@@ -1175,12 +1053,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "quick",
-        "portable",
-        "economical",
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "cheap",
@@ -1206,10 +1078,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "quick",
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "normal",
@@ -1232,11 +1100,6 @@
       "nameEn": "Guava",
       "mealTypes": [
         "snack"
-      ],
-      "tags": [
-        "quick",
-        "portable",
-        "vegetarian"
       ],
       "source": "home",
       "effort": "no_cook",
@@ -1262,10 +1125,6 @@
       "nameEn": "Strawberries with yogurt",
       "mealTypes": [
         "snack"
-      ],
-      "tags": [
-        "quick",
-        "vegetarian"
       ],
       "source": "home",
       "effort": "no_cook",
@@ -1300,11 +1159,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "portable",
-        "economical",
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "cheap",
@@ -1327,11 +1181,6 @@
       "nameEn": "Plums and apricots",
       "mealTypes": [
         "snack"
-      ],
-      "tags": [
-        "quick",
-        "economical",
-        "vegetarian"
       ],
       "source": "home",
       "effort": "no_cook",
@@ -1363,10 +1212,6 @@
       "nameEn": "Labneh with cucumber",
       "mealTypes": [
         "snack"
-      ],
-      "tags": [
-        "quick",
-        "vegetarian"
       ],
       "source": "home",
       "effort": "no_cook",
@@ -1400,11 +1245,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "quick",
-        "portable",
-        "economical"
-      ],
       "source": "home",
       "effort": "quick",
       "cost": "cheap",
@@ -1432,11 +1272,6 @@
       "mealTypes": [
         "lunch",
         "dinner"
-      ],
-      "tags": [
-        "economical",
-        "portable",
-        "vegetarian"
       ],
       "source": "home",
       "effort": "medium",
@@ -1494,10 +1329,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [
-        "economical",
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "long",
       "cost": "cheap",
@@ -1550,7 +1381,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [],
       "source": "home",
       "effort": "long",
       "cost": "normal",
@@ -1600,9 +1430,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [
-        "economical"
-      ],
       "source": "home",
       "effort": "long",
       "cost": "cheap",
@@ -1648,9 +1475,6 @@
       "nameEn": "Grilled chicken with rice and salad",
       "mealTypes": [
         "lunch"
-      ],
-      "tags": [
-        "portable"
       ],
       "source": "home",
       "effort": "medium",
@@ -1698,7 +1522,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [],
       "source": "home",
       "effort": "medium",
       "cost": "expensive",
@@ -1746,10 +1569,6 @@
         "lunch",
         "dinner"
       ],
-      "tags": [
-        "economical",
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "cheap",
@@ -1796,7 +1615,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [],
       "source": "home",
       "effort": "long",
       "cost": "expensive",
@@ -1848,9 +1666,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [
-        "portable"
-      ],
       "source": "home",
       "effort": "long",
       "cost": "normal",
@@ -1897,9 +1712,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [
-        "economical"
-      ],
       "source": "home",
       "effort": "long",
       "cost": "cheap",
@@ -1945,9 +1757,6 @@
       "nameEn": "Shish tawook with bulgur",
       "mealTypes": [
         "lunch"
-      ],
-      "tags": [
-        "portable"
       ],
       "source": "home",
       "effort": "medium",
@@ -1997,7 +1806,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [],
       "source": "home",
       "effort": "long",
       "cost": "expensive",
@@ -2041,11 +1849,6 @@
       "mealTypes": [
         "lunch",
         "dinner"
-      ],
-      "tags": [
-        "economical",
-        "quick",
-        "vegetarian"
       ],
       "source": "home",
       "effort": "quick",
@@ -2093,9 +1896,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [
-        "economical"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "cheap",
@@ -2137,7 +1937,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [],
       "source": "home",
       "effort": "long",
       "cost": "expensive",
@@ -2183,10 +1982,6 @@
       "mealTypes": [
         "lunch",
         "dinner"
-      ],
-      "tags": [
-        "quick",
-        "portable"
       ],
       "source": "home",
       "effort": "quick",
@@ -2234,7 +2029,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [],
       "source": "home",
       "effort": "medium",
       "cost": "expensive",
@@ -2277,10 +2071,6 @@
       "mealTypes": [
         "lunch",
         "dinner"
-      ],
-      "tags": [
-        "economical",
-        "vegetarian"
       ],
       "source": "home",
       "effort": "medium",
@@ -2329,10 +2119,6 @@
         "lunch",
         "dinner"
       ],
-      "tags": [
-        "economical",
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "cheap",
@@ -2374,9 +2160,6 @@
       "nameEn": "Green beans with beef",
       "mealTypes": [
         "lunch"
-      ],
-      "tags": [
-        "economical"
       ],
       "source": "home",
       "effort": "long",
@@ -2424,10 +2207,6 @@
       "mealTypes": [
         "lunch",
         "dinner"
-      ],
-      "tags": [
-        "economical",
-        "vegetarian"
       ],
       "source": "home",
       "effort": "medium",
@@ -2477,10 +2256,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [
-        "economical",
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "cheap",
@@ -2522,11 +2297,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [
-        "economical",
-        "quick",
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "quick",
       "cost": "cheap",
@@ -2567,7 +2337,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [],
       "source": "home",
       "effort": "medium",
       "cost": "normal",
@@ -2607,11 +2376,6 @@
       "mealTypes": [
         "dinner"
       ],
-      "tags": [
-        "economical",
-        "quick",
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "quick",
       "cost": "cheap",
@@ -2649,11 +2413,6 @@
       "nameEn": "Fattoush",
       "mealTypes": [
         "dinner"
-      ],
-      "tags": [
-        "economical",
-        "quick",
-        "vegetarian"
       ],
       "source": "home",
       "effort": "no_cook",
@@ -2712,11 +2471,6 @@
       "mealTypes": [
         "dinner"
       ],
-      "tags": [
-        "economical",
-        "portable",
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "cheap",
@@ -2772,11 +2526,6 @@
       "mealTypes": [
         "dinner"
       ],
-      "tags": [
-        "quick",
-        "economical",
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "cheap",
@@ -2823,7 +2572,6 @@
       "mealTypes": [
         "dinner"
       ],
-      "tags": [],
       "source": "home",
       "effort": "medium",
       "cost": "expensive",
@@ -2869,11 +2617,6 @@
       "mealTypes": [
         "dinner"
       ],
-      "tags": [
-        "economical",
-        "quick",
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "quick",
       "cost": "cheap",
@@ -2917,10 +2660,6 @@
       "mealTypes": [
         "dinner",
         "breakfast"
-      ],
-      "tags": [
-        "quick",
-        "economical"
       ],
       "source": "home",
       "effort": "quick",
@@ -2969,10 +2708,6 @@
       "mealTypes": [
         "dinner"
       ],
-      "tags": [
-        "quick",
-        "portable"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "normal",
@@ -3017,10 +2752,6 @@
       "nameEn": "Sardines with salad and pita",
       "mealTypes": [
         "dinner"
-      ],
-      "tags": [
-        "economical",
-        "quick"
       ],
       "source": "home",
       "effort": "no_cook",
@@ -3071,11 +2802,6 @@
       "mealTypes": [
         "dinner"
       ],
-      "tags": [
-        "economical",
-        "quick",
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "cheap",
@@ -3125,10 +2851,6 @@
       "mealTypes": [
         "dinner"
       ],
-      "tags": [
-        "economical",
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "cheap",
@@ -3169,10 +2891,6 @@
       "nameEn": "Chicken and cabbage salad",
       "mealTypes": [
         "dinner"
-      ],
-      "tags": [
-        "quick",
-        "portable"
       ],
       "source": "home",
       "effort": "quick",
@@ -3217,11 +2935,6 @@
       "mealTypes": [
         "dinner"
       ],
-      "tags": [
-        "quick",
-        "economical",
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "quick",
       "cost": "cheap",
@@ -3262,10 +2975,6 @@
       "mealTypes": [
         "dinner"
       ],
-      "tags": [
-        "economical",
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "cheap",
@@ -3301,10 +3010,6 @@
       "nameEn": "Eggplant moutabal",
       "mealTypes": [
         "dinner"
-      ],
-      "tags": [
-        "economical",
-        "vegetarian"
       ],
       "source": "home",
       "effort": "medium",
@@ -3356,10 +3061,6 @@
       "mealTypes": [
         "dinner"
       ],
-      "tags": [
-        "economical",
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "cheap",
@@ -3398,10 +3099,6 @@
       "mealTypes": [
         "dinner",
         "lunch"
-      ],
-      "tags": [
-        "economical",
-        "vegetarian"
       ],
       "source": "home",
       "effort": "medium",
@@ -3447,11 +3144,6 @@
         "dinner",
         "breakfast"
       ],
-      "tags": [
-        "quick",
-        "economical",
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "cheap",
@@ -3496,11 +3188,6 @@
       "nameEn": "Chicken maqluba",
       "mealTypes": [
         "lunch"
-      ],
-      "tags": [
-        "economical",
-        "filling",
-        "local"
       ],
       "source": "home",
       "effort": "long",
@@ -3555,10 +3242,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [
-        "filling",
-        "local"
-      ],
       "source": "home",
       "effort": "long",
       "cost": "normal",
@@ -3605,10 +3288,6 @@
       "nameEn": "Qidreh with lamb and chickpeas",
       "mealTypes": [
         "lunch"
-      ],
-      "tags": [
-        "filling",
-        "local"
       ],
       "source": "home",
       "effort": "long",
@@ -3657,10 +3336,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [
-        "filling",
-        "local"
-      ],
       "source": "home",
       "effort": "long",
       "cost": "expensive",
@@ -3708,12 +3383,6 @@
       "mealTypes": [
         "lunch",
         "dinner"
-      ],
-      "tags": [
-        "economical",
-        "local",
-        "vegetarian",
-        "filling"
       ],
       "source": "street",
       "effort": "medium",
@@ -3772,12 +3441,6 @@
         "lunch",
         "dinner"
       ],
-      "tags": [
-        "economical",
-        "local",
-        "vegetarian",
-        "filling"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "cheap",
@@ -3818,11 +3481,6 @@
       "nameEn": "Stuffed cabbage rolls",
       "mealTypes": [
         "lunch"
-      ],
-      "tags": [
-        "economical",
-        "local",
-        "filling"
       ],
       "source": "home",
       "effort": "long",
@@ -3869,10 +3527,6 @@
       "nameEn": "Stuffed eggplant",
       "mealTypes": [
         "lunch"
-      ],
-      "tags": [
-        "local",
-        "filling"
       ],
       "source": "home",
       "effort": "long",
@@ -3921,11 +3575,6 @@
         "lunch",
         "dinner"
       ],
-      "tags": [
-        "economical",
-        "local",
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "cheap",
@@ -3969,10 +3618,6 @@
         "lunch",
         "dinner"
       ],
-      "tags": [
-        "local",
-        "filling"
-      ],
       "source": "home",
       "effort": "long",
       "cost": "expensive",
@@ -4015,10 +3660,6 @@
       "nameEn": "Peas and beef with rice",
       "mealTypes": [
         "lunch"
-      ],
-      "tags": [
-        "filling",
-        "local"
       ],
       "source": "home",
       "effort": "long",
@@ -4068,11 +3709,6 @@
         "dinner",
         "snack"
       ],
-      "tags": [
-        "economical",
-        "vegetarian",
-        "local"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "cheap",
@@ -4116,9 +3752,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [
-        "filling"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "normal",
@@ -4157,10 +3790,6 @@
       "nameEn": "Molokhia with beef and rice",
       "mealTypes": [
         "lunch"
-      ],
-      "tags": [
-        "filling",
-        "local"
       ],
       "source": "home",
       "effort": "long",
@@ -4207,10 +3836,6 @@
       "nameEn": "White bean stew with beef",
       "mealTypes": [
         "lunch"
-      ],
-      "tags": [
-        "filling",
-        "local"
       ],
       "source": "home",
       "effort": "long",
@@ -4265,9 +3890,6 @@
         "lunch",
         "dinner"
       ],
-      "tags": [
-        "filling"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "expensive",
@@ -4316,11 +3938,6 @@
       "mealTypes": [
         "lunch",
         "dinner"
-      ],
-      "tags": [
-        "economical",
-        "local",
-        "vegetarian"
       ],
       "source": "home",
       "effort": "long",
@@ -4371,10 +3988,6 @@
       "nameEn": "Chicken shawarma plate",
       "mealTypes": [
         "lunch"
-      ],
-      "tags": [
-        "portable",
-        "filling"
       ],
       "source": "street",
       "effort": "medium",
@@ -4429,9 +4042,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [
-        "filling"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "expensive",
@@ -4476,12 +4086,6 @@
       "mealTypes": [
         "lunch",
         "dinner"
-      ],
-      "tags": [
-        "economical",
-        "vegetarian",
-        "filling",
-        "local"
       ],
       "source": "home",
       "effort": "medium",
@@ -4529,11 +4133,6 @@
       "mealTypes": [
         "lunch",
         "snack"
-      ],
-      "tags": [
-        "quick",
-        "portable",
-        "easy_prep"
       ],
       "source": "home",
       "effort": "no_cook",
@@ -4587,11 +4186,6 @@
         "breakfast",
         "snack"
       ],
-      "tags": [
-        "quick",
-        "portable",
-        "easy_prep"
-      ],
       "source": "home",
       "effort": "quick",
       "cost": "normal",
@@ -4640,11 +4234,6 @@
         "lunch",
         "snack"
       ],
-      "tags": [
-        "quick",
-        "portable",
-        "easy_prep"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "normal",
@@ -4690,9 +4279,6 @@
       "mealTypes": [
         "lunch",
         "dinner"
-      ],
-      "tags": [
-        "filling"
       ],
       "source": "home",
       "effort": "medium",
@@ -4741,11 +4327,6 @@
         "lunch",
         "dinner"
       ],
-      "tags": [
-        "economical",
-        "vegetarian",
-        "filling"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "cheap",
@@ -4791,10 +4372,6 @@
       "mealTypes": [
         "lunch",
         "dinner"
-      ],
-      "tags": [
-        "quick",
-        "economical"
       ],
       "source": "home",
       "effort": "quick",
@@ -4845,10 +4422,6 @@
         "breakfast",
         "snack"
       ],
-      "tags": [
-        "quick",
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "normal",
@@ -4892,11 +4465,6 @@
       "nameEn": "Eggs with bread and tomato",
       "mealTypes": [
         "breakfast"
-      ],
-      "tags": [
-        "quick",
-        "economical",
-        "vegetarian"
       ],
       "source": "home",
       "effort": "quick",
@@ -4946,10 +4514,6 @@
         "lunch",
         "dinner"
       ],
-      "tags": [
-        "quick",
-        "portable"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "normal",
@@ -4992,9 +4556,6 @@
       "nameEn": "Chicken with couscous and vegetables",
       "mealTypes": [
         "lunch"
-      ],
-      "tags": [
-        "filling"
       ],
       "source": "home",
       "effort": "medium",
@@ -5041,10 +4602,6 @@
       "nameEn": "Tuna pasta salad",
       "mealTypes": [
         "lunch"
-      ],
-      "tags": [
-        "portable",
-        "filling"
       ],
       "source": "home",
       "effort": "medium",
@@ -5093,11 +4650,6 @@
       "mealTypes": [
         "breakfast"
       ],
-      "tags": [
-        "quick",
-        "economical",
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "quick",
       "cost": "cheap",
@@ -5137,9 +4689,6 @@
       "mealTypes": [
         "lunch",
         "dinner"
-      ],
-      "tags": [
-        "filling"
       ],
       "source": "home",
       "effort": "medium",
@@ -5181,10 +4730,6 @@
       "nameEn": "Scrambled eggs with cheese",
       "mealTypes": [
         "breakfast"
-      ],
-      "tags": [
-        "quick",
-        "vegetarian"
       ],
       "source": "home",
       "effort": "quick",
@@ -5230,11 +4775,6 @@
       "nameEn": "Boiled eggs with bread and vegetables",
       "mealTypes": [
         "breakfast"
-      ],
-      "tags": [
-        "quick",
-        "economical",
-        "vegetarian"
       ],
       "source": "home",
       "effort": "quick",
@@ -5285,11 +4825,6 @@
         "breakfast",
         "snack"
       ],
-      "tags": [
-        "quick",
-        "vegetarian",
-        "no_cook"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "normal",
@@ -5337,12 +4872,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "portable",
-        "no_cook",
-        "vegetarian",
-        "easy_prep"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "expensive",
@@ -5380,11 +4909,6 @@
       "mealTypes": [
         "lunch",
         "dinner"
-      ],
-      "tags": [
-        "economical",
-        "quick",
-        "vegetarian"
       ],
       "source": "home",
       "effort": "no_cook",
@@ -5440,10 +4964,6 @@
       "mealTypes": [
         "lunch",
         "dinner"
-      ],
-      "tags": [
-        "portable",
-        "filling"
       ],
       "source": "street",
       "effort": "no_cook",
@@ -5504,10 +5024,6 @@
         "lunch",
         "dinner"
       ],
-      "tags": [
-        "portable",
-        "filling"
-      ],
       "source": "street",
       "effort": "no_cook",
       "cost": "expensive",
@@ -5563,11 +5079,6 @@
         "breakfast",
         "lunch",
         "dinner"
-      ],
-      "tags": [
-        "portable",
-        "economical",
-        "vegetarian"
       ],
       "source": "street",
       "effort": "no_cook",
@@ -5629,11 +5140,6 @@
         "breakfast",
         "lunch"
       ],
-      "tags": [
-        "portable",
-        "economical",
-        "vegetarian"
-      ],
       "source": "street",
       "effort": "no_cook",
       "cost": "cheap",
@@ -5683,10 +5189,6 @@
       "mealTypes": [
         "breakfast"
       ],
-      "tags": [
-        "portable",
-        "economical"
-      ],
       "source": "street",
       "effort": "no_cook",
       "cost": "cheap",
@@ -5735,9 +5237,6 @@
         "breakfast",
         "lunch",
         "snack"
-      ],
-      "tags": [
-        "portable"
       ],
       "source": "shop",
       "effort": "no_cook",
@@ -5789,9 +5288,6 @@
         "lunch",
         "snack"
       ],
-      "tags": [
-        "portable"
-      ],
       "source": "shop",
       "effort": "no_cook",
       "cost": "normal",
@@ -5841,9 +5337,6 @@
       "mealTypes": [
         "breakfast"
       ],
-      "tags": [
-        "portable"
-      ],
       "source": "shop",
       "effort": "no_cook",
       "cost": "normal",
@@ -5890,9 +5383,6 @@
         "breakfast",
         "lunch",
         "snack"
-      ],
-      "tags": [
-        "portable"
       ],
       "source": "shop",
       "effort": "no_cook",
@@ -5942,9 +5432,6 @@
       "mealTypes": [
         "lunch",
         "dinner"
-      ],
-      "tags": [
-        "portable"
       ],
       "source": "restaurant",
       "effort": "no_cook",
@@ -5996,9 +5483,6 @@
         "lunch",
         "dinner"
       ],
-      "tags": [
-        "filling"
-      ],
       "source": "restaurant",
       "effort": "no_cook",
       "cost": "normal",
@@ -6044,9 +5528,6 @@
       "mealTypes": [
         "lunch",
         "dinner"
-      ],
-      "tags": [
-        "filling"
       ],
       "source": "restaurant",
       "effort": "no_cook",
@@ -6105,9 +5586,6 @@
         "lunch",
         "dinner"
       ],
-      "tags": [
-        "filling"
-      ],
       "source": "restaurant",
       "effort": "no_cook",
       "cost": "normal",
@@ -6150,9 +5628,6 @@
       "mealTypes": [
         "lunch",
         "dinner"
-      ],
-      "tags": [
-        "filling"
       ],
       "source": "restaurant",
       "effort": "no_cook",
@@ -6210,10 +5685,6 @@
         "lunch",
         "dinner"
       ],
-      "tags": [
-        "portable",
-        "filling"
-      ],
       "source": "street",
       "effort": "no_cook",
       "cost": "normal",
@@ -6269,11 +5740,6 @@
         "breakfast",
         "snack"
       ],
-      "tags": [
-        "portable",
-        "economical",
-        "vegetarian"
-      ],
       "source": "shop",
       "effort": "no_cook",
       "cost": "cheap",
@@ -6326,10 +5792,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "portable",
-        "vegetarian"
-      ],
       "source": "shop",
       "effort": "no_cook",
       "cost": "cheap",
@@ -6361,10 +5823,6 @@
       "nameEn": "Packet of mixed nuts",
       "mealTypes": [
         "snack"
-      ],
-      "tags": [
-        "portable",
-        "vegetarian"
       ],
       "source": "shop",
       "effort": "no_cook",
@@ -6402,9 +5860,6 @@
       "mealTypes": [
         "lunch",
         "dinner"
-      ],
-      "tags": [
-        "filling"
       ],
       "source": "home",
       "effort": "medium",
@@ -6454,9 +5909,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [
-        "filling"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "normal",
@@ -6502,9 +5954,6 @@
       "nameEn": "Chicken kabsa",
       "mealTypes": [
         "lunch"
-      ],
-      "tags": [
-        "filling"
       ],
       "source": "home",
       "effort": "long",
@@ -6557,9 +6006,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [
-        "filling"
-      ],
       "source": "home",
       "effort": "long",
       "cost": "expensive",
@@ -6606,9 +6052,6 @@
       "mealTypes": [
         "lunch",
         "dinner"
-      ],
-      "tags": [
-        "filling"
       ],
       "source": "home",
       "effort": "medium",
@@ -6657,9 +6100,6 @@
         "lunch",
         "dinner"
       ],
-      "tags": [
-        "filling"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "normal",
@@ -6707,9 +6147,6 @@
       "mealTypes": [
         "lunch",
         "dinner"
-      ],
-      "tags": [
-        "filling"
       ],
       "source": "home",
       "effort": "quick",
@@ -6765,9 +6202,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [
-        "filling"
-      ],
       "source": "home",
       "effort": "long",
       "cost": "normal",
@@ -6816,10 +6250,6 @@
         "lunch",
         "dinner"
       ],
-      "tags": [
-        "vegetarian",
-        "economical"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "cheap",
@@ -6865,9 +6295,6 @@
       "mealTypes": [
         "lunch",
         "dinner"
-      ],
-      "tags": [
-        "filling"
       ],
       "source": "home",
       "effort": "medium",
@@ -6919,9 +6346,6 @@
         "lunch",
         "dinner"
       ],
-      "tags": [
-        "filling"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "expensive",
@@ -6963,9 +6387,6 @@
       "mealTypes": [
         "lunch",
         "dinner"
-      ],
-      "tags": [
-        "filling"
       ],
       "source": "home",
       "effort": "medium",
@@ -7015,9 +6436,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [
-        "filling"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "expensive",
@@ -7064,9 +6482,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [
-        "filling"
-      ],
       "source": "home",
       "effort": "long",
       "cost": "normal",
@@ -7108,9 +6523,6 @@
       "nameEn": "Beef and potato tray",
       "mealTypes": [
         "lunch"
-      ],
-      "tags": [
-        "filling"
       ],
       "source": "home",
       "effort": "long",
@@ -7155,9 +6567,6 @@
       "nameEn": "Chicken with couscous",
       "mealTypes": [
         "lunch"
-      ],
-      "tags": [
-        "filling"
       ],
       "source": "home",
       "effort": "medium",
@@ -7204,9 +6613,6 @@
       "nameEn": "Mujaddara with egg",
       "mealTypes": [
         "lunch"
-      ],
-      "tags": [
-        "economical"
       ],
       "source": "home",
       "effort": "medium",
@@ -7260,9 +6666,6 @@
         "lunch",
         "dinner"
       ],
-      "tags": [
-        "economical"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "cheap",
@@ -7310,9 +6713,6 @@
       "nameEn": "Chicken in yogurt with rice",
       "mealTypes": [
         "lunch"
-      ],
-      "tags": [
-        "filling"
       ],
       "source": "home",
       "effort": "long",
@@ -7364,10 +6764,6 @@
         "lunch",
         "dinner"
       ],
-      "tags": [
-        "vegetarian",
-        "filling"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "normal",
@@ -7416,9 +6812,6 @@
         "dinner",
         "lunch"
       ],
-      "tags": [
-        "filling"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "normal",
@@ -7463,9 +6856,6 @@
       "mealTypes": [
         "dinner",
         "lunch"
-      ],
-      "tags": [
-        "filling"
       ],
       "source": "home",
       "effort": "quick",
@@ -7515,9 +6905,6 @@
       "mealTypes": [
         "dinner",
         "breakfast"
-      ],
-      "tags": [
-        "economical"
       ],
       "source": "home",
       "effort": "quick",
@@ -7573,10 +6960,6 @@
         "dinner",
         "lunch"
       ],
-      "tags": [
-        "vegetarian",
-        "economical"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "cheap",
@@ -7622,9 +7005,6 @@
       "nameEn": "Sardines with bread and salad",
       "mealTypes": [
         "dinner"
-      ],
-      "tags": [
-        "economical"
       ],
       "source": "home",
       "effort": "no_cook",
@@ -7683,10 +7063,6 @@
         "dinner",
         "lunch"
       ],
-      "tags": [
-        "filling",
-        "economical"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "normal",
@@ -7733,9 +7109,6 @@
       "mealTypes": [
         "dinner",
         "breakfast"
-      ],
-      "tags": [
-        "economical"
       ],
       "source": "home",
       "effort": "quick",
@@ -7788,9 +7161,6 @@
       "mealTypes": [
         "dinner",
         "lunch"
-      ],
-      "tags": [
-        "portable"
       ],
       "source": "home",
       "effort": "quick",
@@ -7845,9 +7215,6 @@
       "mealTypes": [
         "dinner"
       ],
-      "tags": [
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "cheap",
@@ -7889,10 +7256,6 @@
       "mealTypes": [
         "dinner",
         "breakfast"
-      ],
-      "tags": [
-        "vegetarian",
-        "economical"
       ],
       "source": "home",
       "effort": "quick",
@@ -7944,9 +7307,6 @@
         "dinner",
         "lunch"
       ],
-      "tags": [
-        "filling"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "normal",
@@ -7992,9 +7352,6 @@
       "nameEn": "Foul with egg and bread",
       "mealTypes": [
         "breakfast"
-      ],
-      "tags": [
-        "economical"
       ],
       "source": "home",
       "effort": "quick",
@@ -8048,10 +7405,6 @@
       "mealTypes": [
         "breakfast"
       ],
-      "tags": [
-        "vegetarian",
-        "economical"
-      ],
       "source": "home",
       "effort": "quick",
       "cost": "cheap",
@@ -8101,7 +7454,6 @@
       "mealTypes": [
         "breakfast"
       ],
-      "tags": [],
       "source": "home",
       "effort": "quick",
       "cost": "normal",
@@ -8157,7 +7509,6 @@
       "mealTypes": [
         "breakfast"
       ],
-      "tags": [],
       "source": "home",
       "effort": "quick",
       "cost": "normal",
@@ -8210,9 +7561,6 @@
       "mealTypes": [
         "breakfast"
       ],
-      "tags": [
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "quick",
       "cost": "normal",
@@ -8262,10 +7610,6 @@
       "mealTypes": [
         "breakfast"
       ],
-      "tags": [
-        "vegetarian",
-        "quick"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "normal",
@@ -8310,7 +7654,6 @@
       "mealTypes": [
         "breakfast"
       ],
-      "tags": [],
       "source": "home",
       "effort": "quick",
       "cost": "normal",
@@ -8363,9 +7706,6 @@
         "breakfast",
         "lunch"
       ],
-      "tags": [
-        "quick"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "normal",
@@ -8417,7 +7757,6 @@
         "breakfast",
         "lunch"
       ],
-      "tags": [],
       "source": "home",
       "effort": "long",
       "cost": "expensive",
@@ -8474,9 +7813,6 @@
         "lunch",
         "snack"
       ],
-      "tags": [
-        "portable"
-      ],
       "source": "home",
       "effort": "quick",
       "cost": "normal",
@@ -8527,10 +7863,6 @@
       "mealTypes": [
         "breakfast"
       ],
-      "tags": [
-        "vegetarian",
-        "quick"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "normal",
@@ -8576,7 +7908,6 @@
       "mealTypes": [
         "breakfast"
       ],
-      "tags": [],
       "source": "home",
       "effort": "quick",
       "cost": "normal",
@@ -8628,9 +7959,6 @@
       "nameEn": "Pancakes with yogurt and fruit",
       "mealTypes": [
         "breakfast"
-      ],
-      "tags": [
-        "vegetarian"
       ],
       "source": "home",
       "effort": "quick",
@@ -8687,9 +8015,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "normal",
@@ -8726,10 +8051,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "vegetarian",
-        "portable"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "normal",
@@ -8762,9 +8083,6 @@
       "nameEn": "Mango smoothie",
       "mealTypes": [
         "snack"
-      ],
-      "tags": [
-        "vegetarian"
       ],
       "source": "home",
       "effort": "no_cook",
@@ -8801,9 +8119,6 @@
       "nameEn": "Banana and oat smoothie",
       "mealTypes": [
         "snack"
-      ],
-      "tags": [
-        "vegetarian"
       ],
       "source": "home",
       "effort": "no_cook",
@@ -8849,10 +8164,6 @@
         "snack",
         "breakfast"
       ],
-      "tags": [
-        "vegetarian",
-        "quick"
-      ],
       "source": "home",
       "effort": "quick",
       "cost": "cheap",
@@ -8891,9 +8202,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "cheap",
@@ -8929,9 +8237,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "cheap",
@@ -8963,10 +8268,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "vegetarian",
-        "portable"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "normal",
@@ -8989,10 +8290,6 @@
       "nameEn": "Loquats",
       "mealTypes": [
         "snack"
-      ],
-      "tags": [
-        "vegetarian",
-        "portable"
       ],
       "source": "home",
       "effort": "no_cook",
@@ -9017,10 +8314,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "vegetarian",
-        "portable"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "normal",
@@ -9043,9 +8336,6 @@
       "nameEn": "Vegetables with labneh",
       "mealTypes": [
         "snack"
-      ],
-      "tags": [
-        "vegetarian"
       ],
       "source": "home",
       "effort": "no_cook",
@@ -9085,10 +8375,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "vegetarian",
-        "portable"
-      ],
       "source": "street",
       "effort": "no_cook",
       "cost": "cheap",
@@ -9118,9 +8404,6 @@
       "nameEn": "Chocolate square with milk",
       "mealTypes": [
         "snack"
-      ],
-      "tags": [
-        "vegetarian"
       ],
       "source": "shop",
       "effort": "no_cook",
@@ -9152,9 +8435,6 @@
       "nameEn": "Boiled egg with toast",
       "mealTypes": [
         "snack"
-      ],
-      "tags": [
-        "economical"
       ],
       "source": "home",
       "effort": "quick",
@@ -9196,10 +8476,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "vegetarian",
-        "portable"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "expensive",
@@ -9224,10 +8500,6 @@
       "nameEn": "Cashews with dates",
       "mealTypes": [
         "snack"
-      ],
-      "tags": [
-        "vegetarian",
-        "portable"
       ],
       "source": "home",
       "effort": "no_cook",
@@ -9263,9 +8535,6 @@
         "snack",
         "breakfast"
       ],
-      "tags": [
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "normal",
@@ -9300,9 +8569,6 @@
       "nameEn": "Qatayef with walnuts",
       "mealTypes": [
         "snack"
-      ],
-      "tags": [
-        "vegetarian"
       ],
       "source": "home",
       "effort": "medium",
@@ -9345,10 +8611,6 @@
       "nameEn": "Ramadan lentil soup",
       "mealTypes": [
         "dinner"
-      ],
-      "tags": [
-        "vegetarian",
-        "economical"
       ],
       "source": "home",
       "effort": "medium",
@@ -9393,9 +8655,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "cheap",
@@ -9428,9 +8687,6 @@
       "nameEn": "Ma'moul with dates",
       "mealTypes": [
         "snack"
-      ],
-      "tags": [
-        "vegetarian"
       ],
       "source": "home",
       "effort": "long",
@@ -9475,9 +8731,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "vegetarian"
-      ],
       "source": "shop",
       "effort": "no_cook",
       "cost": "expensive",
@@ -9520,10 +8773,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "vegetarian",
-        "portable"
-      ],
       "source": "shop",
       "effort": "no_cook",
       "cost": "normal",
@@ -9550,9 +8799,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "vegetarian"
-      ],
       "source": "shop",
       "effort": "no_cook",
       "cost": "normal",
@@ -9577,10 +8823,6 @@
       "nameEn": "Chicken maqluba",
       "mealTypes": [
         "lunch"
-      ],
-      "tags": [
-        "filling",
-        "local"
       ],
       "source": "home",
       "effort": "long",
@@ -9634,10 +8876,6 @@
       "nameEn": "Mansaf",
       "mealTypes": [
         "lunch"
-      ],
-      "tags": [
-        "filling",
-        "local"
       ],
       "source": "home",
       "effort": "long",
@@ -9696,10 +8934,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [
-        "filling",
-        "local"
-      ],
       "source": "home",
       "effort": "long",
       "cost": "expensive",
@@ -9753,10 +8987,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [
-        "filling",
-        "local"
-      ],
       "source": "home",
       "effort": "long",
       "cost": "normal",
@@ -9805,9 +9035,6 @@
       "nameEn": "Large chicken kabsa",
       "mealTypes": [
         "lunch"
-      ],
-      "tags": [
-        "filling"
       ],
       "source": "home",
       "effort": "long",
@@ -9860,10 +9087,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [
-        "filling",
-        "local"
-      ],
       "source": "home",
       "effort": "long",
       "cost": "expensive",
@@ -9909,9 +9132,6 @@
       "nameEn": "Kofta and potato tray",
       "mealTypes": [
         "lunch"
-      ],
-      "tags": [
-        "filling"
       ],
       "source": "home",
       "effort": "long",
@@ -9959,9 +9179,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [
-        "filling"
-      ],
       "source": "home",
       "effort": "long",
       "cost": "normal",
@@ -10008,9 +9225,6 @@
       "nameEn": "Shawarma plate with rice",
       "mealTypes": [
         "lunch"
-      ],
-      "tags": [
-        "filling"
       ],
       "source": "restaurant",
       "effort": "no_cook",
@@ -10063,9 +9277,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [
-        "filling"
-      ],
       "source": "home",
       "effort": "long",
       "cost": "expensive",
@@ -10115,10 +9326,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [
-        "filling",
-        "local"
-      ],
       "source": "home",
       "effort": "long",
       "cost": "normal",
@@ -10165,9 +9372,6 @@
       "nameEn": "Full broasted plate",
       "mealTypes": [
         "lunch"
-      ],
-      "tags": [
-        "filling"
       ],
       "source": "restaurant",
       "effort": "no_cook",
@@ -10222,9 +9426,6 @@
       "mealTypes": [
         "dinner"
       ],
-      "tags": [
-        "filling"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "normal",
@@ -10266,9 +9467,6 @@
       "mealTypes": [
         "dinner",
         "lunch"
-      ],
-      "tags": [
-        "filling"
       ],
       "source": "home",
       "effort": "medium",
@@ -10316,9 +9514,6 @@
       "mealTypes": [
         "dinner"
       ],
-      "tags": [
-        "filling"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "expensive",
@@ -10365,10 +9560,6 @@
       "nameEn": "Hummus fatteh",
       "mealTypes": [
         "dinner"
-      ],
-      "tags": [
-        "vegetarian",
-        "economical"
       ],
       "source": "home",
       "effort": "medium",
@@ -10421,7 +9612,6 @@
         "dinner",
         "lunch"
       ],
-      "tags": [],
       "source": "home",
       "effort": "medium",
       "cost": "normal",
@@ -10471,9 +9661,6 @@
       "mealTypes": [
         "dinner"
       ],
-      "tags": [
-        "filling"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "normal",
@@ -10520,9 +9707,6 @@
       "nameEn": "Sardines on toast",
       "mealTypes": [
         "breakfast"
-      ],
-      "tags": [
-        "economical"
       ],
       "source": "home",
       "effort": "no_cook",
@@ -10572,7 +9756,6 @@
       "mealTypes": [
         "breakfast"
       ],
-      "tags": [],
       "source": "home",
       "effort": "no_cook",
       "cost": "expensive",
@@ -10618,7 +9801,6 @@
         "breakfast",
         "lunch"
       ],
-      "tags": [],
       "source": "home",
       "effort": "quick",
       "cost": "normal",
@@ -10672,10 +9854,6 @@
       "mealTypes": [
         "breakfast"
       ],
-      "tags": [
-        "vegetarian",
-        "economical"
-      ],
       "source": "home",
       "effort": "quick",
       "cost": "cheap",
@@ -10725,7 +9903,6 @@
       "mealTypes": [
         "breakfast"
       ],
-      "tags": [],
       "source": "home",
       "effort": "quick",
       "cost": "normal",
@@ -10784,9 +9961,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [
-        "economical"
-      ],
       "source": "home",
       "effort": "quick",
       "cost": "cheap",
@@ -10839,9 +10013,6 @@
         "lunch",
         "dinner"
       ],
-      "tags": [
-        "economical"
-      ],
       "source": "home",
       "effort": "quick",
       "cost": "cheap",
@@ -10892,9 +10063,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "normal",
@@ -10940,7 +10108,6 @@
         "snack",
         "breakfast"
       ],
-      "tags": [],
       "source": "home",
       "effort": "quick",
       "cost": "cheap",
@@ -10987,9 +10154,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "normal",
@@ -11031,9 +10195,6 @@
       "nameEn": "Half shawarma sandwich",
       "mealTypes": [
         "snack"
-      ],
-      "tags": [
-        "portable"
       ],
       "source": "street",
       "effort": "no_cook",
@@ -11078,11 +10239,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "portable",
-        "vegetarian",
-        "economical"
-      ],
       "source": "street",
       "effort": "no_cook",
       "cost": "cheap",
@@ -11119,10 +10275,6 @@
       "nameEn": "Mixed nuts with dried fruit",
       "mealTypes": [
         "snack"
-      ],
-      "tags": [
-        "portable",
-        "vegetarian"
       ],
       "source": "shop",
       "effort": "no_cook",
@@ -11161,10 +10313,6 @@
       "mealTypes": [
         "snack",
         "breakfast"
-      ],
-      "tags": [
-        "economical",
-        "vegetarian"
       ],
       "source": "home",
       "effort": "no_cook",
@@ -11210,10 +10358,6 @@
       "nameEn": "Ramadan fattoush",
       "mealTypes": [
         "dinner"
-      ],
-      "tags": [
-        "vegetarian",
-        "economical"
       ],
       "source": "home",
       "effort": "no_cook",
@@ -11268,7 +10412,6 @@
       "mealTypes": [
         "dinner"
       ],
-      "tags": [],
       "source": "home",
       "effort": "medium",
       "cost": "normal",
@@ -11311,9 +10454,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "normal",
@@ -11351,10 +10491,6 @@
       "mealTypes": [
         "lunch",
         "dinner"
-      ],
-      "tags": [
-        "filling",
-        "local"
       ],
       "source": "home",
       "effort": "long",
@@ -11397,10 +10533,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "vegetarian",
-        "portable"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "normal",
@@ -11433,10 +10565,6 @@
       "nameEn": "Lentil soup with bread",
       "mealTypes": [
         "dinner"
-      ],
-      "tags": [
-        "vegetarian",
-        "economical"
       ],
       "source": "home",
       "effort": "medium",
@@ -11481,9 +10609,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "expensive",
@@ -11519,9 +10644,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "vegetarian"
-      ],
       "source": "shop",
       "effort": "no_cook",
       "cost": "normal",
@@ -11553,9 +10675,6 @@
       "nameEn": "Fruit platter",
       "mealTypes": [
         "snack"
-      ],
-      "tags": [
-        "vegetarian"
       ],
       "source": "home",
       "effort": "no_cook",
@@ -11591,9 +10710,6 @@
       "nameEn": "Festive lamb with rice",
       "mealTypes": [
         "lunch"
-      ],
-      "tags": [
-        "filling"
       ],
       "source": "home",
       "effort": "long",
@@ -11643,11 +10759,6 @@
       "nameEn": "Street foul",
       "mealTypes": [
         "breakfast"
-      ],
-      "tags": [
-        "economical",
-        "vegetarian",
-        "portable"
       ],
       "source": "street",
       "effort": "no_cook",
@@ -11699,9 +10810,6 @@
         "breakfast",
         "lunch"
       ],
-      "tags": [
-        "vegetarian"
-      ],
       "source": "restaurant",
       "effort": "no_cook",
       "cost": "cheap",
@@ -11751,10 +10859,6 @@
       "mealTypes": [
         "lunch",
         "dinner"
-      ],
-      "tags": [
-        "portable",
-        "filling"
       ],
       "source": "street",
       "effort": "no_cook",
@@ -11806,11 +10910,6 @@
         "snack",
         "breakfast"
       ],
-      "tags": [
-        "portable",
-        "vegetarian",
-        "economical"
-      ],
       "source": "shop",
       "effort": "no_cook",
       "cost": "cheap",
@@ -11848,10 +10947,6 @@
       "mealTypes": [
         "lunch",
         "dinner"
-      ],
-      "tags": [
-        "portable",
-        "filling"
       ],
       "source": "restaurant",
       "effort": "no_cook",
@@ -11907,9 +11002,6 @@
         "lunch",
         "dinner"
       ],
-      "tags": [
-        "filling"
-      ],
       "source": "restaurant",
       "effort": "no_cook",
       "cost": "expensive",
@@ -11959,10 +11051,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [
-        "filling",
-        "local"
-      ],
       "source": "home",
       "effort": "long",
       "cost": "expensive",
@@ -12011,10 +11099,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [
-        "filling",
-        "local"
-      ],
       "source": "home",
       "effort": "long",
       "cost": "normal",
@@ -12061,10 +11145,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [
-        "filling",
-        "local"
-      ],
       "source": "home",
       "effort": "long",
       "cost": "expensive",
@@ -12110,10 +11190,6 @@
       "nameEn": "Kibbeh tray",
       "mealTypes": [
         "lunch"
-      ],
-      "tags": [
-        "filling",
-        "local"
       ],
       "source": "home",
       "effort": "long",
@@ -12162,10 +11238,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [
-        "filling",
-        "local"
-      ],
       "source": "home",
       "effort": "long",
       "cost": "normal",
@@ -12211,9 +11283,6 @@
       "nameEn": "Restaurant grilled meat with rice",
       "mealTypes": [
         "lunch"
-      ],
-      "tags": [
-        "filling"
       ],
       "source": "restaurant",
       "effort": "no_cook",
@@ -12272,9 +11341,6 @@
         "lunch",
         "dinner"
       ],
-      "tags": [
-        "filling"
-      ],
       "source": "restaurant",
       "effort": "no_cook",
       "cost": "normal",
@@ -12321,10 +11387,6 @@
       "nameEn": "Foul and falafel with bread",
       "mealTypes": [
         "breakfast"
-      ],
-      "tags": [
-        "vegetarian",
-        "economical"
       ],
       "source": "street",
       "effort": "no_cook",
@@ -12374,7 +11436,6 @@
       "mealTypes": [
         "breakfast"
       ],
-      "tags": [],
       "source": "home",
       "effort": "quick",
       "cost": "expensive",
@@ -12426,9 +11487,6 @@
       "nameEn": "Mixed breakfast plate",
       "mealTypes": [
         "breakfast"
-      ],
-      "tags": [
-        "vegetarian"
       ],
       "source": "home",
       "effort": "no_cook",
@@ -12494,9 +11552,6 @@
         "lunch",
         "dinner"
       ],
-      "tags": [
-        "filling"
-      ],
       "source": "restaurant",
       "effort": "no_cook",
       "cost": "normal",
@@ -12544,9 +11599,6 @@
       "mealTypes": [
         "dinner",
         "lunch"
-      ],
-      "tags": [
-        "vegetarian"
       ],
       "source": "restaurant",
       "effort": "no_cook",
@@ -12601,9 +11653,6 @@
       "mealTypes": [
         "dinner"
       ],
-      "tags": [
-        "vegetarian"
-      ],
       "source": "restaurant",
       "effort": "no_cook",
       "cost": "normal",
@@ -12653,9 +11702,6 @@
       "mealTypes": [
         "dinner"
       ],
-      "tags": [
-        "vegetarian"
-      ],
       "source": "restaurant",
       "effort": "no_cook",
       "cost": "cheap",
@@ -12698,9 +11744,6 @@
       "mealTypes": [
         "lunch",
         "snack"
-      ],
-      "tags": [
-        "portable"
       ],
       "source": "restaurant",
       "effort": "no_cook",
@@ -12753,9 +11796,6 @@
       "mealTypes": [
         "dinner"
       ],
-      "tags": [
-        "filling"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "normal",
@@ -12798,9 +11838,6 @@
       "nameEn": "Iftar fatteh",
       "mealTypes": [
         "dinner"
-      ],
-      "tags": [
-        "vegetarian"
       ],
       "source": "home",
       "effort": "medium",
@@ -12852,9 +11889,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "no_cook",
       "cost": "cheap",
@@ -12888,7 +11922,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [],
       "source": "home",
       "effort": "medium",
       "cost": "expensive",
@@ -12929,9 +11962,6 @@
       "nameEn": "Qatayef with cheese",
       "mealTypes": [
         "snack"
-      ],
-      "tags": [
-        "vegetarian"
       ],
       "source": "home",
       "effort": "medium",
@@ -12975,9 +12005,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "long",
       "cost": "expensive",
@@ -13020,9 +12047,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "vegetarian"
-      ],
       "source": "shop",
       "effort": "no_cook",
       "cost": "expensive",
@@ -13064,9 +12088,6 @@
       "nameEn": "Stuffed chicken",
       "mealTypes": [
         "lunch"
-      ],
-      "tags": [
-        "filling"
       ],
       "source": "home",
       "effort": "long",
@@ -13116,9 +12137,6 @@
       "mealTypes": [
         "snack"
       ],
-      "tags": [
-        "vegetarian"
-      ],
       "source": "home",
       "effort": "medium",
       "cost": "cheap",
@@ -13162,10 +12180,6 @@
       "nameEn": "Stuffed vine leaves with meat",
       "mealTypes": [
         "lunch"
-      ],
-      "tags": [
-        "filling",
-        "local"
       ],
       "source": "home",
       "effort": "long",
@@ -13214,10 +12228,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [
-        "filling",
-        "local"
-      ],
       "source": "home",
       "effort": "long",
       "cost": "expensive",
@@ -13265,9 +12275,6 @@
       "mealTypes": [
         "lunch"
       ],
-      "tags": [
-        "filling"
-      ],
       "source": "home",
       "effort": "long",
       "cost": "normal",
@@ -13314,10 +12321,6 @@
       "nameEn": "Bulgur with lamb",
       "mealTypes": [
         "lunch"
-      ],
-      "tags": [
-        "filling",
-        "local"
       ],
       "source": "home",
       "effort": "long",

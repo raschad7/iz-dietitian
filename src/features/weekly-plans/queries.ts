@@ -71,10 +71,13 @@ import { slotFillKey, type SlotFill } from './skeleton';
 import {
   DAYS_OF_WEEK,
   DEFAULT_MEAL_SCHEDULE,
+  EMPTY_AXIS_FILTERS,
+  matchesAxes,
   mealScheduleSchema,
   mealTypeForSlot,
   planIdSchema,
   toTimeInput,
+  type DishAxisFilters,
   type MealScheduleInput,
 } from './schema';
 import { slotBudgets, suggestProteinGrams, suggestTargets, type SlotBudget, type SuggestedTargets } from './targets';
@@ -441,7 +444,6 @@ export async function loadCatalog(
       nameAr: dishes.nameAr,
       nameEn: dishes.nameEn,
       mealTypes: dishes.mealTypes,
-      tags: dishes.tags,
       source: dishes.source,
       effort: dishes.effort,
       cost: dishes.cost,
@@ -506,7 +508,6 @@ export async function loadDishesByIds(
       nameAr: dishes.nameAr,
       nameEn: dishes.nameEn,
       mealTypes: dishes.mealTypes,
-      tags: dishes.tags,
       source: dishes.source,
       effort: dishes.effort,
       cost: dishes.cost,
@@ -568,7 +569,6 @@ function toCatalogDish(dish: DishDetail): CatalogDish {
     slug: dish.slug,
     nameAr: dish.nameAr,
     mealTypes: dish.mealTypes,
-    tags: dish.tags,
     source: dish.source,
     effort: dish.effort,
     cost: dish.cost,
@@ -650,7 +650,10 @@ export type DishEditData = {
   nameEn: string;
   baseServingLabel: string;
   mealTypes: string[];
-  tags: string[];
+  source: string;
+  effort: string;
+  cost: string;
+  occasion: string;
   allergenTags: string[];
   ingredients: {
     /** Carries the food's whole portion menu, so the editor can rebuild the unit list. */
@@ -745,8 +748,8 @@ export async function listDishes(input: {
   clinicId: string;
   q?: string;
   mealType?: string;
-  /** Practical tags to require (AND) — the catalog toolbar's tag chips. */
-  tags?: readonly string[];
+  /** The four declared axes — OR within one, AND across them. See `matchesAxes`. */
+  axes?: DishAxisFilters;
   /** Keep only dishes whose computed nutrition category is `high_protein`. */
   highProtein?: boolean;
   /** Ownership filter: shared/system dishes, the clinic's own, or (undefined) all. */
@@ -775,7 +778,7 @@ export async function listDishes(input: {
     : (await loadCatalog(input.clinicId)).map((dish) => ({ ...dish, hidden: false }));
 
   const term = input.q?.trim() ? normalizeArabic(input.q) : null;
-  const tags = input.tags ?? [];
+  const axes = input.axes ?? EMPTY_AXIS_FILTERS;
 
   const filtered = catalog
     .filter((dish) => {
@@ -784,7 +787,7 @@ export async function listDishes(input: {
       if (!matchesOwner(dish.clinicId, input.owner)) return false;
       if (input.mealType && !dish.mealTypes.includes(input.mealType)) return false;
       // AND, like the planner's catalog filter: each extra tag narrows.
-      if (tags.length && !tags.every((tag) => dish.tags.includes(tag))) return false;
+      if (!matchesAxes(dish, axes)) return false;
       // Computed from the recipe, never a stored tag — the filter can't disagree
       // with the dish's own numbers. See `nutritionCategory`.
       if (input.highProtein && nutritionCategory(dishTotals(dish.ingredients, 1)) !== 'high_protein') {
@@ -854,7 +857,6 @@ export async function getClinicDishForEdit(clinicId: string, dishId: string): Pr
       nameEn: dishes.nameEn,
       baseServingLabel: dishes.baseServingLabel,
       mealTypes: dishes.mealTypes,
-      tags: dishes.tags,
       source: dishes.source,
       effort: dishes.effort,
       cost: dishes.cost,
@@ -899,7 +901,10 @@ export type DishDetailView = {
   nameAr: string;
   nameEn: string;
   mealTypes: string[];
-  tags: string[];
+  source: string;
+  effort: string;
+  cost: string;
+  occasion: string;
   allergenTags: string[];
   baseServingLabel: string;
   /** Computed here so the drawer never sums nutrition itself. */
@@ -928,7 +933,6 @@ export async function getDishDetailForClinic(
       nameAr: dishes.nameAr,
       nameEn: dishes.nameEn,
       mealTypes: dishes.mealTypes,
-      tags: dishes.tags,
       source: dishes.source,
       effort: dishes.effort,
       cost: dishes.cost,

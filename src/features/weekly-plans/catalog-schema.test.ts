@@ -7,6 +7,10 @@ const validDish = {
   nameEn: 'Grilled chicken',
   mealTypes: ['lunch'],
   tags: ['quick', 'economical'],
+  source: 'home',
+  effort: 'medium',
+  cost: 'normal',
+  occasion: 'everyday',
   allergenTags: [],
   baseServingLabel: 'حصة',
   ingredients: [
@@ -20,24 +24,27 @@ describe('clinicDishInputSchema', () => {
     expect(parsed.ingredients).toHaveLength(1);
   });
 
-  test('accepts the full practical tag set', () => {
-    const parsed = clinicDishInputSchema.parse({
-      ...validDish,
-      tags: ['economical', 'quick', 'easy_prep', 'no_cook', 'portable', 'filling', 'local', 'vegetarian'],
-    });
-    expect(parsed.tags).toHaveLength(8);
+  /**
+   * A clinic dish answers all four axes or it does not save. The tag bag it
+   * replaced allowed a dish to carry nothing at all, which is how the catalog
+   * ended up with labels that filtered nothing.
+   */
+  test('every axis is required', () => {
+    for (const axis of ['source', 'effort', 'cost', 'occasion']) {
+      const { [axis]: _dropped, ...without } = validDish as Record<string, unknown>;
+      expect(() => clinicDishInputSchema.parse(without)).toThrow();
+    }
   });
 
-  test('rejects the removed computed-nutrition tag high_protein', () => {
-    expect(() => clinicDishInputSchema.parse({ ...validDish, tags: ['high_protein'] })).toThrow();
+  test('rejects a value outside an axis', () => {
+    expect(() => clinicDishInputSchema.parse({ ...validDish, source: 'takeaway' })).toThrow();
+    expect(() => clinicDishInputSchema.parse({ ...validDish, effort: 'instant' })).toThrow();
   });
 
-  test('rejects the removed medical tag diabetic_friendly', () => {
-    expect(() => clinicDishInputSchema.parse({ ...validDish, tags: ['diabetic_friendly'] })).toThrow();
-  });
-
-  test('rejects an unknown tag rather than storing it', () => {
-    expect(() => clinicDishInputSchema.parse({ ...validDish, tags: ['made_up_tag'] })).toThrow();
+  /** Nutrition is computed from the recipe and can never be typed onto a dish. */
+  test('has nowhere to put a nutrition label', () => {
+    const parsed = clinicDishInputSchema.parse({ ...validDish, tags: ['high_protein'] });
+    expect(parsed).not.toHaveProperty('tags');
   });
 
   test('requires at least one ingredient', () => {

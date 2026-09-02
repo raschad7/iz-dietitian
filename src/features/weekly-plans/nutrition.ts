@@ -267,7 +267,6 @@ export type DishDetail = {
   nameAr: string;
   nameEn: string;
   mealTypes: string[];
-  tags: string[];
   /**
    * The four declared axes, and whether the dish is a side.
    *

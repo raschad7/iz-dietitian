@@ -35,7 +35,6 @@ import {
   DISH_EFFORTS,
   DISH_OCCASIONS,
   DISH_SOURCES,
-  DISH_TAGS,
   MEAL_TYPES,
 } from '@/features/weekly-plans/schema';
 import { isMember } from '@/lib/enum';
@@ -97,7 +96,6 @@ export type DishRecord = {
   nameAr: string;
   nameEn: string;
   mealTypes: string[];
-  tags: string[];
   /** The four declared axes. Required on every dish — see `docs/catalog.md`. */
   source: string;
   effort: string;
@@ -117,10 +115,9 @@ type Dataset = { dishes: DishRecord[] };
  *
  * Every one of these would otherwise surface much later as a plan that looks
  * plausible and is wrong — a dish with no ingredients reads as 0 kcal, a
- * duplicate slug means one definition silently wins, and a **deprecated or
- * unknown tag** (`high_protein`, `diabetic_friendly`, a typo) would let metadata
- * back in that the rest of the app has removed. Returns the problems rather than
- * throwing, so it is unit-testable without a database.
+ * duplicate slug means one definition silently wins, and a missing axis is a dish
+ * that describes nothing. Returns the problems rather than throwing, so it is
+ * unit-testable without a database.
  */
 export function validateDishRecords(records: DishRecord[]): string[] {
   const problems: string[] = [];
@@ -136,14 +133,6 @@ export function validateDishRecords(records: DishRecord[]): string[] {
     for (const mealType of dish.mealTypes) {
       if (!isMember(MEAL_TYPES, mealType)) {
         problems.push(`${dish.slug}: unknown meal type "${mealType}"`);
-      }
-    }
-
-    // Only the practical tags survive the taxonomy cleanup; a computed-nutrition
-    // tag or a disease tag stored here is a defect, not a value.
-    for (const tag of dish.tags) {
-      if (!isMember(DISH_TAGS, tag)) {
-        problems.push(`${dish.slug}: unknown or deprecated tag "${tag}"`);
       }
     }
 
@@ -387,7 +376,6 @@ export async function seedDishes(): Promise<{ dishes: number; ingredients: numbe
     nameAr: dish.nameAr,
     nameEn: dish.nameEn,
     mealTypes: dish.mealTypes,
-    tags: dish.tags,
     source: dish.source,
     effort: dish.effort,
     cost: dish.cost,
@@ -410,7 +398,6 @@ export async function seedDishes(): Promise<{ dishes: number; ingredients: numbe
           nameAr: sqlExcluded('name_ar'),
           nameEn: sqlExcluded('name_en'),
           mealTypes: sqlExcluded('meal_types'),
-          tags: sqlExcluded('tags'),
           source: sqlExcluded('source'),
           effort: sqlExcluded('effort'),
           cost: sqlExcluded('cost'),

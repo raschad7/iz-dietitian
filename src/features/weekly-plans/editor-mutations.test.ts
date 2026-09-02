@@ -196,7 +196,6 @@ describe('createPlanFromSkeleton', () => {
         nameAr: 'طبق',
         nameEn: 'Dish',
         mealTypes: ['lunch'],
-        tags: [],
         allergenTags: [],
         baseServingLabel: 'حصة',
       })
@@ -311,7 +310,6 @@ describe('the edit writes', () => {
         nameAr: slug,
         nameEn: slug,
         mealTypes: ['lunch'],
-        tags: [],
         allergenTags: [],
         baseServingLabel: 'حصة',
       })

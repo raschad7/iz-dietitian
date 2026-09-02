@@ -45,31 +45,6 @@ export const clientIdSchema = z.uuid();
 export const MEAL_TYPES = ['breakfast', 'snack', 'lunch', 'dinner'] as const;
 
 /**
- * The **manual, practical** dish tags — and only those.
- *
- * These describe how a dish fits into a real week (cost, effort, cuisine), which
- * is exactly what a dietitian's instruction resolves against and what the numbers
- * cannot know. Nutrition is deliberately absent: "high protein" is *computed* from
- * the recipe by `nutritionCategory()` in `nutrition.ts`, the single source of
- * truth, so it cannot be hand-set to disagree with the food. Disease suitability
- * (the former `diabetic_friendly`) is absent too — that is a patient-specific
- * clinical judgement, not a boolean a dish carries.
- *
- * The order is the accent-colour priority in `meal-tag-tone.ts` and the chip
- * order in the catalog filters.
- */
-export const DISH_TAGS = [
-  'economical',
-  'quick',
-  'easy_prep',
-  'no_cook',
-  'portable',
-  'filling',
-  'local',
-  'vegetarian',
-] as const;
-
-/**
  * The four **declared axes** — see `docs/catalog.md`.
  *
  * Unlike `DISH_TAGS` these are fields, not a bag: every dish carries exactly one
@@ -82,8 +57,9 @@ export const DISH_TAGS = [
  * category — is computed and must never be added here, or a dish could be
  * labelled to contradict its own food.
  *
- * `DISH_TAGS` stays for now: the catalog page's filters still read it, and they
- * are rebuilt on top of these axes in a later wave.
+ * They replaced `DISH_TAGS` outright: eight optional labels where a dish could
+ * end up carrying none, and where every extra one ANDed the filter down. The
+ * column is gone.
  */
 
 /** Where a client obtains the dish. Drives `isFixedPortion`. */
@@ -99,7 +75,6 @@ export const DISH_COSTS = ['cheap', 'normal', 'expensive'] as const;
 export const DISH_OCCASIONS = ['everyday', 'family', 'ramadan', 'festive'] as const;
 
 export type MealType = (typeof MEAL_TYPES)[number];
-export type DishTag = (typeof DISH_TAGS)[number];
 export type DishSource = (typeof DISH_SOURCES)[number];
 export type DishEffort = (typeof DISH_EFFORTS)[number];
 export type DishCost = (typeof DISH_COSTS)[number];
@@ -123,6 +98,112 @@ export type DishOccasion = (typeof DISH_OCCASIONS)[number];
  */
 export function isFixedPortion(source: string): boolean {
   return source === 'street' || source === 'restaurant';
+}
+
+/**
+ * The four axes as one list, for anything that has to loop over them.
+ *
+ * The filter panels, the catalog page's query string, the clinic dish form and
+ * `db:check`'s distribution report all iterate the same four in the same order,
+ * and each of them getting its own copy is how one of them ends up out of date.
+ * The order is the order they are offered in: where you get it first, because it
+ * is the question that most often has an answer.
+ */
+export const DISH_AXES = [
+  {
+    key: 'source',
+    label: 'axisLabels.source',
+    values: [
+      { value: 'home', message: 'axes.source.home' },
+      { value: 'street', message: 'axes.source.street' },
+      { value: 'restaurant', message: 'axes.source.restaurant' },
+      { value: 'shop', message: 'axes.source.shop' },
+    ],
+  },
+  {
+    key: 'effort',
+    label: 'axisLabels.effort',
+    values: [
+      { value: 'no_cook', message: 'axes.effort.no_cook' },
+      { value: 'quick', message: 'axes.effort.quick' },
+      { value: 'medium', message: 'axes.effort.medium' },
+      { value: 'long', message: 'axes.effort.long' },
+    ],
+  },
+  {
+    key: 'cost',
+    label: 'axisLabels.cost',
+    values: [
+      { value: 'cheap', message: 'axes.cost.cheap' },
+      { value: 'normal', message: 'axes.cost.normal' },
+      { value: 'expensive', message: 'axes.cost.expensive' },
+    ],
+  },
+  {
+    key: 'occasion',
+    label: 'axisLabels.occasion',
+    values: [
+      { value: 'everyday', message: 'axes.occasion.everyday' },
+      { value: 'family', message: 'axes.occasion.family' },
+      { value: 'ramadan', message: 'axes.occasion.ramadan' },
+      { value: 'festive', message: 'axes.occasion.festive' },
+    ],
+  },
+] as const;
+
+/**
+ * The message key for one axis value, as a literal.
+ *
+ * next-intl only accepts keys it can see, and `t(\`axes.${key}.${value}\`)`
+ * widens to every combination of the two — including `axes.occasion.expensive`,
+ * which does not exist. Carrying the key beside the value keeps the union exact.
+ */
+export type AxisMessageKey = (typeof DISH_AXES)[number]['values'][number]['message'];
+
+export function axisMessageKey(key: DishAxisKey, value: string): AxisMessageKey {
+  const axis = DISH_AXES.find((one) => one.key === key);
+  const found = axis?.values.find((one) => one.value === value)?.message;
+
+  // A value outside the closed set can only come from a clinic row written before
+  // the axes existed. Naming it "home" is the honest fallback: unlabelled food is
+  // food someone cooked.
+  return found ?? 'axes.source.home';
+}
+
+export type DishAxisKey = (typeof DISH_AXES)[number]['key'];
+
+/** A selection on each axis, empty meaning "not narrowed on this one". */
+export type DishAxisFilters = {
+  source: readonly string[];
+  effort: readonly string[];
+  cost: readonly string[];
+  occasion: readonly string[];
+};
+
+export const EMPTY_AXIS_FILTERS: DishAxisFilters = {
+  source: [],
+  effort: [],
+  cost: [],
+  occasion: [],
+};
+
+/**
+ * Whether a dish survives an axis selection.
+ *
+ * **OR within an axis, AND across axes.** Picking `street` and `restaurant` asks
+ * for either, because they are alternative answers to one question; picking
+ * `street` and `quick` asks for both, because they are answers to two. This is
+ * the opposite of how `tags` combined — every tag was an AND — and it is the
+ * difference between a facet and a bag.
+ */
+export function matchesAxes(
+  dish: { source: string; effort: string; cost: string; occasion: string },
+  filters: DishAxisFilters,
+): boolean {
+  return DISH_AXES.every(({ key }) => {
+    const selected = filters[key];
+    return selected.length === 0 || selected.includes(dish[key]);
+  });
 }
 
 export const PLAN_STATUSES = ['draft', 'published', 'archived'] as const;

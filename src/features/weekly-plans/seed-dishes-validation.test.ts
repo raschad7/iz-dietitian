@@ -30,7 +30,6 @@ const base: DishRecord = {
   nameAr: 'دجاج مشوي',
   nameEn: 'Grilled chicken',
   mealTypes: ['lunch'],
-  tags: ['economical', 'quick'],
   source: 'home',
   effort: 'medium',
   cost: 'normal',
@@ -41,23 +40,14 @@ const base: DishRecord = {
   ingredients: [{ fdcId: 171077, grams: 150, note: 'Chicken' }],
 };
 
-describe('validateDishRecords tag hygiene', () => {
-  test('a clean record with only practical tags has no problems', () => {
+/**
+ * The seed import is the last gate before curated dishes reach the database.
+ * What it guards has changed: there is no tag bag to keep clean any more, only
+ * four axes that every dish has to answer.
+ */
+describe('validateDishRecords', () => {
+  test('a clean record has no problems', () => {
     expect(validateDishRecords([base])).toEqual([]);
-  });
-
-  test('rejects the removed computed-nutrition tag high_protein', () => {
-    const problems = validateDishRecords([{ ...base, tags: ['high_protein'] }]);
-    expect(problems.some((p) => p.includes('high_protein'))).toBe(true);
-  });
-
-  test('rejects the removed medical tag diabetic_friendly', () => {
-    const problems = validateDishRecords([{ ...base, tags: ['diabetic_friendly'] }]);
-    expect(problems.some((p) => p.includes('diabetic_friendly'))).toBe(true);
-  });
-
-  test('rejects an unknown tag rather than importing it', () => {
-    expect(validateDishRecords([{ ...base, tags: ['made_up'] }]).length).toBeGreaterThan(0);
   });
 
   test('rejects an unknown meal type', () => {

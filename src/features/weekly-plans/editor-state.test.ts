@@ -16,7 +16,6 @@ function dish(id: string): DishDetail {
     nameAr: id,
     nameEn: id,
     mealTypes: ['lunch'],
-    tags: [],
     source: 'home',
     effort: 'medium',
     cost: 'normal',

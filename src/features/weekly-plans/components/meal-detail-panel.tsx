@@ -18,7 +18,7 @@ import {
   type NutrientKey,
 } from '@/features/weekly-plans/nutrition';
 import { localizedName, secondaryName } from '../food-display';
-import { dishTagAccentClass } from '../meal-tag-tone';
+import { dishSourceAccentClass } from '../meal-tag-tone';
 
 import { swapMealAction } from '../actions';
 import { initialPlanActionState } from '../form-state';
@@ -138,7 +138,7 @@ export function MealDetailPanel({
           {meal.dish && (
             <span
               aria-hidden
-              className={cn('mt-3 block h-1 w-20 rounded-full', dishTagAccentClass(meal.dish.tags))}
+              className={cn('mt-3 block h-1 w-20 rounded-full', dishSourceAccentClass(meal.dish.source))}
             />
           )}
         </div>

@@ -59,7 +59,13 @@ one is wrong by construction.
 What the recipe cannot know. These are **fields, not tags**: every dish has
 exactly one value on each of the four, and none may be null. A tag bag lets a
 dish carry no useful label at all, which is how `no_cook` ended up on two dishes
-out of a hundred and thirteen.
+out of a hundred and thirteen. The `tags` column is gone.
+
+They combine as facets: **OR within an axis, AND across axes.** `street` and
+`restaurant` are two answers to one question, so asking for both means either;
+`street` and `quick` are answers to two, so asking for both means both. The tag
+bag ANDed everything, which is why pressing a second chip could only ever empty
+the list.
 
 ### `source` — where you get it
 
@@ -299,7 +305,9 @@ Each wave is shippable on its own.
 4. **Snacks, 150–400 kcal.** The measured gap.
 5. **Breakfasts**, then **lunches and dinners**, until the grid is full.
 6. **Retag and retire**, then rebuild the catalog page filters around the four
-   axes.
+   axes. Done: the `tags` column is dropped, both filter panels and the clinic
+   dish form ask the four questions, and the colour a meal card paints is its
+   `source`.
 7. **The client's measuring guide** — the hand-measure sheet, printable.
 8. **Reviewer sweep.** Generate ten weeks across different client profiles and
    run `bun run plan:review` over each. It found three real data errors on its

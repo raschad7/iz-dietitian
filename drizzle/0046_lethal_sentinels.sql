@@ -1,0 +1,1 @@
+ALTER TABLE "dishes" DROP COLUMN "tags";
