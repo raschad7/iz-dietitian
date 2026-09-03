@@ -277,7 +277,46 @@ export function DishCatalog({
               sideOffset={6}
               className={cn(PLANNER_THEME, 'w-72 gap-0 p-3 shadow-overlay')}
             >
-                  <PopoverTitle className="pb-2 text-label font-semibold">{t('dishFilters')}</PopoverTitle>
+                  {/* The title and the way out of everything under it, on one
+                      row. `clearFilters` used to live on the chip band outside
+                      this popover; with the band gone it belongs here, beside
+                      the switches it resets, and it is drawn only when there is
+                      something to reset. */}
+                  <div className="flex items-baseline justify-between gap-2 pb-2">
+                    <PopoverTitle className="text-label font-semibold">{t('dishFilters')}</PopoverTitle>
+                    {activeCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={clearFilters}
+                        className="shrink-0 text-caption text-primary underline-offset-2 outline-none hover:underline focus-visible:underline"
+                      >
+                        {t('clearFilters')}
+                      </button>
+                    )}
+                  </div>
+
+                  {/*
+                    The slot's own meal type, as a switch like every other.
+
+                    It used to be the one filter that could only be reached from
+                    the band outside this popover — a chip that was *on* by
+                    default and that you turned off to widen the list. Which made
+                    it the exception in two ways at once: the only filter not in
+                    the filter panel, and the only one whose active state meant
+                    "narrowed" rather than "chosen". Here it is neither. It is a
+                    chip that is on because the open slot is a lunch, and
+                    pressing it asks for the whole catalog instead.
+                  */}
+                  {mealType && (
+                    <FilterGroup label={t('filterMealType')}>
+                      <FilterChip
+                        active={!allMealTypes}
+                        onClick={() => setAllMealTypes((value) => !value)}
+                      >
+                        {t(`mealTypes.${mealType}`)}
+                      </FilterChip>
+                    </FilterGroup>
+                  )}
 
                   {/* Two groups, because they answer different questions. The
                       tags describe the dish; the options describe whether it
@@ -374,77 +413,29 @@ export function DishCatalog({
         </div>
 
         {/*
-          What is filtering the list stays *on* the panel, not behind the
-          popover that set it. A closed popover with a filter still applied is
-          a list that has quietly stopped showing you things, with the reason
-          one click out of sight — and that is what made this feel broken.
-          Every active filter is a chip here, and pressing a chip removes it.
+          ── Nothing under the row but the list ──
 
-          The row is rendered only when it has something to say. Empty, it was a
-          margin above nothing, on the one panel in the app that would rather
-          spend the space on another dish. `mealType` counts as something to
-          say even when it is switched off: that chip is the only way back to
-          filtering by meal type, so it stays on the row rather than becoming a
-          filter you can turn off once and never find again.
+          This band used to carry a chip per active filter, and under it a
+          tinted line naming the slot's budget with a count beside it. The
+          argument for the chips was that a closed popover with a filter still
+          applied is a list that has quietly stopped showing you things — true,
+          and answered by the count on the trigger, which is on a row that never
+          scrolls and is the place you go to change a filter anyway. What the
+          chips actually cost was the top of the panel: a wrapping row that grew
+          to two lines as filters were added, pushing the first dish down the
+          screen precisely when the reader had just narrowed the list to find
+          it.
+
+          The active filters are highlighted *inside* the popover instead —
+          which is where they were set, where they can be unset, and where the
+          reader is already looking when they want to know what is on.
+
+          The budget line went for the same reason and one more: it restated a
+          fact the list itself demonstrates. The rows are ordered nearest-first
+          and each one prints its own distance from the target, so a sentence
+          saying they are ordered that way was a caption on a self-evident
+          picture.
         */}
-        {(activeCount > 0 || mealType) && (
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          {mealType && (
-            <FilterChip
-              active={!allMealTypes}
-              onClick={() => setAllMealTypes((value) => !value)}
-              title={allMealTypes ? undefined : t('allMealTypes')}
-            >
-              {t(`mealTypes.${mealType}`)}
-              {!allMealTypes && <Icon name="close" className="size-3.5" />}
-            </FilterChip>
-          )}
-
-          {nutrition.map((entry) => (
-            <FilterChip key={entry} active onClick={() => toggleNutrition(entry)}>
-              {t(`nutritionFilters.${entry}`)}
-              <Icon name="close" className="size-3.5" />
-            </FilterChip>
-          ))}
-
-          {DISH_AXES.flatMap((axis) =>
-            axis.values
-              .filter(({ value }) => axes[axis.key].includes(value))
-              .map(({ value, message }) => (
-                <FilterChip
-                  key={`${axis.key}:${value}`}
-                  active
-                  onClick={() => toggleAxis(axis.key, value)}
-                >
-                  {t(message)}
-                  <Icon name="close" className="size-3.5" />
-                </FilterChip>
-              )),
-          )}
-
-          {options.map((entry) => (
-            <FilterChip key={entry} active onClick={() => toggleOption(entry)}>
-              {t(`dishOptions.${entry}`)}
-              <Icon name="close" className="size-3.5" />
-            </FilterChip>
-          ))}
-
-          {activeCount > 0 && (
-            <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>
-              {t('clearFilters')}
-            </Button>
-          )}
-        </div>
-        )}
-
-        {slot && slot.budgetKcal > 0 && (
-          <div className="mt-3 flex items-center justify-between gap-2 rounded-md bg-secondary/70 px-3 py-2 text-caption">
-            <strong className="text-primary">{t('bestMatches', { value: slot.budgetKcal })}</strong>
-            <span className="rounded-full bg-card px-2 py-0.5 font-semibold tabular-nums text-muted-foreground shadow-card">
-              {shown.length}
-            </span>
-          </div>
-        )}
       </div>
 
       {shown.length === 0 ? (

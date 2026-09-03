@@ -6,13 +6,18 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { SelectField } from '@/components/ui/select-field';
+import { cn } from '@/lib/utils';
 
 import { localizedName } from '../food-display';
-import { baseServingKcal } from '../nutrition';
+import type { MealIngredientLine } from '../meal-ingredients';
+import { baseServingKcal, dishGrams, dishTotals, roundForDisplay, roundGrams } from '../nutrition';
 import type { CatalogEntry } from '../queries';
 import { MAX_MEAL_SIDES, mealTypeForSlot } from '../schema';
+import { sideChipStyle } from '../side-kind';
 
 import { useEditorActions } from './board-dnd';
+import { IngredientDisclosure } from './ingredient-disclosure';
+import { MealIngredientAmounts } from './meal-ingredient-amounts';
 
 /**
  * What stands beside the meal — the salad, the soup, the cup of yogurt.
@@ -28,6 +33,19 @@ import { useEditorActions } from './board-dnd';
  * The catalog now holds seventeen sides. This is the control: **which one, or
  * none at all.** A lunch does not always come with a salad, and when it does it
  * is not the same salad on Sunday and Thursday.
+ *
+ * ## One row per side, and the row is the whole side
+ *
+ * A side used to be a bare select in a list, with its ingredients printed some
+ * distance below under the main's "also contains" — so a salad's lettuce sat in
+ * a list headed as though the maqluba contained it, and the row that changed the
+ * salad and the lines that described it were not visibly the same object.
+ *
+ * A side is now one row that holds everything about it: the glyph that says what
+ * kind of thing it is (the same green leaf the meal card prints in its corner),
+ * the select that changes it, its weight and energy, the control that removes
+ * it, and its ingredients folded away behind a count. Nothing about that side is
+ * anywhere else on the panel.
  *
  * ## Why a select per side, and not a list of chips to toggle
  *
@@ -57,6 +75,7 @@ export function MealSides({
   mealId,
   slotKey,
   sides,
+  lines,
   catalog,
   locale,
   editable,
@@ -65,6 +84,14 @@ export function MealSides({
   slotKey: string;
   /** What is attached now, in the order it was attached. */
   sides: readonly { id: string; nameAr: string; nameEn: string }[];
+  /**
+   * The meal's whole ingredient list. Each side's own lines are picked out of it
+   * by `line.side.id` — they arrive mixed in with the main's on purpose, so that
+   * every total in the app counts the salad without knowing it exists (see
+   * `MealIngredientLine.side`), and this is the one surface that has to take
+   * them apart again.
+   */
+  lines: readonly MealIngredientLine[];
   /** The whole board catalog. Sides are picked out here — see `available`. */
   catalog: readonly CatalogEntry[];
   locale: string;
@@ -88,6 +115,20 @@ export function MealSides({
   }, [catalog, slotKey, locale]);
 
   const byId = useMemo(() => new Map(available.map((one) => [one.id, one.dish])), [available]);
+
+  /** Each attached side's own lines, keyed by the side that contributed them. */
+  const linesBySide = useMemo(() => {
+    const grouped = new Map<string, MealIngredientLine[]>();
+
+    for (const line of lines) {
+      if (!line.side) continue;
+      const bucket = grouped.get(line.side.id);
+      if (bucket) bucket.push(line);
+      else grouped.set(line.side.id, [line]);
+    }
+
+    return grouped;
+  }, [lines]);
 
   /** The current set as ids, which is the only thing the writes deal in. */
   const current = sides.map((side) => side.id);
@@ -141,7 +182,7 @@ export function MealSides({
   const room = MAX_MEAL_SIDES - sides.length;
 
   return (
-    <section className="mt-6">
+    <section className="mt-4">
       <div className="flex items-baseline justify-between gap-2 pb-2">
         <h4 className="text-label font-semibold">{t('sidesLabel')}</h4>
         <span className="text-caption text-muted-foreground">{t('sidesHint')}</span>
@@ -152,37 +193,16 @@ export function MealSides({
       ) : (
         <ul className="flex flex-col gap-2">
           {sides.map((side, index) => (
-            <li key={side.id} className="flex items-center gap-2">
-              {editable ? (
-                <SelectField
-                  size="sm"
-                  className="min-w-0 flex-1"
-                  aria-label={t('sidesLabel')}
-                  value={side.id}
-                  onValueChange={(next) =>
-                    replace(current.map((id, at) => (at === index ? next : id)))
-                  }
-                  options={optionsFor(side, index)}
-                />
-              ) : (
-                <span className="min-w-0 flex-1 truncate text-body-sm" dir="auto">
-                  {locale === 'en' && side.nameEn ? side.nameEn : side.nameAr}
-                </span>
-              )}
-
-              {editable && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  aria-label={t('removeSide')}
-                  title={t('removeSide')}
-                  onClick={() => replace(current.filter((_, at) => at !== index))}
-                >
-                  <Icon name="close" />
-                </Button>
-              )}
-            </li>
+            <SideRow
+              key={side.id}
+              side={side}
+              lines={linesBySide.get(side.id) ?? []}
+              locale={locale}
+              editable={editable}
+              options={editable ? optionsFor(side, index) : []}
+              onChange={(next) => replace(current.map((id, at) => (at === index ? next : id)))}
+              onRemove={() => replace(current.filter((_, at) => at !== index))}
+            />
           ))}
         </ul>
       )}
@@ -205,5 +225,112 @@ export function MealSides({
         />
       )}
     </section>
+  );
+}
+
+/**
+ * One side, whole.
+ *
+ * A card rather than a bare row, so the select, the figures and the fold read as
+ * belonging to the same object — two sides in a list of loose controls is four
+ * controls a reader has to pair up by position.
+ *
+ * The glyph on the leading edge is the same one the meal card prints in its
+ * corner for this side, in the same colour. That is the point of it being here:
+ * the mark a dietitian reads on the board at a glance is identified by name
+ * exactly once, in the panel they opened to change it.
+ */
+function SideRow({
+  side,
+  lines,
+  locale,
+  editable,
+  options,
+  onChange,
+  onRemove,
+}: {
+  side: { id: string; nameAr: string; nameEn: string };
+  lines: readonly MealIngredientLine[];
+  locale: string;
+  editable: boolean;
+  options: { value: string; label: string }[];
+  onChange: (next: string) => void;
+  onRemove: () => void;
+}) {
+  const t = useTranslations('weeklyPlans');
+  const { icon, className: tone } = sideChipStyle(side);
+
+  /*
+   * The side's own weight and energy, from its own lines.
+   *
+   * `servings: 1` because these lines are already absolute — a side stands beside
+   * the meal at one serving and `meal-ingredients.ts` resolved the amounts before
+   * they reached any screen. Nothing here multiplies.
+   *
+   * Both are omitted rather than printed as zero when the side contributed no
+   * lines, which happens for a side attached before its recipe was written. A
+   * "0 kcal" salad is a claim; a missing figure is the truth.
+   */
+  const kcal = lines.length > 0 ? roundForDisplay('kcal', dishTotals(lines, 1).kcal.value) : null;
+  const grams = lines.length > 0 ? roundGrams(dishGrams(lines, 1), 5) : null;
+
+  return (
+    <li className="rounded-lg border border-border bg-card px-3 py-2.5">
+      <div className="flex items-center gap-2">
+        <span className={cn('grid size-7 shrink-0 place-items-center rounded-md', tone)}>
+          <Icon name={icon} className="size-4" />
+        </span>
+
+        {editable ? (
+          <SelectField
+            size="sm"
+            className="min-w-0 flex-1"
+            aria-label={t('sidesLabel')}
+            value={side.id}
+            onValueChange={onChange}
+            options={options}
+          />
+        ) : (
+          <span className="min-w-0 flex-1 truncate text-body-sm" dir="auto">
+            {localizedName(side, locale)}
+          </span>
+        )}
+
+        {editable && (
+          <Button
+            type="button"
+            size="icon-sm"
+            variant="ghost"
+            aria-label={t('removeSide')}
+            title={t('removeSide')}
+            onClick={onRemove}
+          >
+            <Icon name="close" />
+          </Button>
+        )}
+      </div>
+
+      {/*
+        Indented past the glyph, so the figures and the fold hang under the name
+        rather than under the mark — the same alignment a list item's own
+        continuation would take.
+      */}
+      {lines.length > 0 && (
+        <div className="mt-1 ps-9">
+          {/* The figures the select's label already carries for the *catalog*
+              row, restated here for the side actually on the plate — the label
+              is what you choose by, this is what you chose. */}
+          <p className="text-caption tabular-nums text-muted-foreground">
+            {grams !== null && t('totalGrams', { value: grams })}
+            {grams !== null && kcal !== null && <span aria-hidden> · </span>}
+            {kcal !== null && t('kcalValue', { value: kcal })}
+          </p>
+
+          <IngredientDisclosure label={t('sideIngredients')} count={lines.length}>
+            <MealIngredientAmounts lines={lines} locale={locale} flat />
+          </IngredientDisclosure>
+        </div>
+      )}
+    </li>
   );
 }

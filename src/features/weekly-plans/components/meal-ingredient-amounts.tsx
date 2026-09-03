@@ -28,13 +28,30 @@ import { ingredientAmount } from '../meal-quantity';
 export function MealIngredientAmounts({
   lines,
   locale,
+  flat = false,
 }: {
   lines: readonly MealIngredientLine[];
   locale: string;
+  /**
+   * Given, the lines are known to belong to one dish already and are printed as
+   * a plain list — no grouping, no headings.
+   *
+   * The default is the grouping, because the two surfaces that render a *whole*
+   * meal (the patient's card and the panel's read-only list) hand over the
+   * main's lines and every side's together, and the heading is what stops a
+   * client reading loose lettuce and tomato where a dietitian wrote صحن سلطة.
+   *
+   * The staff panel's side rows are the exception this exists for: there the
+   * side has already been named — it is the row the fold hangs off — and
+   * grouping would print its name a second time directly under itself.
+   */
+  flat?: boolean;
 }) {
   if (!lines.length) return null;
 
-  const { main, sides } = groupBySide(lines);
+  const { main, sides } = flat
+    ? ({ main: [...lines], sides: [] } satisfies ReturnType<typeof groupBySide>)
+    : groupBySide(lines);
 
   return (
     <div className="flex flex-col gap-2">

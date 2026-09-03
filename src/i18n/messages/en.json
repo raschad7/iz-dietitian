@@ -2326,7 +2326,15 @@
     "noSides": "Nothing beside this meal",
     "addSide": "Add something beside it",
     "removeSide": "Remove side",
-    "planNotes": "Notes for the dietitian"
+    "planNotes": "Notes for the dietitian",
+    "mealViews": "Meal views",
+    "plateTab": "The plate",
+    "optionsTab": "Alternatives",
+    "sideIngredients": "Ingredients",
+    "fillSlotHint": "Dishes are ordered by how close they are to this slot’s target",
+    "mealEnergy": "Meal energy",
+    "slotBudget": "Slot budget",
+    "filterMealType": "Meal type"
   },
   "dishes": {
     "title": "Dish catalog",

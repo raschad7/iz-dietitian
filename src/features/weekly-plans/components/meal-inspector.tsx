@@ -160,14 +160,15 @@ export function MealInspector({
       <Popover.Portal>
         <Popover.Backdrop
           className={cn(
+            // The dialog's own backdrop timing, from `globals.css`. See the note
+            // on the popup below for why this panel borrows a dialog's motion.
+            'planner-inspector-scrim',
             'fixed inset-0 z-40 bg-[var(--scrim)] [backdrop-filter:blur(4px)]',
-            'transition-opacity duration-(--duration-sweep) ease-(--ease-sweep)',
-            'data-ending-style:opacity-0 data-starting-style:opacity-0',
-            // A scrim on its way out takes no clicks. It is invisible from the
-            // first frame of the transition, so it has nothing left to be
-            // pressed *for* — and if it is ever stranded there again, an
-            // invisible sheet over the board is the difference between a stray
-            // element and an application nobody can use.
+            // A scrim on its way out takes no clicks. It is fading from the
+            // first frame of the exit, so it has nothing left to be pressed
+            // *for* — and if it is ever stranded there again, an invisible sheet
+            // over the board is the difference between a stray element and an
+            // application nobody can use.
             'data-ending-style:pointer-events-none',
           )}
         />
@@ -205,9 +206,30 @@ export function MealInspector({
                   covering; see `globals.css`.
                 */
                 'relative flex h-[min(44rem,calc(var(--q-viewport-block)-2rem))] w-[min(29rem,calc(100vw-1.5rem))] origin-(--transform-origin) flex-col overflow-hidden rounded-lg bg-popover text-popover-foreground shadow-overlay ring-1 ring-foreground/10 outline-none max-sm:h-[min(44rem,calc(var(--q-viewport-block)-1rem))] max-sm:w-full max-sm:rounded-b-none',
-                'transition-[opacity,transform,filter,clip-path] duration-(--duration-sweep) ease-(--ease-sweep)',
-                'data-ending-style:scale-95 data-ending-style:opacity-0 data-ending-style:blur-sm',
-                'data-starting-style:scale-95 data-starting-style:opacity-0 data-starting-style:blur-sm',
+                /*
+                  ── It opens the way every other dialog in the app opens ──
+
+                  This is a `Popover` because it is anchored to the card it came
+                  from, and that is worth keeping: the week stays beside the meal
+                  being read. Everything else about it is a dialog — a scrim, a
+                  focus trap, a header, a scrolling body, a footer of destructive
+                  controls — and it used to arrive with a 200ms scale-and-blur of
+                  its own while every real dialog in the product arrived with
+                  Seam. One kind of surface, two entrances, and the difference
+                  was visible on the same screen the moment a dietitian opened a
+                  meal and then opened anything else.
+
+                  The rules are `.planner-inspector-popup` in `globals.css`:
+                  literally the dialog's keyframes at the dialog's durations,
+                  keyed to Base UI's `data-open`/`data-closed` instead of a
+                  native `[open]`. A CSS animation rather than a transition,
+                  because the seam's `clip-path` should exist for the 300ms it is
+                  moving and not sit on a resting panel — a permanent `clip-path`
+                  makes the popup a containing block for anything fixed inside
+                  it, which is a trap to leave lying around in a panel that hosts
+                  the whole dish catalog.
+                */
+                'planner-inspector-popup',
               )}
             >
               <Popover.Close

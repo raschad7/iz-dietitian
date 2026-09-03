@@ -1,9 +1,16 @@
+import * as React from 'react';
 import { useTranslations } from 'next-intl';
 
-import { buttonVariants } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/avatar';
 import { Icon } from '@/components/ui/icon';
-import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Popover,
+  PopoverClose,
+  PopoverContent,
+  PopoverTitle,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { TooltipHint } from '@/components/ui/tooltip-hint';
 import { patientToneStyle } from '@/features/booking/patient-color';
 import { IntakeFormTrigger } from '@/features/clients/components/intake-form-trigger';
@@ -172,161 +179,184 @@ export function ContextPanel({
           {/*
             ── The planning notes, as a panel rather than a printout ──
 
-            What was here was a 13px title with no space under it, a two-column
-            `dl` whose second cell had to fit "80 كغ · 170 سم · 28 سنة" in
-            150px (it never did — it wrapped mid-run, twice), and four
-            hairline-separated rows that mostly said "غير محدد" in exactly the
-            weight and colour a real answer would have. Nothing in it was
-            wrong; it just had no rhythm, so the eye had nowhere to land and an
-            empty profile looked identical to a full one.
+            Four passes on this surface, and the last one is about direction.
 
-            Three changes carry the fix. The heading gets the app's heading face
-            and a rule under it, and stays put while the notes scroll — the
-            popover is tall enough to scroll and a title that leaves is a
-            surface you can lose your place in. The two derived facts become a
-            spec list, label at the inline-start and value at the inline-end on
-            one row each, which is the shape that gives a long measurement
-            string the whole width instead of half of it. And an unanswered note
-            drops to the muted colour, so "not recorded yet" reads as absence
-            rather than as content.
+            What is here is seven facts, three of which are *numerals with a
+            unit attached* — "2207 kcal", "26.7", "80 كغ · 173 سم · 28 سنة". A
+            figure runs left-to-right in every language, and the first attempt at
+            saying so was `dir="ltr"` on the element holding it. That is the
+            trap: `dir` sets the alignment as well as the run order, so in an
+            Arabic panel the label sat against the right edge and the value it
+            labels sat against the left — the two halves of one fact at opposite
+            ends of the same box, on every numeric row here.
+
+            `<bdi dir="ltr">` is the fix, and the reason every figure below wears
+            one without exception. It isolates the numeral's *internal* direction
+            — so "2207 kcal" can never come out as "kcal 2207" — and leaves the
+            alignment to the block, which follows the panel. The label and its
+            value land on the same edge in Arabic and in English, from the same
+            markup.
+
+            The rest of the pass is subtraction. The allergy fact was a filled
+            two-line banner and is one row with a mark on it; the "missing
+            fields" warning was a second filled banner above it and is now a
+            quiet line under the targets it is actually about, because it is a
+            note about the profile rather than something that has gone wrong.
+            Two filled colour blocks stacked at the top of a panel is a panel
+            that opens by shouting — and the one fact here that can genuinely
+            stop a plan going out was the quieter of the two.
           */}
           <PopoverContent
             align="end"
             side="bottom"
-            className="max-h-[min(34rem,72dvh)] w-[min(22rem,calc(100vw-2rem))] overflow-y-auto p-0"
+            className="max-h-[min(38rem,80dvh)] w-[min(26rem,calc(100vw-2rem))] overflow-y-auto p-0 shadow-lg"
           >
-            <div className="sticky top-0 z-10 border-b border-border bg-popover px-4 py-3">
-              {/*
-                The title, and nothing under it.
-
-                The client's name was a second line here, 40px from their own
-                name in the header and 20px from the avatar the popover opens
-                off — three printings of one word inside a hand's width. A
-                popover is understood to belong to the control it grew out of;
-                it does not have to say whose it is.
-              */}
-              <PopoverTitle className="font-heading text-body-md font-semibold">
-                {t('planningNotes')}
-              </PopoverTitle>
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-popover/95 px-4 py-3 backdrop-blur-sm">
+              <div className="flex items-center gap-2">
+                <div className="flex size-6 items-center justify-center rounded-full bg-primary-subtle text-primary">
+                  <Icon name="info" className="size-3.5" />
+                </div>
+                <PopoverTitle className="font-heading text-body-md font-semibold text-foreground">
+                  {t('planningNotes')}
+                </PopoverTitle>
+              </div>
+              <PopoverClose
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="size-7 p-0 text-muted-foreground hover:bg-muted hover:text-foreground"
+                    aria-label={t('close')}
+                  >
+                    <Icon name="close" className="size-3.5" />
+                  </Button>
+                }
+              />
             </div>
 
-            <div className="space-y-4 p-4">
-              {targets.missing.length > 0 && (
-                <p className="rounded-md bg-status-attention-bg px-3 py-2 text-body-sm leading-relaxed text-status-attention-fg">
-                  {t('missingFields', {
-                    fields: targets.missing.map((field) => t(`fields.${field}`)).join('، '),
-                  })}
-                </p>
-              )}
-
-              {/*
-                ── The allergies first, and as a warning rather than a row ──
-
-                It was the fifth of seven rows in a list of figures, in the same
-                type as the activity level, differing only in colour. But it is
-                the one fact here that can stop a plan going out, and it is a
-                *sentence* rather than a value — it never fitted the
-                label-left/value-right shape the other six are built for, so it
-                wrapped where they did not and dragged the whole list out of
-                rhythm. On its own, at the top, in the medical tone, it is both
-                shorter and the first thing read.
-              */}
-              <p
+            <div className="flex flex-col gap-5 p-4 pb-6">
+              {/* Allergy banner */}
+              <div
                 className={cn(
-                  'rounded-lg px-3 py-2.5 text-body-sm leading-relaxed',
+                  'flex items-start gap-2.5 rounded-lg border p-3 text-body-sm',
                   allergyText
-                    ? 'bg-status-medical-bg text-status-medical-fg'
-                    : 'bg-status-attention-bg text-status-attention-fg',
+                    ? 'border-status-medical-fg/25 bg-status-medical-bg text-status-medical-fg'
+                    : 'border-status-attention-fg/25 bg-status-attention-bg text-status-attention-fg',
                 )}
-                dir="auto"
               >
-                <span className="font-semibold">{t('allergies')}</span>
-                {' · '}
-                {allergyText || t('allergiesMissing')}
-              </p>
+                <Icon
+                  name={allergyText ? 'medical' : 'attention'}
+                  className="mt-0.5 size-4 shrink-0"
+                />
+                <div className="min-w-0 flex-1 leading-relaxed" dir="auto">
+                  <span className="font-semibold">{t('allergies')}</span>
+                  <span className="mx-1.5 opacity-60">·</span>
+                  <span className="font-medium [overflow-wrap:anywhere]">
+                    {allergyText || t('allergiesMissing')}
+                  </span>
+                </div>
+              </div>
 
-              {/*
-                ── Two figures as tiles, five as rows ──
-
-                The seven facts were one undivided run of `dt`/`dd` pairs, which
-                is why this panel read as a printout: the calorie target and the
-                protein target — the two numbers the whole week is built to hit
-                — sat in the same 14px grey as the activity level, and the eye
-                had to read all seven to find the two.
-
-                They are tiles now, side by side and set at heading size, and the
-                rest keep the list. Two groups with a heading each, so what is a
-                *target* and what is a *measurement* is answered by the layout
-                rather than by reading the labels.
-              */}
+              {/* Targets */}
               <section>
                 <SpecHeading>{t('notesTargets')}</SpecHeading>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   <Figure label={t('dailyTarget')}>
-                    {context.effectiveKcal === null
-                      ? t('unset')
-                      : t('kcalValue', { value: context.effectiveKcal })}
+                    {context.effectiveKcal === null ? (
+                      <span className="text-body-sm font-normal text-muted-foreground">{t('unset')}</span>
+                    ) : (
+                      <span className="inline-flex items-baseline gap-1 whitespace-nowrap">
+                        <bdi className="tabular-nums font-bold">{context.effectiveKcal}</bdi>
+                        <span className="text-caption font-normal text-muted-foreground">kcal</span>
+                      </span>
+                    )}
                   </Figure>
                   <Figure label={t('fields.proteinTargetGrams')}>
-                    {context.effectiveProteinGrams === null
-                      ? t('unset')
-                      : t('grams', { value: context.effectiveProteinGrams })}
+                    {context.effectiveProteinGrams === null ? (
+                      <span className="text-body-sm font-normal text-muted-foreground">{t('unset')}</span>
+                    ) : (
+                      <span className="inline-flex items-baseline gap-1 whitespace-nowrap">
+                        <bdi className="tabular-nums font-bold">{context.effectiveProteinGrams}</bdi>
+                        <span className="text-caption font-normal text-muted-foreground">
+                          {locale === 'ar' ? 'غرام' : 'g'}
+                        </span>
+                      </span>
+                    )}
                   </Figure>
                 </div>
+
+                {targets.missing.length > 0 && (
+                  <div className="mt-2 flex items-start gap-1.5 rounded-md bg-status-attention-bg/60 px-2.5 py-1.5 text-caption leading-relaxed text-status-attention-fg" dir="auto">
+                    <Icon name="attention" className="mt-0.5 size-3.5 shrink-0" />
+                    <span>
+                      {t('missingFields', {
+                        fields: targets.missing.map((field) => t(`fields.${field}`)).join('، '),
+                      })}
+                    </span>
+                  </div>
+                )}
               </section>
 
+              {/* Body stats */}
               <section>
                 <SpecHeading>{t('notesBody')}</SpecHeading>
-                {/* The sunken fill the header's own line of figures uses, so the
-                    popover reads as the same object opened up rather than as a
-                    second design of the same information. */}
-                <dl className="divide-y divide-border rounded-lg bg-muted/70 px-3">
+                <dl className="divide-y divide-border/60 rounded-lg border border-border/60 bg-muted/40 px-3.5">
                   <SpecRow label={t('goal')}>
-                    {isMember(CLIENT_GOALS, context.goal) ? tGoals(context.goal) : t('unset')}
+                    {isMember(CLIENT_GOALS, context.goal) ? (
+                      tGoals(context.goal)
+                    ) : (
+                      <span className="text-muted-foreground font-normal">{t('unset')}</span>
+                    )}
                   </SpecRow>
                   <SpecRow label={t('bmi')}>
-                    {targets.bmi === null ? t('unset') : targets.bmi.toFixed(1)}
+                    {targets.bmi === null ? (
+                      <span className="text-muted-foreground font-normal">{t('unset')}</span>
+                    ) : (
+                      <bdi className="tabular-nums font-semibold">{targets.bmi.toFixed(1)}</bdi>
+                    )}
                   </SpecRow>
                   <SpecRow label={t('activityLevel')}>
-                    {isMember(CLIENT_ACTIVITY_LEVELS, context.activityLevel)
-                      ? tActivity(context.activityLevel)
-                      : t('unset')}
+                    {isMember(CLIENT_ACTIVITY_LEVELS, context.activityLevel) ? (
+                      tActivity(context.activityLevel)
+                    ) : (
+                      <span className="text-muted-foreground font-normal">{t('unset')}</span>
+                    )}
                   </SpecRow>
                   <SpecRow label={t('measurements')}>
-                    {measurements.length ? measurements.join(' · ') : t('unset')}
+                    {measurements.length > 0 ? (
+                      <span className="inline-flex flex-wrap items-center justify-end gap-1.5 text-end" dir="auto">
+                        {measurements.map((entry, index) => (
+                          <React.Fragment key={index}>
+                            {index > 0 && <span className="text-muted-foreground/40 select-none">·</span>}
+                            <span className="whitespace-nowrap font-medium">{entry}</span>
+                          </React.Fragment>
+                        ))}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground font-normal">{t('unset')}</span>
+                    )}
                   </SpecRow>
                 </dl>
               </section>
 
-              {/*
-                ── Four "not recorded" blocks become one line ──
-
-                Every one of the four written notes was drawn as a label and a
-                body whether or not anything had been written, so the common
-                case — a client with permanent instructions and nothing else —
-                spent about 120px of a scrolling panel on three headings above
-                three copies of the word "unset". Which is not information: it
-                is the same absence, restated once per field, in the weight and
-                spacing a real answer would have had.
-
-                What is written gets its heading and its paragraph. What is not
-                is named once, in a muted run at the foot, where it can be
-                checked in a glance without being read.
-              */}
+              {/* Written notes & unwritten indicators */}
               <section>
                 <SpecHeading>{t('notesWritten')}</SpecHeading>
 
                 {written.length === 0 ? (
-                  <p className="text-body-sm text-muted-foreground">{t('notesNothingWritten')}</p>
+                  <div className="rounded-lg border border-dashed border-border/70 bg-muted/20 px-3.5 py-3 text-center text-body-sm text-muted-foreground">
+                    {t('notesNothingWritten')}
+                  </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="flex flex-col gap-2.5">
                     {written.map((note) => (
-                      <div key={note.key}>
-                        <p className="text-caption font-medium text-muted-foreground">
+                      <div key={note.key} className="rounded-lg border border-border/60 bg-muted/30 p-3">
+                        <p className="text-caption font-semibold text-muted-foreground">
                           {note.label}
                         </p>
                         <p
-                          className="mt-1 text-body-sm leading-relaxed [overflow-wrap:anywhere]"
+                          className="mt-1 text-body-sm leading-relaxed text-foreground [overflow-wrap:anywhere]"
                           dir="auto"
                         >
                           {note.body}
@@ -337,11 +367,14 @@ export function ContextPanel({
                 )}
 
                 {blank.length > 0 && (
-                  <p className="mt-3 text-caption leading-relaxed text-muted-foreground">
-                    {t('notesUnwritten', {
-                      fields: blank.map((note) => note.label).join('، '),
-                    })}
-                  </p>
+                  <div className="mt-3 rounded-lg border border-border/50 bg-muted/40 p-2.5 text-caption leading-relaxed text-muted-foreground" dir="auto">
+                    <span className="font-medium text-foreground/70">
+                      {locale === 'ar' ? 'لم تُسجّل: ' : 'Unwritten: '}
+                    </span>
+                    <span className="[overflow-wrap:anywhere]">
+                      {blank.map((note) => note.label).join('، ')}
+                    </span>
+                  </div>
                 )}
               </section>
             </div>
@@ -408,20 +441,33 @@ export function ContextPanel({
     costs nothing anyone can see.
   */
   const summary = (
+    /*
+      ── Three facts distributed across the header's middle column ──
+
+      On desktop (`xl`), this section takes the full width of the middle column
+      (`xl:w-full`) to bridge the space between the client profile and the action bar.
+      The three facts (daily target, protein target, allergies) are distributed
+      evenly with dividers and comfortable spacing between label and value.
+
+      Below `md`, it wraps on a line of its own for narrow viewports. On tablet
+      (`md`), it is hidden because the two-column header cannot fit all three.
+    */
     <section
       aria-label={t('planningSnapshot')}
-      className="col-span-full flex min-w-0 flex-wrap items-center gap-x-4 overflow-hidden rounded-md bg-muted/70 px-3 py-1 md:hidden xl:px-2 xl:col-span-1 xl:col-start-2 xl:row-start-1 xl:flex xl:flex-nowrap xl:justify-between xl:gap-x-2"
+      className="col-span-full flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 overflow-hidden rounded-lg bg-muted/70 px-3 py-1.5 md:hidden xl:col-span-1 xl:col-start-2 xl:row-start-1 xl:flex xl:h-12 xl:w-full xl:items-center xl:justify-between xl:gap-0 xl:self-center xl:px-4 xl:py-0"
     >
       <SummaryFact label={t('dailyTarget')} numeric>
         {context.effectiveKcal === null
           ? t('unset')
           : t('kcalValue', { value: context.effectiveKcal })}
       </SummaryFact>
+      <SummaryDivider />
       <SummaryFact label={t('fields.proteinTargetGrams')} numeric>
         {context.effectiveProteinGrams === null
           ? t('unset')
           : t('grams', { value: context.effectiveProteinGrams })}
       </SummaryFact>
+      <SummaryDivider />
       {/*
         **The short form on the line, the sentence in the tip.**
 
@@ -456,6 +502,24 @@ export function ContextPanel({
       {summary}
     </div>
   );
+}
+
+/**
+ * What separates two facts on the header's line.
+ *
+ * The gutter used to do this on its own — `justify-between` put a field of
+ * empty space between them — and closing that gutter to 10px meant the three
+ * ran together into one strip of text. A 1px rule at 60% height does the
+ * dividing in 1px that distance was doing in 200, which is the whole point of
+ * the change: the facts sit close enough to be read as a group and still read
+ * as three.
+ *
+ * `aria-hidden`, and outside every `SummaryFact`: it is punctuation between
+ * items, and a screen reader running the line should hear three facts rather
+ * than three facts and two decorations.
+ */
+function SummaryDivider() {
+  return <span aria-hidden className="h-4 w-px shrink-0 bg-border max-xl:hidden" />;
 }
 
 function SummaryFact({
@@ -497,40 +561,23 @@ function SummaryFact({
         'truncate text-body-sm font-medium',
         numeric && 'tabular-nums',
       )}
-      dir={numeric ? 'ltr' : 'auto'}
     >
-      {children}
+      {/* `<bdi dir="ltr">` on a figure, `dir="auto"` on a phrase — the same
+          split the notes popover makes, and for the same reason: `dir` on this
+          paragraph would set its alignment as well as its run order, and the
+          allergy fact is the one value here allowed to shrink. See `Figure`. */}
+      {numeric ? <bdi dir="ltr">{children}</bdi> : <span dir="auto">{children}</span>}
     </p>
   );
 
   return (
     <div
       className={cn(
-        // The gutter between a label and its own value closes to 4px on the
-        // one line where all five compete for the same 40rem — 10px across the
-        // row, which is most of what stands between "إنقاص الوزن" and an
-        // ellipsis at 1280px.
-        'flex min-w-0 items-baseline gap-1.5 text-start xl:gap-1',
-        /*
-          **The figures do not give up width; the phrases do.**
-
-          Five facts on one line need about 41rem in Arabic and the column they
-          share with the client and the action bar is nearer 39rem on a 1280px
-          laptop, so something has to shrink. Left to itself flexbox took the
-          same slice off all five, which meant a daily target reading "2178 k…"
-          — and half of a number is not a smaller number, it is a wrong one.
-          These three are short and fixed and keep their width; the two that
-          hold words absorb the whole squeeze, and both carry the full text in a
-          tip.
-        */
-        numeric && 'shrink-0',
+        'flex min-w-0 items-center gap-2 text-start xl:flex-1 xl:justify-center xl:gap-2.5 xl:px-3',
+        numeric && 'shrink-0 xl:shrink',
         className,
       )}
     >
-      {/* The label never truncates. It is two or three words naming what the
-          number is, and half of "مؤشر كتلة الج…" names nothing — if something
-          has to give up width here it is the value, which has a tip and a panel
-          behind it. */}
       <p className="shrink-0 text-caption leading-tight text-muted-foreground">{label}</p>
       {hint ? (
         <TooltipHint label={hint} className="min-w-0">
@@ -555,21 +602,21 @@ function SummaryFact({
  */
 /** The heading over one group of facts. */
 function SpecHeading({ children }: { children: React.ReactNode }) {
-  return <h4 className="pb-1.5 text-caption font-semibold text-muted-foreground">{children}</h4>;
+  return (
+    <h4 className="flex items-center gap-1.5 pb-2 text-caption font-semibold uppercase tracking-wider text-muted-foreground">
+      {children}
+    </h4>
+  );
 }
 
 /**
- * One of the two numbers the week is built against, at a size that says so.
- *
- * `tabular-nums` and `dir="ltr"` on the value: it is a figure with a unit
- * attached, and "2178 kcal" reads left to right in Arabic exactly as it does in
- * English — the label above it is what carries the direction of the panel.
+ * One of the two target numbers, styled as a defined stat tile with no BiDi wrapping issues.
  */
 function Figure({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-lg bg-muted/70 px-3 py-2">
-      <p className="text-caption text-muted-foreground">{label}</p>
-      <p className="mt-0.5 font-heading text-body-lg font-medium tabular-nums" dir="auto">
+    <div className="flex flex-col justify-between rounded-lg border border-border/60 bg-muted/40 p-3">
+      <p className="text-caption font-medium text-muted-foreground">{label}</p>
+      <p className="mt-1 font-heading text-body-md font-semibold text-foreground" dir="auto">
         {children}
       </p>
     </div>
@@ -578,25 +625,15 @@ function Figure({ label, children }: { label: string; children: React.ReactNode 
 
 function SpecRow({
   label,
-  tone,
   children,
 }: {
   label: string;
-  /** Colours the value where the value is a warning — allergies, and only that. */
-  tone?: 'medical' | 'attention';
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-baseline justify-between gap-3 py-2 text-body-sm">
+    <div className="flex items-center justify-between gap-4 py-2.5 text-body-sm">
       <dt className="shrink-0 text-muted-foreground">{label}</dt>
-      <dd
-        className={cn(
-          'min-w-0 text-end',
-          tone === 'medical' && 'text-status-medical-fg',
-          tone === 'attention' && 'text-status-attention-fg',
-        )}
-        dir="auto"
-      >
+      <dd className="min-w-0 font-medium text-foreground text-end" dir="auto">
         {children}
       </dd>
     </div>

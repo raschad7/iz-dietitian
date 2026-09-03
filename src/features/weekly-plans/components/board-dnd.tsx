@@ -50,6 +50,8 @@ import { proteinSource } from '../dish-composition';
 import { initialPlanActionState, type PlanActionState } from '../form-state';
 import type { Board, BoardMeal } from '../queries';
 
+import { MealSideChips } from './meal-side-chips';
+
 /**
  * The message keys an edit can fail with.
  *
@@ -184,6 +186,12 @@ export type DragPayload =
         kcal: number;
         servings: number;
         /**
+         * What is standing beside the meal, so the lifted card draws the same
+         * chips its resting self does. Names only — the chip's kind and colour
+         * are read off them by `sideKind()`, and the overlay has no recipes.
+         */
+        sides: readonly { id: string; nameAr: string; nameEn: string }[];
+        /**
          * The dish's protein source, carried purely so the lifted card can draw
          * the same coloured rule its resting self does. Without it the preview
          * loses the one mark that says *which kind* of dish is in flight, at the
@@ -256,7 +264,7 @@ export function BoardEditor({
    * a keyboard drag, which has no pointer and keeps dnd-kit's own arithmetic.
    */
   const gesture = useRef<{
-    origin: { left: number; top: number };
+    origin: { left: number; top: number; width: number; height: number };
     start: { x: number; y: number };
     now: { x: number; y: number };
   } | null>(null);
@@ -281,24 +289,63 @@ export function BoardEditor({
    * its own rect and which is therefore the one place either can be overridden)
    * — and this modifier supplies the absolute screen position on its own.
    *
-   * What it returns is not an offset: it is where the card's inline-start top
-   * corner belongs, which is the box it was lifted from plus the distance the
-   * finger has travelled. Nothing dnd-kit measured takes part, so nothing it
-   * cached can be stale. A scroll *during* the drag needs no correction either —
-   * the anchor is a place on the screen, not a place in the week, so a board
-   * panning underneath does not drag the card along with it.
+   * What it returns is not an offset: it is the corner the card belongs at,
+   * derived from the pointer alone. Nothing dnd-kit measured takes part, so
+   * nothing it cached can be stale. A scroll *during* the drag needs no
+   * correction either — the anchor is a place on the screen, not a place in the
+   * week, so a board panning underneath does not drag the card along with it.
+   *
+   * ── Held where it was grabbed, even when the two are different sizes ──
+   *
+   * The first version of this returned `origin.left + travel`, which pins the
+   * *card's own corner* to the box the gesture started in. That is exactly right
+   * for a meal card, whose preview is the size of the card it left — the lifted
+   * copy starts life directly over the original.
+   *
+   * It is wrong for a dish dragged out of the catalog. A catalog row is a
+   * full-width strip, four hundred pixels of drawer; the card it becomes is
+   * `w-44`. Pin that card's leading corner to the row's leading corner and the
+   * card is drawn wherever the row *starts* while the finger is wherever it
+   * happens to have grabbed — and in Arabic those are opposite ends of the row,
+   * because the row's leading corner is on the right and the card grows to the
+   * left of it. So the card came out roughly its own width away from the
+   * pointer in Arabic, and directly under it in English, which is exactly the
+   * shape of a bug that looks like "it works one way round".
+   *
+   * The fix has no notion of direction to get wrong. The grab is recorded as a
+   * *fraction* of the box it happened in — a press four fifths of the way along
+   * a row is `0.8` in both scripts — and the card is then drawn so the pointer
+   * sits four fifths of the way along *it*. When the two boxes are the same
+   * size, which is every meal drag, the arithmetic reduces to what it was
+   * before and the lifted card still starts exactly over the card it left.
+   *
+   * `draggingNodeRect` is the overlay's own measured box, which is the preview's
+   * real size at its real width. Before the first measurement lands it is null
+   * and the origin's size stands in — the same answer the meal case wants, and
+   * one frame of the old behaviour for the dish case.
    *
    * This is the overlay's own modifier. It changes what is drawn and nothing
    * about what a drop lands on.
    */
-  const pinToPointer = useCallback<Modifier>(({ transform }) => {
+  const pinToPointer = useCallback<Modifier>(({ transform, draggingNodeRect }) => {
     const current = gesture.current;
     if (!current) return transform;
 
+    const width = draggingNodeRect?.width ?? current.origin.width;
+    const height = draggingNodeRect?.height ?? current.origin.height;
+
+    // Where in the source box the pointer went down, 0 at its leading edge and
+    // 1 at its trailing one. A zero-sized origin cannot answer, so the card is
+    // centred on the finger instead of being flung to its corner.
+    const grabX =
+      current.origin.width > 0 ? (current.start.x - current.origin.left) / current.origin.width : 0.5;
+    const grabY =
+      current.origin.height > 0 ? (current.start.y - current.origin.top) / current.origin.height : 0.5;
+
     return {
       ...transform,
-      x: current.origin.left + (current.now.x - current.start.x),
-      y: current.origin.top + (current.now.y - current.start.y),
+      x: current.now.x - grabX * width,
+      y: current.now.y - grabY * height,
     };
   }, []);
 
@@ -624,7 +671,13 @@ export function BoardEditor({
      */
     const start = pointerCoordinates(event.activatorEvent);
     gesture.current =
-      start && rect ? { origin: { left: rect.left, top: rect.top }, start, now: start } : null;
+      start && rect
+        ? {
+            origin: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
+            start,
+            now: start,
+          }
+        : null;
 
     if (payload?.kind === 'dish') onDishDragStart?.();
   }
@@ -884,6 +937,9 @@ function DragPreview({
   const name = isMeal ? payload.preview.dishName : localizedName(payload.dish, locale);
   const protein = isMeal ? payload.preview.protein : proteinSource(payload.dish.ingredients);
   const kcal = isMeal ? payload.preview.kcal : payload.kcal;
+  // A dish lifted out of the catalog has no sides yet — it is not on a plate
+  // until it lands on one.
+  const sides = isMeal ? payload.preview.sides : [];
 
   /*
    * A lifted card keeps the size it had in its column; a dish lifted out of the
@@ -931,7 +987,7 @@ function DragPreview({
         </span>
       </span>
 
-      <span className="relative mt-1 flex shrink-0 items-baseline justify-center gap-2 px-2 pb-1.5 pt-2.5">
+      <span className="relative mt-1 flex shrink-0 items-center justify-between gap-2 px-2 pb-1.5 pt-2.5">
         <span
           aria-hidden
           className={cn('absolute start-4 end-4 top-0 h-[3px] rounded-full', proteinAccentClass(protein))}
@@ -940,6 +996,8 @@ function DragPreview({
           {kcal}
           <small className="text-caption font-normal text-muted-foreground">kcal</small>
         </span>
+
+        <MealSideChips sides={sides} locale={locale} />
       </span>
     </div>
   );

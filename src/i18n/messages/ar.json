@@ -2326,7 +2326,15 @@
     "noSides": "لا شيء بجانب هذه الوجبة",
     "addSide": "أضف صنفاً بجانبها",
     "removeSide": "إزالة الصنف الجانبي",
-    "planNotes": "ملاحظات للأخصائي"
+    "planNotes": "ملاحظات للأخصائي",
+    "mealViews": "عرض الوجبة",
+    "plateTab": "الطبق",
+    "optionsTab": "البدائل",
+    "sideIngredients": "المكونات",
+    "fillSlotHint": "الأطباق مرتبة حسب قربها من هدف الخانة",
+    "mealEnergy": "طاقة الوجبة",
+    "slotBudget": "ميزانية الخانة",
+    "filterMealType": "نوع الوجبة"
   },
   "dishes": {
     "title": "كتالوج الأطباق",

@@ -702,6 +702,12 @@
   --color-planner-protein-legume: var(--planner-protein-legume);
   --color-planner-protein-nuts: var(--planner-protein-nuts);
   --color-planner-protein-none: var(--planner-protein-none);
+  --color-planner-side-salad: var(--planner-side-salad);
+  --color-planner-side-soup: var(--planner-side-soup);
+  --color-planner-side-dairy: var(--planner-side-dairy);
+  --color-planner-side-pickles: var(--planner-side-pickles);
+  --color-planner-side-vegetables: var(--planner-side-vegetables);
+  --color-planner-side-other: var(--planner-side-other);
   --color-intake-icon-activity: var(--intake-icon-activity);
   --color-intake-icon-barrier: var(--intake-icon-barrier);
   --color-intake-icon-sleep: var(--intake-icon-sleep);
@@ -1163,6 +1169,31 @@
   /* Grey, and deliberately: a dish with no protein worth naming should not be
      competing with the seven that have one. */
   --planner-protein-none: var(--n-400);
+
+  /*
+   * ── What is standing beside the meal ──
+   *
+   * A second, much smaller scale, and it answers a different question from the
+   * ramp above it. The protein stops say what the meal *is*, painted as a rule
+   * across the top of a card; these say what else is on the plate, painted as a
+   * chip in its corner — a salad, a cup of soup, a plate of labneh. Six kinds,
+   * decided from the side's own name by `sideKind()`.
+   *
+   * **The stops are the protein ramp's, reused deliberately.** The planner has
+   * one set of hues and two scales that read them, which is cheaper for a
+   * dietitian to hold than eleven separate colours would be — and the two never
+   * appear on the same surface, so a green rule and a green chip are never being
+   * compared. Each chip is the stop at 15% with the glyph at full strength on
+   * top, so a colour cannot appear as a fill without appearing as ink.
+   */
+  --planner-side-salad: var(--green-600);
+  --planner-side-soup: var(--amber-600);
+  --planner-side-dairy: var(--indigo-500);
+  --planner-side-pickles: var(--plum-500);
+  --planner-side-vegetables: var(--teal-500);
+  /* Grey, like `none` above: an unrecognised side should not be shouting a hue
+     it has not earned. */
+  --planner-side-other: var(--n-400);
 
   /*
    * ── The lifestyle record's icon tints ──
@@ -5356,6 +5387,47 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   }
 }
 
+/*
+ * ══ The meal inspector wears the dialog's entrance ══
+ *
+ * The planner's meal panel is a `Popover`, not a `Dialog` — it is anchored to
+ * the card it was opened from, and that anchoring is the whole point: the
+ * dietitian compares a meal against the week beside it while reading it, and a
+ * centred dialog would cover the thing being compared to.
+ *
+ * Being a different primitive is not a reason to be a different *surface*. It
+ * had its own entrance — a 200ms scale-95 with a blur — so a panel that is
+ * modal, scrimmed, focus-trapped and full of controls, which is to say a dialog
+ * in every way a reader can perceive, arrived in the app's second-loudest
+ * motion instead of its standard one. Two ways of opening the same kind of thing
+ * is a system with a seam in it.
+ *
+ * These are the dialog's own rules and the dialog's own keyframes, keyed to the
+ * popup's Base UI state attributes instead of `[open]`. Seam reveals the surface
+ * from its own horizontal midpoint, which is why it suits an anchored panel as
+ * well as a centred card: it implies no travel from any edge, so it does not
+ * fight the side the popover happens to have flipped to.
+ *
+ * Unlayered, deliberately, so the animation is not something a utility on the
+ * element can accidentally outrank. The two selectors are the only surfaces
+ * carrying these classes; see `meal-inspector.tsx`.
+ */
+.planner-inspector-popup[data-open] {
+  animation: q-dialog-seam-in 300ms var(--ease-sweep) backwards;
+}
+
+.planner-inspector-popup[data-closed] {
+  animation: q-dialog-seam-out 130ms ease-in both;
+}
+
+.planner-inspector-scrim[data-open] {
+  animation: q-dialog-backdrop-in 260ms var(--ease-sweep) backwards;
+}
+
+.planner-inspector-scrim[data-closed] {
+  animation: app-navigation-backdrop-out 130ms ease-in both;
+}
+
 @keyframes q-dialog-backdrop-in {
   from {
     opacity: 0;
@@ -5719,7 +5791,7 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 
 @media (width >= 80rem) {
   .planner-board-header {
-    grid-template-columns: minmax(20rem, 1fr) minmax(0, 2fr) auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
   }
 }
 

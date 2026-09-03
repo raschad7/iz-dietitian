@@ -25,6 +25,7 @@ import {
   Carrot,
   ChartLine,
   Check,
+  Cherry,
   ChefHat,
   ChevronDown,
   ChevronLeft,
@@ -96,6 +97,7 @@ import {
   Repeat,
   RotateCcw,
   Ruler,
+  Salad,
   Sandwich,
   Search,
   Settings,
@@ -103,6 +105,7 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Smile,
+  Soup,
   Sparkles,
   Stethoscope,
   Sun,
@@ -509,6 +512,28 @@ export const APP_ICONS = {
   foodChicken: Drumstick,
   foodFish: Fish,
   foodSweets: Candy,
+
+  /*
+   * ── What stands beside a meal ──
+   *
+   * The planner's meal card prints its sides as glyphs rather than as a second
+   * line of text: thirty-five cards have room for one name, and the side is the
+   * *second* half of a sentence the dish name starts. A picture says "there is a
+   * salad here" in the corner of a card without competing with the dish for the
+   * one line the card can spend on words. The names are still there — on the
+   * chip's tooltip, in the meal panel, on the printout and in the client's list.
+   *
+   * Named for the kind of side rather than for the food, exactly as the intake
+   * card's glyphs above are: `sideKind()` in `weekly-plans/side-kind.ts` decides
+   * which one a dish gets, so re-pointing a picture is an edit here and nowhere
+   * else.
+   */
+  sideSalad: Salad,
+  sideSoup: Soup,
+  sideDairy: Milk,
+  sidePickles: Cherry,
+  sideVegetables: Carrot,
+  sideOther: Utensils,
 
   /* Settings groups */
   settingsAccount: CircleUser,
