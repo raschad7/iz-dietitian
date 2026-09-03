@@ -1,0 +1,436 @@
+# The food and dish catalog
+
+What the catalog is made of, where its numbers come from, and how it is judged
+finished. Read this before adding a food, adding a dish, or adding a category.
+
+The catalog is the only thing weekly-plan generation may choose from, so its
+gaps are the plan's gaps. A client was once prescribed a guava as a 218 kcal
+snack; nothing was wrong with the code. The 200–300 kcal snack band was empty.
+
+## Two laws
+
+**1. Nothing invents a number.** A dish carries no nutrition of its own. It is a
+recipe pointing at foods, and every figure the UI shows is summed from those at
+read time. A food's nutrition is copied verbatim from a cited source and an
+unmeasured nutrient is written as an explicit `null`.
+
+**2. If the recipe knows it, the recipe decides it.** Any label computable from
+the ingredients is computed, never typed. A hand-typed `vegetarian` can sit on a
+dish with chicken in it; a computed one cannot. This is why `vegetarian` ended
+up on 64 of 113 dishes and meant nothing.
+
+## Three families of dish
+
+A real plan mixes three kinds, and they behave differently.
+
+| Family | Examples | Parts swappable | Serving |
+| --- | --- | --- | --- |
+| **Traditional** | مقلوبة، مسخّن، ملوخية، أوزي، مجدرة | No — change a part and it is a different dish | any multiplier |
+| **Assembled plate** | صدر دجاج + أرز بسمتي + سلطة، مكرونة بولونيز، فاهيتا | Yes, that is the point | any multiplier |
+| **Street / restaurant** | شاورما، فلافل سندويش، بيتزا، بروستد | No | **whole servings only** |
+
+The assembled plate is the family a dietitian actually writes most often, and it
+is a *pattern* — a protein, a starch, free vegetables — rather than a recipe
+handed down. Writing every combination out by hand is 8 proteins × 7 starches =
+56 rows, and every protein added later costs seven more.
+
+**Decision:** write roughly twenty of the commonest combinations by hand for
+now, and build a template that assembles them at generation time only if the
+typing proves painful. Nothing is blocked on new code this way.
+
+## Computed labels — never typed
+
+Derived from the recipe, at read time, by the modules named:
+
+| Label | Where |
+| --- | --- |
+| `high_protein` / `high_carb` / `high_fat` / `balanced` | `nutritionCategory()`, `nutrition.ts` |
+| protein source — red_meat, poultry, fish, egg, dairy, legume, nuts, none | `proteinSource()`, `dish-composition.ts` |
+| carb base — rice, bread, bulgur, pasta, couscous, oats, potato, none | `carbBase()`, `dish-composition.ts` |
+| allergens — nuts, lactose, gluten, egg, fish, sesame | the foods' own allergen marks |
+| vegetarian, vegan, gluten-free, lactose-free | the categories and allergens of the foods |
+| kcal band | `mealTotals()` at base serving |
+
+None of these may appear as a writable field on a dish. A pull request that adds
+one is wrong by construction.
+
+## Declared axes — four, required, one value each
+
+What the recipe cannot know. These are **fields, not tags**: every dish has
+exactly one value on each of the four, and none may be null. A tag bag lets a
+dish carry no useful label at all, which is how `no_cook` ended up on two dishes
+out of a hundred and thirteen. The `tags` column is gone.
+
+They combine as facets: **OR within an axis, AND across axes.** `street` and
+`restaurant` are two answers to one question, so asking for both means either;
+`street` and `quick` are answers to two, so asking for both means both. The tag
+bag ANDed everything, which is why pressing a second chip could only ever empty
+the list.
+
+### `source` — where you get it
+
+`home` · `street` · `restaurant` · `shop`
+
+> بيتي · من الشارع · مطعم · جاهز من الدكان
+
+مسخّن is `home`, شاورما is `street`, بيتزا is `restaurant`, بسكويت is `shop`.
+
+The most load-bearing of the four. Without it every plan silently assumes the
+client goes home and cooks, and a client who buys lunch near work gets a plan he
+cannot follow and does not say so. It narrows the catalog to what this client can
+obtain, it makes the weekly instruction "he eats out most days" actionable by the
+model, and it is what marks a dish as sold in whole units.
+
+### `effort` — how much work
+
+`no_cook` · `quick` (≤15 min) · `medium` (≤45 min) · `long` (over 45 min, or
+needs planning ahead)
+
+> بدون طبخ · سريع · متوسط · يحتاج وقت
+
+تفاح مع لوز is `no_cook`, بيض مقلي is `quick`, شوربة عدس is `medium`, مقلوبة is
+`long`. Replaces three overlapping half-scales — `quick` (52 dishes),
+`easy_prep` (4), `no_cook` (2) — with one.
+
+### `cost` — relative price
+
+`cheap` · `normal` · `expensive` — اقتصادي · عادي · مكلف
+
+عدس and بيض are `cheap`, دجاج is `normal`, سلمون and لحم غنم are `expensive`.
+Judged relative to the local basket. Written by hand, and it will age; the
+alternative — a price per kilo on each food, with a dish's cost computed from its
+recipe — was considered and deferred. If a shopping list with a total on it is
+ever wanted, that is the version to build.
+
+### `occasion` — when it belongs
+
+`everyday` · `family` · `ramadan` · `festive` — يومي · عائلي · رمضان · مناسبات
+
+Most dishes are `everyday`. مقلوبة and قدرة are `family`, قطايف is `ramadan`,
+كنافة and معمول are `festive`.
+
+## Fixed portions
+
+A person cannot eat 0.7 of a shawarma sandwich. `isFixedPortion(source)` is true
+for `street` and `restaurant`, and sends `chooseServings` and `nextServings` down
+a whole-number grid — the same mechanism as `UNIT_STEPS` in `portioning.ts`,
+applied to the serving multiplier rather than to a line.
+
+`home` stays free to take any multiplier the budget wants, and so does `shop`: a
+packet is opened, not portioned by the shop.
+
+The consequence is deliberate. A whole-only dish often misses its slot budget,
+because a منقوشة is 420 kcal whether the budget wanted 500 or not. Missing the
+number honestly is correct; the alternative is `0.87 قرص`, which is a number
+nobody can serve.
+
+## Sides
+
+A lunch is often more than one thing — `ملوخية · 6 معالق أرز · صحن سلطة`, or
+`دجاج ورز وصحن سلطة وشوربة`. A meal carries **one main** and a short list of
+**sides**: صحن سلطة، كوب شوربة، كوب لبن، خبز.
+
+The main takes the budget multiplier. A side is fixed at one serving and never
+scaled, which is what keeps the portion engine, the variety rules and
+`proteinSource` all reading the main and nothing else. The alternative — a meal
+holding a list of equal dishes — would have to change the schema, the prompt,
+portioning, totals, the board, printing and completions all at once, and would
+still leave "which dish is this meal's protein?" unanswerable.
+
+Sides are marked `is_side` in the catalog and **excluded from the generation
+catalog entirely**: a side may never be chosen as a meal, nor offered as an
+alternative to one. `toPromptCatalog` is where that is enforced for the model,
+`DishCatalog` for the dietitian's drawer, and `swapCandidatesByMealFromCatalog`
+for the replacement list.
+
+### A side is optional, and it is not the same one every day
+
+The first version of this shipped with **four sides, one of them a salad**, and
+every generated week came back with `صحن سلطة` on all fourteen lunches and
+dinners. The model was not being lazy — there was one answer to give. Two
+separate faults wearing one symptom, and both are fixed:
+
+- **The catalog holds seventeen sides**: eight salads, four soups, a plate of
+  labneh, a cup of yogurt, and بطاطا حرة. `db:check` now enforces a floor of
+  **8 per side-bearing slot** (`MIN_PER_SIDE_SLOT`), because a week has seven
+  lunches and seven dinners and the prompt allows a side twice. The grid used to
+  count sides and check nothing about them, which is exactly how four shipped.
+- **The dietitian can change or remove one.** `setMealSides` replaces the whole
+  set on a meal — add, swap and remove are one write — and `MealSides` in the
+  meal panel is the control. A lunch does not always come with a salad.
+
+The prompt says the same thing to the model: roughly half to two thirds of
+lunches and dinners carry one, never the same side twice in a day, and no side
+more than twice in a week.
+
+Sides are visible on the board. The meal card prints `+ صحن سلطة` under the dish
+name — before this line existed a meal silently contained something, which is
+worse than containing nothing.
+
+## What a colour means
+
+**In the planner, a colour means the dish's protein source, and nothing else.**
+The meal card's top rule, the dot beside a name in the catalog, the board's
+colour key and the catalog's protein filter all read one table
+(`meal-tag-tone.ts`), so a hue learned on one screen is the same fact on every
+other.
+
+This is the third answer to the question. It came from `tags` first, where a dish
+carried several and the card had to pick one; then from `source`, which at least
+gave every dish exactly one value. `source` was still the wrong fact to spend a
+palette on: **82% of the catalog is `home`**, so the board came out thirty-five
+cards in one colour — not a legend, a background.
+
+Protein source earns it because it is *computed* (so it cannot be typed wrong or
+go stale), *singular* (so there is never a question of which colour to paint),
+*complete* (`none` is an answer — a fruit snack, a plate of salad — so no card is
+ever left uncoloured), and *the thing a week is read for*: chicken three days
+running is what a dietitian scans a board to catch, and nothing else on the board
+says it. The eight values run 55 / 48 / 42 / 34 / 31 / 24 / 22 / 21 across the
+catalog.
+
+The four axes keep their place in the catalog **as words**. They read perfectly
+well as words; only one of them was ever coloured, which was the inconsistency.
+The `high_protein` chip lost its dot for the same reason — one kind of dot, one
+meaning.
+
+## How a food is counted
+
+**A food declares its own unit, and every recipe obeys it.** An egg is always
+`حبة`, bread is always `رغيف`, cooked rice is always `ملعقة`, oil is always
+grams. Today the recipe author picks per line, which is why the same egg appears
+as "1 حبة" in one dish and "50 غ" in another.
+
+The rule lives on the food as a required counting unit — a portion for anything
+people count, grams for anything they do not — and `db:check` fails a recipe
+that contradicts it.
+
+The reason this matters more than it looks: whole wheat pita is *fewer* calories
+per 100 g than white, but the loaf weighs 100 g instead of 60–80, so the loaf
+carries *more*. Only the unit tells that story. The gram hides it.
+
+### A piece is something one person eats
+
+The unit has to be a *thing*, not only a weight. A plan once said **بطيخ 1 حبة**
+— 286 g, USDA's own figure for a wedge, printed under the word for a whole
+watermelon. The number was right and the word was wrong, which is the worse of
+the two failures, because it survives anyone checking the arithmetic.
+
+Three rules in `portion-derivation.ts` keep that class of error out:
+
+- **`wedge` is a slice, not a piece.** شريحة is the word, and it was already in
+  the table.
+- **A piece is capped at 350 g** (`MAX_PIECE_GRAMS`), just above the heaviest
+  thing anyone eats whole here — a 336 g mango. It caught a 908 g cabbage and a
+  588 g cauliflower being offered as one حبة each.
+- **A whole plant is a purchase, not a portion.** A label whose unit word is
+  `head`, `melon`, `bunch`, `bulb` or `stalk` is skipped, and the food falls back
+  to the cup or the wedge — which is how it is actually served.
+
+A measure that only *yields* the food is refused too, but only for a countable
+unit: "1 wedge yields 5.9 g" is the juice out of a lemon wedge and is not a
+portion of lemon juice, while "1 can (12 oz) yields 211 g" is the drained weight
+of a tin and is the most useful number a canned food has.
+
+## Free items
+
+شرائح خضار and صحن سلطة appear in nearly every meal of a real plan **with no
+amount on them**. Vegetables are free, and the dietitian writes them that way
+deliberately.
+
+A dish line may therefore be marked **free**: it carries a fixed nominal amount
+so the day's calories stay honest, and the portion engine **never scales it**.
+The client reads `صحن سلطة` with no number, exactly as their dietitian writes it,
+whatever multiplier the rest of the meal took.
+
+This generalises the seasoning rule already in `portioning.ts`, which freezes any
+line under 15 kcal. That rule becomes an explicit flag rather than a threshold
+guess.
+
+## Hand measures are a guide, not a unit
+
+A real plan says `مقدار قبضة اليد` for a kofta ball and `كف اليد بدون أصابع` for
+a tray portion. That is not sloppiness — it is how a client with no kitchen scale
+eats. But it is **not** how the data is stored.
+
+- **The catalog holds real units only**: grams, spoons, cups, loaves, pieces.
+  Some clients own scales, and the dietitian always works in true measures.
+- **The approximation is a display layer**: a printed reference the client keeps,
+  translating a real amount into something they can picture — roughly, and with
+  the honest caveat that hands differ.
+- Not every hand measure earns a place. **علبة كبريت is not a measuring unit**
+  and does not go in.
+
+Nothing about nutrition, portioning or generation depends on this layer. It is a
+guide sheet, and it is where the existing kitchen-weights reference grows into
+something a client is handed.
+
+## Where a food's numbers come from
+
+`sourceType` and `sourceRef` are required on every food. The ladder, best rung
+first:
+
+| `sourceType` | `sourceRef` | Use for |
+| --- | --- | --- |
+| `usda_sr_legacy` | the FDC id | anything in `data/usda-sr-legacy.ndjson` — the default |
+| `regional_table` | citation, URL, date retrieved | a published composition table |
+| `label` | brand, product, date the panel was read | local products where a real label is the best truth |
+| `derived` | the analogue and the transformation | e.g. labaneh from strained yogurt, with the water loss written down |
+
+USDA SR Legacy has no row for labaneh, nabulsi or akkawi cheese, freekeh,
+molokhia, jameed, kunafa, halva or baklava — this was checked directly against
+the dataset.
+
+**Nor does it have a dough.** There is no `عجينة`, no `كعك`, no pastry base, so a
+صفيحة and a كعك were written as pita plus a filling — right on the calories,
+wrong on the reading, because the client sees "خبز عربي أبيض" under a name that
+promised pastry. The reviewer caught exactly that on its second sweep. Those
+dishes are named after what they contain until there is a dough worth citing;
+that is the next food to source.
+
+**Consumer calorie sites are not a source.** Searching them returns 10 kcal and
+37 kcal for the same molokhia, and 5.6 g against 10.9 g of protein for the same
+labaneh. Numbers like that break the first law. Published tables worth using:
+the Lebanese University's *Food Composition Data: Traditional Dishes and Arabic
+Sweets*, FAO's *Food Composition Tables for the Near East* (1982), and Bahrain's
+table (2011) — all old and awkward to read, but real.
+
+For dairy especially, **a local product label beats anything online**. A food
+sourced below the top rung is marked provisional until a better rung is found.
+
+## Food categories
+
+Twelve today. The revised set splits `dairy_eggs`, whose two halves are told
+apart in `dish-composition.ts` by looking for the word "egg" in an English name —
+a hack that exists only because the category is wrong.
+
+`grains` · `legumes` · `vegetables` · `fruits` · `dairy` · `eggs` · `poultry` ·
+`meat` · `fish` · `nuts_seeds` · `fats_oils` · `sweets` · `sauces_condiments` ·
+`herbs_spices` · `prepared`
+
+`sauces_condiments` (tahini, garlic sauce, ketchup, mayonnaise, cooking cream,
+pomegranate molasses, sumac) and `prepared` (falafel, hummus, pickles, olives,
+canned tuna, canned corn, canned beans) are new. Both matter to the portion
+engine, which reads the category to decide a sensible ceiling and what counts as
+seasoning.
+
+Known gaps to fill, named explicitly because they were missing entirely: cooking
+cream, whole grain loaf (100 g), toast bread, basmati rice, canned foods, stevia
+and other sweeteners, milk in its several fat levels.
+
+Beverages are deliberately parked for now.
+
+## The coverage grid
+
+The catalog is finished when the grid is full, not when it feels big. Measured
+at each dish's **base serving**, and enforced by `bun run db:check`.
+
+| Slot | Bands | Minimum per cell |
+| --- | --- | --- |
+| breakfast | 250–400 · 400–550 · 550–700 | 12 |
+| snack | 100–200 · 200–300 · 300–400 | 12 |
+| lunch | 450–650 · 650–850 · 850–1050 | 12 |
+| dinner | 300–450 · 450–650 · 650–850 | 12 |
+
+Crossed with two further floors:
+
+- at least **3 dishes per protein source** in every slot that takes one, so a
+  week never has to repeat a protein to fill a day;
+- at least **8 dishes whose `source` is not `home`** in breakfast, snack and
+  lunch, so a client who eats out is plannable;
+- at least **8 sides** for lunch and for dinner, so a week never has to repeat
+  one — see the note under **Sides**.
+
+That lands at roughly **270–300 dishes** over roughly **220 foods**. Those
+numbers are an estimate of where the grid fills, not a target to hit.
+
+`db:check` also fails on:
+
+- a declared axis whose value sits on more than 90% or fewer than 5% of dishes —
+  the dead-tag detector that `local` (16 of 113) and `vegetarian` (64 of 113)
+  would both have tripped. The ceiling started at 60% and the grown catalog
+  disproved it: `source=home` is 84% and `occasion=everyday` is 80%, and both are
+  simply true;
+- a food with no household portion, or a recipe line that contradicts its food's
+  counting unit;
+- a portion whose grams are USDA's *level measuring* spoon where a dietitian
+  means a *heaped* one (see the note on `أرز أبيض مطبوخ`);
+- a dish whose base serving falls outside every band of every slot it claims.
+
+## Changing the catalog without breaking history
+
+Weekly plans reference dishes by id, and a published plan must keep printing
+exactly what the client was given.
+
+- **Retire, never delete.** `dishes.is_active` already exists. An inactive dish
+  disappears from search and from the model's catalog while old plans keep
+  rendering.
+- **Slugs are stable.** A re-seed updates rows in place; changing a slug orphans
+  every plan that used it.
+- Curated fields are written by a person; `note`, `nutrition`, `portions` and
+  the file checksum are derived by `bun run db:build-catalog` and must never be
+  hand-edited.
+
+## Order of work — all done, 2026-09-02
+
+Kept as the record of what was built, in the order it was built.
+
+0. **Machinery.** The four axis columns, the computed labels, the counting-unit
+   rule, free items, whole servings for street and restaurant, sides, and the
+   grid inside `db:check`.
+1. **Foods.** 98 → 145, including labaneh and freekeh, which USDA has no row for
+   and which carry a cited source of their own.
+2. **Street and restaurant.** Shawarma, falafel sandwich, manaqish, broasted,
+   burger, pizza, shish tawook. Not one of them needed a new food.
+3. **Assembled plates.** Chicken with rice and salad, fajita, pasta bolognese,
+   kabsa, freekeh with chicken — written by hand rather than as a template.
+4. **Snacks, 100–400 kcal.** The band that produced the guava.
+5. **Breakfasts, lunches and dinners**, until the grid was full: 277 dishes.
+6. **The tag bag removed.** The `tags` column is dropped, and both filter panels
+   and the clinic dish form ask the four questions.
+7. **The client's measuring guide** — every unit in the catalog with its weight,
+   and how to picture one with a hand.
+8. **Reviewer sweep.** `bun run plan:sweep` plans ten weeks against the whole
+   catalog without a database and without a charge; `--ai` adds the reviewing
+   model. It found six real problems on its first two runs, all fixed.
+
+### Second pass — 2026-09-02, from a dietitian using it
+
+The first plans generated against the finished catalog turned up six things. All
+are fixed; each has its own note above.
+
+9. **The dish form could not be saved.** `readDishInput` still posted the deleted
+   `tags` field and never posted the four axes the form had started rendering, so
+   every save failed validation and said "the information is not correct" about a
+   correctly filled form. The action reads the axes off `DISH_AXES` now, and
+   `catalog-schema.test.ts` asserts the two lists agree.
+10. **The colour meant nothing.** `source` painted 82% of the board one hue. The
+    colour is the computed protein source now — see **What a colour means**.
+11. **One salad, on every lunch.** Seventeen sides, a floor in the grid, a
+    control in the meal panel, and a line on the card — see **Sides**.
+12. **بطيخ 1 حبة.** Three rules on what may be called a piece — see **A piece is
+    something one person eats**.
+13. **The week's summary was a caption.** `summary_ar` held a paragraph
+    describing the plan the dietitian was already looking at. It holds **notes**
+    now: two to four short things to act on — what to confirm with the client,
+    where the week is likely to fail, what the instruction made impossible. The
+    prompt names the note not to write.
+14. **A clinic can write its own side.** The dish editor asks whether the dish is
+    a meal or something beside one.
+
+Not a fault: **generation was already using the new dishes.** The plan that
+looked unchanged was generated at 08:29, before the seed ran at 10:22. The next
+one used sixteen of the new dishes out of thirty-five meals.
+
+### What is left, and why
+
+- **A pastry base.** No `عجينة`, no `كعك`. See the sourcing section above.
+- **Nabulsi, akkawi, jameed, halva, kunafa cheese.** Same reason — no source
+  worth citing yet.
+- **Beverages.** Parked deliberately. Tea with sugar is a real clinical gap.
+- **The labaneh row is provisional** until a Palestinian product label replaces
+  it.
+- **A price per kilo on each food**, which would make `cost` computed rather than
+  typed, and would make a shopping list with a total on it possible.
+- **The assembled-plate template**, if writing combinations by hand ever starts
+  to hurt.

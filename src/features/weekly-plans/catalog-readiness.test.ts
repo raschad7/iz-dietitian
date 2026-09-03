@@ -127,8 +127,8 @@ describe('structural invariants', () => {
     // other half of the defence. This is the check that catches a row that got
     // in some other way.
     const [dish] = await db.execute<{ id: string }>(sql`
-      insert into dishes (clinic_id, slug, name_ar, name_en, meal_types, tags, allergen_tags, base_serving_label)
-      values (${clinicId}, 'crossed', 'مطبخ', 'Crossed', ARRAY['lunch']::text[], ARRAY[]::text[], ARRAY[]::text[], 'حصة')
+      insert into dishes (clinic_id, slug, name_ar, name_en, meal_types, allergen_tags, base_serving_label)
+      values (${clinicId}, 'crossed', 'مطبخ', 'Crossed', ARRAY['lunch']::text[], ARRAY[]::text[], 'حصة')
       returning id
     `);
     await db.execute(sql`
@@ -152,8 +152,8 @@ describe('structural invariants', () => {
     });
 
     const [dish] = await db.execute<{ id: string }>(sql`
-      insert into dishes (clinic_id, slug, name_ar, name_en, meal_types, tags, allergen_tags, base_serving_label)
-      values (null, 'shared-leak', 'مشترك', 'Shared', ARRAY['lunch']::text[], ARRAY[]::text[], ARRAY[]::text[], 'حصة')
+      insert into dishes (clinic_id, slug, name_ar, name_en, meal_types, allergen_tags, base_serving_label)
+      values (null, 'shared-leak', 'مشترك', 'Shared', ARRAY['lunch']::text[], ARRAY[]::text[], 'حصة')
       returning id
     `);
     await db.execute(sql`
@@ -202,8 +202,8 @@ describe('published plans must carry a readable snapshot', () => {
     });
 
     const [dish] = await db.execute<{ id: string }>(sql`
-      insert into dishes (clinic_id, slug, name_ar, name_en, meal_types, tags, allergen_tags, base_serving_label)
-      values (null, 'plan-dish', 'طبق', 'Dish', ARRAY['lunch']::text[], ARRAY[]::text[], ARRAY[]::text[], 'حصة')
+      insert into dishes (clinic_id, slug, name_ar, name_en, meal_types, allergen_tags, base_serving_label)
+      values (null, 'plan-dish', 'طبق', 'Dish', ARRAY['lunch']::text[], ARRAY[]::text[], 'حصة')
       returning id
     `);
     await db.execute(sql`
@@ -314,8 +314,8 @@ describe('clinic-owned rows are none of this check’s business', () => {
     });
 
     const [dish] = await db.execute<{ id: string }>(sql`
-      insert into dishes (clinic_id, slug, name_ar, name_en, meal_types, tags, allergen_tags, base_serving_label)
-      values (${clinicId}, 'clinic-own', 'طبق العيادة', 'Clinic dish', ARRAY['lunch']::text[], ARRAY[]::text[], ARRAY[]::text[], 'حصة')
+      insert into dishes (clinic_id, slug, name_ar, name_en, meal_types, allergen_tags, base_serving_label)
+      values (${clinicId}, 'clinic-own', 'طبق العيادة', 'Clinic dish', ARRAY['lunch']::text[], ARRAY[]::text[], 'حصة')
       returning id
     `);
     // `is_primary` is set here as well, which `createClinicDish` never does. That

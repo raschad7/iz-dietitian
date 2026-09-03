@@ -573,13 +573,12 @@
    * later all say the same colour without a second table to keep in step.
    *
    * **They are light on purpose, and they avoid every hue at mark strength.**
-   * A dish's own properties are already a row of dots — economical amber,
-   * quick flame, local clay, vegetarian green, `no_cook` teal — all of them
-   * mid-dark 500/600 stops, and macro arcs drawn in that same register read as
-   * more of those properties rather than as a different kind of fact. Sitting
-   * the macros a full lightness step above the whole tag palette separates the
-   * two without asking for a hue nothing else uses, which this system has run
-   * out of.
+   * The planner already spends a row of mid-dark 500/600 stops on protein
+   * identity — red meat red, poultry amber, fish teal, legume green — and macro
+   * arcs drawn in that same register read as more of those marks rather than as
+   * a different kind of fact. Sitting the macros a full lightness step above the
+   * whole identity palette separates the two without asking for a hue nothing
+   * else uses, which this system has run out of.
    */
   --color-macro-protein: var(--indigo-300);
   --color-macro-carbs: var(--amber-300);
@@ -695,15 +694,20 @@
   --color-status-complete-bg: var(--status-complete-bg);
   --color-status-complete-mark: var(--status-complete-mark);
   --color-status-complete-mark-soft: var(--status-complete-mark-soft);
-  --color-planner-tag-economical: var(--planner-tag-economical);
-  --color-planner-tag-portable: var(--planner-tag-portable);
-  --color-planner-tag-quick: var(--planner-tag-quick);
-  --color-planner-tag-vegetarian: var(--planner-tag-vegetarian);
-  --color-planner-tag-filling: var(--planner-tag-filling);
-  --color-planner-tag-local: var(--planner-tag-local);
-  --color-planner-tag-easy-prep: var(--planner-tag-easy-prep);
-  --color-planner-tag-no-cook: var(--planner-tag-no-cook);
-  --color-planner-tag-high-protein: var(--planner-tag-high-protein);
+  --color-planner-protein-red-meat: var(--planner-protein-red-meat);
+  --color-planner-protein-poultry: var(--planner-protein-poultry);
+  --color-planner-protein-fish: var(--planner-protein-fish);
+  --color-planner-protein-egg: var(--planner-protein-egg);
+  --color-planner-protein-dairy: var(--planner-protein-dairy);
+  --color-planner-protein-legume: var(--planner-protein-legume);
+  --color-planner-protein-nuts: var(--planner-protein-nuts);
+  --color-planner-protein-none: var(--planner-protein-none);
+  --color-planner-side-salad: var(--planner-side-salad);
+  --color-planner-side-soup: var(--planner-side-soup);
+  --color-planner-side-dairy: var(--planner-side-dairy);
+  --color-planner-side-pickles: var(--planner-side-pickles);
+  --color-planner-side-vegetables: var(--planner-side-vegetables);
+  --color-planner-side-other: var(--planner-side-other);
   --color-intake-icon-activity: var(--intake-icon-activity);
   --color-intake-icon-barrier: var(--intake-icon-barrier);
   --color-intake-icon-sleep: var(--intake-icon-sleep);
@@ -1125,38 +1129,71 @@
   --status-complete-mark-soft: var(--flame-300);
 
   /*
-   * ── Dish tag identity colours ──
+   * ── Protein-source identity colours ──
    *
-   * A dish tag is an *identity* mark, not a status: `quick` is always the same
-   * hue, wherever the dish is drawn. These live at `:root` rather than inside
-   * `.planner-theme` because two screens now depend on them agreeing — the
-   * planner's meal card paints its top rule with them, and the dish catalog
-   * paints the matching tag dot — and a token scoped to one of those two
-   * surfaces is a promise the other cannot keep.
+   * **In the planner, a colour means one thing: what the protein in this dish
+   * is.** The meal card's top rule, the dot beside a name in the catalog, the
+   * board's colour key and the catalog's protein filter all draw from this one
+   * table, so a hue learned on one screen is the same fact on every other.
    *
-   * Complete, not partial: every tag the catalog can show carries one, so the
-   * dot beside a tag name is always the same promise. `easy_prep` and `no_cook`
-   * reach for the two cool identity hues added above rather than a lighter
-   * flame, because they sit next to `quick` in the same effort family and three
-   * shades of one hue is not a legend anybody can read.
+   * They replaced a set named after the old dish tags — `economical`,
+   * `portable`, `quick`, `vegetarian`, `filling`, `local` — which the axes had
+   * already made meaningless: `source` was left painting the board through
+   * `local`/`portable`/`filling`/`economical`, four names for four things that
+   * were no longer those things. And it painted almost nothing, because 82% of
+   * the catalog is `home`: thirty-five cards in one red, which is not a legend,
+   * it is a background.
    *
-   * `high_protein` is here too, and it is the odd one: it is *computed* from the
-   * recipe by `nutritionCategory()`, never stored, so it can never disagree with
-   * the dish's own numbers. It reads as a tag because that is what it is to a
-   * dietitian scanning the list; it simply is not one anybody typed.
+   * Protein source earns the palette instead. It is **computed from the recipe**
+   * by `proteinSource()` so it cannot be typed wrong or go stale, it is exactly
+   * one value per dish so there is never a question of which colour to paint,
+   * and it is the thing a dietitian actually reads across a week — chicken three
+   * days running is visible at a glance and nothing else on the board says it.
+   *
+   * Eight values, eight separable hues, and the set is closed: `none` is an
+   * answer (a fruit snack, a salad), not a missing one, so nothing on the board
+   * is ever left uncoloured.
+   *
+   * Every stop is one the palette already carries, mid-dark so an 8px dot and a
+   * 3px rule both survive, and matched in lightness so no single meal shouts.
    */
-  --planner-tag-economical: var(--amber-600);
-  --planner-tag-portable: var(--n-500);
-  --planner-tag-quick: var(--flame-500);
-  --planner-tag-vegetarian: var(--green-500);
-  /* Was lime-600, the one tag drawn in the second green. With lime gone it
-     takes green-700 — dark enough to stay distinct from `vegetarian` above it,
-     which is now the only other green in this set. */
-  --planner-tag-filling: var(--green-700);
-  --planner-tag-local: var(--red);
-  --planner-tag-easy-prep: var(--plum-500);
-  --planner-tag-no-cook: var(--teal-500);
-  --planner-tag-high-protein: var(--indigo-500);
+  --planner-protein-red-meat: var(--red);
+  --planner-protein-poultry: var(--amber-600);
+  --planner-protein-fish: var(--teal-500);
+  /* The one light stop, and the yolk it is named for. It carries the same inset
+     ring every dot does, which is what holds its edge against `--card`. */
+  --planner-protein-egg: var(--flame-300);
+  --planner-protein-dairy: var(--indigo-500);
+  --planner-protein-legume: var(--green-600);
+  --planner-protein-nuts: var(--plum-500);
+  /* Grey, and deliberately: a dish with no protein worth naming should not be
+     competing with the seven that have one. */
+  --planner-protein-none: var(--n-400);
+
+  /*
+   * ── What is standing beside the meal ──
+   *
+   * A second, much smaller scale, and it answers a different question from the
+   * ramp above it. The protein stops say what the meal *is*, painted as a rule
+   * across the top of a card; these say what else is on the plate, painted as a
+   * chip in its corner — a salad, a cup of soup, a plate of labneh. Six kinds,
+   * decided from the side's own name by `sideKind()`.
+   *
+   * **The stops are the protein ramp's, reused deliberately.** The planner has
+   * one set of hues and two scales that read them, which is cheaper for a
+   * dietitian to hold than eleven separate colours would be — and the two never
+   * appear on the same surface, so a green rule and a green chip are never being
+   * compared. Each chip is the stop at 15% with the glyph at full strength on
+   * top, so a colour cannot appear as a fill without appearing as ink.
+   */
+  --planner-side-salad: var(--green-600);
+  --planner-side-soup: var(--amber-600);
+  --planner-side-dairy: var(--indigo-500);
+  --planner-side-pickles: var(--plum-500);
+  --planner-side-vegetables: var(--teal-500);
+  /* Grey, like `none` above: an unrecognised side should not be shouting a hue
+     it has not earned. */
+  --planner-side-other: var(--n-400);
 
   /*
    * ── The lifestyle record's icon tints ──
@@ -1188,14 +1225,19 @@
   --intake-icon-activity: var(--green-600);
   --intake-icon-barrier: var(--amber-600);
   --intake-icon-sleep: var(--indigo-500);
-  --intake-icon-smoking: var(--clay-600);
+  /* `--clay-600` used to sit here and in `--intake-icon-red-meat` below. The clay
+     ramp was removed from the palette and these two references were not, so both
+     glyphs resolved to nothing and drew in the inherited ink — the two
+     uncoloured icons on a card whose whole point is that colour finds the row.
+     Both now take the stop the palette actually carries for the same idea. */
+  --intake-icon-smoking: var(--n-600);
   --intake-icon-caffeine: var(--flame-700);
   --intake-icon-sweet-drinks: var(--plum-500);
   --intake-icon-fast-food: var(--flame-300);
   --intake-icon-vegetables: var(--green-600);
   --intake-icon-fruit: var(--green-500);
   --intake-icon-dairy: var(--indigo-500);
-  --intake-icon-red-meat: var(--clay-600);
+  --intake-icon-red-meat: var(--red);
   --intake-icon-chicken: var(--amber-600);
   --intake-icon-fish: var(--teal-500);
   --intake-icon-sweets: var(--plum-500);
@@ -5345,6 +5387,47 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   }
 }
 
+/*
+ * ══ The meal inspector wears the dialog's entrance ══
+ *
+ * The planner's meal panel is a `Popover`, not a `Dialog` — it is anchored to
+ * the card it was opened from, and that anchoring is the whole point: the
+ * dietitian compares a meal against the week beside it while reading it, and a
+ * centred dialog would cover the thing being compared to.
+ *
+ * Being a different primitive is not a reason to be a different *surface*. It
+ * had its own entrance — a 200ms scale-95 with a blur — so a panel that is
+ * modal, scrimmed, focus-trapped and full of controls, which is to say a dialog
+ * in every way a reader can perceive, arrived in the app's second-loudest
+ * motion instead of its standard one. Two ways of opening the same kind of thing
+ * is a system with a seam in it.
+ *
+ * These are the dialog's own rules and the dialog's own keyframes, keyed to the
+ * popup's Base UI state attributes instead of `[open]`. Seam reveals the surface
+ * from its own horizontal midpoint, which is why it suits an anchored panel as
+ * well as a centred card: it implies no travel from any edge, so it does not
+ * fight the side the popover happens to have flipped to.
+ *
+ * Unlayered, deliberately, so the animation is not something a utility on the
+ * element can accidentally outrank. The two selectors are the only surfaces
+ * carrying these classes; see `meal-inspector.tsx`.
+ */
+.planner-inspector-popup[data-open] {
+  animation: q-dialog-seam-in 300ms var(--ease-sweep) backwards;
+}
+
+.planner-inspector-popup[data-closed] {
+  animation: q-dialog-seam-out 130ms ease-in both;
+}
+
+.planner-inspector-scrim[data-open] {
+  animation: q-dialog-backdrop-in 260ms var(--ease-sweep) backwards;
+}
+
+.planner-inspector-scrim[data-closed] {
+  animation: app-navigation-backdrop-out 130ms ease-in both;
+}
+
 @keyframes q-dialog-backdrop-in {
   from {
     opacity: 0;
@@ -5708,7 +5791,7 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 
 @media (width >= 80rem) {
   .planner-board-header {
-    grid-template-columns: minmax(20rem, 1fr) minmax(0, 2fr) auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
   }
 }
 
@@ -7966,6 +8049,13 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 
   .plan-print-sep {
     color: var(--n-400);
+  }
+
+  /* Names a side once, where its own amounts begin. Without it a printed plate
+     trails loose lettuce and tomato nobody can attribute to صحن سلطة. */
+  .plan-print-side {
+    font-weight: 700;
+    color: var(--n-900);
   }
 
   /* What to eat instead. Quieter than the meal it replaces, and set off by a

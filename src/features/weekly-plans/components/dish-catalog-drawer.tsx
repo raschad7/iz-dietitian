@@ -54,11 +54,37 @@ export function DishCatalogDrawer({
   const direction = getLocaleDirection(locale);
 
   return (
+    /*
+      ── Pressing the board puts the drawer away ──
+
+      It used to carry `disablePointerDismissal`, so the only ways out were the
+      close button in its corner and Escape. On a non-modal rail that is the
+      wrong contract: there is no scrim to say the drawer has taken the screen,
+      so nothing tells a reader that the board behind it is still live *and*
+      that the panel over it will not go away by itself. Clicking off a panel to
+      dismiss it is the one gesture everybody already has.
+
+      **`focusOut` is refused, and only that.** Base UI folds two behaviours into
+      the one prop: a press outside the panel, and focus leaving it. The first is
+      the gesture being restored here. The second is not a dismissal, it is a
+      side effect of the drawer's whole purpose — a dish is dragged from this
+      list onto a card, a card takes focus, and a drawer that closed itself for
+      that would be closing in the middle of the task it exists for. So the
+      reason is read and one of the two is dropped.
+
+      A drag off the drawer is safe without any help: `outsidePress` resolves
+      against where the gesture *started*, and a dish drag starts on a row inside
+      the panel. The catalog also closes itself the moment a drag begins
+      (`onDishDragStart` in `plan-board.tsx`), which is a decision about where
+      the board should be visible, not about dismissal.
+    */
     <Sheet
       open={open}
       modal={false}
-      disablePointerDismissal
-      onOpenChange={(nextOpen) => onOpenChange(nextOpen)}
+      onOpenChange={(nextOpen, details) => {
+        if (!nextOpen && details.reason === 'focus-out') return;
+        onOpenChange(nextOpen);
+      }}
     >
       <SheetContent
         dir={direction}

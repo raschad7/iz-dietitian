@@ -8,6 +8,7 @@ import {
   type CatalogFilters,
 } from './catalog-filter';
 import type { CatalogEntry } from './queries';
+import { EMPTY_AXIS_FILTERS } from './schema';
 
 /** A catalog row with only the fields the filter reads. */
 function dish(overrides: Partial<CatalogEntry> & { id: string }): CatalogEntry {
@@ -17,7 +18,11 @@ function dish(overrides: Partial<CatalogEntry> & { id: string }): CatalogEntry {
     nameAr: 'طبق',
     nameEn: 'Dish',
     mealTypes: ['lunch'],
-    tags: [],
+    source: 'home',
+    effort: 'medium',
+    cost: 'normal',
+    occasion: 'everyday',
+    isSide: false,
     allergenTags: [],
     baseServingLabel: 'صحن',
     isActive: true,
@@ -32,7 +37,7 @@ function dish(overrides: Partial<CatalogEntry> & { id: string }): CatalogEntry {
 const NO_FILTERS: CatalogFilters = {
   needle: '',
   mealType: null,
-  tags: [],
+  axes: EMPTY_AXIS_FILTERS,
   nutrition: [],
   options: [],
 };
@@ -57,11 +62,11 @@ describe('filterCatalog computed nutrition', () => {
   // The "high protein" filter reads the recipe-derived `nutritionCategory`, never
   // a stored tag — a dish is only kept if its own numbers make it high-protein.
   const catalog = [
-    dish({ id: 'protein', nutritionCategory: 'high_protein', tags: [] }),
+    dish({ id: 'protein', nutritionCategory: 'high_protein' }),
     // Carries no manual tag AND is not computed high-protein: must be excluded,
-    // proving the filter is not reading tags.
-    dish({ id: 'carby', nutritionCategory: 'high_carb', tags: ['economical'] }),
-    dish({ id: 'balanced', nutritionCategory: 'balanced', tags: [] }),
+    // proving the filter is not reading a stored label.
+    dish({ id: 'carby', nutritionCategory: 'high_carb', cost: 'cheap' }),
+    dish({ id: 'balanced', nutritionCategory: 'balanced' }),
   ];
 
   test('keeps only dishes the recipe computes as high-protein', () => {
@@ -78,31 +83,59 @@ describe('filterCatalog computed nutrition', () => {
   });
 });
 
-describe('filterCatalog tags', () => {
+describe('filterCatalog axes', () => {
   const catalog = [
-    dish({ id: 'both', tags: ['vegetarian', 'quick'] }),
-    dish({ id: 'veg', tags: ['vegetarian'] }),
-    dish({ id: 'quick', tags: ['quick'] }),
+    dish({ id: 'home-quick', source: 'home', effort: 'quick' }),
+    dish({ id: 'home-long', source: 'home', effort: 'long' }),
+    dish({ id: 'street-quick', source: 'street', effort: 'quick' }),
+    dish({ id: 'shop-quick', source: 'shop', effort: 'quick' }),
   ];
 
-  test('combines with AND, so a second tag narrows rather than widens', () => {
-    const one = filterCatalog(catalog, { ...NO_FILTERS, tags: ['vegetarian'] }, NO_CONTEXT);
+  /**
+   * OR within an axis is the whole difference between a facet and a bag. `street`
+   * and `shop` are two answers to one question, so asking for both means either.
+   * The tag bag ANDed everything, which is why a second chip could only ever
+   * empty the list.
+   */
+  test('a second value on the same axis widens', () => {
+    const one = filterCatalog(
+      catalog,
+      { ...NO_FILTERS, axes: { ...EMPTY_AXIS_FILTERS, source: ['street'] } },
+      NO_CONTEXT,
+    );
     const two = filterCatalog(
       catalog,
-      { ...NO_FILTERS, tags: ['vegetarian', 'quick'] },
+      { ...NO_FILTERS, axes: { ...EMPTY_AXIS_FILTERS, source: ['street', 'shop'] } },
       NO_CONTEXT,
     );
 
-    expect(ids(one)).toEqual(['both', 'veg']);
-    expect(ids(two)).toEqual(['both']);
-    expect(two.length).toBeLessThan(one.length);
+    expect(ids(one)).toEqual(['street-quick']);
+    expect(ids(two)).toEqual(['street-quick', 'shop-quick']);
+  });
+
+  /** Two axes are two questions, and asking both means both. */
+  test('a value on a second axis narrows', () => {
+    const narrowed = filterCatalog(
+      catalog,
+      { ...NO_FILTERS, axes: { ...EMPTY_AXIS_FILTERS, source: ['home'], effort: ['quick'] } },
+      NO_CONTEXT,
+    );
+
+    expect(ids(narrowed)).toEqual(['home-quick']);
   });
 
   test('an impossible combination returns nothing rather than falling back', () => {
-    const catalogue = [dish({ id: 'veg', tags: ['vegetarian'] })];
     expect(
-      filterCatalog(catalogue, { ...NO_FILTERS, tags: ['vegetarian', 'quick'] }, NO_CONTEXT),
+      filterCatalog(
+        catalog,
+        { ...NO_FILTERS, axes: { ...EMPTY_AXIS_FILTERS, source: ['street'], effort: ['long'] } },
+        NO_CONTEXT,
+      ),
     ).toHaveLength(0);
+  });
+
+  test('an empty selection on an axis does not narrow at all', () => {
+    expect(filterCatalog(catalog, NO_FILTERS, NO_CONTEXT)).toHaveLength(4);
   });
 });
 
@@ -163,11 +196,11 @@ describe('filterCatalog options', () => {
     ).toHaveLength(2);
   });
 
-  test('options stack with tags and with each other', () => {
+  test('options stack with the axes and with each other', () => {
     const catalog = [
-      dish({ id: 'keep', tags: ['quick'] }),
-      dish({ id: 'blocked', tags: ['quick'], blockedBy: ['nuts'] }),
-      dish({ id: 'recent', tags: ['quick'] }),
+      dish({ id: 'keep', effort: 'quick' }),
+      dish({ id: 'blocked', effort: 'quick', blockedBy: ['nuts'] }),
+      dish({ id: 'recent', effort: 'quick' }),
       dish({ id: 'untagged' }),
     ];
     const context: CatalogContext = { usage: { recent: { weeksAgo: 1 } }, budgetKcal: null };
@@ -176,7 +209,11 @@ describe('filterCatalog options', () => {
       ids(
         filterCatalog(
           catalog,
-          { ...NO_FILTERS, tags: ['quick'], options: ['allergenSafe', 'notRecent'] },
+          {
+            ...NO_FILTERS,
+            axes: { ...EMPTY_AXIS_FILTERS, effort: ['quick'] },
+            options: ['allergenSafe', 'notRecent'],
+          },
           context,
         ),
       ),

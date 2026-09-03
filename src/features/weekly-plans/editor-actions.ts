@@ -23,6 +23,7 @@ import {
   restoreMealToWeek,
   setMealIngredient,
   setMealServings,
+  setMealSides,
 } from './editor-mutations';
 import type { NewWeekState, PlanActionState } from './form-state';
 import { getClientContext, planDishesBySlot } from './queries';
@@ -35,6 +36,7 @@ import {
   removeWeekMealSchema,
   restoreWeekMealSchema,
   setMealIngredientSchema,
+  setMealSidesSchema,
   setServingsSchema,
   startEmptyWeekSchema,
   startWeekFromPlanSchema,
@@ -252,6 +254,35 @@ export async function placeDishAction(
       parsed.data.dishId,
       parsed.data.servings,
     ),
+  );
+}
+
+/**
+ * Sets everything standing beside one meal — the salad, the soup, or neither.
+ *
+ * One action for add, change and remove, because the client sends the finished
+ * set rather than a difference. See `setMealSidesSchema`.
+ */
+export async function setMealSidesAction(
+  _previousState: PlanActionState,
+  formData: FormData,
+): Promise<PlanActionState> {
+  const locale = readLocale(formData);
+  const { clinicId } = await requireStaffClinic(locale);
+
+  const parsed = setMealSidesSchema.safeParse({
+    planId: formData.get('planId'),
+    mealId: formData.get('mealId'),
+    dishIds: formData.get('dishIds'),
+  });
+
+  if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
+
+  const clientId = await planClientId(clinicId, parsed.data.planId);
+  if (!clientId) return { status: 'error', messageKey: 'errors.planNotFound' };
+
+  return runEdit(locale, clientId, () =>
+    setMealSides(clinicId, parsed.data.planId, parsed.data.mealId, parsed.data.dishIds),
   );
 }
 

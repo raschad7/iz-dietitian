@@ -61,6 +61,14 @@ type BoardProps = {
   clinicName: string | null;
   /** The client's earlier weeks, rendered on the server. */
   history: React.ReactNode;
+  /**
+   * The model's read of this week, with the button that asks for one.
+   *
+   * A node from the page rather than data, exactly as `history` is: it needs a
+   * server read and a server action, and the board is a client component whose
+   * job is where things sit rather than what they contain.
+   */
+  review: React.ReactNode;
   newWeek: NewWeekProps;
   /** The server-rendered client summary shown between the toolbar and board. */
   children: React.ReactNode;
@@ -121,6 +129,7 @@ function BoardBody({
   locale,
   clinicName,
   history,
+  review,
   newWeek,
   children,
   catalogOpen,
@@ -513,6 +522,8 @@ function BoardBody({
                 <div className="p-3 empty:hidden">
                   <TagColorKey days={board.days} />
                 </div>
+
+                <div className="border-t border-border/70 py-2">{review}</div>
 
                 <div className="border-t border-border/70 py-2">
                   <p className="px-3 pb-1.5 text-caption font-semibold text-muted-foreground">

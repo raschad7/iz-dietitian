@@ -33,10 +33,9 @@ import {
   type UnitOption,
 } from '../ingredient-units';
 import { dishTotals, nutritionCategory, type NutrientSource } from '../nutrition';
-import { dishTagDotClasses } from '../meal-tag-tone';
 import type { RefinedFood } from '../ingredient-refine';
 import type { DishEditData, DishNameSuggestion, FoodSearchResult } from '../queries';
-import { MEAL_TYPES, type DishTag } from '../schema';
+import { DISH_AXES, MEAL_TYPES, type DishAxisKey } from '../schema';
 
 import { DishNutritionLabel } from './dish-nutrition-label';
 import { IngredientSearch } from './food-picker';
@@ -94,21 +93,25 @@ type Blocker = 'name' | 'nameEn' | 'mealTypes' | 'ingredients';
  * - **التكلفة والتنقّل** — what does it cost, and does it travel?
  * - **طبيعة الطبق** — what kind of food is it?
  */
-const DISH_LABEL_GROUPS = [
-  { key: 'preparation', tags: ['quick', 'easy_prep', 'no_cook'] },
-  { key: 'cost', tags: ['economical', 'portable'] },
-  { key: 'nature', tags: ['filling', 'local', 'vegetarian'] },
-] as const satisfies readonly { key: string; tags: readonly DishTag[] }[];
-
 /*
- * Every tag belongs to exactly one group. A tag added to `DISH_TAGS` without one
- * makes this line fail to compile rather than quietly vanishing from the review
- * step — the same guarantee `DISH_TAG_ACCENT_CLASS` gets from being a total
- * `Record`.
+ * The four declared axes replace the three hand-made tag groups.
+ *
+ * The groups existed because a bag of eight tags needed sorting into something
+ * readable; the axes are already the questions, and every dish answers all four.
+ * `DISH_AXES` is the one list, so a value added there appears in this form by
+ * doing nothing at all — the old arrangement needed a compile-time check to catch
+ * a tag nobody had filed.
  */
-type GroupedDishTag = (typeof DISH_LABEL_GROUPS)[number]['tags'][number];
-const _everyTagIsGrouped: Exclude<DishTag, GroupedDishTag> extends never ? true : never = true;
-void _everyTagIsGrouped;
+
+/**
+ * The two answers to "is this a meal or something beside one".
+ *
+ * Plain string values because `PillCheckboxGroup` is a set of strings and every
+ * other section in it is one; the boolean lives in state, and these are only how
+ * it is spelled on screen.
+ */
+const ROLE_MAIN = 'role:main';
+const ROLE_SIDE = 'role:side';
 
 /** Meal categories in the order the spec's chips read: breakfast, lunch, dinner, snack. */
 const MEAL_CATEGORY_ORDER = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
@@ -249,7 +252,25 @@ export function DishEditor({
   // Arabic-first default.
   const baseServingLabel = dish?.baseServingLabel ?? 'حصة';
   const [mealTypes, setMealTypes] = useState<string[]>(() => dish?.mealTypes ?? []);
-  const [tags, setTags] = useState<string[]>(() => dish?.tags ?? []);
+  // One value per axis, and never empty: a dish that answers nothing is exactly
+  // what the tag bag allowed and the axes exist to prevent. A new dish starts on
+  // the commonest answer to each, which is also the truest guess.
+  const [axes, setAxes] = useState<Record<DishAxisKey, string>>(() => ({
+    source: dish?.source ?? 'home',
+    effort: dish?.effort ?? 'medium',
+    cost: dish?.cost ?? 'normal',
+    occasion: dish?.occasion ?? 'everyday',
+  }));
+  /**
+   * Whether this is a side rather than a meal.
+   *
+   * Asked here because it is the one property that decides what the dish *is*:
+   * a side is never offered for a slot and never scaled to a budget, so getting
+   * it wrong puts صحن سلطة on the board as somebody's dinner. Held as a boolean
+   * and offered as two pills, so the form has an answer from the moment it opens
+   * the way each axis does.
+   */
+  const [isSide, setIsSide] = useState<boolean>(() => dish?.isSide ?? false);
   const [allergenTags, setAllergenTags] = useState<string[]>(() => dish?.allergenTags ?? []);
   const [rows, setRows] = useState<IngredientRowState[]>(() =>
     dish ? dish.ingredients.map(rowFromIngredient) : [],
@@ -261,8 +282,14 @@ export function DishEditor({
   /** Errors appear once a step's Next has been refused, not while typing into it. */
   const [attempted, setAttempted] = useState(false);
 
-  /** Which chips on the review step the app proposed rather than the dietitian. */
-  const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
+  /**
+   * Which chips on the review step the app proposed rather than the dietitian.
+   *
+   * Allergens only. The axes have no equivalent: every one already carries an
+   * answer from the moment the form opens, so there is nothing to propose — and
+   * the one thing that *was* proposed, "vegetarian", is computed from the recipe
+   * now rather than written onto the dish.
+   */
   const [suggestedAllergens, setSuggestedAllergens] = useState<Allergen[]>([]);
   const hasReviewed = useRef(false);
 
@@ -282,7 +309,7 @@ export function DishEditor({
     nameAr,
     nameEn,
     mealTypes,
-    tags,
+    axes,
     allergenTags,
     rows: rows.map((row) => ({
       f: row.food.id,
@@ -451,10 +478,10 @@ export function DishEditor({
       setAllergenTags((current) => [...current, ...allergens]);
     }
 
-    if (suggestVegetarian(foods) && !tags.includes('vegetarian')) {
-      setSuggestedTags(['vegetarian']);
-      setTags((current) => [...current, 'vegetarian']);
-    }
+    // "Vegetarian" used to be proposed as a tag here. It is computed from the
+    // recipe now — see `docs/catalog.md` — so proposing it would be offering to
+    // write down something the food already says.
+    void suggestVegetarian;
   }
 
   function goToStep(next: Step) {
@@ -543,9 +570,10 @@ export function DishEditor({
       {mealTypes.map((value) => (
         <input key={value} type="hidden" name="mealTypes" value={value} />
       ))}
-      {tags.map((value) => (
-        <input key={value} type="hidden" name="tags" value={value} />
+      {DISH_AXES.map(({ key }) => (
+        <input key={key} type="hidden" name={key} value={axes[key]} />
       ))}
+      <input type="hidden" name="isSide" value={isSide ? 'true' : 'false'} />
       {allergenTags.map((value) => (
         <input key={value} type="hidden" name="allergenTags" value={value} />
       ))}
@@ -781,23 +809,44 @@ export function DishEditor({
                 />
 
                 <div className="flex flex-col gap-4 lg:gap-5">
+                  {/* One section per axis, one answer each: pressing a value
+                      replaces the one before it rather than adding to it. A dish
+                      is cooked at home or bought, not both. */}
                   <PillCheckboxGroup
                     legend={t('editor.labelsLegend')}
-                    sections={DISH_LABEL_GROUPS.map((group) => ({
-                      key: group.key,
-                      label: t(`editor.labelGroups.${group.key}`),
-                      options: group.tags.map((value) => ({
-                        value,
-                        label: tDishes(`tags.${value}`),
-                        dot: dishTagDotClasses(value),
+                    sections={[
+                      // First, because it decides what the dish *is*. The four
+                      // axes describe a dish; this one says whether the thing
+                      // being described can be a meal at all.
+                      {
+                        key: 'role',
+                        label: t('editor.roleLegend'),
+                        options: [
+                          { value: ROLE_MAIN, label: t('editor.roleMain') },
+                          { value: ROLE_SIDE, label: t('editor.roleSide') },
+                        ],
+                      },
+                      ...DISH_AXES.map((axis) => ({
+                        key: axis.key,
+                        label: tDishes(axis.label),
+                        options: axis.values.map(({ value, message }) => ({
+                          value,
+                          label: tDishes(message),
+                          dot: undefined,
+                        })),
                       })),
-                    }))}
-                    selected={tags}
-                    suggested={suggestedTags}
-                    suggestedLabel={t('editor.suggested')}
+                    ]}
+                    selected={[isSide ? ROLE_SIDE : ROLE_MAIN, ...DISH_AXES.map(({ key }) => axes[key])]}
                     onToggle={(value) => {
-                      toggle(tags, value, setTags);
-                      setSuggestedTags((current) => current.filter((entry) => entry !== value));
+                      if (value === ROLE_MAIN || value === ROLE_SIDE) {
+                        setIsSide(value === ROLE_SIDE);
+                        return;
+                      }
+
+                      const axis = DISH_AXES.find((one) =>
+                        one.values.some((entry) => entry.value === value),
+                      );
+                      if (axis) setAxes((current) => ({ ...current, [axis.key]: value }));
                     }}
                   />
 

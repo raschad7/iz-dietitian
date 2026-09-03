@@ -59,12 +59,30 @@ export const GRAMS_ONLY_CATEGORIES = new Set(['meat', 'poultry', 'fish']);
 /** The household families a measured portion can resolve to. */
 type Family = 'cup' | 'tbsp' | 'tsp' | 'slice' | 'piece' | 'loaf' | 'leaf' | 'container' | 'none';
 
-/** Unit words meaning "one countable item" — an egg, a fillet, a date. */
+/**
+ * Unit words meaning "one countable item" — an egg, a fillet, a date.
+ *
+ * `wedge` is deliberately **not** here; see `SLICE_WORDS`.
+ */
 export const PIECE_WORDS = new Set([
   'large', 'medium', 'small', 'extra', 'unit', 'piece', 'each', 'whole', 'fillet',
-  'link', 'patty', 'stick', 'wedge', 'clove', 'ear', 'fruit', 'pod', 'strip',
+  'link', 'patty', 'stick', 'clove', 'ear', 'fruit', 'pod', 'strip',
   'ball', 'bar', 'cookie', 'cracker', 'chip', 'date',
 ]);
+
+/**
+ * Unit words meaning "one cut off a bigger thing" — شريحة.
+ *
+ * `wedge` sat in `PIECE_WORDS` and is the reason a plan could say **حبة بطيخ**.
+ * USDA publishes watermelon as "1 wedge (approx 1/16 of melon), 286 g"; read as a
+ * piece that becomes "one watermelon", and one watermelon is 4,518 g — the number
+ * USDA publishes on the very next line. The weight was right and the word was
+ * wrong, which is the worse of the two failures: a client reading حبة بطيخ has
+ * been told to eat a melon.
+ *
+ * A wedge is a slice, and شريحة is the word already in `FAMILY_ROWS` for it.
+ */
+const SLICE_WORDS = new Set(['slice', 'wedge']);
 
 /** Unit words meaning "one whole flatbread or loaf" — a pita, a tortilla, a roll. */
 const LOAF_WORDS = new Set(['pita', 'loaf', 'tortilla', 'flatbread', 'naan', 'bun', 'roll', 'bagel']);
@@ -103,7 +121,7 @@ export function classifyUnit(unit: string): Family {
   if (unit === 'cup') return 'cup';
   if (unit === 'tablespoon' || unit === 'tbsp') return 'tbsp';
   if (unit === 'teaspoon' || unit === 'tsp') return 'tsp';
-  if (unit === 'slice') return 'slice';
+  if (SLICE_WORDS.has(unit)) return 'slice';
   // Loaf before piece and container: "loaf", "roll" and "bun" read as رغيف, not قطعة.
   if (LOAF_WORDS.has(unit)) return 'loaf';
   if (CONTAINER_WORDS.has(unit)) return 'container';
@@ -247,22 +265,70 @@ const SPOON_FAMILIES = new Set<Family>(['tbsp', 'tsp']);
  * would make one حبة mean 44 g of a raw egg and 50 g of a boiled one: the same egg
  * weighing two different amounts depending on whether it had been cooked.
  */
-const PREFERRED_SIZE: Record<string, string> = { dairy_eggs: 'large' };
+const PREFERRED_SIZE: Record<string, string> = { eggs: 'large', dairy_eggs: 'large' };
 
 /** Nothing a person is served in one sitting weighs this much. */
 const MAX_SERVABLE_GRAMS = 1000;
 
 /**
- * Portions that measure something other than one ordinary serving.
+ * The heaviest thing that may be called **one حبة**.
  *
- * `NLEA serving` is a labelling construct, not a household count. A whole melon or
- * a whole pint is a purchase, not a portion. Both would otherwise win a family and
- * become the unit a dietitian is offered.
+ * A piece is what a person picks up and eats: an apple, an egg, a banana, a
+ * mango. `MAX_SERVABLE_GRAMS` was the only ceiling and it is a ceiling on a
+ * *serving*, which let three whole vegetables through as countable items —
+ * a 908 g cabbage, a 588 g cauliflower, a 552 g cantaloupe — because USDA writes
+ * them "1 melon, medium" and `classifyPortion` reads `medium` as "countable".
+ * A recipe line saying `1 حبة ملفوف` is 908 g of cabbage.
+ *
+ * 350 g, because the largest thing anyone eats whole in this catalog is a mango
+ * at 336 g. Above it the food simply falls back to its next family — a cup for
+ * the cabbage, a wedge for the melon — which is how those foods are actually
+ * served and what a dietitian would have written by hand.
+ *
+ * It bounds `piece` only. A رغيف, an علبة and a كوب are all bought and served in
+ * one, and their weights are already what they say they are.
  */
-function isServable(label: string, grams: number): boolean {
+const MAX_PIECE_GRAMS = 350;
+
+/**
+ * Unit words naming the *whole plant* — what you carry home from the market.
+ *
+ * USDA writes cauliflower "1 head small (4" dia.), 265 g" and cantaloupe
+ * "1 melon, medium, 552 g". `classifyPortion` reads the `small` and the `medium`
+ * as "this is countable", so both became a حبة: a plan could say **حبة زهرة** and
+ * mean a whole cauliflower.
+ *
+ * A head is a purchase. The serving is the cup beside it, which is what the food
+ * falls back to once these are refused.
+ *
+ * Matched against the label's **leading unit word only**, never the whole label —
+ * watermelon's real serving is "1 wedge (approx 1/16 of melon)", and a substring
+ * scan would throw away the wedge for mentioning the melon it was cut from.
+ */
+const WHOLE_PLANT_WORDS = new Set(['head', 'bunch', 'melon', 'bulb', 'stalk']);
+
+/**
+ * Whether a measured portion is one ordinary serving of the food.
+ *
+ * Anything failing this is skipped entirely, so the food falls back to its next
+ * family — which is how it is actually served.
+ *
+ * `NLEA serving` is a labelling construct and `as purchased` says so itself.
+ *
+ * **`yields` is refused only for a countable unit.** It describes what something
+ * *produces*: "1 wedge yields 5.9 g" is the juice out of a lemon wedge, and a
+ * شريحة of lemon juice is not a thing. But "1 can (12 oz) yields 211 g" is the
+ * drained weight of a tin — the most useful number a canned food has, and the one
+ * a dietitian writes علبة against.
+ */
+function isServable(label: string, unit: string, family: Family, grams: number): boolean {
   const lower = label.toLowerCase();
+
   if (lower.includes('nlea')) return false;
   if (lower.includes('as purchased')) return false;
+  if (WHOLE_PLANT_WORDS.has(unit)) return false;
+  if (lower.includes('yields') && (family === 'piece' || family === 'slice')) return false;
+
   return grams <= MAX_SERVABLE_GRAMS;
 }
 
@@ -323,13 +389,19 @@ export function derivePortions(source: {
   const best = new Map<Exclude<Family, 'none'>, { base: number; rank: number }>();
 
   for (const portion of source.portions) {
-    if (!(portion.grams > 0) || !isServable(portion.label, portion.grams)) continue;
+    if (!(portion.grams > 0)) continue;
 
     const parsed = parsePortionLabel(portion.label);
     if (!parsed) continue;
 
     const family = classifyPortion(portion.label, parsed.unit);
     if (family === 'none') continue;
+    // After the family, because two of the three rules depend on it — see there.
+    if (!isServable(portion.label, parsed.unit, family, portion.grams)) continue;
+    // Checked on the *base* rather than on the measured weight: "2 pieces" of
+    // something is a claim about one piece, and it is the one piece that has to
+    // be a thing a person eats.
+    if (family === 'piece' && portion.grams / parsed.amount > MAX_PIECE_GRAMS) continue;
     if (SPOON_ONLY_CATEGORIES.has(source.category) && !SPOON_FAMILIES.has(family)) continue;
 
     // "0.5 cup, diced = 75 g" means a whole cup is 150 g. The label's own count is

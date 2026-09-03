@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 
 import { summariseTagColors } from '../board-tag-summary';
-import { dishTagDotClasses } from '../meal-tag-tone';
+import { proteinDotClasses, proteinMessageKey } from '../meal-tag-tone';
 import type { BoardDay } from '../queries';
 
 /**
@@ -14,16 +14,17 @@ import type { BoardDay } from '../queries';
  *
  * ## Why it reads the board instead of listing the palette
  *
- * A static legend of nine marks is a chart of the design system, and it is wrong
+ * A static legend of every mark is a chart of the design system, and it is wrong
  * about the thing in front of the reader: a week that uses three colours does not
- * need a key with six colours it does not contain. So this counts the board — the
- * same `primaryDishTag` the card itself paints with — and lists only the marks
- * actually on screen, each with how many meals wear it.
+ * need a key with eight it does not contain. So this counts the board — the same
+ * protein source the card itself paints with — and lists only the marks actually
+ * on screen, each with how many meals wear it.
  *
- * That turns a legend into a reading. "Four quick, three economical, and eleven
- * meals with no tag at all" is a fact about this week that no palette chart could
- * tell you, and it costs nothing extra to say: the counting is already done to
- * know which rows to draw.
+ * That turns a legend into a reading, and since the axis became protein source it
+ * is the reading a dietitian opens a board for: "chicken 7, dairy 5, legumes 4,
+ * fish 2" is the week's variety stated as a number, and it is the thing thirty-five
+ * cards make hard to see. It costs nothing extra to say — the counting is already
+ * done to know which rows to draw.
  *
  * The neutral row is included whenever untagged meals exist, because those cards
  * draw a grey rule and an unexplained mark is exactly what a key is for.
@@ -51,7 +52,12 @@ export function TagColorKey({ days }: { days: readonly BoardDay[] }) {
 
       <ul className="grid grid-cols-2 gap-x-3 gap-y-1.5">
         {rows.map(({ tag, count }) => (
-          <KeyRow key={tag} dot={dishTagDotClasses(tag)} label={t(`tags.${tag}`)} count={count} />
+          <KeyRow
+            key={tag}
+            dot={proteinDotClasses(tag)}
+            label={t(proteinMessageKey(tag))}
+            count={count}
+          />
         ))}
 
         {untagged > 0 && (

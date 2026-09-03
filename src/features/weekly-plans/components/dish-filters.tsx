@@ -11,8 +11,15 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { usePathname, useRouter } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 import { type OwnerFilter } from '@/features/weekly-plans/catalog-ownership';
-import { dishTagDotClasses, highProteinDotClasses } from '@/features/weekly-plans/meal-tag-tone';
-import { DISH_TAGS, MEAL_TYPES, type DishTag, type MealType } from '@/features/weekly-plans/schema';
+import { proteinDotClasses, proteinMessageKey } from '@/features/weekly-plans/meal-tag-tone';
+import { PROTEIN_SOURCES } from '@/features/weekly-plans/dish-composition';
+import {
+  DISH_AXES,
+  MEAL_TYPES,
+  type DishAxisFilters,
+  type DishAxisKey,
+  type MealType,
+} from '@/features/weekly-plans/schema';
 
 /** How long to let someone keep typing before the catalog re-queries. */
 const SEARCH_DEBOUNCE_MS = 300;
@@ -94,16 +101,19 @@ const HIGH_PROTEIN = 'high_protein';
 export function DishFilters({
   q,
   mealType,
-  tags,
+  axes,
   highProtein,
+  proteinSources,
   owner,
   showHidden,
   children,
 }: {
   q: string | undefined;
   mealType: string | undefined;
-  tags: readonly DishTag[];
+  axes: DishAxisFilters;
   highProtein: boolean;
+  /** The protein sources currently selected — OR within the list, empty for all. */
+  proteinSources: readonly string[];
   owner: OwnerFilter | undefined;
   /** Showing the hidden shelf *instead of* the catalog — see `listDishes`. */
   showHidden: boolean;
@@ -154,18 +164,35 @@ export function DishFilters({
     debounceRef.current = setTimeout(() => navigate({ q: value }), SEARCH_DEBOUNCE_MS);
   }
 
-  function toggleTag(tag: DishTag) {
-    const next = tags.includes(tag) ? tags.filter((entry) => entry !== tag) : [...tags, tag];
-    navigate({ tags: next.join(',') });
+  function toggleAxis(key: DishAxisKey, value: string) {
+    const selected = axes[key];
+    const next = selected.includes(value)
+      ? selected.filter((entry) => entry !== value)
+      : [...selected, value];
+
+    navigate({ [key]: next.join(',') });
+  }
+
+  function toggleProtein(value: string) {
+    const next = proteinSources.includes(value)
+      ? proteinSources.filter((entry) => entry !== value)
+      : [...proteinSources, value];
+
+    navigate({ protein: next.join(',') });
   }
 
   const activeMealType = MEAL_TAB_ORDER.find((type) => type === mealType) ?? null;
-  const qualityCount = tags.length + (highProtein ? 1 : 0);
+  const axisCount = DISH_AXES.reduce((total, { key }) => total + axes[key].length, 0);
+  const qualityCount = axisCount + (highProtein ? 1 : 0);
 
   // What the Clear control is allowed to act on. The search term is deliberately
   // not in it — see that button.
   const filterCount =
-    qualityCount + (showHidden ? 1 : 0) + (activeMealType ? 1 : 0) + (owner ? 1 : 0);
+    qualityCount +
+    proteinSources.length +
+    (showHidden ? 1 : 0) +
+    (activeMealType ? 1 : 0) +
+    (owner ? 1 : 0);
 
   return (
     /*
@@ -239,6 +266,38 @@ export function DishFilters({
         </ChoiceList>
       </FacetPopover>
 
+      {/*
+        Protein source — the one facet that is *computed*, and the one the
+        colours mean.
+
+        It sits second because it is the question a dietitian actually asks of a
+        catalog ("what else could I put here that is not chicken"), and because
+        it is the only filter whose answer is already visible on every row as a
+        dot. Multi-select, since "fish or legumes" is one question with two
+        acceptable answers.
+      */}
+      <FacetPopover
+        icon="mealLunch"
+        facetLabel={t('proteinFilter.label')}
+        valueLabel={
+          proteinSources.length === 1 ? t(proteinMessageKey(proteinSources[0] ?? '')) : null
+        }
+        count={proteinSources.length > 1 ? proteinSources.length : undefined}
+      >
+        <ChoiceList label={t('proteinFilter.label')} role="group">
+          {PROTEIN_SOURCES.map((value) => (
+            <ChoiceRow
+              key={value}
+              role="checkbox"
+              selected={proteinSources.includes(value)}
+              onSelect={() => toggleProtein(value)}
+              dot={proteinDotClasses(value)}
+              label={t(proteinMessageKey(value))}
+            />
+          ))}
+        </ChoiceList>
+      </FacetPopover>
+
       {/* Where the dish came from: the shared library, or this clinic. */}
       <FacetPopover
         icon="person"
@@ -262,14 +321,16 @@ export function DishFilters({
         and counts instead of naming a value — "Qualities 3" is readable where
         "Quick, Economical, Vegetarian" is not.
       */}
-      <FacetPopover icon="leaf" facetLabel={t('columns.tags')} count={qualityCount}>
+      <FacetPopover icon="leaf" facetLabel={t('columns.properties')} count={qualityCount}>
         <QualityPicker
-          tags={tags}
+          axes={axes}
           highProtein={highProtein}
           count={qualityCount}
-          onToggleTag={toggleTag}
+          onToggleAxis={toggleAxis}
           onToggleHighProtein={() => navigate({ hp: highProtein ? '' : '1' })}
-          onClear={() => navigate({ tags: '', hp: '' })}
+          onClear={() =>
+            navigate({ source: '', effort: '', cost: '', occasion: '', hp: '' })
+          }
         />
       </FacetPopover>
 
@@ -310,7 +371,19 @@ export function DishFilters({
         aria-label={t('clearFilters')}
         title={t('clearFilters')}
         disabled={filterCount === 0}
-        onClick={() => navigate({ mealType: '', owner: '', tags: '', hp: '', hidden: '' })}
+        onClick={() =>
+          navigate({
+            mealType: '',
+            owner: '',
+            source: '',
+            effort: '',
+            cost: '',
+            occasion: '',
+            hp: '',
+            protein: '',
+            hidden: '',
+          })
+        }
       >
         <Icon name="close" />
       </Button>
@@ -417,9 +490,24 @@ function FacetPopover({
 }
 
 /** The rows of a single-select facet. */
-function ChoiceList({ label, children }: { label: string; children: React.ReactNode }) {
+function ChoiceList({
+  label,
+  role = 'radiogroup',
+  children,
+}: {
+  label: string;
+  /**
+   * `radiogroup` for a facet with one answer, `group` for one with several.
+   *
+   * The rows already carry `radio` or `checkbox` themselves; this keeps the
+   * container honest about which, because a `radiogroup` full of checkboxes is
+   * announced as a set of mutually exclusive options that are not.
+   */
+  role?: 'radiogroup' | 'group';
+  children: React.ReactNode;
+}) {
   return (
-    <div role="radiogroup" aria-label={label} className="flex flex-col gap-0.5 p-1.5">
+    <div role={role} aria-label={label} className="flex flex-col gap-0.5 p-1.5">
       {children}
     </div>
   );
@@ -488,17 +576,17 @@ function ChoiceRow({
  * findable. The list scrolls only once there is more of it than the panel's cap.
  */
 function QualityPicker({
-  tags,
+  axes,
   highProtein,
   count,
-  onToggleTag,
+  onToggleAxis,
   onToggleHighProtein,
   onClear,
 }: {
-  tags: readonly DishTag[];
+  axes: DishAxisFilters;
   highProtein: boolean;
   count: number;
-  onToggleTag: (tag: DishTag) => void;
+  onToggleAxis: (key: DishAxisKey, value: string) => void;
   onToggleHighProtein: () => void;
   onClear: () => void;
 }) {
@@ -518,14 +606,18 @@ function QualityPicker({
     () => [
       {
         key: HIGH_PROTEIN,
-        dot: highProteinDotClasses(),
+        axis: null as DishAxisKey | null,
+        value: null as string | null,
         label: t('nutritionFilters.high_protein'),
       },
-      ...DISH_TAGS.map((tag: DishTag) => ({
-        key: tag as string,
-        dot: dishTagDotClasses(tag),
-        label: t(`tags.${tag}`),
-      })),
+      ...DISH_AXES.flatMap((axis) =>
+        axis.values.map(({ value, message }) => ({
+          key: `${axis.key}:${value}`,
+          axis: axis.key,
+          value,
+          label: t(message),
+        })),
+      ),
     ],
     [t],
   );
@@ -554,22 +646,23 @@ function QualityPicker({
       ) : (
         <div
           role="group"
-          aria-label={t('columns.tags')}
+          aria-label={t('columns.properties')}
           className="q-scroll-cue-y flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain p-1.5 [--scroll-cue-surface:var(--popover)]"
         >
           {shown.map((quality) => (
             <ChoiceRow
               key={quality.key}
               role="checkbox"
-              dot={quality.dot}
               label={quality.label}
               selected={
-                quality.key === HIGH_PROTEIN ? highProtein : tags.includes(quality.key as DishTag)
+                quality.key === HIGH_PROTEIN
+                  ? highProtein
+                  : Boolean(quality.axis && axes[quality.axis].includes(quality.value ?? ''))
               }
               onSelect={() =>
-                quality.key === HIGH_PROTEIN
+                quality.key === HIGH_PROTEIN || !quality.axis
                   ? onToggleHighProtein()
-                  : onToggleTag(quality.key as DishTag)
+                  : onToggleAxis(quality.axis, quality.value ?? '')
               }
             />
           ))}

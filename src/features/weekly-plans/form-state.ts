@@ -70,3 +70,25 @@ export type NewWeekState =
     };
 
 export const initialNewWeekState: NewWeekState = { status: 'idle' };
+
+/**
+ * Asking the model to read a finished week.
+ *
+ * `done` carries nothing: the findings are written to the database and the page
+ * revalidates, so the panel reads them the way it reads everything else rather
+ * than receiving a payload through form state.
+ */
+export type ReviewState =
+  | { status: 'idle' }
+  | { status: 'done' }
+  | {
+      status: 'error';
+      messageKey:
+        | 'errors.planNotFound'
+        | 'errors.notConfigured'
+        | 'errors.reviewFailed'
+        | 'errors.unexpected';
+      detail?: string;
+    };
+
+export const initialReviewState: ReviewState = { status: 'idle' };

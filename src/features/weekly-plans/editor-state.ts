@@ -2,7 +2,9 @@ import {
   mealGrams,
   mealTotals,
   scaleRecipe,
+  sideLines,
   type MealIngredientLine,
+  type SideRecipe,
 } from './meal-ingredients';
 import { combineTotals, emptyTotals, type DishDetail } from './nutrition';
 import type { Board, BoardDay, BoardMeal } from './queries';
@@ -74,6 +76,15 @@ export type BoardEdit =
     }
   /** Puts a meal back on its dish's recipe, discarding hand-set amounts. */
   | { kind: 'resetIngredients'; mealId: string }
+  /**
+   * Everything standing beside one meal, replaced at once.
+   *
+   * The dish ids *and* their resolved recipes, because the optimistic board has
+   * to recompute the meal's calories before the server answers, and a salad's
+   * calories are in its recipe. Both come off the catalog the board already
+   * holds, so nothing is fetched to apply this.
+   */
+  | { kind: 'sides'; mealId: string; sides: readonly SideRecipe[] }
   | { kind: 'clear'; mealId: string }
   | { kind: 'remove'; mealId: string }
   | { kind: 'add'; dayOfWeek: number; label: string; timeOfDay: string; slotKey: string }
@@ -102,10 +113,21 @@ function withDish(meal: BoardMeal, dish: DishDetail | null, servings: number): B
   // A different dish means the old hand-set amounts described food that is no
   // longer in this meal, so the recipe takes over again — which is exactly what
   // `replaceMealIngredients` does on the server when the dish changes.
-  const lines = dish ? scaleRecipe(dish.ingredients, servings) : [];
+  //
+  // The sides are carried across rather than rebuilt. They are not scaled by the
+  // multiplier and they do not belong to the dish, so a salad survives a portion
+  // change and survives a swap — which is what the server does too, since
+  // `weekly_plan_meal_sides` is keyed on the meal, not on the dish. Rebuilding
+  // from `scaleRecipe` alone is what used to make the salad blink out of the
+  // ingredient list on every step of the portion control.
+  const kept = meal.lines.filter((line) => line.side !== null);
+  const lines = dish ? [...scaleRecipe(dish.ingredients, servings), ...kept] : [];
 
   return {
     ...meal,
+    // An empty slot cannot carry a side — the server refuses one — so clearing
+    // the dish clears them with it.
+    sides: dish ? meal.sides : [],
     dish: dish ? { ...dish, servings } : null,
     // The rationale explained the dish that was there. Leaving the model's words
     // under a dish the dietitian chose would misattribute both.
@@ -136,13 +158,43 @@ function withIngredient(
   portionQuantity: number | null,
 ): BoardMeal {
   const lines: MealIngredientLine[] = meal.lines.map((line) =>
-    line.food.id === foodId ? { ...line, quantityGrams, portionQuantity } : line,
+    // `line.side === null` as well as the food id: a salad standing beside a
+    // maqluba can hold the same tomato the maqluba does, and without this the
+    // one control would move both. The server never writes a side's amount at
+    // all — `setMealIngredient` resolves the main's lines only — so matching it
+    // here is what keeps the optimistic board honest about what was changed.
+    line.side === null && line.food.id === foodId
+      ? { ...line, quantityGrams, portionQuantity }
+      : line,
   );
 
   return {
     ...meal,
     lines,
     hasOwnAmounts: true,
+    totals: mealTotals(lines),
+    grams: mealGrams(lines),
+    nutritionFrozen: false,
+  };
+}
+
+/**
+ * A meal with a different set of things standing beside it.
+ *
+ * The main is kept exactly as it is — its own lines, hand-set or scaled, are not
+ * touched — and only the side block is rebuilt, which is precisely the write the
+ * server performs. Totals are recomputed rather than adjusted, so removing the
+ * salad takes its calories off the card in the same frame the salad leaves it.
+ */
+function withSides(meal: BoardMeal, sides: readonly SideRecipe[]): BoardMeal {
+  const lines = [...meal.lines.filter((line) => line.side === null), ...sideLines(sides)].sort(
+    (a, b) => a.sortOrder - b.sortOrder,
+  );
+
+  return {
+    ...meal,
+    sides: sides.map(({ id, nameAr, nameEn }) => ({ id, nameAr, nameEn })),
+    lines,
     totals: mealTotals(lines),
     grams: mealGrams(lines),
     nutritionFrozen: false,
@@ -221,6 +273,11 @@ export function applyEdit(board: Board, edit: BoardEdit): Board {
           : meal,
       );
 
+    case 'sides':
+      return mapMeals(board, (meal) =>
+        meal.id === edit.mealId && meal.dish ? withSides(meal, edit.sides) : meal,
+      );
+
     case 'clear':
       return mapMeals(board, (meal) => (meal.id === edit.mealId ? withDish(meal, null, 1) : meal));
 
@@ -236,6 +293,7 @@ export function applyEdit(board: Board, edit: BoardEdit): Board {
         label: edit.label,
         timeOfDay: edit.timeOfDay,
         dish: null,
+        sides: [],
         lines: [],
         hasOwnAmounts: false,
         rationaleAr: null,
@@ -319,6 +377,7 @@ export function applyEdit(board: Board, edit: BoardEdit): Board {
                     label: edit.label,
                     timeOfDay: edit.timeOfDay,
                     dish: null,
+                    sides: [],
                     lines: [],
                     hasOwnAmounts: false,
                     rationaleAr: null,

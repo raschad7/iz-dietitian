@@ -36,6 +36,7 @@
  */
 
 import { GRAMS_STEP, stepQuantity, unitStep } from './ingredient-units';
+import { portionLine } from './portioning';
 import {
   dishGrams,
   dishTotals,
@@ -67,7 +68,39 @@ export type MealIngredientLine = DishIngredientDetail & {
   /** Whether this line gets a `−/+` control. Copied from the recipe, never re-derived. */
   isPrimary: boolean;
   sortOrder: number;
+  /**
+   * The side dish this line came from, or null when it belongs to the main.
+   *
+   * A side is a whole dish standing beside the meal — صحن سلطة، كوب شوربة — and
+   * its lines arrive here rather than in a parallel structure so that everything
+   * downstream keeps working untouched. `mealTotals`, `mealGrams`, the printout,
+   * the publish snapshot and the drift check all read these lines and none of
+   * them has to know a side exists, which is what makes forgetting the salad
+   * impossible rather than merely unlikely.
+   */
+  side: MealSide | null;
 };
+
+/**
+ * A side dish attached to a meal, identified for display and grouping.
+ *
+ * Both names, because a side is now named on screen — on the meal card, in the
+ * picker that changes it, and in the ingredient list — and the app renders in
+ * Arabic or English from the same components.
+ */
+export type MealSide = { id: string; nameAr: string; nameEn: string };
+
+/** A side and the recipe it contributes, as the board and the writer hold it. */
+export type SideRecipe = MealSide & { recipe: readonly RecipeLine[] };
+
+/**
+ * Where a side's lines sort, relative to the main.
+ *
+ * Sides come after everything the main contributes, in the order they were
+ * attached, and a side's own recipe order survives inside its block. Large enough
+ * that no real recipe reaches it, so the offset can never interleave.
+ */
+export const SIDE_SORT_OFFSET = 1000;
 
 /** A multiplier that could not scale anything is treated as one, never as zero. */
 function usableServings(servings: number): number {
@@ -75,11 +108,17 @@ function usableServings(servings: number): number {
 }
 
 /**
- * The recipe at a serving multiplier — the classic behaviour, made explicit.
+ * The recipe at a serving multiplier, in amounts a person serves.
  *
- * The portion count scales with the grams so the two keep describing the same
- * amount: one and a half servings of a dish written as `4 ملاعق` is `6 ملاعق`, not
- * four spoons beside a weight that says otherwise.
+ * Every line goes through `portioning.ts`, which moves it in whole steps of its
+ * own unit and holds it under its own ceiling. It used to be a plain
+ * multiplication, and a plain multiplication is what produced `تمر مجهول 1.88
+ * حبة` — arithmetically perfect and impossible to act on.
+ *
+ * The count and the grams are decided together and the count decides: it is what
+ * the client is told to serve, so it is what the nutrition has to be built from.
+ * A multiplier of one returns the recipe unchanged, which is what keeps a dish's
+ * stated energy true of a meal holding one serving of it.
  */
 export function scaleRecipe(
   recipe: readonly RecipeLine[],
@@ -87,15 +126,39 @@ export function scaleRecipe(
 ): MealIngredientLine[] {
   const multiplier = usableServings(servings);
 
-  return recipe.map((line) => ({
-    ...line,
-    quantityGrams: line.quantityGrams * multiplier,
-    portion: line.portion ?? null,
-    portionQuantity:
-      typeof line.portionQuantity === 'number' && line.portionQuantity > 0
-        ? line.portionQuantity * multiplier
-        : null,
-  }));
+  return recipe.map((line) => {
+    const amount = portionLine(line, multiplier);
+
+    return {
+      ...line,
+      quantityGrams: amount.quantityGrams,
+      portion: line.portion ?? null,
+      portionQuantity: amount.portionQuantity,
+      side: null,
+    };
+  });
+}
+
+
+/**
+ * A meal's sides, as lines.
+ *
+ * **Always one serving.** A side is not scaled by the meal's multiplier: صحن
+ * سلطة is a plate of salad whether the lunch beside it is 500 kcal or 900, and a
+ * dietitian who wanted more salad would say so rather than expecting it to grow
+ * with the chicken. Keeping the multiplier on the main alone is also what lets
+ * `proteinSource`, `carbBase` and the variety rules keep reading one dish and
+ * getting the right answer.
+ */
+export function sideLines(sides: readonly SideRecipe[]): MealIngredientLine[] {
+  return sides.flatMap((side, index) =>
+    scaleRecipe(side.recipe, 1).map((line) => ({
+      ...line,
+      isPrimary: false,
+      sortOrder: SIDE_SORT_OFFSET * (index + 1) + line.sortOrder,
+      side: { id: side.id, nameAr: side.nameAr, nameEn: side.nameEn },
+    })),
+  );
 }
 
 /**
@@ -110,13 +173,24 @@ export function mealIngredientLines({
   recipe,
   servings,
   stored,
+  sides = [],
 }: {
   recipe: readonly RecipeLine[];
   servings: number;
-  /** The meal's own rows, already absolute. */
+  /** The meal's own rows for the MAIN dish, already absolute. */
   stored?: readonly MealIngredientLine[] | null;
+  /** Dishes standing beside the main, each at one serving. */
+  sides?: readonly SideRecipe[];
 }): MealIngredientLine[] {
-  const lines = stored?.length ? [...stored] : scaleRecipe(recipe, servings);
+  // `stored` replaces the main and nothing else. Sides are never materialised:
+  // they are one serving by definition, so there is no amount on them for a
+  // dietitian to move, and keeping them out of `weekly_plan_meal_ingredients`
+  // means an edited meal still reads "صحن سلطة" rather than dissolving into loose
+  // lettuce and tomato. It also keeps that table's one-row-per-food rule true,
+  // which a salad sharing olive oil with the main would otherwise break.
+  const main = stored?.length ? [...stored] : scaleRecipe(recipe, servings);
+  const lines = [...main, ...sideLines(sides)];
+
   return lines.sort((a, b) => a.sortOrder - b.sortOrder);
 }
 

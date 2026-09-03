@@ -58,21 +58,6 @@ export const dishes = pgTable(
     mealTypes: text('meal_types').array().notNull(),
 
     /**
-     * The **practical** tags only: `economical`, `quick`, `easy_prep`,
-     * `no_cook`, `portable`, `filling`, `local`, `vegetarian` — the closed set in
-     * `DISH_TAGS` (`schema.ts`).
-     *
-     * These are what a dietitian's weekly instruction resolves against: "lower
-     * cost" and "portable meals" are only actionable because the catalog says
-     * which dishes are which. Nutrition is NOT here — "high protein" is computed
-     * from the recipe by `nutritionCategory()`, the single source of truth, so a
-     * dish can never be hand-tagged to contradict its own food. Disease
-     * suitability is not here either; it is a patient-specific rule, not a dish
-     * boolean.
-     */
-    tags: text('tags').array().notNull(),
-
-    /**
      * `nuts`, `lactose`, `gluten`, `egg`, `fish`, `sesame`.
      *
      * The catalog is filtered on this column in SQL before a payload is ever
@@ -80,6 +65,34 @@ export const dishes = pgTable(
      * Allergy safety must not depend on a model reading its instructions.
      */
     allergenTags: text('allergen_tags').array().notNull(),
+
+    /**
+     * The four declared axes — `DISH_SOURCES`, `DISH_EFFORTS`, `DISH_COSTS`,
+     * `DISH_OCCASIONS` in `schema.ts`, and `docs/catalog.md` for why they exist.
+     *
+     * Columns rather than another array: exactly one value each, never absent.
+     * That is the whole difference between a category and a tag — a tag bag can
+     * describe nothing, and `tags` above is the proof.
+     *
+     * `source` is the load-bearing one. It is what lets a plan be built for a
+     * client who buys lunch instead of cooking it, and it decides which dishes
+     * may only be served whole.
+     */
+    source: text('source').notNull().default('home'),
+    effort: text('effort').notNull().default('medium'),
+    cost: text('cost').notNull().default('normal'),
+    occasion: text('occasion').notNull().default('everyday'),
+
+    /**
+     * Whether the dish belongs *beside* a meal rather than being one.
+     *
+     * صحن سلطة، كوب شوربة، كوب لبن. A side is never chosen as a meal's main and
+     * never scaled by the budget; it is attached at one serving through
+     * `weekly_plan_meal_sides`. This is what lets a lunch read
+     * "ملوخية · 6 معالق أرز · صحن سلطة" — three things a client can see and tick
+     * — instead of one dish name that cannot be taken apart.
+     */
+    isSide: boolean('is_side').notNull().default(false),
 
     /** e.g. "حصة واحدة" — what one unit of `dish_ingredients` adds up to. */
     baseServingLabel: text('base_serving_label').notNull(),
@@ -166,6 +179,21 @@ export const dishIngredients = pgTable(
      * whole recipe the way every plan did before this column existed.
      */
     isPrimary: boolean('is_primary').notNull().default(false),
+
+    /**
+     * Written without a number, and never scaled — شرائح خضار، صحن السلطة beside
+     * a plate.
+     *
+     * A dietitian writes vegetables free on purpose: they appear in nearly every
+     * meal of a real plan with no amount on them at all. The energy is still
+     * counted, so the day's total stays true; what a free line never does is grow
+     * because the meal around it did.
+     *
+     * `portioning.ts` already froze anything under 15 kcal by guessing. This is
+     * the same rule stated instead of inferred, which is what lets a 40 kcal plate
+     * of cucumber be free too.
+     */
+    isFree: boolean('is_free').notNull().default(false),
 
     sortOrder: integer('sort_order').notNull().default(0),
 

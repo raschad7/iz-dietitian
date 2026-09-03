@@ -28,19 +28,98 @@ import { ingredientAmount } from '../meal-quantity';
 export function MealIngredientAmounts({
   lines,
   locale,
+  flat = false,
 }: {
   lines: readonly MealIngredientLine[];
   locale: string;
+  /**
+   * Given, the lines are known to belong to one dish already and are printed as
+   * a plain list — no grouping, no headings.
+   *
+   * The default is the grouping, because the two surfaces that render a *whole*
+   * meal (the patient's card and the panel's read-only list) hand over the
+   * main's lines and every side's together, and the heading is what stops a
+   * client reading loose lettuce and tomato where a dietitian wrote صحن سلطة.
+   *
+   * The staff panel's side rows are the exception this exists for: there the
+   * side has already been named — it is the row the fold hangs off — and
+   * grouping would print its name a second time directly under itself.
+   */
+  flat?: boolean;
 }) {
   if (!lines.length) return null;
 
+  const { main, sides } = flat
+    ? ({ main: [...lines], sides: [] } satisfies ReturnType<typeof groupBySide>)
+    : groupBySide(lines);
+
   return (
-    <ul className="flex flex-col gap-1.5 text-body-sm">
-      {lines.map((line) => (
-        <IngredientRow key={line.food.id} line={line} locale={locale} />
+    <div className="flex flex-col gap-2">
+      {main.length > 0 && (
+        <ul className="flex flex-col gap-1.5 text-body-sm">
+          {main.map((line) => (
+            <IngredientRow key={lineKey(line)} line={line} locale={locale} />
+          ))}
+        </ul>
+      )}
+
+      {/* A side is named, then its own lines beneath it. Without the heading a
+          client reads loose lettuce and tomato where a dietitian wrote
+          "صحن سلطة", and a plate stops looking like a plate. */}
+      {sides.map((side) => (
+        <div key={side.id} className="border-t border-border pt-2">
+          <p className="mb-1 text-body-sm font-medium" dir="auto">
+            {localizedName(side, locale)}
+          </p>
+          <ul className="flex flex-col gap-1.5 text-body-sm">
+            {side.lines.map((line) => (
+              <IngredientRow key={lineKey(line)} line={line} locale={locale} />
+            ))}
+          </ul>
+        </div>
       ))}
-    </ul>
+    </div>
   );
+}
+
+/**
+ * A line's identity for React.
+ *
+ * The food id alone is not unique any more: a salad standing beside a maqluba
+ * brings its own olive oil, and two rows keyed on the same food is a silently
+ * dropped line rather than a warning anyone reads.
+ */
+function lineKey(line: MealIngredientLine): string {
+  return `${line.side?.id ?? 'main'}:${line.food.id}`;
+}
+
+/** The main's lines, then each side with its own, in the order they were attached. */
+export function groupBySide(lines: readonly MealIngredientLine[]): {
+  main: MealIngredientLine[];
+  sides: { id: string; nameAr: string; nameEn: string; lines: MealIngredientLine[] }[];
+} {
+  const main: MealIngredientLine[] = [];
+  const sides: { id: string; nameAr: string; nameEn: string; lines: MealIngredientLine[] }[] = [];
+
+  for (const line of lines) {
+    if (!line.side) {
+      main.push(line);
+      continue;
+    }
+
+    const group = sides.find((side) => side.id === line.side?.id);
+    if (group) group.lines.push(line);
+    else {
+      sides.push({
+        id: line.side.id,
+        nameAr: line.side.nameAr,
+        nameEn: line.side.nameEn,
+        lines: [line],
+      });
+    }
+  }
+
+  return { main, sides };
 }
 
 /**

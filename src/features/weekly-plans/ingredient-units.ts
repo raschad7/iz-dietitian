@@ -128,6 +128,10 @@ const UNIT_STEPS: Record<string, number> = {
   Cup: 0.25,
   Loaf: 0.5,
   Container: 0.5,
+  // Half a slice is a real instruction — نصف شريحة بطيخ، نصف شريحة جبنة — in a
+  // way half an egg is not. A slice is already a cut off something bigger, so
+  // cutting it again is the ordinary thing to do with one.
+  Slice: 0.5,
 };
 
 /**

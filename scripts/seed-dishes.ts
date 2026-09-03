@@ -30,7 +30,13 @@ import {
   dishes,
   type NewDish,
 } from '@/db/schema';
-import { DISH_TAGS, MEAL_TYPES } from '@/features/weekly-plans/schema';
+import {
+  DISH_COSTS,
+  DISH_EFFORTS,
+  DISH_OCCASIONS,
+  DISH_SOURCES,
+  MEAL_TYPES,
+} from '@/features/weekly-plans/schema';
 import { isMember } from '@/lib/enum';
 
 import { readCatalogDataset } from './seed-catalog-foods';
@@ -65,6 +71,13 @@ type IngredientRecord = {
    */
   primary?: boolean;
   /**
+   * Written without a number, and never scaled — شرائح خضار beside a breakfast.
+   *
+   * Its energy is still counted; what it never does is grow because the meal
+   * around it did. Absent means false.
+   */
+  free?: boolean;
+  /**
    * The household unit this amount is counted in, by its English portion label
    * (`Loaf`, `Piece`, `Cup`).
    *
@@ -83,7 +96,13 @@ export type DishRecord = {
   nameAr: string;
   nameEn: string;
   mealTypes: string[];
-  tags: string[];
+  /** The four declared axes. Required on every dish — see `docs/catalog.md`. */
+  source: string;
+  effort: string;
+  cost: string;
+  occasion: string;
+  /** A side sits beside a meal rather than being one. */
+  isSide: boolean;
   allergenTags: string[];
   baseServingLabel: string;
   ingredients: IngredientRecord[];
@@ -96,10 +115,9 @@ type Dataset = { dishes: DishRecord[] };
  *
  * Every one of these would otherwise surface much later as a plan that looks
  * plausible and is wrong — a dish with no ingredients reads as 0 kcal, a
- * duplicate slug means one definition silently wins, and a **deprecated or
- * unknown tag** (`high_protein`, `diabetic_friendly`, a typo) would let metadata
- * back in that the rest of the app has removed. Returns the problems rather than
- * throwing, so it is unit-testable without a database.
+ * duplicate slug means one definition silently wins, and a missing axis is a dish
+ * that describes nothing. Returns the problems rather than throwing, so it is
+ * unit-testable without a database.
  */
 export function validateDishRecords(records: DishRecord[]): string[] {
   const problems: string[] = [];
@@ -118,13 +136,21 @@ export function validateDishRecords(records: DishRecord[]): string[] {
       }
     }
 
-    // Only the practical tags survive the taxonomy cleanup; a computed-nutrition
-    // tag or a disease tag stored here is a defect, not a value.
-    for (const tag of dish.tags) {
-      if (!isMember(DISH_TAGS, tag)) {
-        problems.push(`${dish.slug}: unknown or deprecated tag "${tag}"`);
+    // Each of the four axes carries exactly one value, and a missing one is the
+    // failure the axes exist to prevent: a dish that describes nothing.
+    for (const [axis, allowed, value] of [
+      ['source', DISH_SOURCES, dish.source],
+      ['effort', DISH_EFFORTS, dish.effort],
+      ['cost', DISH_COSTS, dish.cost],
+      ['occasion', DISH_OCCASIONS, dish.occasion],
+    ] as const) {
+      if (value === undefined) problems.push(`${dish.slug}: no ${axis}`);
+      else if (!isMember(allowed, value)) {
+        problems.push(`${dish.slug}: unknown ${axis} "${value}"`);
       }
     }
+
+    if (typeof dish.isSide !== 'boolean') problems.push(`${dish.slug}: no isSide`);
 
     for (const ingredient of dish.ingredients) {
       if (!(ingredient.grams > 0)) {
@@ -158,8 +184,51 @@ export function validateDishRecords(records: DishRecord[]): string[] {
   return problems;
 }
 
+/**
+ * Every recipe line written in the unit its food declares.
+ *
+ * The rule lives on the food (`countedAs`), so a dish cannot decide that this
+ * time an egg is 50 grams. Before it existed the same egg appeared as "1 حبة" in
+ * one recipe and "50 غ" in another, and a client reading both had no way to know
+ * they were the same thing.
+ *
+ * Only the positive direction is enforced. A food with no declared unit may still
+ * be counted where it reads better — بندورة by the slice, بطاطا by the piece —
+ * because "there is no one right unit for this" is a real answer.
+ *
+ * Takes the food dataset rather than reading the database, so it runs in a test.
+ */
+export function validateCountingUnits(
+  records: readonly DishRecord[],
+  foods: readonly { sourceRef: string; slug: string; countedAs?: string }[],
+): string[] {
+  const problems: string[] = [];
+  const byRef = new Map(foods.map((food) => [food.sourceRef, food]));
+
+  for (const dish of records) {
+    for (const ingredient of dish.ingredients) {
+      const food = byRef.get(String(ingredient.fdcId));
+      if (!food?.countedAs) continue;
+
+      if (ingredient.unit !== food.countedAs) {
+        problems.push(
+          `${dish.slug}: ${food.slug} is always counted in "${food.countedAs}", but this line says ${
+            ingredient.unit ? `"${ingredient.unit}"` : `${ingredient.grams} g`
+          }`,
+        );
+      }
+    }
+  }
+
+  return problems;
+}
+
 function validate(records: DishRecord[]): void {
-  const problems = validateDishRecords(records);
+  const problems = [
+    ...validateDishRecords(records),
+    ...validateCountingUnits(records, readCatalogDataset()),
+  ];
+
   if (problems.length) {
     throw new Error(`data/dishes.json is invalid:\n  ${problems.join('\n  ')}`);
   }
@@ -217,7 +286,15 @@ export async function seedDishes(): Promise<{ dishes: number; ingredients: numbe
   // recorded. `data/dishes.json` carries the same note per ingredient, written by
   // hand from the same source, so comparing them is what still catches an fdcId
   // that has moved onto a different food now that no USDA table is in the database.
-  const noteBySourceRef = new Map(readCatalogDataset().map((food) => [food.sourceRef, food.note]));
+  const catalogFoodsByRef = new Map(readCatalogDataset().map((food) => [food.sourceRef, food]));
+  const noteBySourceRef = new Map(
+    // The note assertion is a check that an fdcId still points at the food it
+    // pointed at when the recipe was written. A food that is not from USDA has no
+    // fdcId to drift, so there is nothing to assert.
+    [...catalogFoodsByRef.values()]
+      .filter((food) => food.sourceType === 'usda_sr_legacy')
+      .map((food) => [food.sourceRef, food.note] as const),
+  );
 
   for (const dish of records) {
     for (const ingredient of dish.ingredients) {
@@ -230,8 +307,8 @@ export async function seedDishes(): Promise<{ dishes: number; ingredients: numbe
         continue;
       }
 
-      const note = noteBySourceRef.get(key) ?? '';
-      if (!note.startsWith(ingredient.note.slice(0, 24))) {
+      const note = noteBySourceRef.get(key);
+      if (note !== undefined && !note.startsWith(ingredient.note.slice(0, 24))) {
         mismatches.push(
           `${dish.slug}: fdcId ${ingredient.fdcId} is "${note}", data/dishes.json says "${ingredient.note}"`,
         );
@@ -299,7 +376,11 @@ export async function seedDishes(): Promise<{ dishes: number; ingredients: numbe
     nameAr: dish.nameAr,
     nameEn: dish.nameEn,
     mealTypes: dish.mealTypes,
-    tags: dish.tags,
+    source: dish.source,
+    effort: dish.effort,
+    cost: dish.cost,
+    occasion: dish.occasion,
+    isSide: dish.isSide,
     allergenTags: dish.allergenTags,
     baseServingLabel: dish.baseServingLabel,
     isActive: true,
@@ -317,7 +398,11 @@ export async function seedDishes(): Promise<{ dishes: number; ingredients: numbe
           nameAr: sqlExcluded('name_ar'),
           nameEn: sqlExcluded('name_en'),
           mealTypes: sqlExcluded('meal_types'),
-          tags: sqlExcluded('tags'),
+          source: sqlExcluded('source'),
+          effort: sqlExcluded('effort'),
+          cost: sqlExcluded('cost'),
+          occasion: sqlExcluded('occasion'),
+          isSide: sqlExcluded('is_side'),
           allergenTags: sqlExcluded('allergen_tags'),
           baseServingLabel: sqlExcluded('base_serving_label'),
           isActive: sqlExcluded('is_active'),
@@ -357,6 +442,7 @@ export async function seedDishes(): Promise<{ dishes: number; ingredients: numbe
           portionId: ingredient.unit ? portionIdFor(foodId, ingredient.unit) : null,
           portionQuantity: ingredient.unit ? (ingredient.count ?? null) : null,
           isPrimary: ingredient.primary ?? false,
+          isFree: ingredient.free ?? false,
           sortOrder: index,
         };
       });

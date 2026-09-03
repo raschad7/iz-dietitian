@@ -36,6 +36,14 @@ import { db } from '@/db';
 import { normalizeArabic } from '@/features/weekly-plans/arabic-normalize';
 import { readMealSnapshot } from '@/features/weekly-plans/nutrition-snapshot';
 
+import {
+  coverage,
+  formatCoverage,
+  type CoverageReport,
+} from '@/features/weekly-plans/coverage';
+import { datasetCatalog } from '@/features/weekly-plans/dataset-catalog';
+import { baseServingKcal } from '@/features/weekly-plans/nutrition';
+
 import { catalogChecksum } from './build-catalog-dataset';
 import { readCatalogDataset } from './seed-catalog-foods';
 import { readDishDataset } from './seed-dishes';
@@ -406,6 +414,29 @@ async function checkFrozenPlans(): Promise<Check> {
   };
 }
 
+/**
+ * The committed datasets as the coverage grid wants them.
+ *
+ * Builds each dish's recipe from `catalog-foods.json` so the base energy and the
+ * protein source are computed the same way the application computes them — from
+ * the grams and the food, never from a number written beside the dish.
+ */
+export function coverageFromDatasets(): CoverageReport {
+  return coverage(
+    datasetCatalog().map((dish) => ({
+      slug: dish.slug,
+      mealTypes: dish.mealTypes,
+      source: dish.source,
+      effort: dish.effort,
+      cost: dish.cost,
+      occasion: dish.occasion,
+      isSide: dish.isSide,
+      baseKcal: baseServingKcal(dish.ingredients),
+      recipe: dish.ingredients,
+    })),
+  );
+}
+
 if (import.meta.main) {
   const [database] = await db.execute<{ name: string }>(sql`select current_database() as name`);
   console.info(`database: ${database?.name ?? 'unknown'}\n`);
@@ -425,6 +456,9 @@ if (import.meta.main) {
     }
     process.exit(1);
   }
+
+  console.info('\ncoverage');
+  console.info(formatCoverage(coverageFromDatasets()));
 
   console.info('\nready.');
   process.exit(0);

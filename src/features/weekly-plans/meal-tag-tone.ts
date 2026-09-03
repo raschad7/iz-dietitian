@@ -1,101 +1,113 @@
-import { DISH_TAGS, type DishTag } from './schema';
+import { PROTEIN_SOURCES, proteinSource, type ProteinSource } from './dish-composition';
+import type { DishIngredientDetail } from './nutrition';
 
 /**
- * A dish can carry several tags, but one divider cannot explain several
- * colours. The **catalog order** is the stable priority: whichever of the dish's
- * tags comes first in `DISH_TAGS` wins, and an untagged or legacy dish keeps the
- * neutral divider.
+ * What a colour means in the planner, in one table.
  *
- * ⚠ Resolved through `DISH_TAGS`, not through the dish's own array. This read
- * `tags.find(...)` for a long time, which picked the first tag *as stored* — and
- * that is a different answer. A dish saved as `['local', 'filling']` listed
- * "مُشبِع، محلي" in the catalog, because everything that renders a tag list runs
- * it through `membersOf(DISH_TAGS, …)` and gets catalog order back, while the
- * meal card painted itself clay from `local`. So the first colour a dietitian
- * saw on the row and the colour of the card it became were two different tags,
- * and the connection the whole map exists for was quietly broken — by the
- * insertion order of an array nobody looks at.
- */
-export function primaryDishTag(tags: readonly string[]): DishTag | null {
-  const present = new Set(tags);
-  return DISH_TAGS.find((tag) => present.has(tag)) ?? null;
-}
-
-/**
- * The colour every practical tag carries.
+ * **It means the dish's protein source, and nothing else.** The meal card's top
+ * rule, the dot beside a name in the catalog, the board's colour key and the
+ * catalog's protein filter all come through here, so a hue learned on one screen
+ * is the same fact on every other.
  *
- * `Record`, not `Partial<Record>` — total on purpose, and the type is what
- * enforces it. `easy_prep` and `no_cook` used to fall through to the neutral
- * divider because the warm palette had run out of hues; the three cool identity
- * stops in `globals.css` exist so they no longer have to, and a tag added to
- * `DISH_TAGS` without a colour is now a compile error rather than a silently
- * grey dot nobody notices until it is in front of a dietitian.
+ * ## Why protein, after two previous answers
+ *
+ * The colour came from `tags` first, where a dish carried several and one
+ * divider had to explain them all — resolved by catalog order, with a long
+ * comment about why the first tag *as stored* was the wrong answer. Then from
+ * `source`, which at least gave every dish exactly one value.
+ *
+ * `source` was still the wrong fact to spend a palette on. 82% of the catalog is
+ * `home`, so the board came out thirty-five cards in one colour: not a legend, a
+ * background. And the question it answered — did they cook this or buy it — is
+ * one a dietitian asks about a *plan*, once, not about each of thirty-five cards.
+ *
+ * Protein source is the fact that earns it:
+ *
+ * - **Computed, never typed.** `proteinSource()` reads the recipe, so a colour
+ *   cannot disagree with the food and cannot go stale when the recipe changes.
+ *   Same law as the nutrition label.
+ * - **Exactly one, always.** There is never a question of which of a dish's
+ *   labels to paint, because it has one. `none` is an answer, so no card is left
+ *   uncoloured.
+ * - **It is what a week is read for.** Chicken three days running is the thing a
+ *   dietitian scans a board to catch, and nothing else on the board says it.
+ * - **It spreads.** The eight values run 55 / 48 / 42 / 34 / 31 / 24 / 22 / 21
+ *   across the catalog, so a week is a mix rather than a monotone.
+ *
+ * `source`, `effort`, `cost` and `occasion` keep their place in the catalog as
+ * words. They read perfectly well as words; only one of them was ever coloured,
+ * which is the inconsistency this removes.
  */
-export const DISH_TAG_ACCENT_CLASS: Record<DishTag, string> = {
-  economical: 'bg-planner-tag-economical',
-  quick: 'bg-planner-tag-quick',
-  easy_prep: 'bg-planner-tag-easy-prep',
-  no_cook: 'bg-planner-tag-no-cook',
-  portable: 'bg-planner-tag-portable',
-  filling: 'bg-planner-tag-filling',
-  local: 'bg-planner-tag-local',
-  vegetarian: 'bg-planner-tag-vegetarian',
+export const PROTEIN_ACCENT_CLASS: Record<ProteinSource, string> = {
+  red_meat: 'bg-planner-protein-red-meat',
+  poultry: 'bg-planner-protein-poultry',
+  fish: 'bg-planner-protein-fish',
+  egg: 'bg-planner-protein-egg',
+  dairy: 'bg-planner-protein-dairy',
+  legume: 'bg-planner-protein-legume',
+  nuts: 'bg-planner-protein-nuts',
+  none: 'bg-planner-protein-none',
 };
 
 /**
- * The computed high-protein label's colour.
+ * The rule a meal card paints.
  *
- * Kept out of the map above because it is not a `DishTag` and must never become
- * one: it is derived from the recipe by `nutritionCategory()`, so it cannot be
- * hand-set to disagree with the dish's own numbers. It reads as a tag in the
- * catalog because that is how a dietitian scans for it; it is simply not one
- * anybody typed, and the type system should keep saying so.
+ * Takes a plain `string` because that is how a protein source arrives from a
+ * board row that computed it — anything unrecognised falls to the neutral mark
+ * rather than to no mark at all.
  */
-export const HIGH_PROTEIN_ACCENT_CLASS = 'bg-planner-tag-high-protein';
-
-export function dishTagAccentClass(tags: readonly string[]): string {
-  const tag = primaryDishTag(tags);
-  return (tag && DISH_TAG_ACCENT_CLASS[tag]) || 'bg-border';
+export function proteinAccentClass(source: string): string {
+  return PROTEIN_ACCENT_CLASS[source as ProteinSource] ?? 'bg-planner-protein-none';
 }
 
 /**
- * The fill for **one** named tag, rather than for a dish's winning tag.
- *
- * The catalog lists every tag a dish carries, each with its own dot, so it needs
- * the colour per tag; the meal card draws one rule and needs
- * `dishTagAccentClass` above. Same map behind both, which is the whole point —
- * the dot beside "سريع" in the catalog and the rule on top of a quick meal in
- * the plan are the same token, so recognising one teaches the other.
- */
-export function dishTagDotClass(tag: DishTag): string {
-  return DISH_TAG_ACCENT_CLASS[tag];
-}
-
-/**
- * The full class run for a tag dot: the fill above, plus the geometry and the
+ * The full class run for a protein dot: the fill above, plus the geometry and the
  * hairline that makes it survive being 8px.
  *
- * The ring is not decoration. `--planner-tag-quick` is `flame-500`, a light
- * yellow the design system reserves for graphic fills — as a 3px rule across a
- * meal card it reads fine, but as a dot on a near-white chip it dissolves. A
- * faint inset ring gives every dot an edge without touching a single hue, so the
- * colour a dietitian learns here is still exactly the colour the plan paints.
- * Darkening the pale ones instead would have been the easy fix and the wrong
- * one: it breaks the equivalence this whole map exists to guarantee.
- *
- * `--foreground` rather than black, so the ring flips with the theme: it has to
- * darken the edge of a pale dot on a light ground and lighten the edge of a deep
- * one on a dark ground, and a fixed black does only the first.
+ * The ring is not decoration. `--planner-protein-egg` is `flame-300`, a light
+ * orange — as a 3px rule across a meal card it reads fine, but as a dot on a
+ * near-white chip it dissolves. A faint inset ring gives every dot an edge
+ * without touching a single hue, so the colour a dietitian learns in the catalog
+ * is still exactly the colour the plan paints. `--foreground` rather than black,
+ * so the ring flips with the theme.
  */
-export function dishTagDotClasses(tag: DishTag): string {
-  return dotClasses(dishTagDotClass(tag));
+export function proteinDotClasses(source: string): string {
+  return `size-2.5 shrink-0 rounded-full ring-1 ring-inset ring-foreground/15 ${proteinAccentClass(source)}`;
 }
 
-/** The same dot, for the computed high-protein label. */
-export function highProteinDotClasses(): string {
-  return dotClasses(HIGH_PROTEIN_ACCENT_CLASS);
+/** Every protein source, in legend order. */
+export const PROTEIN_LEGEND = PROTEIN_SOURCES;
+
+/**
+ * A dish's colour, straight from its recipe.
+ *
+ * The one entry point for anything holding a whole dish rather than a computed
+ * label, so no caller has to remember to run `proteinSource` first — and none of
+ * them can run it on the wrong thing.
+ */
+export function dishAccentClass(recipe: readonly DishIngredientDetail[]): string {
+  return proteinAccentClass(proteinSource(recipe));
 }
 
-function dotClasses(fill: string): string {
-  return `size-2.5 shrink-0 rounded-full ring-1 ring-inset ring-foreground/15 ${fill}`;
+/** The same, as a dot. */
+export function dishDotClasses(recipe: readonly DishIngredientDetail[]): string {
+  return proteinDotClasses(proteinSource(recipe));
+}
+
+/**
+ * A protein source's message key, as a literal.
+ *
+ * next-intl only accepts keys it can see, and `t(`proteinSources.${value}`)` on a
+ * plain `string` widens to every key that could ever be written — which is not a
+ * key at all. This narrows once, here, so every surface naming a protein source
+ * does it the same way and an unrecognised value reads as "no main protein"
+ * rather than throwing at render.
+ *
+ * The same guard `axisMessageKey` applies to the four axes, for the same reason.
+ */
+export type ProteinMessageKey = `proteinSources.${ProteinSource}`;
+
+export function proteinMessageKey(value: string): ProteinMessageKey {
+  const known = PROTEIN_SOURCES.find((one) => one === value) ?? 'none';
+  return `proteinSources.${known}`;
 }

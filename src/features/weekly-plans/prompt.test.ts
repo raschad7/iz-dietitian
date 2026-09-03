@@ -1,16 +1,27 @@
 import { describe, expect, test } from 'bun:test';
 
-import { buildPrompt, EmptySlotCatalogError, type PromptDish, type PromptInput } from './prompt';
+import {
+  buildPrompt,
+  EmptySlotCatalogError,
+  MAX_SIDES,
+  type PromptDish,
+  type PromptInput,
+} from './prompt';
 
 const CATALOG: PromptDish[] = [
   {
     slug: 'mujaddara-salad',
     nameAr: 'مجدرة مع سلطة خضراء',
     mealTypes: ['lunch', 'dinner'],
-    tags: ['economical', 'vegetarian'],
+    source: 'home',
+    effort: 'medium',
+    cost: 'normal',
+    occasion: 'everyday',
     baseKcal: 618.4,
     baseProtein: 21.7,
     nutritionCategory: 'balanced',
+    proteinSource: 'legume',
+    carbBase: 'rice',
   },
   {
     slug: 'labaneh-zeit-pita',
@@ -18,10 +29,15 @@ const CATALOG: PromptDish[] = [
     mealTypes: ['breakfast'],
     // Practical tags only — "high protein" is not among them; it rides in the
     // separate nutritionCategory field below, computed from the recipe.
-    tags: ['quick'],
+    source: 'home',
+    effort: 'medium',
+    cost: 'normal',
+    occasion: 'everyday',
     baseKcal: 381.2,
     baseProtein: 18.4,
     nutritionCategory: 'high_protein',
+    proteinSource: 'dairy',
+    carbBase: 'bread',
   },
 ];
 
@@ -50,6 +66,7 @@ function input(overrides: Partial<PromptInput> = {}): PromptInput {
     },
     budgets: BUDGETS,
     catalog: CATALOG,
+    sides: [],
     instruction: 'تحضير أسهل وتكلفة أقل',
     previousSlugs: ['fattoush', 'musakhan'],
     days: [0, 1, 2, 3, 4, 5, 6],
@@ -148,19 +165,27 @@ describe('buildPrompt — content', () => {
     const { user } = buildPrompt(input());
 
     expect(user).toContain(
-      'mujaddara-salad\tمجدرة مع سلطة خضراء\tlunch|dinner\teconomical|vegetarian\t618kcal\t22g\tbalanced',
+      'mujaddara-salad\tمجدرة مع سلطة خضراء\tlunch|dinner\t618kcal\t22g\tbalanced',
     );
   });
 
-  test('keeps practical tags and computed nutrition in separate columns', () => {
+  /**
+   * The model is told what a dish *is* (its four declared axes) and what it
+   * *contains* (computed from the recipe) in separate columns, so a label it
+   * reads can never be one someone typed to contradict the food.
+   */
+  test('carries the declared axes and the computed nutrition in their own columns', () => {
     const { user } = buildPrompt(input());
 
-    // The header names both, distinctly.
-    expect(user).toContain('slug\tname\tmeal_types\ttags\tbase_kcal\tbase_protein\tnutrition');
+    expect(user).toContain(
+      'slug\tname\tmeal_types\tbase_kcal\tbase_protein\tnutrition\tprotein_source\tcarb_base\tsource\teffort\tcost\toccasion',
+    );
 
-    // labaneh is computed high_protein, but "high_protein" is NOT in its tags
-    // column — it appears only in the trailing computed-nutrition column.
-    expect(user).toContain('labaneh-zeit-pita\tلبنة بزيت الزيتون مع خبز\tbreakfast\tquick\t381kcal\t18g\thigh_protein');
+    // labaneh is computed high_protein, and that appears only in the nutrition
+    // column — there is nowhere on the wire for a hand-written one to live.
+    expect(user).toContain(
+      'labaneh-zeit-pita\tلبنة بزيت الزيتون مع خبز\tbreakfast\t381kcal\t18g\thigh_protein\tdairy\tbread\thome\tmedium\tnormal\teveryday',
+    );
   });
 
   test('names last week so the model can vary', () => {
@@ -202,11 +227,28 @@ describe('buildPrompt — json schema', () => {
     expect(slotSchemaOf(jsonSchema, 'lunch').properties.dish.enum).toEqual(['mujaddara-salad']);
   });
 
-  test('alternatives are constrained to the same per-slot dishes', () => {
+  /**
+   * The model is not asked for substitutes any more — `generate.ts` computes them
+   * from the catalog, which is arithmetic it already has and a third of the output
+   * the model was spending on the same three dishes every day.
+   */
+  test('a meal asks for a dish, a portion, a reason and its sides, and nothing else', () => {
     const { jsonSchema } = buildPrompt(input());
     const lunch = slotSchemaOf(jsonSchema, 'lunch');
 
-    expect(lunch.properties.alternatives.items.properties.dish.enum).toEqual(['mujaddara-salad']);
+    expect(Object.keys(lunch.properties).sort()).toEqual([
+      'dish',
+      'rationaleAr',
+      'servings',
+      'sides',
+    ]);
+  });
+
+  test('the week carries one summary of its own', () => {
+    const { jsonSchema } = buildPrompt(input());
+
+    expect(propertiesOf(jsonSchema).summaryAr).toEqual({ type: 'string' });
+    expect(jsonSchema.required).toEqual(['summaryAr', 'days']);
   });
 
   test('a day is keyed by slot, so no slot can be missing or duplicated', () => {
@@ -232,7 +274,7 @@ describe('buildPrompt — json schema', () => {
     expect(day.additionalProperties).toBe(false);
     expect(lunch.additionalProperties).toBe(false);
 
-    expect(lunch.required).toEqual(['dish', 'servings', 'rationaleAr', 'alternatives']);
+    expect(lunch.required).toEqual(['dish', 'servings', 'rationaleAr', 'sides']);
     expect(Object.keys(lunch.properties).sort()).toEqual([...lunch.required].sort());
   });
 
@@ -248,6 +290,10 @@ describe('buildPrompt — json schema', () => {
 });
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+function propertiesOf(schema: Record<string, unknown>): any {
+  return (schema as any).properties;
+}
+
 function daySchemaOf(schema: Record<string, unknown>): any {
   return (schema as any).properties.days.items;
 }
@@ -255,3 +301,60 @@ function daySchemaOf(schema: Record<string, unknown>): any {
 function slotSchemaOf(schema: Record<string, unknown>, slotKey: string): any {
   return daySchemaOf(schema).properties[slotKey];
 }
+
+/**
+ * A side is not a meal. The enum is what makes that unrepresentable rather than
+ * merely instructed — the model cannot name a salad where a lunch belongs, and it
+ * cannot name a lunch where a salad belongs.
+ */
+describe('buildPrompt — sides', () => {
+  const salad: PromptDish = {
+    slug: 'green-salad-plate',
+    nameAr: 'صحن سلطة',
+    mealTypes: ['lunch', 'dinner'],
+    source: 'home',
+    effort: 'no_cook',
+    cost: 'cheap',
+    occasion: 'everyday',
+    baseKcal: 85,
+    baseProtein: 2,
+    nutritionCategory: 'balanced',
+    proteinSource: 'none',
+    carbBase: 'none',
+  };
+
+  test('a side never appears in a slot dish enum', () => {
+    const { jsonSchema } = buildPrompt({ ...input(), sides: [salad] });
+    const lunch = slotSchemaOf(jsonSchema, 'lunch');
+
+    expect((lunch.properties.dish as { enum: string[] }).enum).not.toContain('green-salad-plate');
+  });
+
+  test('the sides array accepts only the side catalog, and at most two', () => {
+    const { jsonSchema } = buildPrompt({ ...input(), sides: [salad] });
+    const lunch = slotSchemaOf(jsonSchema, 'lunch');
+    const sides = lunch.properties.sides as {
+      maxItems: number;
+      items: { enum?: string[] };
+    };
+
+    expect(sides.maxItems).toBe(MAX_SIDES);
+    expect(sides.items.enum).toEqual(['green-salad-plate']);
+  });
+
+  /** With nothing to attach, the array is typed as never having items at all. */
+  test('an empty side catalog produces an array that can hold nothing', () => {
+    const { jsonSchema } = buildPrompt(input());
+    const lunch = slotSchemaOf(jsonSchema, 'lunch');
+
+    expect((lunch.properties.sides as { maxItems: number }).maxItems).toBe(0);
+  });
+
+  test('the user prompt lists the sides and says they are not meals', () => {
+    const { user } = buildPrompt({ ...input(), sides: [salad] });
+
+    expect(user).toContain('## Sides');
+    expect(user).toContain('صحن سلطة');
+    expect(user).toContain('never instead of one');
+  });
+});

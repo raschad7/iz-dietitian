@@ -20,13 +20,14 @@ import type { SlotBudget } from './targets';
 import { MAX_RATIONALE_LENGTH, mealTypeForSlot, type GenerationScope } from './schema';
 import { MAX_SERVINGS, MIN_SERVINGS, SERVING_STEP } from './similar';
 
+/** At most two things beside a main. A third is a buffet, not a plate. */
+export const MAX_SIDES = 2;
+
 /** A catalog entry, as the model sees it. */
 export type PromptDish = {
   slug: string;
   nameAr: string;
   mealTypes: readonly string[];
-  /** The **practical** tags only (cost, effort, cuisine). Nutrition is never in here. */
-  tags: readonly string[];
   /** Energy for one base serving, rounded — three significant figures is generous here. */
   baseKcal: number;
   baseProtein: number;
@@ -34,10 +35,32 @@ export type PromptDish = {
    * The **computed** nutrition label (`high_protein` | `high_carb` | `high_fat` |
    * `balanced`), derived server-side from the recipe. Given to the model so it
    * never has to guess whether a dish is high-protein — kept as its own field,
-   * distinct from the practical `tags`, so the two kinds of metadata stay
+   * distinct from the declared axes below, so the two kinds of metadata stay
    * separate on the wire exactly as they are in the data.
    */
   nutritionCategory: string;
+  /**
+   * What the dish's protein is and what it is eaten with, derived from the recipe
+   * by `dish-composition.ts`.
+   *
+   * The model used to see a name and a calorie count, which is why it could put
+   * chickpeas in eight meals of a week while obeying every rule it was given: the
+   * repetition a person notices is in the ingredients, and the ingredients were
+   * not on the wire.
+   */
+  proteinSource: string;
+  carbBase: string;
+  /**
+   * The four declared axes — see `docs/catalog.md`.
+   *
+   * `source` is the one that changes what the model can do: until it existed, a
+   * plan silently assumed every client goes home and cooks, and "he buys lunch
+   * near work" was an instruction with nothing to resolve against.
+   */
+  source: string;
+  effort: string;
+  cost: string;
+  occasion: string;
 };
 
 export type PromptClient = {
@@ -61,8 +84,17 @@ export type PromptInput = {
   client: PromptClient;
   /** Slots with their calorie budgets, already normalised by `slotBudgets`. */
   budgets: readonly SlotBudget[];
-  /** Allergen-filtered and active only. */
+  /** Allergen-filtered and active only. Mains — never a side. */
   catalog: readonly PromptDish[];
+  /**
+   * What may be put *beside* a meal: صحن سلطة، كوب شوربة، كوب لبن.
+   *
+   * A separate list rather than a flag inside `catalog`, because the model is
+   * answering a different question about them. A main is chosen against a budget;
+   * a side is chosen to complete a plate, always at one serving, and it may never
+   * be the meal itself.
+   */
+  sides: readonly PromptDish[];
   /** This week's note from the dietitian. */
   instruction: string | null;
   /** Dish slugs used in the previous plan, so the model can vary deliberately. */
@@ -100,12 +132,42 @@ function buildSystem(): string {
     'Rules:',
     '- Choose meals ONLY from the provided dish catalog, by slug. There are no other dishes.',
     '- Every requested day must appear, and every slot in a day must be filled.',
-    '- Match each slot to its calorie budget as closely as the catalog allows, by adjusting servings.',
-    `- servings must be a multiple of ${SERVING_STEP}, between ${MIN_SERVINGS} and ${MAX_SERVINGS}.`,
-    '- Vary the week. Do not repeat the same dish more than twice across all days, and never on consecutive days in the same slot.',
-    '- Honour the dietitian instructions and the client dislikes. Instructions outrank variety.',
+    '- Match each slot to its calorie budget as closely as the catalog allows. Prefer a dish whose base energy is near the budget over a small dish eaten several times over: portions are set afterwards by arithmetic, they are capped at what a person serves, and a 90 kcal snack cannot be stretched to fill a 250 kcal slot.',
+    `- servings is a hint only, and is recomputed. Give a multiple of ${SERVING_STEP} between ${MIN_SERVINGS} and ${MAX_SERVINGS}.`,
+    '- Aim at the daily protein target as well as the calorie target. Protein comes from the dishes you choose; nothing downstream can add it.',
+    '',
+    'Variety, which is what makes a plan look like food rather than output:',
+    '- Never the same dish twice in one day, and no more than twice in the week.',
+    '- Never the same protein_source twice in one day. Chicken at lunch and chicken at dinner is one meal served twice.',
+    '- No protein_source more than three times in the week, and use at least four different ones.',
+    '- Include fish at least twice in a week where the catalog allows it.',
+    '- Vary carb_base across the day and the week; not rice at every lunch.',
+    '- A day needs a shape: something warm and cooked at lunch or dinner, not two cold salads.',
+    '- `source` says where the client gets a dish: home, street, restaurant or shop. Plan home cooking unless the instruction says they eat out, then use that many street or restaurant meals and no more.',
+    '- Respect `effort` and `cost` when the instruction asks for them. A client who cooks only at the weekend cannot be given four `long` dishes on weekdays.',
+    '- `occasion` says when a dish belongs. Use `ramadan` and `festive` dishes ONLY when the instruction says the week is Ramadan or a holiday; an ordinary week is `everyday` and `family`. A كنافة on a Tuesday afternoon is the mistake this rule exists to prevent.',
+    '',
+    'Sides — what stands beside the main:',
+    '- A side is optional. Roughly half to two thirds of lunches and dinners carry one; the rest are the plate on its own. A salad on all fourteen is not how anyone eats, and it is not a plan — it is a default.',
+    '- NEVER the same side twice in one day, and no side more than twice in the week. The catalog holds several salads and several soups: use different ones. Repeating صحن سلطة every day is the single most obvious way a plan looks generated.',
+    '- Match the side to the plate. A heavy rice dish takes something raw and sharp; a light dish can take a soup or a cup of yogurt. Do not put a soup and a salad on the same meal unless the main is small.',
+    '- Breakfast and snacks rarely need one.',
+    '- At most two, and never a side on its own.',
+    '- A side is one serving and is NOT counted against the slot budget you were given — that budget is for the main. Choose the main first.',
+    '- Do not repeat the same dish in the same slot on consecutive days.',
+    '',
+    'Honour the dietitian instructions and the client dislikes. Instructions outrank variety.',
+    '',
     `- rationaleAr: ONE short sentence in Arabic (under ${MAX_RATIONALE_LENGTH} characters) saying why this dish suits this client. Plain, concrete, no marketing language.`,
-    '- alternatives: up to 3 other catalog dishes that fit the same slot and land within 15% of the same calorie budget. Never repeat the chosen dish.',
+    '',
+    'summaryAr — NOTES FOR THE DIETITIAN, not a description of the week:',
+    '- Write 2 to 4 short notes in Arabic, one per line, each starting with "- ". Nothing else: no heading, no closing sentence.',
+    '- Each note must be something the dietitian can ACT ON. A note she cannot do anything with is worse than no note, because she still has to read it.',
+    '- Write about: what to confirm with this client before sending the plan; where the week is likely to fail and what to swap if it does; what you did because of their dislikes, allergies or the instruction, and what you could not do; anything about this week that needs watching or asking about at the next visit.',
+    '- DO NOT summarise the plan. "A varied week of Palestinian home dishes with different starches" describes what she is already looking at, and tells her nothing she does not know. It is the exact note not to write.',
+    '- Be specific: name the day, the meal or the dish you mean. "Thursday lunch is from a restaurant" is a note; "some meals are eaten out" is not.',
+    '- Say it plainly, as one colleague to another. No marketing language, no praise for the plan.',
+    '- Examples of the register: "- غداء الخميس من مطعم — تأكدي أنه فعلاً يأكل خارج البيت ذلك اليوم." / "- البروتين أقل من الهدف يومي الثلاثاء والجمعة؛ إضافة بيضة على الفطور تسدّ الفرق." / "- تجنبت السمك بناءً على ما ذكرته، فالأوميغا 3 هذا الأسبوع من المكسرات فقط."',
     '',
     'The catalog already excludes anything the client is allergic to. Choose freely within it.',
   ].join('\n');
@@ -153,14 +215,35 @@ function describeCatalog(catalog: readonly PromptDish[]): string {
       dish.slug,
       dish.nameAr,
       dish.mealTypes.join('|'),
-      dish.tags.join('|'),
       `${Math.round(dish.baseKcal)}kcal`,
       `${Math.round(dish.baseProtein)}g`,
       dish.nutritionCategory,
+      dish.proteinSource,
+      dish.carbBase,
+      dish.source,
+      dish.effort,
+      dish.cost,
+      dish.occasion,
     ].join('\t'),
   );
 
-  return ['slug\tname\tmeal_types\ttags\tbase_kcal\tbase_protein\tnutrition', ...rows].join('\n');
+  return [
+    [
+      'slug',
+      'name',
+      'meal_types',
+      'base_kcal',
+      'base_protein',
+      'nutrition',
+      'protein_source',
+      'carb_base',
+      'source',
+      'effort',
+      'cost',
+      'occasion',
+    ].join('\t'),
+    ...rows,
+  ].join('\n');
 }
 
 function describeBudgets(budgets: readonly SlotBudget[]): string {
@@ -170,7 +253,7 @@ function describeBudgets(budgets: readonly SlotBudget[]): string {
 }
 
 export function buildPrompt(input: PromptInput): PromptPayload {
-  const { client, budgets, catalog, instruction, previousSlugs, days } = input;
+  const { client, budgets, catalog, sides, instruction, previousSlugs, days } = input;
 
   const sections: string[] = [
     '## Client',
@@ -182,6 +265,15 @@ export function buildPrompt(input: PromptInput): PromptPayload {
     '## Dish catalog',
     describeCatalog(catalog),
   ];
+
+  if (sides.length) {
+    sections.push(
+      '',
+      '## Sides',
+      'These may be added beside a main, never instead of one. Each is one serving and is not scaled.',
+      describeCatalog(sides),
+    );
+  }
 
   if (previousSlugs.length) {
     sections.push(
@@ -205,7 +297,7 @@ export function buildPrompt(input: PromptInput): PromptPayload {
   return {
     system: buildSystem(),
     user: sections.join('\n'),
-    jsonSchema: buildJsonSchema(catalog, budgets, days),
+    jsonSchema: buildJsonSchema(catalog, sides, budgets, days),
   };
 }
 
@@ -238,9 +330,12 @@ export class EmptySlotCatalogError extends Error {
  */
 function buildJsonSchema(
   catalog: readonly PromptDish[],
+  sides: readonly PromptDish[],
   budgets: readonly SlotBudget[],
   days: readonly number[],
 ): Record<string, unknown> {
+  const sideSlugs = sides.map((dish) => dish.slug);
+
   const mealForSlot = (slotKey: string) => {
     const slugs = catalog
       .filter((dish) => dish.mealTypes.includes(mealTypeForSlot(slotKey)))
@@ -250,6 +345,14 @@ function buildJsonSchema(
 
     const dish = { type: 'string', enum: slugs };
 
+    // Strict mode has no optional properties, so `sides` is required and may be
+    // empty. An enum of the side slugs is what makes "a side is not a meal"
+    // unrepresentable rather than merely instructed — with no sides in the
+    // catalog the array is typed as never having items at all.
+    const sideList = sideSlugs.length
+      ? { type: 'array', maxItems: MAX_SIDES, items: { type: 'string', enum: sideSlugs } }
+      : { type: 'array', maxItems: 0, items: { type: 'string' } };
+
     return {
       type: 'object',
       additionalProperties: false,
@@ -257,17 +360,9 @@ function buildJsonSchema(
         dish,
         servings: { type: 'number' },
         rationaleAr: { type: 'string' },
-        alternatives: {
-          type: 'array',
-          items: {
-            type: 'object',
-            additionalProperties: false,
-            properties: { dish, servings: { type: 'number' } },
-            required: ['dish', 'servings'],
-          },
-        },
+        sides: sideList,
       },
-      required: ['dish', 'servings', 'rationaleAr', 'alternatives'],
+      required: ['dish', 'servings', 'rationaleAr', 'sides'],
     };
   };
 
@@ -279,6 +374,7 @@ function buildJsonSchema(
     type: 'object',
     additionalProperties: false,
     properties: {
+      summaryAr: { type: 'string' },
       days: {
         type: 'array',
         items: {
@@ -292,6 +388,6 @@ function buildJsonSchema(
         },
       },
     },
-    required: ['days'],
+    required: ['summaryAr', 'days'],
   };
 }

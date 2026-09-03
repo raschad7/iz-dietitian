@@ -10,10 +10,12 @@ import { cn } from '@/lib/utils';
 import { MEAL_TOLERANCE, driftState } from '@/features/weekly-plans/drift';
 import { roundForDisplay } from '@/features/weekly-plans/nutrition';
 import { localizedName } from '../food-display';
-import { dishTagAccentClass } from '../meal-tag-tone';
+import { dishAccentClass } from '../meal-tag-tone';
+import { proteinSource } from '../dish-composition';
 import type { BoardMeal } from '../queries';
 
 import { useEditorActions } from './board-dnd';
+import { MealSideChips } from './meal-side-chips';
 
 /** What the same slot held in the plan being compared against. */
 export type GhostMeal = { nameAr: string; nameEn: string; isRepeat: boolean };
@@ -88,7 +90,8 @@ export function MealCard({
             dishName: localizedName(meal.dish, locale),
             kcal,
             servings: meal.dish.servings,
-            tags: meal.dish.tags,
+            sides: meal.sides,
+            protein: proteinSource(meal.dish.ingredients),
           }
         : undefined,
     },
@@ -183,7 +186,25 @@ export function MealCard({
       onTouchStart={onTouchStart as TouchEventHandler<HTMLDivElement> | undefined}
       className={cn(
         'planner-meal-card group relative min-h-0 overflow-hidden rounded-lg border bg-card transition-[border-color,background-color,transform,opacity,box-shadow] duration-(--duration-sweep) ease-(--ease-sweep)',
-        selected ? 'border-primary ring-1 ring-primary' : 'border-border',
+        /*
+          Selected is a halo, not a second edge.
+
+          It was `border-primary ring-1 ring-primary`: a 1px green border with a
+          1px green ring flush against it, which draws as a single hard 2px line
+          around the card. Two things were wrong with it. It is the loudest
+          possible treatment for a state that only says *this is the one whose
+          panel is open* — the panel itself is already on screen saying so — and
+          because both halves are full-strength primary, the transition into it
+          has nowhere to travel: the card goes from a grey hairline to a green
+          slab in one step and reads as a snap even though it is tweened.
+
+          A soft edge and a wide, faint ring instead. The ring is three pixels of
+          primary at 15%, which is a glow rather than a line, and the border only
+          takes 40% of the hue — so the geometry is unchanged, nothing on the
+          card moves, and the change the eye sees is a lift. `shadow-elevated`
+          finishes it: the selected card is the one in front.
+        */
+        selected ? 'border-primary/40 ring-[3px] ring-primary/15 shadow-elevated' : 'border-border',
         meal.dish === null && 'border-dashed bg-muted/40',
         wouldLand && 'scale-[1.01] border-primary bg-secondary shadow-elevated',
         isDragging && 'border-dashed bg-muted',
@@ -240,19 +261,38 @@ export function MealCard({
             board of thirty-five cards, and the card is about the dish. 14px is
             the dense-table step, and the UI face is where the tabular figures
             actually live. */}
-        {/* One figure at the foot, centred under the name.
-            The dish's total weight used to sit opposite it. It is a number
-            nobody plans against — the target is calories, the portion is set by
-            ingredient in the detail panel — and printing it on all thirty-five
-            cards made every card a two-column table whose second column was
-            never read. With it gone the calories stop being pushed to one edge
-            and sit under the dish they belong to. */}
-        <span className="relative mt-1 flex shrink-0 items-baseline justify-center gap-2 px-2 pb-1.5 pt-2.5">
+        {/*
+            ── The foot has two ends now ──
+
+            It was one centred figure, on the argument that the calories belong
+            under the dish they are for. That held while the calories were the
+            only thing down here. They are not: a lunch carries a salad or a cup
+            of soup, and the caption that used to say so — `+ صحن سلطة`, a second
+            line of Arabic under the dish name — was the quieter half of the
+            sentence taking the same width as the loud half, on every card in
+            the column.
+
+            So the row is a `justify-between` with one fact at each end: the
+            energy on the reading edge, where the eye already runs down a column
+            comparing figures, and what is standing beside the meal on the other,
+            as a tinted glyph per side. Logical properties, so Arabic gets the
+            calories on the right and the chips on the left and English gets the
+            mirror — each script keeps its own "first".
+
+            A card with no sides simply has nothing at that end. The calories do
+            not re-centre themselves to fill the gap: a column whose figures move
+            sideways depending on whether the meal came with a salad is a column
+            you have to read rather than scan.
+
+            `items-center`, not `items-baseline`. There is no text on the other
+            end to share a baseline with any more — a 20px chip aligned by the
+            baseline of the text beside it hangs below the row. */}
+        <span className="relative mt-1 flex shrink-0 items-center justify-between gap-2 px-2 pb-1.5 pt-2.5">
           <span
             aria-hidden
             className={cn(
               'absolute start-4 end-4 top-0 h-[3px] rounded-full',
-              meal.dish ? dishTagAccentClass(meal.dish.tags) : 'bg-border',
+              meal.dish ? dishAccentClass(meal.dish.ingredients) : 'bg-border',
             )}
           />
           <span
@@ -274,6 +314,8 @@ export function MealCard({
               <small className="text-caption font-normal text-muted-foreground">kcal</small>
             )}
           </span>
+
+          {meal.dish && <MealSideChips sides={meal.sides} locale={locale} />}
         </span>
 
         {ghost && (
@@ -368,7 +410,11 @@ export function MealCardSnapshot({ meal }: { meal: BoardMeal }) {
   const drift = meal.dish === null ? null : driftState(kcal, meal.budgetKcal, MEAL_TOLERANCE);
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-lg border border-primary bg-card text-start ring-2 ring-primary shadow-elevated">
+    /* The same halo the real card wears when selected — see the note on the
+       selected branch above. It is the *same* card as far as the reader is
+       concerned, floating over the scrim while its panel is open, so a heavier
+       ring here would read as the card having changed on the way up. */
+    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-lg border border-primary/40 bg-card text-start ring-[3px] ring-primary/15 shadow-elevated">
       <span className="flex min-h-0 flex-1 items-center justify-center px-2 pt-2">
         <span
           className={cn(
@@ -381,12 +427,12 @@ export function MealCardSnapshot({ meal }: { meal: BoardMeal }) {
         </span>
       </span>
 
-      <span className="relative mt-1 flex shrink-0 items-baseline justify-center gap-2 px-2 pb-1.5 pt-2.5">
+      <span className="relative mt-1 flex shrink-0 items-center justify-between gap-2 px-2 pb-1.5 pt-2.5">
         <span
           aria-hidden
           className={cn(
             'absolute start-4 end-4 top-0 h-[3px] rounded-full',
-            meal.dish ? dishTagAccentClass(meal.dish.tags) : 'bg-border',
+            meal.dish ? dishAccentClass(meal.dish.ingredients) : 'bg-border',
           )}
         />
         <span
@@ -399,6 +445,8 @@ export function MealCardSnapshot({ meal }: { meal: BoardMeal }) {
           <span dir="ltr">{meal.dish ? kcal : '—'}</span>
           {meal.dish && <small className="text-caption font-normal text-muted-foreground">kcal</small>}
         </span>
+
+        {meal.dish && <MealSideChips sides={meal.sides} locale={locale} />}
       </span>
     </div>
   );

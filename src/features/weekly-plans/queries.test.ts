@@ -132,7 +132,6 @@ describe('getBoard', () => {
         nameAr: 'طبق متقاعد',
         nameEn: 'Retired dish',
         mealTypes: ['lunch'],
-        tags: [],
         allergenTags: [],
         baseServingLabel: 'حصة',
       })
@@ -184,7 +183,6 @@ describe('planDishesBySlot', () => {
         nameAr: 'مصدر',
         nameEn: 'Source',
         mealTypes: ['lunch'],
-        tags: [],
         allergenTags: [],
         baseServingLabel: 'حصة',
       })
@@ -260,7 +258,6 @@ describe('loadCatalog ownership', () => {
         nameAr: slug,
         nameEn: slug,
         mealTypes: ['lunch'],
-        tags: [],
         allergenTags: [],
         baseServingLabel: 'serving',
       })
@@ -282,7 +279,6 @@ describe('loadCatalog ownership', () => {
         nameAr: 'own',
         nameEn: 'own',
         mealTypes: ['lunch'],
-        tags: [],
         allergenTags: [],
         baseServingLabel: 'serving',
       })
@@ -293,7 +289,6 @@ describe('loadCatalog ownership', () => {
       nameAr: 'other',
       nameEn: 'other',
       mealTypes: ['lunch'],
-      tags: [],
       allergenTags: [],
       baseServingLabel: 'serving',
     });

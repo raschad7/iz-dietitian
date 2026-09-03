@@ -2106,7 +2106,8 @@
       "clientNotFound": "Client not found.",
       "unexpected": "Something went wrong.",
       "notFound": "Dish not found.",
-      "inUse": "This dish is used in an active plan and cannot be deleted."
+      "inUse": "This dish is used in an active plan and cannot be deleted.",
+      "reviewFailed": "The plan could not be reviewed."
     },
     "tabs": {
       "client": "Client",
@@ -2144,8 +2145,8 @@
     "searchDishes": "Search dishes",
     "dishFilters": "Filters",
     "clearFilters": "Clear filters",
-    "colorKey": "Dish colour key",
-    "colorKeyUntagged": "No properties",
+    "colorKey": "The week's protein sources",
+    "colorKeyUntagged": "Unclassified",
     "filterTags": "Dish type",
     "filterForThisSlot": "Fits this slot",
     "dishOptions": {
@@ -2170,15 +2171,36 @@
       "lunch": "Lunch",
       "dinner": "Dinner"
     },
-    "tags": {
-      "economical": "Economical",
-      "quick": "Quick",
-      "easy_prep": "Easy prep",
-      "no_cook": "No cook",
-      "portable": "Portable",
-      "filling": "Filling",
-      "local": "Local",
-      "vegetarian": "Vegetarian"
+    "axes": {
+      "source": {
+        "home": "Home-cooked",
+        "street": "Street",
+        "restaurant": "Restaurant",
+        "shop": "Shop-bought"
+      },
+      "effort": {
+        "no_cook": "No cooking",
+        "quick": "Under 15 min",
+        "medium": "Under 45 min",
+        "long": "Needs time"
+      },
+      "cost": {
+        "cheap": "Cheap",
+        "normal": "Normal",
+        "expensive": "Expensive"
+      },
+      "occasion": {
+        "everyday": "Everyday",
+        "family": "Family",
+        "ramadan": "Ramadan",
+        "festive": "Festive"
+      }
+    },
+    "axisLabels": {
+      "source": "Where from",
+      "effort": "Effort",
+      "cost": "Cost",
+      "occasion": "Occasion"
     },
     "dropHere": "Drop here",
     "addMeal": "Add a meal",
@@ -2264,7 +2286,55 @@
       "iron": "Iron",
       "potassium": "Potassium"
     },
-    "unmeasuredCount": "{count, number, integer} of these foods have no published value for this nutrient, so the real total is higher."
+    "unmeasuredCount": "{count, number, integer} of these foods have no published value for this nutrient, so the real total is higher.",
+    "review": {
+      "title": "Plan review",
+      "run": "Review this week",
+      "running": "Reviewing…",
+      "again": "Review again",
+      "empty": "This plan has not been reviewed yet.",
+      "emptyHint": "The model reads the week as the client receives it and writes down what it notices. The arithmetic checks run here first.",
+      "problem": "Problem",
+      "suggestion": "Suggestion",
+      "checks": "Arithmetic checks",
+      "week": "Whole week",
+      "noFindings": "Nothing to flag. The week is ready to hand over.",
+      "reviewedAt": "Reviewed",
+      "verdict": {
+        "usable": "Ready",
+        "needs_work": "Needs work",
+        "not_usable": "Not ready"
+      },
+      "severity": {
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low"
+      }
+    },
+    "proteinSources": {
+      "red_meat": "Red meat",
+      "poultry": "Chicken and turkey",
+      "fish": "Fish",
+      "egg": "Eggs",
+      "dairy": "Dairy",
+      "legume": "Legumes",
+      "nuts": "Nuts and seeds",
+      "none": "No main protein"
+    },
+    "sidesLabel": "Served with",
+    "sidesHint": "Optional · up to two",
+    "noSides": "Nothing beside this meal",
+    "addSide": "Add something beside it",
+    "removeSide": "Remove side",
+    "planNotes": "Notes for the dietitian",
+    "mealViews": "Meal views",
+    "plateTab": "The plate",
+    "optionsTab": "Alternatives",
+    "sideIngredients": "Ingredients",
+    "fillSlotHint": "Dishes are ordered by how close they are to this slot’s target",
+    "mealEnergy": "Meal energy",
+    "slotBudget": "Slot budget",
+    "filterMealType": "Meal type"
   },
   "dishes": {
     "title": "Dish catalog",
@@ -2304,7 +2374,7 @@
     "columns": {
       "name": "Dish",
       "mealTypes": "Meal time",
-      "tags": "Qualities",
+      "properties": "Qualities",
       "kcal": "Calories",
       "carbs": "Carbs",
       "protein": "Protein",
@@ -2336,15 +2406,36 @@
       "lunch": "Lunch",
       "dinner": "Dinner"
     },
-    "tags": {
-      "economical": "Economical",
-      "quick": "Quick",
-      "easy_prep": "Easy prep",
-      "no_cook": "No cook",
-      "portable": "Portable",
-      "filling": "Filling",
-      "local": "Local",
-      "vegetarian": "Vegetarian"
+    "axes": {
+      "source": {
+        "home": "Home-cooked",
+        "street": "Street",
+        "restaurant": "Restaurant",
+        "shop": "Shop-bought"
+      },
+      "effort": {
+        "no_cook": "No cooking",
+        "quick": "Under 15 min",
+        "medium": "Under 45 min",
+        "long": "Needs time"
+      },
+      "cost": {
+        "cheap": "Cheap",
+        "normal": "Normal",
+        "expensive": "Expensive"
+      },
+      "occasion": {
+        "everyday": "Everyday",
+        "family": "Family",
+        "ramadan": "Ramadan",
+        "festive": "Festive"
+      }
+    },
+    "axisLabels": {
+      "source": "Where from",
+      "effort": "Effort",
+      "cost": "Cost",
+      "occasion": "Occasion"
     },
     "allergens": {
       "nuts": "Nuts",
@@ -2353,7 +2444,21 @@
       "egg": "Egg",
       "fish": "Fish",
       "sesame": "Sesame"
-    }
+    },
+    "proteinSources": {
+      "red_meat": "Red meat",
+      "poultry": "Chicken and turkey",
+      "fish": "Fish",
+      "egg": "Eggs",
+      "dairy": "Dairy",
+      "legume": "Legumes",
+      "nuts": "Nuts and seeds",
+      "none": "No main protein"
+    },
+    "proteinFilter": {
+      "label": "Protein source"
+    },
+    "sideDish": "Side dish"
   },
   "dishEditor": {
     "foodPicker": {
@@ -2466,7 +2571,10 @@
       "gramsPerServing": "{grams} g per serving",
       "kcalPer100g": "{kcal} kcal / 100 g",
       "suggested": "Proposed",
-      "saveAndAddAnother": "Save and add another"
+      "saveAndAddAnother": "Save and add another",
+      "roleLegend": "Kind of dish",
+      "roleMain": "A meal",
+      "roleSide": "A side"
     }
   },
   "whatsapp": {

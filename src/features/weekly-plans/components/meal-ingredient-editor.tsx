@@ -14,6 +14,7 @@ import {
 } from '../meal-ingredients';
 
 import { useEditorActions } from './board-dnd';
+import { IngredientDisclosure } from './ingredient-disclosure';
 import { IngredientAmount, MealIngredientAmounts } from './meal-ingredient-amounts';
 
 /**
@@ -52,12 +53,34 @@ export function MealIngredientEditor({
   const t = useTranslations('weeklyPlans');
   const { setIngredient, resetIngredients } = useEditorActions();
 
-  const primary = primaryLines(lines);
-  const rest = lines.filter((line) => !line.isPrimary);
+  /*
+   * The main's lines, and nothing else.
+   *
+   * A side is a whole dish standing beside the meal at one serving, and the
+   * server has no write that changes an amount inside one: `setMealIngredient`
+   * resolves the main's lines and refuses a food it does not find among them.
+   * So a salad's tomato can never take a `−/+`, and this used to say so by
+   * filtering the sides out of the controls and letting their lines fall through
+   * to the read-only list underneath.
+   *
+   * They do not arrive here at all now. **A side owns its own row** — its name,
+   * its energy and its ingredients folded behind it, in `MealSides` — which is
+   * the same separation the plate itself has: the main is the thing you adjust,
+   * a side is a thing you choose. Mixing the two lists put a salad's lettuce
+   * under a heading that said "also contains", as though the maqluba had lettuce
+   * in it.
+   *
+   * The caller passes main lines only. This filter stays as the guard for that
+   * contract rather than as the mechanism, so a caller that forgets still gets a
+   * correct panel instead of a stepper that silently moves the wrong food.
+   */
+  const main = lines.filter((line) => line.side === null);
+  const primary = primaryLines(main);
+  const rest = main.filter((line) => !line.isPrimary);
 
   // Nothing is marked on this dish, so there is nothing to put a control on. The
   // plain list is the honest rendering, not a fallback that hides a problem.
-  if (!primary.length) return <MealIngredientAmounts lines={lines} locale={locale} />;
+  if (!primary.length) return <MealIngredientAmounts lines={main} locale={locale} />;
 
   return (
     <div className="flex flex-col gap-3">
@@ -130,10 +153,22 @@ export function MealIngredientEditor({
         ))}
       </ul>
 
+      {/*
+        Folded, where it used to be printed.
+
+        "Also contains" is nine lines of a maqluba's recipe — the onion, the oil,
+        the two grams of cumin — and it is *reference*: read once when a dish is
+        new, then scrolled past every time after. Open, it pushed the sides and
+        the replacement list below the fold of a panel whose two most-used
+        controls are the steppers directly above it. Folded, it costs one 28px
+        row and says on that row how many lines are behind it, which is the part
+        that makes it worth opening or not.
+      */}
       {rest.length > 0 && (
-        <div className="border-t border-border pt-3">
-          <p className="pb-1.5 text-caption text-muted-foreground">{t('alsoContains')}</p>
-          <MealIngredientAmounts lines={rest} locale={locale} />
+        <div className="border-t border-border pt-2">
+          <IngredientDisclosure label={t('alsoContains')} count={rest.length}>
+            <MealIngredientAmounts lines={rest} locale={locale} />
+          </IngredientDisclosure>
         </div>
       )}
 

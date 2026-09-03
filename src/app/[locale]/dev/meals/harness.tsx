@@ -64,6 +64,7 @@ function ingredient(line: Line, index: number): MealIngredientLine {
     portionQuantity: line.portionQuantity ?? null,
     isPrimary: line.primary ?? false,
     sortOrder: index,
+    side: null,
     food: {
       id: line.id,
       nameAr: line.nameAr,
@@ -149,6 +150,7 @@ function meal(id: string, label: string, lines: readonly MealIngredientLine[]): 
     timeOfDay: '13:30',
     rationaleAr: 'وجبة متوازنة تناسب ميزانية الغداء.',
     lines: [...lines],
+    sides: [],
     hasOwnAmounts: false,
     totals: mealTotals(lines),
     grams: mealGrams(lines),
@@ -162,7 +164,11 @@ function meal(id: string, label: string, lines: readonly MealIngredientLine[]): 
       nameAr: 'صحن لبنة وخبز',
       nameEn: 'Labneh plate',
       mealTypes: ['lunch'],
-      tags: ['quick'],
+      source: 'home',
+      effort: 'medium',
+      cost: 'normal',
+      occasion: 'everyday',
+      isSide: false,
       allergenTags: [],
       baseServingLabel: 'حصة',
       isActive: true,
@@ -228,6 +234,7 @@ export function MealsHarness({ locale }: { locale: string }) {
         ),
       );
     },
+    setSides: () => {},
     resetIngredients: () => {
       setAmounts(FIXTURES[fixture].lines.map(ingredient));
       setTouched(false);

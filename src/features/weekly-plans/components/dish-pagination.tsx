@@ -10,6 +10,7 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 import { DISHES_PAGE_SIZE, type DishListResult } from '@/features/weekly-plans/queries';
+import { DISH_AXES, type DishAxisFilters } from '@/features/weekly-plans/schema';
 import { Link } from '@/i18n/navigation';
 import { pageWindow } from '@/lib/pagination';
 
@@ -37,7 +38,7 @@ export function DishPagination({
   result,
   q,
   mealType,
-  tags,
+  axes,
   hp,
   owner,
   hidden,
@@ -45,8 +46,8 @@ export function DishPagination({
   result: DishListResult;
   q: string | undefined;
   mealType: string | undefined;
-  /** The raw comma-joined `tags` param, passed straight through. */
-  tags: string | undefined;
+  /** The axis selections, re-joined into one query parameter each. */
+  axes: DishAxisFilters;
   hp: string | undefined;
   owner: string | undefined;
   hidden: string | undefined;
@@ -62,7 +63,12 @@ export function DishPagination({
     query: {
       ...(q ? { q } : {}),
       ...(mealType ? { mealType } : {}),
-      ...(tags ? { tags } : {}),
+      ...Object.fromEntries(
+        DISH_AXES.filter(({ key }) => axes[key].length > 0).map(({ key }) => [
+          key,
+          axes[key].join(','),
+        ]),
+      ),
       ...(hp ? { hp } : {}),
       ...(owner ? { owner } : {}),
       ...(hidden ? { hidden } : {}),

@@ -32,7 +32,15 @@ import {
 } from '../catalog-filter';
 import { localizedName } from '../food-display';
 import type { CatalogEntry } from '../queries';
-import { ALLERGENS, DISH_TAGS, mealTypeForSlot, type DishTag } from '../schema';
+import {
+  ALLERGENS,
+  DISH_AXES,
+  EMPTY_AXIS_FILTERS,
+  isFixedPortion,
+  mealTypeForSlot,
+  type DishAxisFilters,
+  type DishAxisKey,
+} from '../schema';
 
 import { EditorActionsContext } from './board-dnd';
 
@@ -43,13 +51,12 @@ import { EditorActionsContext } from './board-dnd';
  */
 const NUTRITION_FILTERS = ['high_protein'] as const satisfies readonly NutritionCategory[];
 
-/** How many colour dots a rail row prints before it stops — it is 20rem wide. */
-const DOT_LIMIT = 3;
-
 /** The narrow union of categories actually offered as filters — so message keys
  * like `nutritionFilters.${entry}` stay resolvable. */
 type NutritionFilter = (typeof NUTRITION_FILTERS)[number];
-import { dishTagDotClasses, highProteinDotClasses } from '../meal-tag-tone';
+import { dishDotClasses, proteinMessageKey } from '../meal-tag-tone';
+import { proteinSource } from '../dish-composition';
+import { chooseServings } from '../portioning';
 import { bestServings } from '../similar';
 import { PLANNER_THEME } from '../theme';
 import type { RecentUse } from '../usage';
@@ -69,7 +76,7 @@ import type { RecentUse } from '../usage';
  */
 
 export function DishCatalog({
-  catalog,
+  catalog: wholeCatalog,
   usage,
   slot,
   editable,
@@ -94,12 +101,10 @@ export function DishCatalog({
 }) {
   const t = useTranslations('weeklyPlans');
   const [query, setQuery] = useState('');
-  // Plural. One tag at a time made the panel unable to answer the question it
-  // exists for — "something vegetarian that is also quick" — and there was no
-  // way to tell, from the closed popover, which single tag was even on.
-  // `DishTag`, not `string`: next-intl only accepts message keys it can see, so
-  // a widened element type here makes `t('tags.' + entry)` unresolvable.
-  const [tags, setTags] = useState<readonly DishTag[]>([]);
+  // One selection per axis, several axes at once: the panel has to be able to
+  // answer "something from the street that is also cheap", and under the old tag
+  // bag every extra chip could only ever return fewer rows.
+  const [axes, setAxes] = useState<DishAxisFilters>(EMPTY_AXIS_FILTERS);
   const [nutrition, setNutrition] = useState<readonly NutritionFilter[]>([]);
   const [options, setOptions] = useState<readonly CatalogOption[]>([]);
   const [allMealTypes, setAllMealTypes] = useState(false);
@@ -109,6 +114,20 @@ export function DishCatalog({
   const needle = query.trim().toLowerCase();
   const budgetKcal = slot && slot.budgetKcal > 0 ? slot.budgetKcal : null;
 
+  /**
+   * Mains only. A side is not something you fill a slot with.
+   *
+   * صحن سلطة is a dish row like any other in the database, and this list is
+   * "what could go here" — so without the filter the drawer offered a plate of
+   * salad as somebody's dinner, and dropping one would have made it the meal
+   * rather than an accompaniment to it. The same rule `toPromptCatalog` applies
+   * to the model, applied to the human.
+   *
+   * Sides are chosen in the meal panel instead, beside the meal they stand next
+   * to — see `MealSides`.
+   */
+  const catalog = useMemo(() => wholeCatalog.filter((dish) => !dish.isSide), [wholeCatalog]);
+
   const context = useMemo<CatalogContext>(() => ({ usage, budgetKcal }), [usage, budgetKcal]);
 
   const availableOptions = useMemo(() => optionsFor(catalog, context), [catalog, context]);
@@ -116,7 +135,7 @@ export function DishCatalog({
   const shown = useMemo(() => {
     const matches = filterCatalog(
       catalog,
-      { needle, mealType: activeMealType, tags, nutrition, options },
+      { needle, mealType: activeMealType, axes, nutrition, options },
       context,
     );
 
@@ -130,7 +149,7 @@ export function DishCatalog({
 
       return fit(a) - fit(b);
     });
-  }, [catalog, needle, activeMealType, tags, nutrition, options, context, budgetKcal]);
+  }, [catalog, needle, activeMealType, axes, nutrition, options, context, budgetKcal]);
 
   /**
    * How many dishes each chip would leave, given everything already chosen.
@@ -146,11 +165,18 @@ export function DishCatalog({
    */
   const counts = useMemo(() => {
     const byChip: Record<string, number> = {};
-    const base = { needle, mealType: activeMealType, tags, nutrition, options };
+    const base = { needle, mealType: activeMealType, axes, nutrition, options };
 
-    for (const entry of DISH_TAGS) {
-      const next = tags.includes(entry) ? tags : [...tags, entry];
-      byChip[entry] = filterCatalog(catalog, { ...base, tags: next }, context).length;
+    for (const { key, values } of DISH_AXES) {
+      for (const { value } of values) {
+        const selected = axes[key];
+        const next = selected.includes(value) ? selected : [...selected, value];
+        byChip[`${key}:${value}`] = filterCatalog(
+          catalog,
+          { ...base, axes: { ...axes, [key]: next } },
+          context,
+        ).length;
+      }
     }
 
     for (const entry of NUTRITION_FILTERS) {
@@ -164,12 +190,26 @@ export function DishCatalog({
     }
 
     return byChip;
-  }, [catalog, needle, activeMealType, tags, nutrition, options, context]);
+  }, [catalog, needle, activeMealType, axes, nutrition, options, context]);
 
-  const activeCount = tags.length + nutrition.length + options.length + (activeMealType ? 1 : 0);
+  const axisCount = DISH_AXES.reduce((total, { key }) => total + axes[key].length, 0);
+  const activeCount = axisCount + nutrition.length + options.length + (activeMealType ? 1 : 0);
+
+  function toggleAxis(key: DishAxisKey, value: string): void {
+    setAxes((current) => {
+      const selected = current[key];
+
+      return {
+        ...current,
+        [key]: selected.includes(value)
+          ? selected.filter((one) => one !== value)
+          : [...selected, value],
+      };
+    });
+  }
 
   function clearFilters(): void {
-    setTags([]);
+    setAxes(EMPTY_AXIS_FILTERS);
     setNutrition([]);
     setOptions([]);
     setAllMealTypes(true);
@@ -237,7 +277,46 @@ export function DishCatalog({
               sideOffset={6}
               className={cn(PLANNER_THEME, 'w-72 gap-0 p-3 shadow-overlay')}
             >
-                  <PopoverTitle className="pb-2 text-label font-semibold">{t('dishFilters')}</PopoverTitle>
+                  {/* The title and the way out of everything under it, on one
+                      row. `clearFilters` used to live on the chip band outside
+                      this popover; with the band gone it belongs here, beside
+                      the switches it resets, and it is drawn only when there is
+                      something to reset. */}
+                  <div className="flex items-baseline justify-between gap-2 pb-2">
+                    <PopoverTitle className="text-label font-semibold">{t('dishFilters')}</PopoverTitle>
+                    {activeCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={clearFilters}
+                        className="shrink-0 text-caption text-primary underline-offset-2 outline-none hover:underline focus-visible:underline"
+                      >
+                        {t('clearFilters')}
+                      </button>
+                    )}
+                  </div>
+
+                  {/*
+                    The slot's own meal type, as a switch like every other.
+
+                    It used to be the one filter that could only be reached from
+                    the band outside this popover — a chip that was *on* by
+                    default and that you turned off to widen the list. Which made
+                    it the exception in two ways at once: the only filter not in
+                    the filter panel, and the only one whose active state meant
+                    "narrowed" rather than "chosen". Here it is neither. It is a
+                    chip that is on because the open slot is a lunch, and
+                    pressing it asks for the whole catalog instead.
+                  */}
+                  {mealType && (
+                    <FilterGroup label={t('filterMealType')}>
+                      <FilterChip
+                        active={!allMealTypes}
+                        onClick={() => setAllMealTypes((value) => !value)}
+                      >
+                        {t(`mealTypes.${mealType}`)}
+                      </FilterChip>
+                    </FilterGroup>
+                  )}
 
                   {/* Two groups, because they answer different questions. The
                       tags describe the dish; the options describe whether it
@@ -289,111 +368,74 @@ export function DishCatalog({
                           disabled={!selected && count === 0}
                           onClick={() => toggleNutrition(entry)}
                         >
-                          <span aria-hidden className={highProteinDotClasses()} />
                           {t(`nutritionFilters.${entry}`)}
                           <ChipCount value={count} />
                         </FilterChip>
                       );
                     })}
 
-                    {DISH_TAGS.map((entry) => {
-                      const selected = tags.includes(entry);
-                      const count = counts[entry] ?? 0;
-
-                      return (
-                        <FilterChip
-                          key={entry}
-                          active={selected}
-                          disabled={!selected && count === 0}
-                          onClick={() =>
-                            setTags((current) =>
-                              current.includes(entry)
-                                ? current.filter((value) => value !== entry)
-                                : [...current, entry],
-                            )
-                          }
-                        >
-                          <span aria-hidden className={dishTagDotClasses(entry)} />
-                          {t(`tags.${entry}`)}
-                          <ChipCount value={count} />
-                        </FilterChip>
-                      );
-                    })}
                   </FilterGroup>
+
+                  {/*
+                    One group per axis, because they answer four different
+                    questions and a single run of fifteen chips reads as fifteen
+                    interchangeable switches.
+
+                    No dots on any of them. A dot in the planner means the
+                    dish's protein source and only that — it is on every row of
+                    this rail, beside the name — so a second kind of dot in the
+                    filter would teach the reader that a colour means "some
+                    property", which is exactly what made the old tag palette
+                    unreadable.
+                  */}
+                  {DISH_AXES.map((axis) => (
+                    <FilterGroup key={axis.key} label={t(axis.label)}>
+                      {axis.values.map(({ value, message }) => {
+                        const selected = axes[axis.key].includes(value);
+                        const count = counts[`${axis.key}:${value}`] ?? 0;
+
+                        return (
+                          <FilterChip
+                            key={value}
+                            active={selected}
+                            disabled={!selected && count === 0}
+                            onClick={() => toggleAxis(axis.key, value)}
+                          >
+                            {t(message)}
+                            <ChipCount value={count} />
+                          </FilterChip>
+                        );
+                      })}
+                    </FilterGroup>
+                  ))}
             </PopoverContent>
           </Popover>
         </div>
 
         {/*
-          What is filtering the list stays *on* the panel, not behind the
-          popover that set it. A closed popover with a filter still applied is
-          a list that has quietly stopped showing you things, with the reason
-          one click out of sight — and that is what made this feel broken.
-          Every active filter is a chip here, and pressing a chip removes it.
+          ── Nothing under the row but the list ──
 
-          The row is rendered only when it has something to say. Empty, it was a
-          margin above nothing, on the one panel in the app that would rather
-          spend the space on another dish. `mealType` counts as something to
-          say even when it is switched off: that chip is the only way back to
-          filtering by meal type, so it stays on the row rather than becoming a
-          filter you can turn off once and never find again.
+          This band used to carry a chip per active filter, and under it a
+          tinted line naming the slot's budget with a count beside it. The
+          argument for the chips was that a closed popover with a filter still
+          applied is a list that has quietly stopped showing you things — true,
+          and answered by the count on the trigger, which is on a row that never
+          scrolls and is the place you go to change a filter anyway. What the
+          chips actually cost was the top of the panel: a wrapping row that grew
+          to two lines as filters were added, pushing the first dish down the
+          screen precisely when the reader had just narrowed the list to find
+          it.
+
+          The active filters are highlighted *inside* the popover instead —
+          which is where they were set, where they can be unset, and where the
+          reader is already looking when they want to know what is on.
+
+          The budget line went for the same reason and one more: it restated a
+          fact the list itself demonstrates. The rows are ordered nearest-first
+          and each one prints its own distance from the target, so a sentence
+          saying they are ordered that way was a caption on a self-evident
+          picture.
         */}
-        {(activeCount > 0 || mealType) && (
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          {mealType && (
-            <FilterChip
-              active={!allMealTypes}
-              onClick={() => setAllMealTypes((value) => !value)}
-              title={allMealTypes ? undefined : t('allMealTypes')}
-            >
-              {t(`mealTypes.${mealType}`)}
-              {!allMealTypes && <Icon name="close" className="size-3.5" />}
-            </FilterChip>
-          )}
-
-          {nutrition.map((entry) => (
-            <FilterChip key={entry} active onClick={() => toggleNutrition(entry)}>
-              <span aria-hidden className={highProteinDotClasses()} />
-              {t(`nutritionFilters.${entry}`)}
-              <Icon name="close" className="size-3.5" />
-            </FilterChip>
-          ))}
-
-          {tags.map((entry) => (
-            <FilterChip
-              key={entry}
-              active
-              onClick={() => setTags((current) => current.filter((value) => value !== entry))}
-            >
-              <span aria-hidden className={dishTagDotClasses(entry)} />
-              {t(`tags.${entry}`)}
-              <Icon name="close" className="size-3.5" />
-            </FilterChip>
-          ))}
-
-          {options.map((entry) => (
-            <FilterChip key={entry} active onClick={() => toggleOption(entry)}>
-              {t(`dishOptions.${entry}`)}
-              <Icon name="close" className="size-3.5" />
-            </FilterChip>
-          ))}
-
-          {activeCount > 0 && (
-            <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>
-              {t('clearFilters')}
-            </Button>
-          )}
-        </div>
-        )}
-
-        {slot && slot.budgetKcal > 0 && (
-          <div className="mt-3 flex items-center justify-between gap-2 rounded-md bg-secondary/70 px-3 py-2 text-caption">
-            <strong className="text-primary">{t('bestMatches', { value: slot.budgetKcal })}</strong>
-            <span className="rounded-full bg-card px-2 py-0.5 font-semibold tabular-nums text-muted-foreground shadow-card">
-              {shown.length}
-            </span>
-          </div>
-        )}
       </div>
 
       {shown.length === 0 ? (
@@ -415,7 +457,15 @@ export function DishCatalog({
            apply and the bar stays hidden as before. */
         <ul className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pt-1">
           {shown.map((dish) => {
-            const servings = slot ? (bestServings(dish.baseKcal, slot.budgetKcal) ?? 1) : 1;
+            // Same chooser the generator uses, so a dish placed by hand arrives at
+            // the portion it would have arrived at had the model picked it.
+            const servings = slot
+              ? (chooseServings(dish.ingredients, slot.budgetKcal, {
+                  wholeOnly: isFixedPortion(dish.source),
+                }) ??
+                bestServings(dish.baseKcal, slot.budgetKcal) ??
+                1)
+              : 1;
             const allowed = editable && dish.blockedBy.length === 0;
 
             return (
@@ -550,9 +600,6 @@ function CatalogRow({
   });
 
   const blocked = dish.blockedBy.length > 0;
-  // Catalog order, so the leading dot is the same tag the meal card will paint —
-  // see `primaryDishTag`, which resolves through `DISH_TAGS` for this reason.
-  const dishTags = membersOf(DISH_TAGS, dish.tags).slice(0, DOT_LIMIT);
   const delta = budgetKcal === null ? null : kcal - budgetKcal;
   const deltaLabel = delta === null ? null : `${delta > 0 ? '+' : ''}${delta}`;
 
@@ -584,26 +631,24 @@ function CatalogRow({
           </span>
 
           {/*
-            The dish's colours, as bare dots.
+            Where this dish comes from, as one bare dot.
 
-            The rail is too narrow for labelled chips, and it does not need
-            them: the same dots are labelled one click away in this panel's own
-            filter popover, and the first of them is the colour this dish will
-            paint across the top of the card it becomes the moment it is
-            dropped. That last part is the point — the mark is visible *before*
-            the drop, on the row being dragged, so the board's rules stop being
-            decoration the dietitian has to decode after the fact.
+            The rail is too narrow for a labelled chip, and it does not need one:
+            the same dot is labelled one click away in this panel's own filter
+            popover, and it is the colour this dish will paint across the top of
+            the card it becomes the moment it is dropped. That last part is the
+            point — the mark is visible *before* the drop, on the row being
+            dragged, so the board's rules stop being decoration the dietitian has
+            to decode after the fact.
+
+            One dot, not a run of them, because a dish has exactly one protein
+            source and it is computed from the recipe. Under the tag bag this was
+            up to three and the first one won, which meant the rail promised a
+            colour the card sometimes did not paint.
           */}
-          {dishTags.length > 0 && (
-            <span
-              className="flex shrink-0 items-center gap-1"
-              title={dishTags.map((tag) => t(`tags.${tag}`)).join('، ')}
-            >
-              {dishTags.map((tag) => (
-                <span key={tag} aria-hidden className={dishTagDotClasses(tag)} />
-              ))}
-            </span>
-          )}
+          <span className="shrink-0" title={t(proteinMessageKey(proteinSource(dish.ingredients)))}>
+            <span aria-hidden className={dishDotClasses(dish.ingredients)} />
+          </span>
         </span>
         <span className="mt-0.5 block text-caption text-muted-foreground">
           {blocked ? (

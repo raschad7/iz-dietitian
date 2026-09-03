@@ -274,6 +274,62 @@
       "when": 1787819783201,
       "tag": "0038_cultured_sunset_bain",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1788267781814,
+      "tag": "0039_youthful_captain_marvel",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1788268014091,
+      "tag": "0040_abandoned_leper_queen",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1788331282265,
+      "tag": "0041_square_mauler",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1788334616658,
+      "tag": "0042_charming_miss_america",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1788335506109,
+      "tag": "0043_eager_the_initiative",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1788335854294,
+      "tag": "0044_giant_the_call",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1788336858127,
+      "tag": "0045_clear_mandarin",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1788344080933,
+      "tag": "0046_lethal_sentinels",
+      "breakpoints": true
     }
   ]
 }

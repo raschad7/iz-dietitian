@@ -1,7 +1,45 @@
 import { describe, expect, test } from 'bun:test';
 
 import { reconcile, type CatalogDish } from './generate';
+import { MAX_SIDES } from './prompt';
+import type { DishIngredientDetail } from './nutrition';
 import { parseGeneratedPlan } from './schema';
+
+/**
+ * A recipe of one weighed line worth `kcal` at one serving.
+ *
+ * `reconcile` portions a recipe to decide what a multiplier produces, so a
+ * catalog entry needs one. A single grams-measured line is the simplest thing
+ * that behaves: it steps in tens and meets no ceiling, so the portion these tests
+ * assert on is the multiplier and nothing else.
+ */
+function recipeOf(kcal: number): DishIngredientDetail[] {
+  return [
+    {
+      quantityGrams: kcal,
+      food: {
+        id: `food-${kcal}`,
+        nameAr: 'مكوّن',
+        nameEn: 'Ingredient',
+        category: 'grains',
+        kcal: 100,
+        protein: 5,
+        carbs: 10,
+        fat: 1,
+        fiber: null,
+        sugar: null,
+        saturatedFat: null,
+        sodium: null,
+        cholesterol: null,
+        calcium: null,
+        iron: null,
+        potassium: null,
+      },
+      isPrimary: true,
+      sortOrder: 0,
+    },
+  ];
+}
 
 /**
  * A catalog small enough to reason about, shaped like the real one.
@@ -15,55 +53,85 @@ const CATALOG: CatalogDish[] = [
     slug: 'mujaddara',
     nameAr: 'مجدرة',
     mealTypes: ['lunch', 'dinner'],
-    tags: ['economical'],
+    source: 'home',
+    effort: 'medium',
+    cost: 'normal',
+    occasion: 'everyday',
     allergenTags: [],
     baseKcal: 620,
     baseProtein: 22,
     nutritionCategory: 'balanced',
+    proteinSource: 'legume',
+    carbBase: 'rice',
+    recipe: recipeOf(620),
   },
   {
     id: 'dish-fasolia',
     slug: 'fasolia',
     nameAr: 'فاصولياء',
     mealTypes: ['lunch', 'dinner'],
-    tags: ['economical'],
+    source: 'home',
+    effort: 'medium',
+    cost: 'normal',
+    occasion: 'everyday',
     allergenTags: [],
     baseKcal: 600,
     baseProtein: 20,
     nutritionCategory: 'balanced',
+    proteinSource: 'legume',
+    carbBase: 'rice',
+    recipe: recipeOf(600),
   },
   {
     id: 'dish-nuts',
     slug: 'nuts-dish',
     nameAr: 'طبق مكسرات',
     mealTypes: ['lunch'],
-    tags: [],
+    source: 'home',
+    effort: 'medium',
+    cost: 'normal',
+    occasion: 'everyday',
     allergenTags: ['nuts'],
     baseKcal: 610,
     baseProtein: 18,
     nutritionCategory: 'balanced',
+    proteinSource: 'legume',
+    carbBase: 'rice',
+    recipe: recipeOf(610),
   },
   {
     id: 'dish-labaneh',
     slug: 'breakfast-only',
     nameAr: 'لبنة',
     mealTypes: ['breakfast'],
-    tags: [],
+    source: 'home',
+    effort: 'medium',
+    cost: 'normal',
+    occasion: 'everyday',
     allergenTags: ['lactose'],
     baseKcal: 380,
     baseProtein: 18,
     nutritionCategory: 'balanced',
+    proteinSource: 'legume',
+    carbBase: 'rice',
+    recipe: recipeOf(380),
   },
   {
     id: 'dish-tiny',
     slug: 'tiny-lunch',
     nameAr: 'طبق صغير',
     mealTypes: ['lunch'],
-    tags: [],
+    source: 'home',
+    effort: 'medium',
+    cost: 'normal',
+    occasion: 'everyday',
     allergenTags: [],
     baseKcal: 120,
     baseProtein: 4,
     nutritionCategory: 'balanced',
+    proteinSource: 'legume',
+    carbBase: 'rice',
+    recipe: recipeOf(120),
   },
 ];
 
@@ -92,16 +160,45 @@ function day(dayOfWeek: number, lunch: Record<string, unknown> | null = meal()) 
 
 function run(
   days: Record<string, unknown>[],
-  options: { allergens?: string[]; requestDays?: number[] } = {},
+  options: { allergens?: string[]; requestDays?: number[]; catalog?: CatalogDish[] } = {},
 ) {
   return reconcile({
     plan: parseGeneratedPlan({ days }, ['lunch']),
     days: options.requestDays ?? [0],
     budgets: BUDGETS,
-    catalog: CATALOG,
+    catalog: options.catalog ?? CATALOG,
     allergens: options.allergens ?? [],
   });
 }
+
+/**
+ * A catalog wide enough for the substitute pool to have somewhere to rotate.
+ *
+ * The fixture above holds three lunch dishes, which is exactly the number a meal
+ * offers — so every meal is offered all three and rotation has nothing to do.
+ * That is correct behaviour and worth its own assertion; this is for the case
+ * where a real catalog gives the pool a choice.
+ */
+const WIDE_CATALOG: CatalogDish[] = [
+  ...CATALOG,
+  ...Array.from({ length: 6 }, (_, index) => ({
+    id: `dish-extra-${index}`,
+    slug: `extra-${index}`,
+    nameAr: `طبق ${index}`,
+    mealTypes: ['lunch'],
+    source: 'home',
+    effort: 'medium',
+    cost: 'normal',
+    occasion: 'everyday',
+    allergenTags: [],
+    baseKcal: 600 + index,
+    baseProtein: 20,
+    nutritionCategory: 'balanced',
+    proteinSource: 'legume',
+    carbBase: 'rice',
+    recipe: recipeOf(600 + index),
+  })),
+];
 
 describe('reconcile — the happy path', () => {
   test('resolves a valid meal to a dish id', () => {
@@ -122,27 +219,52 @@ describe('reconcile — the happy path', () => {
     });
   });
 
-  test('resolves alternatives and marks whether each is a real substitute', () => {
-    const result = run([
-      day(
-        0,
-        meal({
-          alternatives: [
-            { dish: 'fasolia', servings: 1 },
-            { dish: 'tiny-lunch', servings: 1 },
-          ],
-        }),
-      ),
-    ]);
+  /**
+   * Alternatives are computed from the catalog, not read from the response.
+   * The model used to return them, spent a third of its output doing it, and
+   * offered the same three dishes under every lunch of the week.
+   */
+  test('offers substitutes drawn from the slot catalog, never the chosen dish', () => {
+    const result = run([day(0, meal())]);
 
     const options = result.meals[0]!.options;
 
-    expect(options.map((option) => option.slug)).toEqual(['fasolia', 'tiny-lunch']);
+    expect(options.length).toBeGreaterThan(0);
+    expect(options.map((option) => option.slug)).not.toContain('mujaddara');
+    // Every option is a lunch dish, and none is offered twice.
+    expect(new Set(options.map((option) => option.slug)).size).toBe(options.length);
+    expect(options.every((option) => option.slug !== 'breakfast-only')).toBe(true);
+  });
+
+  test('marks whether each substitute actually fits the budget', () => {
+    const result = run([day(0, meal())]);
+
+    const options = result.meals[0]!.options;
     // fasolia at its computed 1× is 600 against 620 — within 15%.
-    expect(options[0]!.isSimilar).toBe(true);
-    // tiny-lunch cannot reach 620 even at the 3× ceiling (360 kcal), so it is still
-    // offered but flagged as not a like-for-like swap.
-    expect(options[1]!.isSimilar).toBe(false);
+    expect(options.find((option) => option.slug === 'fasolia')?.isSimilar).toBe(true);
+    // tiny-lunch cannot reach 620 even at the ceiling, so it is offered where the
+    // pool is thin but never as a like-for-like swap.
+    expect(options.find((option) => option.slug === 'tiny-lunch')?.isSimilar ?? false).toBe(false);
+  });
+
+  test('a catalog with no room to rotate offers every dish that fits the slot', () => {
+    // Four lunch dishes, one of them chosen: the three that remain are the pool
+    // and the offer, and rotation has nothing to choose between.
+    const result = run([day(0, meal())]);
+
+    expect(result.meals[0]!.options).toHaveLength(3);
+  });
+
+  test('the same slot on different days is not offered the same three', () => {
+    const result = run([day(0, meal()), day(1, meal())], {
+      requestDays: [0, 1],
+      catalog: WIDE_CATALOG,
+    });
+
+    const first = result.meals[0]!.options.map((option) => option.slug).join(',');
+    const second = result.meals[1]!.options.map((option) => option.slug).join(',');
+
+    expect(first).not.toBe(second);
   });
 
   test('computes the portion rather than trusting the model', () => {
@@ -192,26 +314,11 @@ describe('reconcile — untrusted references', () => {
     expect(result.warnings[0]).toMatchObject({ kind: 'allergen_violation', slug: 'nuts-dish' });
   });
 
-  test('drops an allergen violation hiding in the alternatives', () => {
-    const result = run(
-      [
-        day(
-          0,
-          meal({
-            alternatives: [
-              { dish: 'nuts-dish', servings: 1 },
-              { dish: 'fasolia', servings: 1 },
-            ],
-          }),
-        ),
-      ],
-      { allergens: ['nuts'] },
-    );
+  test('never offers a substitute carrying an allergen the client has', () => {
+    const result = run([day(0, meal())], { allergens: ['nuts'] });
 
-    // The meal itself survives; only the offending option is removed.
     expect(result.meals[0]!.dishId).toBe('dish-mujaddara');
-    expect(result.meals[0]!.options.map((option) => option.slug)).toEqual(['fasolia']);
-    expect(result.warnings[0]).toMatchObject({ kind: 'allergen_violation', slug: 'nuts-dish' });
+    expect(result.meals[0]!.options.map((option) => option.slug)).not.toContain('nuts-dish');
   });
 
   test('drops a dish that is not for this kind of slot', () => {
@@ -219,38 +326,6 @@ describe('reconcile — untrusted references', () => {
 
     expect(result.meals[0]!.dishId).toBeNull();
     expect(result.warnings[0]).toMatchObject({ kind: 'wrong_meal_type', slug: 'breakfast-only' });
-  });
-
-  test('ignores the chosen dish repeated as its own alternative', () => {
-    const result = run([
-      day(
-        0,
-        meal({
-          alternatives: [
-            { dish: 'mujaddara', servings: 1 },
-            { dish: 'fasolia', servings: 1 },
-          ],
-        }),
-      ),
-    ]);
-
-    expect(result.meals[0]!.options.map((option) => option.slug)).toEqual(['fasolia']);
-  });
-
-  test('ignores the same alternative offered twice', () => {
-    const result = run([
-      day(
-        0,
-        meal({
-          alternatives: [
-            { dish: 'fasolia', servings: 1 },
-            { dish: 'fasolia', servings: 2 },
-          ],
-        }),
-      ),
-    ]);
-
-    expect(result.meals[0]!.options).toHaveLength(1);
   });
 });
 
@@ -357,26 +432,110 @@ describe('parseGeneratedPlan', () => {
     expect(() => parseGeneratedPlan({ days: [day(0, meal({ servings: 9 }))] }, ['lunch'])).toThrow();
   });
 
-  test('rejects more than three alternatives', () => {
-    const tooMany = meal({
-      alternatives: [
-        { dish: 'a', servings: 1 },
-        { dish: 'b', servings: 1 },
-        { dish: 'c', servings: 1 },
-        { dish: 'd', servings: 1 },
-      ],
-    });
+  test('reads the week summary beside the days', () => {
+    const parsed = parseGeneratedPlan(
+      {
+        summaryAr: 'أسبوع أخف في الكربوهيدرات مع سمك مرتين.',
+        days: [{ dayOfWeek: 0, lunch: { dish: 'mujaddara', servings: 1 } }],
+      },
+      ['lunch'],
+    );
 
-    expect(() => parseGeneratedPlan({ days: [day(0, tooMany)] }, ['lunch'])).toThrow();
+    expect(parsed.summaryAr).toBe('أسبوع أخف في الكربوهيدرات مع سمك مرتين.');
   });
 
-  test('defaults a missing rationale and alternatives rather than failing', () => {
+  test('defaults a missing rationale and a missing summary rather than failing', () => {
     const parsed = parseGeneratedPlan(
       { days: [{ dayOfWeek: 0, lunch: { dish: 'mujaddara', servings: 1 } }] },
       ['lunch'],
     );
 
     expect(parsed.days[0]!.meals[0]!.rationaleAr).toBe('');
-    expect(parsed.days[0]!.meals[0]!.alternatives).toEqual([]);
+    expect(parsed.summaryAr).toBe('');
+  });
+});
+
+/**
+ * A side is a garnish on the plan: an unusable one is dropped without a warning,
+ * because a week that lost a salad is not a week worth reporting a problem about.
+ * What must never happen is one getting through — each of these is something a
+ * client would otherwise be told to eat.
+ */
+describe('reconcile — sides', () => {
+  const salad: CatalogDish = {
+    id: 'side-salad',
+    slug: 'green-salad-plate',
+    nameAr: 'صحن سلطة',
+    mealTypes: ['lunch', 'dinner'],
+    source: 'home',
+    effort: 'no_cook',
+    cost: 'cheap',
+    occasion: 'everyday',
+    allergenTags: [],
+    baseKcal: 85,
+    baseProtein: 2,
+    nutritionCategory: 'balanced',
+    proteinSource: 'none',
+    carbBase: 'none',
+    recipe: recipeOf(85),
+  };
+
+  const yogurt: CatalogDish = { ...salad, id: 'side-yogurt', slug: 'yogurt-cup', nameAr: 'كوب لبن' };
+  const nutty: CatalogDish = {
+    ...salad,
+    id: 'side-nuts',
+    slug: 'nut-side',
+    allergenTags: ['nuts'],
+  };
+
+  function withSides(sides: string[], catalogSides: CatalogDish[], allergens: string[] = []) {
+    const result = reconcile({
+      plan: {
+        summaryAr: '',
+        days: [
+          {
+            dayOfWeek: 0,
+            meals: [{ slotKey: 'lunch', dish: 'mujaddara', servings: 1, rationaleAr: '', sides }],
+          },
+        ],
+      },
+      days: [0],
+      budgets: BUDGETS,
+      catalog: CATALOG,
+      sides: catalogSides,
+      allergens,
+    });
+
+    return result.meals.find((meal) => meal.slotKey === 'lunch')!;
+  }
+
+  test('carries the sides the model asked for, in order', () => {
+    expect(withSides(['green-salad-plate', 'yogurt-cup'], [salad, yogurt]).sideDishIds).toEqual([
+      'side-salad',
+      'side-yogurt',
+    ]);
+  });
+
+  test('a slug that is not a side is dropped, not turned into a meal', () => {
+    expect(withSides(['mujaddara'], [salad]).sideDishIds).toEqual([]);
+  });
+
+  test('a side carrying the client allergen never reaches the plate', () => {
+    expect(withSides(['nut-side'], [nutty], ['nuts']).sideDishIds).toEqual([]);
+  });
+
+  test('the same side twice is one side', () => {
+    expect(withSides(['green-salad-plate', 'green-salad-plate'], [salad]).sideDishIds).toEqual([
+      'side-salad',
+    ]);
+  });
+
+  test('a plate stops at two things beside the main', () => {
+    const many = ['green-salad-plate', 'yogurt-cup', 'nut-side'];
+    expect(withSides(many, [salad, yogurt, nutty]).sideDishIds).toHaveLength(MAX_SIDES);
+  });
+
+  test('a meal with no sides asked for carries none', () => {
+    expect(withSides([], [salad]).sideDishIds).toEqual([]);
   });
 });

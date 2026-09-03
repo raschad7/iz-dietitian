@@ -102,6 +102,21 @@ export const weeklyPlans = pgTable(
     /** Which model produced it, for audit. Null on a manually built plan. */
     model: text('model'),
 
+    /**
+     * The model's two or three sentences about what this week is.
+     *
+     * A dietitian looking at a client's weeks sees a column of dates, a status and
+     * a calorie target — which is enough to tell them apart only if you already
+     * remember what you asked for. This is what makes the list readable: "أسبوع
+     * أخف في الكربوهيدرات مع سمك مرتين" beside the date it belongs to.
+     *
+     * Null for a plan built by hand, and for one generated before this existed.
+     * Never regenerated on read: it describes the week as it was produced, and a
+     * dietitian who has since rearranged it is looking at her own week, not the
+     * model's account of it.
+     */
+    summaryAr: text('summary_ar'),
+
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -336,6 +351,50 @@ export const weeklyPlanMealOptions = pgTable(
 );
 
 /**
+ * A dish standing beside a meal — صحن سلطة، كوب شوربة، كوب لبن.
+ *
+ * A real lunch is often more than one thing: "ملوخية، 6 معالق أرز، صحن سلطة" is
+ * three items a client can see and tick, not one dish name that cannot be taken
+ * apart. The meal keeps exactly one `dish_id` for its main, and the accompaniments
+ * hang here.
+ *
+ * No `servings` column, unlike `weekly_plan_meal_options`. A side is one serving
+ * by definition — a plate of salad is a plate of salad whether the lunch beside it
+ * is 500 kcal or 900 — and a column nobody may set to anything but 1 is a column
+ * that will eventually be set to something else. What varies about a meal is its
+ * main; that is what the budget multiplier is for.
+ *
+ * `restrict` on the dish, matching options and the meal itself: retiring a dish
+ * that a written plan still serves has to fail loudly rather than empty a meal
+ * a client is eating from.
+ */
+export const weeklyPlanMealSides = pgTable(
+  'weekly_plan_meal_sides',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+
+    mealId: uuid('meal_id')
+      .notNull()
+      .references(() => weeklyPlanMeals.id, { onDelete: 'cascade' }),
+
+    dishId: uuid('dish_id')
+      .notNull()
+      .references(() => dishes.id, { onDelete: 'restrict' }),
+
+    /** The order they are written in, so a plate reads the way it was composed. */
+    sortOrder: integer('sort_order').notNull().default(0),
+
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('weekly_plan_meal_sides_meal_id_idx').on(table.mealId, table.sortOrder),
+    // The same salad twice beside one meal is a mistake, not a double helping.
+    uniqueIndex('weekly_plan_meal_sides_dish_idx').on(table.mealId, table.dishId),
+  ],
+);
+
+/**
  * One row per call to the model.
  *
  * Not decoration. Three weeks from now the only way to answer "why did Tuesday
@@ -376,6 +435,58 @@ export const weeklyPlanGenerations = pgTable(
   (table) => [index('weekly_plan_generations_clinic_id_idx').on(table.clinicId, table.createdAt)],
 );
 
+/**
+ * One row per review of a plan, newest wins.
+ *
+ * A review is an opinion about a week at a moment, and the week moves: the
+ * dietitian swaps Tuesday's lunch and half of it stops being true. Kept as rows
+ * rather than as a column on the plan so the whole history is there — what the
+ * model said before she acted on it, and what it said after — and so a review can
+ * be read without loading the plan it belongs to.
+ *
+ * `cascade`, unlike the generations table: a generation record is an audit of
+ * spend that outlives its plan, and a review of a deleted plan is a comment on
+ * nothing.
+ */
+export const weeklyPlanReviews = pgTable(
+  'weekly_plan_reviews',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+
+    planId: uuid('plan_id')
+      .notNull()
+      .references(() => weeklyPlans.id, { onDelete: 'cascade' }),
+
+    clinicId: uuid('clinic_id')
+      .notNull()
+      .references(() => clinics.id, { onDelete: 'cascade' }),
+
+    model: text('model').notNull(),
+
+    /** `usable` | `needs_work` | `not_usable`. */
+    verdict: text('verdict').notNull(),
+
+    /** Two or three sentences of Arabic, the reviewer's own summary. */
+    summaryAr: text('summary_ar').notNull(),
+
+    /**
+     * The findings, as the model returned them, plus what the arithmetic checks
+     * found before it ran.
+     *
+     * `jsonb` rather than a table of its own: nothing queries inside a finding,
+     * they are read as a set or not at all, and a schema for them would have to
+     * change every time the prompt asks for one more field.
+     */
+    findings: jsonb('findings').notNull(),
+    checks: jsonb('checks').notNull(),
+
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('weekly_plan_reviews_plan_id_idx').on(table.planId, table.createdAt)],
+);
+
+export type WeeklyPlanReview = typeof weeklyPlanReviews.$inferSelect;
+
 export type WeeklyPlan = typeof weeklyPlans.$inferSelect;
 export type NewWeeklyPlan = typeof weeklyPlans.$inferInsert;
 export type WeeklyPlanMeal = typeof weeklyPlanMeals.$inferSelect;
@@ -384,4 +495,6 @@ export type WeeklyPlanMealIngredient = typeof weeklyPlanMealIngredients.$inferSe
 export type NewWeeklyPlanMealIngredient = typeof weeklyPlanMealIngredients.$inferInsert;
 export type WeeklyPlanMealOption = typeof weeklyPlanMealOptions.$inferSelect;
 export type NewWeeklyPlanMealOption = typeof weeklyPlanMealOptions.$inferInsert;
+export type WeeklyPlanMealSide = typeof weeklyPlanMealSides.$inferSelect;
+export type NewWeeklyPlanMealSide = typeof weeklyPlanMealSides.$inferInsert;
 export type WeeklyPlanGeneration = typeof weeklyPlanGenerations.$inferSelect;

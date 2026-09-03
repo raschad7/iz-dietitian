@@ -15,7 +15,10 @@ import {
   type DishDetail,
   type NutrientTotals,
 } from '@/features/weekly-plans/nutrition';
-import type { MealIngredientLine } from '@/features/weekly-plans/meal-ingredients';
+import {
+  mealIngredientLines,
+  type MealIngredientLine,
+} from '@/features/weekly-plans/meal-ingredients';
 import type {
   Board,
   BoardDay,
@@ -54,19 +57,30 @@ const NUTRIENTS = {
   potassium: null,
 } as const;
 
-function line(id: string, grams: number, kcal: number, index: number): MealIngredientLine {
+function line(
+  id: string,
+  grams: number,
+  kcal: number,
+  index: number,
+  category: string,
+): MealIngredientLine {
   return {
     quantityGrams: grams,
     portion: null,
     portionQuantity: null,
     isPrimary: index === 0,
     sortOrder: index,
+    side: null,
     food: {
       id,
       nameAr: id,
       nameEn: id,
+      // The card's colour is `proteinSource(recipe)`, which reads this. Without a
+      // real category every fixture dish came out `none` and the whole board drew
+      // one grey rule — a harness that could not show the thing it exists to show.
+      category,
       kcal,
-      protein: 9,
+      protein: index === 0 ? 18 : 4,
       carbs: 22,
       fat: 5,
       ...NUTRIENTS,
@@ -81,11 +95,11 @@ function line(id: string, grams: number, kcal: number, index: number): MealIngre
  * all recompute from the lines — a fixture that set the totals directly would
  * draw a board whose columns did not add up.
  */
-function recipe(slug: string, kcal: number): MealIngredientLine[] {
+function recipe(slug: string, kcal: number, protein: string): MealIngredientLine[] {
   return [
-    line(`${slug}-a`, 120, Math.round(kcal * 0.55 * (100 / 120)), 0),
-    line(`${slug}-b`, 80, Math.round(kcal * 0.3 * (100 / 80)), 1),
-    line(`${slug}-c`, 40, Math.round(kcal * 0.15 * (100 / 40)), 2),
+    line(`${slug}-a`, 120, Math.round(kcal * 0.55 * (100 / 120)), 0, protein),
+    line(`${slug}-b`, 80, Math.round(kcal * 0.3 * (100 / 80)), 1, 'grains'),
+    line(`${slug}-c`, 40, Math.round(kcal * 0.15 * (100 / 40)), 2, 'vegetables'),
   ];
 }
 
@@ -94,7 +108,7 @@ function dish(
   nameAr: string,
   nameEn: string,
   lines: readonly MealIngredientLine[],
-  tags: string[],
+  source: string,
 ): DishDetail & { servings: number } {
   return {
     id: `${slug}-dish`,
@@ -103,7 +117,11 @@ function dish(
     nameAr,
     nameEn,
     mealTypes: ['lunch'],
-    tags,
+    source,
+    effort: 'medium',
+    cost: 'normal',
+    occasion: 'everyday',
+    isSide: false,
     allergenTags: [],
     baseServingLabel: 'حصة',
     isActive: true,
@@ -128,14 +146,36 @@ const SLOTS: SlotFixture[] = [
 ];
 
 /** Names of realistic length, including two that have to wrap to a second line. */
-const DISHES: [string, string, string, string[]][] = [
-  ['fatteh', 'فتة حمص', 'Chickpea fatteh', ['quick']],
-  ['mozzarella', 'جبنة موزاريلا مع بندورة', 'Mozzarella with tomato', ['high_protein']],
-  ['hummus-tahini', 'حمص بالطحينة مع خبز', 'Hummus with tahini and bread', ['vegetarian']],
-  ['ful', 'فول مدمس', 'Ful medames', ['budget']],
-  ['eggs-zaatar', 'بيض مع زعتر وزيت', 'Eggs with zaatar and oil', ['quick']],
-  ['labneh-walnut', 'لبنة مع جوز وعسل', 'Labneh with walnuts and honey', ['high_protein']],
-  ['oats-milk', 'شوفان بالحليب والموز', 'Oats with milk and banana', ['high_carb']],
+/**
+ * slug, Arabic name, English name, where the client gets it, and the food
+ * category its main protein comes from.
+ *
+ * The last one is what the card's coloured rule is computed from, so the seven
+ * fixtures deliberately spread across the palette — a board drawn in one hue
+ * cannot show whether the colour works.
+ */
+const DISHES: [string, string, string, string, string][] = [
+  ['fatteh', 'فتة حمص', 'Chickpea fatteh', 'home', 'legumes'],
+  ['mozzarella', 'جبنة موزاريلا مع بندورة', 'Mozzarella with tomato', 'home', 'dairy'],
+  ['hummus-tahini', 'حمص بالطحينة مع خبز', 'Hummus with tahini and bread', 'street', 'legumes'],
+  ['ful', 'فول مدمس', 'Ful medames', 'home', 'legumes'],
+  ['eggs-zaatar', 'بيض مع زعتر وزيت', 'Eggs with zaatar and oil', 'home', 'eggs'],
+  ['labneh-walnut', 'لبنة مع جوز وعسل', 'Labneh with walnuts and honey', 'shop', 'dairy'],
+  ['oats-milk', 'شوفان بالحليب والموز', 'Oats with milk and banana', 'home', 'dairy'],
+  ['chicken-rice', 'دجاج مشوي مع أرز', 'Grilled chicken with rice', 'home', 'poultry'],
+  ['fish-plate', 'سمك مشوي مع خضار', 'Grilled fish with vegetables', 'home', 'fish'],
+  ['kofta', 'كفتة باللحمة مع بطاطا', 'Kofta with potato', 'home', 'meat'],
+  ['fruit-nuts', 'فواكه ومكسرات', 'Fruit and nuts', 'shop', 'nuts_seeds'],
+];
+
+/** What one side is worth, so the card's total and the picker's label agree. */
+const SIDE_KCAL = 80;
+
+/** What can stand beside a lunch or a dinner, for the card's second line. */
+const SIDES = [
+  { id: 'side-salad', nameAr: 'صحن سلطة', nameEn: 'Green salad plate' },
+  { id: 'side-soup', nameAr: 'كوب شوربة عدس', nameEn: 'Cup of lentil soup' },
+  { id: 'side-yogurt', nameAr: 'كوب لبن', nameEn: 'Cup of yogurt' },
 ];
 
 const WEEK_START = '2026-08-30';
@@ -143,14 +183,32 @@ const WEEK_START = '2026-08-30';
 function boardMeal(dayOfWeek: number, slot: SlotFixture, index: number): BoardMeal {
   // One slot skipped on Wednesday, so `SkippedSlot` is on screen; one slot left
   // unfilled on Thursday, so the empty card and the unfilled banner are too.
-  const [slug, nameAr, nameEn, tags] = DISHES[(dayOfWeek + index) % DISHES.length]!;
+  const [slug, nameAr, nameEn, source, protein] = DISHES[(dayOfWeek + index) % DISHES.length]!;
   const unfilled = dayOfWeek === 4 && slot.slotKey === 'snack_2';
 
   // A little over on Wednesday and under on Friday, so the day header's drift
   // arrow and its amber are both drawn somewhere on the board.
   const scale = dayOfWeek === 3 ? 1.12 : dayOfWeek === 5 ? 0.88 : 1;
-  const lines: MealIngredientLine[] = unfilled ? [] : recipe(slug, slot.budgetKcal * scale);
-  const chosen = unfilled ? null : dish(slug, nameAr, nameEn, lines, tags);
+  const attached =
+    !unfilled && (slot.slotKey === 'lunch' || slot.slotKey === 'dinner') && dayOfWeek % 3 !== 2
+      ? [SIDES[(dayOfWeek + index) % SIDES.length]!]
+      : [];
+
+  // Resolved the way the board resolves them — through `mealIngredientLines`, so
+  // the card's calories include the salad exactly as the real one does. A fixture
+  // that showed a side on the card and left it out of the total would draw a
+  // board whose columns did not add up.
+  const lines: MealIngredientLine[] = unfilled
+    ? []
+    : mealIngredientLines({
+        recipe: recipe(slug, slot.budgetKcal * scale, protein),
+        servings: 1,
+        sides: attached.map((side) => ({
+          ...side,
+          recipe: recipe(side.id, SIDE_KCAL, 'vegetables'),
+        })),
+      });
+  const chosen = unfilled ? null : dish(slug, nameAr, nameEn, lines, source);
 
   return {
     id: `${dayOfWeek}-${slot.slotKey}`,
@@ -159,6 +217,10 @@ function boardMeal(dayOfWeek: number, slot: SlotFixture, index: number): BoardMe
     timeOfDay: slot.timeOfDay,
     dish: chosen,
     lines: [...lines],
+    // Lunch and dinner carry a side on some days and not on others, because both
+    // states have to be on screen: a meal that quietly contains a salad, and one
+    // that is the plate on its own.
+    sides: chosen ? attached : [],
     // Sunday's meals are hand-set, so the meal panel's "reset to the recipe
     // amounts" button — a control that only exists once an amount has been
     // moved — has somewhere to be looked at. Every other day keeps the recipe's
@@ -231,16 +293,34 @@ function buildDay(dayOfWeek: number): BoardDay {
  * The dish drag out of the catalog is its own preview path — a full-width strip
  * becoming a card — and it cannot be looked at against an empty list.
  */
-const CATALOG: CatalogEntry[] = DISHES.map(([slug, nameAr, nameEn, tags], index) => {
-  const lines = recipe(slug, 320 + index * 60);
+const CATALOG: CatalogEntry[] = [
+  ...DISHES.map(([slug, nameAr, nameEn, source, protein], index) => {
+    const lines = recipe(slug, 320 + index * 60, protein);
 
-  return {
-    ...dish(slug, nameAr, nameEn, lines, tags),
-    baseKcal: Math.round(dishTotals(lines, 1).kcal.value),
-    nutritionCategory: 'balanced' as const,
-    blockedBy: [],
-  };
-});
+    return {
+      ...dish(slug, nameAr, nameEn, lines, source),
+      baseKcal: Math.round(dishTotals(lines, 1).kcal.value),
+      nutritionCategory: 'balanced' as const,
+      blockedBy: [],
+    };
+  }),
+  // The sides the meal panel's picker offers. They are in the same catalog the
+  // drawer reads, which is the point: `DishCatalog` filters them out and
+  // `MealSides` filters them in, so one list can serve both.
+  ...SIDES.map((side) => {
+    const lines = recipe(side.id, SIDE_KCAL, 'vegetables');
+
+    return {
+      ...dish(side.id, side.nameAr, side.nameEn, lines, 'home'),
+      id: side.id,
+      isSide: true,
+      mealTypes: ['lunch', 'dinner'],
+      baseKcal: Math.round(dishTotals(lines, 1).kcal.value),
+      nutritionCategory: 'balanced' as const,
+      blockedBy: [],
+    };
+  }),
+];
 
 const CLIENTS: PlannableClient[] = [
   ['c1', 'أحمد بكري', 3, true, 'draft'],
@@ -408,6 +488,7 @@ export function BoardHarness({ locale }: { locale: Locale }) {
             locale={locale}
             clinicName="عيادة إنزيم"
             history={<p className="text-body-sm text-muted-foreground">—</p>}
+            review={<p className="text-body-sm text-muted-foreground">—</p>}
             newWeek={NEW_WEEK(context)}
           >
             <ContextPanel context={context} clients={CLIENTS} locale={locale} embedded />

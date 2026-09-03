@@ -13,6 +13,7 @@ import {
   scaleRecipe,
   type MealIngredientLine,
   type RecipeLine,
+  type SideRecipe,
 } from './meal-ingredients';
 import type { FoodNutrients } from './nutrition';
 
@@ -57,6 +58,7 @@ function line(
     portionQuantity: null,
     isPrimary: false,
     sortOrder: 0,
+    side: null,
     food: { id, nameAr: id, nameEn: id, ...NUTRIENTS },
     ...overrides,
   };
@@ -76,10 +78,18 @@ const RECIPE: RecipeLine[] = [
 ];
 
 describe('mealIngredientLines', () => {
+  /**
+   * The multiplier reaches every line that is food. The last one is not: at this
+   * fixture's 100 kcal per 100 g, twelve grams of oil is twelve kilocalories, and
+   * `portioning.ts` holds a line that small where the recipe put it — doubling a
+   * dish does not double its seasoning. The rule and its threshold belong to that
+   * module's tests; what matters here is that this function resolves through it
+   * rather than multiplying on its own.
+   */
   test('a meal that was never adjusted is its recipe at the multiplier', () => {
     const lines = mealIngredientLines({ recipe: RECIPE, servings: 2, stored: null });
 
-    expect(lines.map((entry) => entry.quantityGrams)).toEqual([280, 260, 200, 24]);
+    expect(lines.map((entry) => entry.quantityGrams)).toEqual([280, 260, 200, 12]);
   });
 
   test('a meal with its own amounts ignores the multiplier entirely', () => {
@@ -259,5 +269,109 @@ describe('mealTotals and mealGrams', () => {
     const lines = mealIngredientLines({ recipe: RECIPE, servings: 1, stored: null });
 
     expect(mealTotals(lines).fiber.unmeasured).toBe(4);
+  });
+});
+
+/**
+ * A real lunch is often more than one thing. Sides ride through the same
+ * resolution point as everything else so that no reader downstream — totals,
+ * printout, publish snapshot — can forget the salad.
+ */
+describe('sides', () => {
+  const salad: SideRecipe = {
+    id: 'side-salad',
+    nameAr: 'صحن سلطة',
+    nameEn: 'Green salad plate',
+    recipe: [line('lettuce', 100, { sortOrder: 0 }), line('tomato', 50, { sortOrder: 1 })],
+  };
+
+  test('a side is appended to the main and knows where it came from', () => {
+    const lines = mealIngredientLines({
+      recipe: [line('rice', 100)],
+      servings: 1,
+      sides: [salad],
+    });
+
+    expect(lines.map((one) => one.food.id)).toEqual(['rice', 'lettuce', 'tomato']);
+    expect(lines[0]!.side).toBeNull();
+    expect(lines[1]!.side).toEqual({
+      id: 'side-salad',
+      nameAr: 'صحن سلطة',
+      nameEn: 'Green salad plate',
+    });
+  });
+
+  /**
+   * The multiplier belongs to the main. A plate of salad is a plate of salad
+   * whether the lunch beside it is 500 kcal or 900.
+   */
+  test('the meal multiplier never reaches a side', () => {
+    const lines = mealIngredientLines({
+      recipe: [line('rice', 100)],
+      servings: 2,
+      sides: [salad],
+    });
+
+    expect(lines[0]!.quantityGrams).toBe(200);
+    expect(lines[1]!.quantityGrams).toBe(100);
+    expect(lines[2]!.quantityGrams).toBe(50);
+  });
+
+  /**
+   * `stored` replaces the main only. Sides are never materialised, so a meal a
+   * dietitian has adjusted by hand still reads "صحن سلطة" instead of dissolving
+   * into loose lettuce and tomato.
+   */
+  test('hand-set amounts replace the main and keep the sides', () => {
+    const lines = mealIngredientLines({
+      recipe: [line('rice', 100)],
+      servings: 3,
+      stored: [line('rice', 137, { sortOrder: 0 })],
+      sides: [salad],
+    });
+
+    expect(lines.map((one) => one.quantityGrams)).toEqual([137, 100, 50]);
+    expect(lines.filter((one) => one.side !== null)).toHaveLength(2);
+  });
+
+  test('sides always sort after the main, whatever their own recipe order says', () => {
+    const lines = mealIngredientLines({
+      recipe: [line('rice', 100, { sortOrder: 5 })],
+      servings: 1,
+      sides: [salad],
+    });
+
+    expect(lines[0]!.food.id).toBe('rice');
+  });
+
+  test('two sides keep their own blocks and their attachment order', () => {
+    const yogurt: SideRecipe = {
+      id: 'side-yogurt',
+      nameAr: 'كوب لبن',
+      nameEn: 'Cup of yogurt',
+      recipe: [line('yogurt', 200, { sortOrder: 0 })],
+    };
+
+    const lines = mealIngredientLines({
+      recipe: [line('rice', 100)],
+      servings: 1,
+      sides: [salad, yogurt],
+    });
+
+    expect(lines.map((one) => one.side?.nameAr ?? 'main')).toEqual([
+      'main',
+      'صحن سلطة',
+      'صحن سلطة',
+      'كوب لبن',
+    ]);
+  });
+
+  test('the totals include what the sides bring', () => {
+    const withoutSide = mealTotals(mealIngredientLines({ recipe: [line('rice', 100)], servings: 1 }));
+    const withSide = mealTotals(
+      mealIngredientLines({ recipe: [line('rice', 100)], servings: 1, sides: [salad] }),
+    );
+
+    expect(withSide.kcal.value).toBeGreaterThan(withoutSide.kcal.value);
   });
 });

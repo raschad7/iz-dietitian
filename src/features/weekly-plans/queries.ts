@@ -29,7 +29,9 @@ import {
   dishes,
   weeklyPlanMealIngredients,
   weeklyPlanMealOptions,
+  weeklyPlanMealSides,
   weeklyPlanMeals,
+  weeklyPlanReviews,
   weeklyPlans,
   type MealSlot,
 } from '@/db/schema';
@@ -40,12 +42,18 @@ import { DISPLAY_TIME_ZONE } from '@/lib/format';
 
 import { normalizeArabic } from './arabic-normalize';
 import { matchesOwner, type OwnerFilter } from './catalog-ownership';
+import { carbBase, proteinSource } from './dish-composition';
+import type { ReviewFinding } from './review';
 import type { CatalogDish } from './generate';
 import type { FoodPortion } from './ingredient-units';
 import {
   hasOwnAmounts,
   mealIngredientLines,
+  mealTotals,
+  scaleRecipe,
   type MealIngredientLine,
+  type MealSide,
+  type SideRecipe,
 } from './meal-ingredients';
 import {
   baseServingKcal,
@@ -64,10 +72,13 @@ import { slotFillKey, type SlotFill } from './skeleton';
 import {
   DAYS_OF_WEEK,
   DEFAULT_MEAL_SCHEDULE,
+  EMPTY_AXIS_FILTERS,
+  matchesAxes,
   mealScheduleSchema,
   mealTypeForSlot,
   planIdSchema,
   toTimeInput,
+  type DishAxisFilters,
   type MealScheduleInput,
 } from './schema';
 import { slotBudgets, suggestProteinGrams, suggestTargets, type SlotBudget, type SuggestedTargets } from './targets';
@@ -191,6 +202,7 @@ const recipeColumns = {
   quantityGrams: dishIngredients.quantityGrams,
   portionQuantity: dishIngredients.portionQuantity,
   isPrimary: dishIngredients.isPrimary,
+  isFree: dishIngredients.isFree,
   sortOrder: dishIngredients.sortOrder,
   portion: portionColumns,
   food: foodColumns,
@@ -202,6 +214,8 @@ type RecipeRow = {
   portionQuantity: number | null;
   /** Whether this line carries a `−/+` control on the board. */
   isPrimary: boolean;
+  /** Written without a number and never scaled — شرائح خضار. */
+  isFree: boolean;
   sortOrder: number;
   /**
    * Null when the line was entered in grams, or when the portion it was entered in
@@ -247,10 +261,56 @@ export async function ownAmountsByMeal(
     .where(inArray(weeklyPlanMealIngredients.mealId, [...mealIds]))
     .orderBy(asc(weeklyPlanMealIngredients.sortOrder));
 
-  for (const { mealId, ...line } of rows) {
+  for (const { mealId, ...row } of rows) {
+    // Stored rows are always the main: `mealIngredientLines` keeps sides out of
+    // this table entirely, so a materialised meal has nothing to attribute.
+    const line: MealIngredientLine = { ...row, side: null };
     const bucket = byMeal.get(mealId);
     if (bucket) bucket.push(line);
     else byMeal.set(mealId, [line]);
+  }
+
+  return byMeal;
+}
+
+/**
+ * The sides attached to each meal, with the recipe each contributes.
+ *
+ * Takes an executor for the same reason `loadDishesByIds` does: publishing freezes
+ * a plan inside one transaction, and a side read outside it would be a row from
+ * before the transaction started.
+ */
+export async function sidesByMealId(
+  mealIds: readonly string[],
+  executor: DbExecutor = db,
+): Promise<Map<string, SideRecipe[]>> {
+  const byMeal = new Map<string, SideRecipe[]>();
+  if (!mealIds.length) return byMeal;
+
+  const rows = await executor
+    .select({ mealId: weeklyPlanMealSides.mealId, dishId: weeklyPlanMealSides.dishId })
+    .from(weeklyPlanMealSides)
+    .where(inArray(weeklyPlanMealSides.mealId, [...mealIds]))
+    .orderBy(asc(weeklyPlanMealSides.sortOrder));
+
+  if (!rows.length) return byMeal;
+
+  const dishes = await loadDishesByIds([...new Set(rows.map((row) => row.dishId))], executor);
+  const dishById = new Map(dishes.map((dish) => [dish.id, dish]));
+
+  for (const row of rows) {
+    const dish = dishById.get(row.dishId);
+    if (!dish) continue;
+
+    const entry: SideRecipe = {
+      id: dish.id,
+      nameAr: dish.nameAr,
+      nameEn: dish.nameEn,
+      recipe: dish.ingredients,
+    };
+    const bucket = byMeal.get(row.mealId);
+    if (bucket) bucket.push(entry);
+    else byMeal.set(row.mealId, [entry]);
   }
 
   return byMeal;
@@ -270,6 +330,7 @@ function attachRecipes<D extends { id: string }>(
       portion: row.portion,
       portionQuantity: row.portionQuantity,
       isPrimary: row.isPrimary,
+      isFree: row.isFree,
       sortOrder: row.sortOrder,
     };
 
@@ -389,7 +450,11 @@ export async function loadCatalog(
       nameAr: dishes.nameAr,
       nameEn: dishes.nameEn,
       mealTypes: dishes.mealTypes,
-      tags: dishes.tags,
+      source: dishes.source,
+      effort: dishes.effort,
+      cost: dishes.cost,
+      occasion: dishes.occasion,
+      isSide: dishes.isSide,
       allergenTags: dishes.allergenTags,
       baseServingLabel: dishes.baseServingLabel,
       isActive: dishes.isActive,
@@ -449,7 +514,11 @@ export async function loadDishesByIds(
       nameAr: dishes.nameAr,
       nameEn: dishes.nameEn,
       mealTypes: dishes.mealTypes,
-      tags: dishes.tags,
+      source: dishes.source,
+      effort: dishes.effort,
+      cost: dishes.cost,
+      occasion: dishes.occasion,
+      isSide: dishes.isSide,
       allergenTags: dishes.allergenTags,
       baseServingLabel: dishes.baseServingLabel,
       isActive: dishes.isActive,
@@ -476,21 +545,56 @@ export async function loadDishesByIds(
   return attachRecipes(dishRows, ingredientRows);
 }
 
-/** The catalog reduced to what generation needs: identity, tags, and energy per serving. */
+/**
+ * The catalog reduced to what generation needs: identity, tags, and energy per
+ * serving.
+ *
+ * **Sides are dropped here.** صحن سلطة is not a dinner, and a dish that belongs
+ * beside a meal must never be offered as one — not as a main and not as an
+ * alternative. They reach a plan through `weekly_plan_meal_sides` instead, which
+ * is a different question asked at a different point.
+ */
 export function toPromptCatalog(catalog: readonly DishDetail[]): CatalogDish[] {
-  return catalog.map((dish) => ({
+  return catalog.filter((dish) => !dish.isSide).map(toCatalogDish);
+}
+
+/**
+ * The other half of the same catalog: what may stand *beside* a meal.
+ *
+ * Same shape, asked a different question. Kept as its own list rather than a flag
+ * the caller has to remember to check, because every place that reads the catalog
+ * is choosing a meal, and the one place that is not should have to say so.
+ */
+export function toPromptSides(catalog: readonly DishDetail[]): CatalogDish[] {
+  return catalog.filter((dish) => dish.isSide).map(toCatalogDish);
+}
+
+function toCatalogDish(dish: DishDetail): CatalogDish {
+  return {
     id: dish.id,
     slug: dish.slug,
     nameAr: dish.nameAr,
     mealTypes: dish.mealTypes,
-    tags: dish.tags,
+    source: dish.source,
+    effort: dish.effort,
+    cost: dish.cost,
+    occasion: dish.occasion,
     allergenTags: dish.allergenTags,
     baseKcal: baseServingKcal(dish.ingredients),
     baseProtein: dishTotals(dish.ingredients, 1).protein.value,
+    // Carried for `chooseServings`, which has to portion a recipe to know what a
+    // multiplier produces. Never reaches the model: `describeCatalog` writes the
+    // columns it wants by name.
+    recipe: dish.ingredients,
     // Computed here, sent to the model as a fact rather than a question — kept
     // separate from `tags`, which stay purely practical.
     nutritionCategory: nutritionCategory(dishTotals(dish.ingredients, 1)),
-  }));
+    // What repeats when a week feels repetitive. Derived from the recipe for the
+    // same reason the nutrition label is: a tag someone types can disagree with
+    // the food, and this one has to be able to carry a rule.
+    proteinSource: proteinSource(dish.ingredients),
+    carbBase: carbBase(dish.ingredients),
+  };
 }
 
 export type CatalogEntry = DishDetail & {
@@ -552,7 +656,11 @@ export type DishEditData = {
   nameEn: string;
   baseServingLabel: string;
   mealTypes: string[];
-  tags: string[];
+  source: string;
+  effort: string;
+  cost: string;
+  occasion: string;
+  isSide: boolean;
   allergenTags: string[];
   ingredients: {
     /** Carries the food's whole portion menu, so the editor can rebuild the unit list. */
@@ -647,10 +755,18 @@ export async function listDishes(input: {
   clinicId: string;
   q?: string;
   mealType?: string;
-  /** Practical tags to require (AND) — the catalog toolbar's tag chips. */
-  tags?: readonly string[];
+  /** The four declared axes — OR within one, AND across them. See `matchesAxes`. */
+  axes?: DishAxisFilters;
   /** Keep only dishes whose computed nutrition category is `high_protein`. */
   highProtein?: boolean;
+  /**
+   * Keep only dishes whose protein comes from one of these — OR within the list.
+   *
+   * Computed from the recipe by `proteinSource`, exactly like `highProtein`
+   * above and like the colour every surface paints, so the filter, the dot and
+   * the board can never disagree. Empty means "not narrowed".
+   */
+  proteinSources?: readonly string[];
   /** Ownership filter: shared/system dishes, the clinic's own, or (undefined) all. */
   owner?: OwnerFilter;
   page: number;
@@ -677,7 +793,7 @@ export async function listDishes(input: {
     : (await loadCatalog(input.clinicId)).map((dish) => ({ ...dish, hidden: false }));
 
   const term = input.q?.trim() ? normalizeArabic(input.q) : null;
-  const tags = input.tags ?? [];
+  const axes = input.axes ?? EMPTY_AXIS_FILTERS;
 
   const filtered = catalog
     .filter((dish) => {
@@ -686,10 +802,13 @@ export async function listDishes(input: {
       if (!matchesOwner(dish.clinicId, input.owner)) return false;
       if (input.mealType && !dish.mealTypes.includes(input.mealType)) return false;
       // AND, like the planner's catalog filter: each extra tag narrows.
-      if (tags.length && !tags.every((tag) => dish.tags.includes(tag))) return false;
+      if (!matchesAxes(dish, axes)) return false;
       // Computed from the recipe, never a stored tag — the filter can't disagree
       // with the dish's own numbers. See `nutritionCategory`.
       if (input.highProtein && nutritionCategory(dishTotals(dish.ingredients, 1)) !== 'high_protein') {
+        return false;
+      }
+      if (input.proteinSources?.length && !input.proteinSources.includes(proteinSource(dish.ingredients))) {
         return false;
       }
       if (!term) return true;
@@ -756,7 +875,11 @@ export async function getClinicDishForEdit(clinicId: string, dishId: string): Pr
       nameEn: dishes.nameEn,
       baseServingLabel: dishes.baseServingLabel,
       mealTypes: dishes.mealTypes,
-      tags: dishes.tags,
+      source: dishes.source,
+      effort: dishes.effort,
+      cost: dishes.cost,
+      occasion: dishes.occasion,
+      isSide: dishes.isSide,
       allergenTags: dishes.allergenTags,
     })
     .from(dishes)
@@ -796,7 +919,10 @@ export type DishDetailView = {
   nameAr: string;
   nameEn: string;
   mealTypes: string[];
-  tags: string[];
+  source: string;
+  effort: string;
+  cost: string;
+  occasion: string;
   allergenTags: string[];
   baseServingLabel: string;
   /** Computed here so the drawer never sums nutrition itself. */
@@ -825,7 +951,11 @@ export async function getDishDetailForClinic(
       nameAr: dishes.nameAr,
       nameEn: dishes.nameEn,
       mealTypes: dishes.mealTypes,
-      tags: dishes.tags,
+      source: dishes.source,
+      effort: dishes.effort,
+      cost: dishes.cost,
+      occasion: dishes.occasion,
+      isSide: dishes.isSide,
       allergenTags: dishes.allergenTags,
       baseServingLabel: dishes.baseServingLabel,
     })
@@ -1324,6 +1454,17 @@ export type BoardMeal = {
    * reading this array is reading the same meal. Empty for an unfilled slot.
    */
   lines: MealIngredientLine[];
+  /**
+   * What stands beside this meal — صحن سلطة، كوب شوربة.
+   *
+   * Carried as its own list as well as folded into `lines`, because the two
+   * answer different questions. `lines` is *what the client eats*, which is why
+   * the sides are in it and why nothing downstream has to know they exist. This
+   * is *what the dietitian chose*, which is what the card prints and what the
+   * picker edits — and a list of ingredient rows cannot be edited back into a set
+   * of dishes.
+   */
+  sides: MealSide[];
   /** True once the dietitian has set amounts by hand and the dish multiplier no longer applies. */
   hasOwnAmounts: boolean;
   rationaleAr: string | null;
@@ -1380,7 +1521,55 @@ export type PlanListEntry = {
   updatedAt: Date;
   kcalTargetSnapshot: number;
   mealCount: number;
+  /** The model's account of this week, for telling one from another in a list. */
+  summaryAr: string | null;
 };
+
+/** A plan review as the board reads it. */
+export type PlanReviewRow = {
+  id: string;
+  model: string;
+  verdict: string;
+  summaryAr: string;
+  findings: ReviewFinding[];
+  checks: string[];
+  createdAt: Date;
+};
+
+/**
+ * The newest review of one plan, or null where it has never been reviewed.
+ *
+ * Clinic-scoped like every other read here: a plan id is a uuid a staff member
+ * could otherwise carry between clinics.
+ */
+export async function latestReview(
+  clinicId: string,
+  planId: string,
+): Promise<PlanReviewRow | null> {
+  const [row] = await db
+    .select({
+      id: weeklyPlanReviews.id,
+      model: weeklyPlanReviews.model,
+      verdict: weeklyPlanReviews.verdict,
+      summaryAr: weeklyPlanReviews.summaryAr,
+      findings: weeklyPlanReviews.findings,
+      checks: weeklyPlanReviews.checks,
+      createdAt: weeklyPlanReviews.createdAt,
+    })
+    .from(weeklyPlanReviews)
+    .where(and(eq(weeklyPlanReviews.clinicId, clinicId), eq(weeklyPlanReviews.planId, planId)))
+    .orderBy(desc(weeklyPlanReviews.createdAt))
+    .limit(1);
+
+  if (!row) return null;
+
+  return {
+    ...row,
+    // `jsonb` comes back as `unknown`, and what was written is what is read.
+    findings: (row.findings ?? []) as ReviewFinding[],
+    checks: (row.checks ?? []) as string[],
+  };
+}
 
 /** One client's plans, newest week first, for the header pills and the Past tab. */
 export async function listPlans(clinicId: string, clientId: string): Promise<PlanListEntry[]> {
@@ -1391,6 +1580,7 @@ export async function listPlans(clinicId: string, clientId: string): Promise<Pla
       status: weeklyPlans.status,
       updatedAt: weeklyPlans.updatedAt,
       kcalTargetSnapshot: weeklyPlans.kcalTargetSnapshot,
+      summaryAr: weeklyPlans.summaryAr,
       // Counted in SQL rather than by loading the meals: the panel shows a number,
       // and fetching 35 rows per plan to take their length would make this the
       // page's largest read by a wide margin.
@@ -1699,6 +1889,17 @@ async function assembleBoard(plan: PlanRow): Promise<Board> {
         .orderBy(asc(weeklyPlanMealOptions.sortOrder))
     : [];
 
+  const sideRows = mealIds.length
+    ? await db
+        .select({
+          mealId: weeklyPlanMealSides.mealId,
+          dishId: weeklyPlanMealSides.dishId,
+        })
+        .from(weeklyPlanMealSides)
+        .where(inArray(weeklyPlanMealSides.mealId, mealIds))
+        .orderBy(asc(weeklyPlanMealSides.sortOrder))
+    : [];
+
   // Only the dishes this plan references, and by id rather than through the catalog:
   // a plan may hold a dish the client has since become allergic to, or one that has
   // since been retired, and either way the card must show what is actually planned
@@ -1706,6 +1907,7 @@ async function assembleBoard(plan: PlanRow): Promise<Board> {
   const referenced = new Set<string>();
   for (const meal of mealRows) if (meal.dishId) referenced.add(meal.dishId);
   for (const option of optionRows) referenced.add(option.dishId);
+  for (const side of sideRows) referenced.add(side.dishId);
 
   const dishById = new Map((await loadDishesByIds([...referenced])).map((dish) => [dish.id, dish]));
 
@@ -1716,12 +1918,30 @@ async function assembleBoard(plan: PlanRow): Promise<Board> {
   // same figure the model was given even after the client's profile has moved on.
   const budgetByMeal = new Map(mealRows.map((meal) => [meal.id, meal.budgetKcal]));
 
+  const sidesByMeal = new Map<string, SideRecipe[]>();
+  for (const side of sideRows) {
+    const dish = dishById.get(side.dishId);
+    if (!dish) continue;
+
+    const entry: SideRecipe = {
+      id: dish.id,
+      nameAr: dish.nameAr,
+      nameEn: dish.nameEn,
+      recipe: dish.ingredients,
+    };
+    const bucket = sidesByMeal.get(side.mealId);
+    if (bucket) bucket.push(entry);
+    else sidesByMeal.set(side.mealId, [entry]);
+  }
+
   const optionsByMeal = new Map<string, BoardOption[]>();
   for (const option of optionRows) {
     const dish = dishById.get(option.dishId);
     if (!dish) continue;
 
-    const kcal = dishTotals(dish.ingredients, option.servings).kcal.value;
+    // Portioned, not multiplied: this is the figure beside a swap the dietitian is
+    // deciding on, and it has to be what the meal would hold if she took it.
+    const kcal = mealTotals(scaleRecipe(dish.ingredients, option.servings)).kcal.value;
     const budget = budgetByMeal.get(option.mealId) ?? 0;
 
     const entry: BoardOption = {
@@ -1757,7 +1977,12 @@ async function assembleBoard(plan: PlanRow): Promise<Board> {
     // built from this one array, so the numbers and the list cannot describe two
     // different meals.
     const lines = dish
-      ? mealIngredientLines({ recipe: dish.ingredients, servings: meal.servings, stored })
+      ? mealIngredientLines({
+          recipe: dish.ingredients,
+          servings: meal.servings,
+          stored,
+          sides: sidesByMeal.get(meal.id) ?? [],
+        })
       : [];
 
     // The one branch between a frozen record and a live calculation. Keyed on the
@@ -1780,6 +2005,11 @@ async function assembleBoard(plan: PlanRow): Promise<Board> {
       timeOfDay: toTimeInput(meal.timeOfDay),
       dish: dish ? { ...dish, servings: meal.servings } : null,
       lines,
+      sides: (sidesByMeal.get(meal.id) ?? []).map(({ id, nameAr, nameEn }) => ({
+        id,
+        nameAr,
+        nameEn,
+      })),
       hasOwnAmounts: hasOwnAmounts(stored),
       rationaleAr: meal.rationaleAr,
       totals: nutrition.totals,

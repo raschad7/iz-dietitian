@@ -218,7 +218,13 @@ export type DishIngredientDetail = {
    * from. A portion below never enters this arithmetic.
    */
   quantityGrams: number;
-  food: { id: string; nameAr: string; nameEn: string } & FoodNutrients;
+  /**
+   * `category` is optional because a caller that only needs nutrition — the dish
+   * editor's live preview — has no use for it. Every reader that portions a meal
+   * gets it from `foodColumns`, which has always selected it; portioning falls
+   * back to the unremarkable grid without it.
+   */
+  food: { id: string; nameAr: string; nameEn: string; category?: string | null } & FoodNutrients;
   /**
    * How the dietitian typed the amount — "2 حبة" rather than "100 غرام".
    *
@@ -238,6 +244,17 @@ export type DishIngredientDetail = {
    * Never an input to any total. It decides what is offered, not what is counted.
    */
   isPrimary: boolean;
+  /**
+   * Written without a number, and never scaled by a serving multiplier.
+   *
+   * شرائح خضار beside a breakfast, the salad beside a lunch. Its energy is
+   * counted like any other line — the day's total has to stay true — but the
+   * amount is what the dietitian wrote and stays there.
+   *
+   * Optional, and absent means false, so every line written before the flag
+   * existed behaves exactly as it did.
+   */
+  isFree?: boolean;
   /** The recipe's own order, so a meal reads the way it was written. */
   sortOrder: number;
 };
@@ -250,7 +267,19 @@ export type DishDetail = {
   nameAr: string;
   nameEn: string;
   mealTypes: string[];
-  tags: string[];
+  /**
+   * The four declared axes, and whether the dish is a side.
+   *
+   * Typed as plain strings here for the same reason `tags` is: this module is the
+   * nutrition arithmetic, and narrowing them would drag the catalog vocabulary
+   * into a file that only ever passes them through. The closed sets live in
+   * `schema.ts` and are enforced at the seed.
+   */
+  source: string;
+  effort: string;
+  cost: string;
+  occasion: string;
+  isSide: boolean;
   allergenTags: string[];
   baseServingLabel: string;
   /** False for a retired dish. It stays readable on the plans that already use it. */

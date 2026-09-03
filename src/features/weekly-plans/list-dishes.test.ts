@@ -35,7 +35,6 @@ function seedDish(values: {
       nameAr: values.nameAr,
       nameEn: values.nameEn,
       mealTypes: values.mealTypes ?? ['lunch'],
-      tags: [],
       allergenTags: [],
       baseServingLabel: 'حصة',
     })

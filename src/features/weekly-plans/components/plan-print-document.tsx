@@ -226,12 +226,21 @@ function PrintMealRow({ meal, locale }: { meal: PrintMeal; locale: Locale }) {
           <p className="plan-print-portions">
             {meal.lines.map((line, index) => {
               const amount = ingredientAmount(line, locale);
+              // Names the side once, where its first line starts, so a printed
+              // plate reads "… · صحن سلطة: خس 60 غ · بندورة 70 غ" rather than
+              // trailing loose vegetables nobody can attribute.
+              const opensSide = line.side && line.side.id !== meal.lines[index - 1]?.side?.id;
 
               return (
-                <Fragment key={line.food.id}>
+                <Fragment key={`${line.side?.id ?? 'main'}:${line.food.id}`}>
                   {/* A literal separator, not a CSS `::before`: Word renders no
                       generated content, and the Word file is this same markup. */}
                   {index > 0 && <span className="plan-print-sep"> · </span>}
+                  {opensSide && (
+                    <b className="plan-print-side" dir="auto">
+                      {line.side?.nameAr}:{' '}
+                    </b>
+                  )}
                   <span className="plan-print-portion" dir="auto">
                     {localizedName(line.food, locale)}{' '}
                     <b className="plan-print-amount">

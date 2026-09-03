@@ -2106,7 +2106,8 @@
       "clientNotFound": "المشترك غير موجود.",
       "unexpected": "حدث خطأ غير متوقع.",
       "notFound": "الطبق غير موجود.",
-      "inUse": "هذا الطبق مستخدم في خطة نشطة ولا يمكن حذفه."
+      "inUse": "هذا الطبق مستخدم في خطة نشطة ولا يمكن حذفه.",
+      "reviewFailed": "تعذّرت مراجعة الخطة."
     },
     "tabs": {
       "client": "المشترك",
@@ -2144,8 +2145,8 @@
     "searchDishes": "ابحث في الأطباق",
     "dishFilters": "الفلاتر",
     "clearFilters": "مسح الفلاتر",
-    "colorKey": "دليل ألوان الأطباق",
-    "colorKeyUntagged": "بدون خصائص",
+    "colorKey": "مصدر البروتين في الأسبوع",
+    "colorKeyUntagged": "غير محدد",
     "filterTags": "تصنيف الطبق",
     "filterForThisSlot": "مناسبة لهذه الخانة",
     "dishOptions": {
@@ -2170,15 +2171,36 @@
       "lunch": "غداء",
       "dinner": "عشاء"
     },
-    "tags": {
-      "economical": "اقتصادي",
-      "quick": "سريع التحضير",
-      "easy_prep": "سهل التحضير",
-      "no_cook": "بدون طهي",
-      "portable": "سهل الحمل",
-      "filling": "مُشبِع",
-      "local": "محلي",
-      "vegetarian": "نباتي"
+    "axes": {
+      "source": {
+        "home": "بيتي",
+        "street": "من الشارع",
+        "restaurant": "مطعم",
+        "shop": "جاهز من الدكان"
+      },
+      "effort": {
+        "no_cook": "بدون طبخ",
+        "quick": "سريع",
+        "medium": "متوسط",
+        "long": "يحتاج وقت"
+      },
+      "cost": {
+        "cheap": "اقتصادي",
+        "normal": "عادي",
+        "expensive": "مكلف"
+      },
+      "occasion": {
+        "everyday": "يومي",
+        "family": "عائلي",
+        "ramadan": "رمضان",
+        "festive": "مناسبات"
+      }
+    },
+    "axisLabels": {
+      "source": "مصدر الطبق",
+      "effort": "الجهد",
+      "cost": "التكلفة",
+      "occasion": "المناسبة"
     },
     "dropHere": "أفلت هنا",
     "addMeal": "إضافة وجبة",
@@ -2264,7 +2286,55 @@
       "iron": "الحديد",
       "potassium": "البوتاسيوم"
     },
-    "unmeasuredCount": "{count, number, integer} من هذه الأطعمة ليس لها قيمة منشورة لهذا العنصر، لذا فالإجمالي الحقيقي أعلى."
+    "unmeasuredCount": "{count, number, integer} من هذه الأطعمة ليس لها قيمة منشورة لهذا العنصر، لذا فالإجمالي الحقيقي أعلى.",
+    "review": {
+      "title": "مراجعة الخطة",
+      "run": "راجع هذا الأسبوع",
+      "running": "جارٍ المراجعة…",
+      "again": "أعد المراجعة",
+      "empty": "لم تُراجع هذه الخطة بعد.",
+      "emptyHint": "يقرأ النموذج الأسبوع كما يصل العميل، ويكتب ما يلاحظه. الفحوصات الحسابية تجري هنا أولًا.",
+      "problem": "المشكلة",
+      "suggestion": "الاقتراح",
+      "checks": "فحوصات حسابية",
+      "week": "الأسبوع",
+      "noFindings": "لا ملاحظات. الأسبوع جاهز للتسليم.",
+      "reviewedAt": "روجعت",
+      "verdict": {
+        "usable": "جاهزة",
+        "needs_work": "تحتاج تعديلًا",
+        "not_usable": "غير صالحة للتسليم"
+      },
+      "severity": {
+        "high": "مهم",
+        "medium": "متوسط",
+        "low": "بسيط"
+      }
+    },
+    "proteinSources": {
+      "red_meat": "لحوم حمراء",
+      "poultry": "دجاج وحبش",
+      "fish": "سمك",
+      "egg": "بيض",
+      "dairy": "ألبان وأجبان",
+      "legume": "بقوليات",
+      "nuts": "مكسرات وبذور",
+      "none": "بدون بروتين رئيسي"
+    },
+    "sidesLabel": "يُقدّم معه",
+    "sidesHint": "اختياري · حتى صنفين",
+    "noSides": "لا شيء بجانب هذه الوجبة",
+    "addSide": "أضف صنفاً بجانبها",
+    "removeSide": "إزالة الصنف الجانبي",
+    "planNotes": "ملاحظات للأخصائي",
+    "mealViews": "عرض الوجبة",
+    "plateTab": "الطبق",
+    "optionsTab": "البدائل",
+    "sideIngredients": "المكونات",
+    "fillSlotHint": "الأطباق مرتبة حسب قربها من هدف الخانة",
+    "mealEnergy": "طاقة الوجبة",
+    "slotBudget": "ميزانية الخانة",
+    "filterMealType": "نوع الوجبة"
   },
   "dishes": {
     "title": "كتالوج الأطباق",
@@ -2304,7 +2374,7 @@
     "columns": {
       "name": "الطبق",
       "mealTypes": "وقت الوجبة",
-      "tags": "الخصائص",
+      "properties": "الخصائص",
       "kcal": "السعرات",
       "carbs": "الكربوهيدرات",
       "protein": "البروتين",
@@ -2336,15 +2406,36 @@
       "lunch": "غداء",
       "dinner": "عشاء"
     },
-    "tags": {
-      "economical": "اقتصادي",
-      "quick": "سريع",
-      "easy_prep": "سهل التحضير",
-      "no_cook": "بدون طهي",
-      "portable": "قابل للنقل",
-      "filling": "مُشبِع",
-      "local": "محلي",
-      "vegetarian": "نباتي"
+    "axes": {
+      "source": {
+        "home": "بيتي",
+        "street": "من الشارع",
+        "restaurant": "مطعم",
+        "shop": "جاهز من الدكان"
+      },
+      "effort": {
+        "no_cook": "بدون طبخ",
+        "quick": "سريع",
+        "medium": "متوسط",
+        "long": "يحتاج وقت"
+      },
+      "cost": {
+        "cheap": "اقتصادي",
+        "normal": "عادي",
+        "expensive": "مكلف"
+      },
+      "occasion": {
+        "everyday": "يومي",
+        "family": "عائلي",
+        "ramadan": "رمضان",
+        "festive": "مناسبات"
+      }
+    },
+    "axisLabels": {
+      "source": "مصدر الطبق",
+      "effort": "الجهد",
+      "cost": "التكلفة",
+      "occasion": "المناسبة"
     },
     "allergens": {
       "nuts": "مكسرات",
@@ -2353,7 +2444,21 @@
       "egg": "بيض",
       "fish": "سمك",
       "sesame": "سمسم"
-    }
+    },
+    "proteinSources": {
+      "red_meat": "لحوم حمراء",
+      "poultry": "دجاج وحبش",
+      "fish": "سمك",
+      "egg": "بيض",
+      "dairy": "ألبان وأجبان",
+      "legume": "بقوليات",
+      "nuts": "مكسرات وبذور",
+      "none": "بدون بروتين رئيسي"
+    },
+    "proteinFilter": {
+      "label": "مصدر البروتين"
+    },
+    "sideDish": "طبق جانبي"
   },
   "dishEditor": {
     "foodPicker": {
@@ -2466,7 +2571,10 @@
       "gramsPerServing": "{grams} غرام للحصة",
       "kcalPer100g": "{kcal} سعرة / 100غ",
       "suggested": "مقترح",
-      "saveAndAddAnother": "حفظ وإضافة آخر"
+      "saveAndAddAnother": "حفظ وإضافة آخر",
+      "roleLegend": "نوع الطبق",
+      "roleMain": "طبق رئيسي",
+      "roleSide": "طبق جانبي"
     }
   },
   "whatsapp": {

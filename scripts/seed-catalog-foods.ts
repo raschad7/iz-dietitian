@@ -69,8 +69,12 @@ export type CuratedFood = {
   nameEn: string;
   state: string;
   category: string;
+  /** The portion `labelEn` this food is always counted in, or absent for grams. */
+  countedAs?: string;
   sourceType: string;
   sourceRef: string;
+  /** Where a non-USDA number came from, in words. Absent for a USDA row. */
+  sourceNote?: string;
   note: string;
   nutrition: Record<string, number | null>;
   /**
@@ -127,6 +131,17 @@ export function validateCuratedFoods(records: readonly CuratedFood[]): string[] 
     }
     if (!isMember(CATALOG_FOOD_CATEGORIES, food.category)) {
       problems.push(`${food.slug}: unknown category "${food.category}"`);
+    }
+
+    // A counting unit that names no portion of this food is a unit nothing can be
+    // counted in — every recipe line using it would then be unwritable.
+    if (food.countedAs !== undefined) {
+      const labels = (food.portions ?? []).map((portion) => portion.labelEn);
+      if (!labels.includes(food.countedAs)) {
+        problems.push(
+          `${food.slug}: countedAs "${food.countedAs}" is not one of its portions (${labels.join(', ') || 'none'})`,
+        );
+      }
     }
 
     if (!food.nutrition) {
@@ -208,6 +223,7 @@ function foodValues(food: CuratedFood) {
     normalizedNameEn: normalizeArabic(food.nameEn),
     state: food.state,
     category: food.category,
+    countedAs: food.countedAs ?? null,
     // Copied verbatim from the dataset. A null stays null — "not measured" is not zero.
     kcal: nutrition.kcal!,
     protein: nutrition.protein!,
@@ -223,6 +239,7 @@ function foodValues(food: CuratedFood) {
     potassium: nutrition.potassium,
     verificationStatus: 'verified',
     sourceType: food.sourceType,
+    sourceNote: food.sourceNote ?? null,
     sourceRef: food.sourceRef,
     isActive: true,
   };
@@ -294,6 +311,7 @@ export async function seedCatalogFoods(options: { apply?: boolean } = {}): Promi
           normalizedNameEn: sql`excluded.normalized_name_en`,
           state: sql`excluded.state`,
           category: sql`excluded.category`,
+          countedAs: sql`excluded.counted_as`,
           kcal: sql`excluded.kcal`,
           protein: sql`excluded.protein`,
           fat: sql`excluded.fat`,
@@ -308,6 +326,7 @@ export async function seedCatalogFoods(options: { apply?: boolean } = {}): Promi
           potassium: sql`excluded.potassium`,
           verificationStatus: sql`excluded.verification_status`,
           sourceType: sql`excluded.source_type`,
+          sourceNote: sql`excluded.source_note`,
           sourceRef: sql`excluded.source_ref`,
           updatedAt: new Date(),
         },
