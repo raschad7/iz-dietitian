@@ -233,6 +233,10 @@ lint rule. See [Design system](design-system.md) for the complete UI contract.
   credential issuing
 - `clinic-profile`: clinic onboarding, clinic details, and the default schedule
 - `dashboard`: staff overview and attention items
+- `measurements`: body composition across visits — the readings, the goal-aware
+  comparison between them, reading an analyser's PDF report, and the client's
+  own view of it. `parse/` holds one template per machine; adding a clinic's
+  analyser is a template and a test fixture, not a screen
 - `notifications`: the in-app notification feed and browser notification state
 - `portal`: client dashboard, appointments, profile, settings, and published
   plan access. `portal/pwa/` is the installable app and its service worker;

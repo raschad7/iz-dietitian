@@ -1,6 +1,8 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
+import { PortalMeasurementsCard } from '@/features/measurements/components/portal-measurements-card';
+import { getPortalMeasurements } from '@/features/measurements/portal';
 import { AdherenceStreakCard } from '@/features/portal/components/adherence-streak-card';
 import { AdherenceTrendCard } from '@/features/portal/components/adherence-trend-card';
 import { TodayAdherenceCard } from '@/features/portal/components/today-adherence-card';
@@ -39,7 +41,16 @@ export default async function ProgressPage({ params }: ProgressPageProps) {
   const locale = await resolveLocale(params);
 
   const context = await requirePortalClient(locale);
-  const { today, streak, continuity, monthlyTrend } = await loadProgressPage(context);
+
+  const [{ today, streak, continuity, monthlyTrend }, measurements] = await Promise.all([
+    loadProgressPage(context),
+    /*
+      Null unless the dietitian turned sharing on for this client — the gate is
+      inside the read, not around the render, so nothing about a body leaves the
+      database for a session that was not granted it. See `getPortalMeasurements`.
+    */
+    getPortalMeasurements(context.id),
+  ]);
 
   return (
     /*
@@ -96,6 +107,22 @@ export default async function ProgressPage({ params }: ProgressPageProps) {
       <div className="lg:order-2 lg:grid">
         <AdherenceTrendCard weeks={monthlyTrend} />
       </div>
+
+      {/*
+        Measurements, last and full width — and **absent**, not empty, when the
+        dietitian has not shared them (§9.8). A card reading "hidden" would tell
+        a client there is a number being kept from them, which is worse than not
+        raising the subject.
+
+        Below the adherence cards because it answers a slower question. Those
+        three are about this week and this month; this one is about whether the
+        months added up to anything.
+      */}
+      {measurements ? (
+        <div className="lg:order-4 lg:col-span-2">
+          <PortalMeasurementsCard data={measurements} locale={locale} />
+        </div>
+      ) : null}
     </div>
   );
 }

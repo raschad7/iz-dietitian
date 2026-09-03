@@ -1,0 +1,1 @@
+ALTER TABLE "client_nutrition_profiles" ADD COLUMN "share_measurements_with_client" boolean DEFAULT false NOT NULL;

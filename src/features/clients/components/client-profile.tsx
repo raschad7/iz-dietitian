@@ -16,6 +16,9 @@ import { ClientPlansCard } from '@/features/weekly-plans/components/client-plans
 import type { BillEntry } from '@/features/billing/bill';
 import { ClientExpensesPanel } from '@/features/billing/components/client-expenses-panel';
 import type { ServicePrices } from '@/features/billing/services';
+import { type MeasurementSubject } from '@/features/measurements/compare';
+import { MeasurementsPanel } from '@/features/measurements/components/measurements-panel';
+import { type MeasurementRow } from '@/features/measurements/queries';
 import { type PlanListEntry } from '@/features/weekly-plans/queries';
 import { type Locale } from '@/i18n/routing';
 import { type IsoDate } from '@/lib/iso-date';
@@ -98,6 +101,21 @@ export type ClientProfileProps = {
    * the meal-slot denominator the plans card counts a week against.
    */
   intake: ClientIntakeValues;
+  /**
+   * The Measurements view: this client's readings newest first, the two client
+   * facts a comparison needs, the current weight the save form's checkbox would
+   * replace, and which comparison `?range=` asked for.
+   */
+  measurements: {
+    rows: MeasurementRow[];
+    subject: MeasurementSubject;
+    currentWeightKg: number | null;
+    range: 'last' | 'start';
+    /** Which of the rows have a stored report — see the panel's own note. */
+    reportIds: Set<string>;
+    /** The portal disclosure switch's state. */
+    sharing: { shared: boolean; hasProfile: boolean };
+  };
   /** The selected week's adherence, for the Progress view. */
   progress: ClientWeekProgress;
   /**
@@ -141,6 +159,7 @@ export async function ClientProfile({
   visits,
   plans,
   intake,
+  measurements,
   progress,
   progressWeeks,
   mealsByDay,
@@ -153,6 +172,7 @@ export async function ClientProfile({
   const labels: Record<ProfileTab, string> = {
     account: t('profile.tabs.account'),
     nutrition: t('profile.tabs.nutrition'),
+    measurements: t('profile.tabs.measurements'),
     progress: t('profile.tabs.progress'),
     security: t('profile.tabs.security'),
     billing: t('profile.tabs.billing'),
@@ -227,6 +247,19 @@ export async function ClientProfile({
           */
           account: <ClientVisitRecord visits={visits.entries} locale={locale} today={today} />,
           nutrition: <ClientNutrition intake={intake} locale={locale} />,
+          measurements: (
+            <MeasurementsPanel
+              clientId={client.id}
+              locale={locale}
+              today={today}
+              measurements={measurements.rows}
+              subject={measurements.subject}
+              currentWeightKg={measurements.currentWeightKg}
+              range={measurements.range}
+              reportIds={measurements.reportIds}
+              sharing={measurements.sharing}
+            />
+          ),
           progress: (
             <ClientProgressPanel
               clientId={client.id}

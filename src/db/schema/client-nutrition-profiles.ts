@@ -85,6 +85,35 @@ export const clientNutritionProfiles = pgTable(
     shareWeightWithClient: boolean('share_weight_with_client').notNull().default(false),
 
     /**
+     * Whether the client may see their body composition history in the portal.
+     *
+     * **A second switch rather than a widening of the one above, and the split is
+     * the point.** `share_weight_with_client` governs one number a client
+     * usually already knows — they stood on the scale. This governs a body-fat
+     * percentage, a muscle mass and a trend across months, which is a different
+     * disclosure: it is the material a client is most likely to read a judgement
+     * into, and the dietitian may well want to show the weight while keeping the
+     * composition for the room.
+     *
+     * **Default false, for the reason stated above.** Revealing a figure nobody
+     * chose to reveal is the failure both columns exist to prevent, and the
+     * reverse — a client who wants to see it and asks once — is not.
+     *
+     * When it is false the portal omits the card entirely rather than blanking
+     * it, per §9.8: a visible panel reading "hidden" tells a client there is
+     * something being kept from them, which is worse than not raising it.
+     *
+     * What this never reveals, at any setting: the visceral fat rating, the
+     * metabolic age, the machine's own scores, and the original PDF. Those need
+     * a clinician to interpret them, and a number with no interpretation is how
+     * a client ends up frightened by a normal result. See the portal's own
+     * reader for what it selects.
+     */
+    shareMeasurementsWithClient: boolean('share_measurements_with_client')
+      .notNull()
+      .default(false),
+
+    /**
      * The dietitian's override. Null means "use the figure `targets.ts` computes
      * from Mifflin-St Jeor", which is the normal case — this column exists for
      * the client whose clinical picture the formula does not fit.

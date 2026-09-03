@@ -19,6 +19,14 @@
  */
 export const PROFILE_TABS = [
   'nutrition',
+  /*
+    Second, because it is the second thing a record is opened for: what the
+    numbers were last time. It is deliberately *not* merged into `progress` —
+    that view is week-scoped and asks "did they follow the plan?", this one is
+    visit-scoped across months and asks "did it work?". Two different time axes
+    fighting over one screen is what keeping them apart avoids.
+  */
+  'measurements',
   'progress',
   'account',
   'security',

@@ -34,6 +34,18 @@ const nextConfig: NextConfig = {
    * documents the intent.
    */
   experimental: {
+    /*
+     * A body composition report crosses the wire to `readReportAction` and
+     * again to the save, and Next's default server-action body limit is 1 MB.
+     * A Tanita result sheet is around 270 KB, but a scanned or
+     * higher-resolution export runs larger, and the failure at the default is
+     * an opaque rejection rather than the "that file is too big" the upload
+     * control can say. `MEASUREMENT_FILE_MAX_BYTES` is the limit the app
+     * actually enforces and explains; this only has to be above it.
+     */
+    serverActions: {
+      bodySizeLimit: '8mb',
+    },
     staleTimes: {
       dynamic: 180,
       static: 180,

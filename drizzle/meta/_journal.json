@@ -330,6 +330,20 @@
       "when": 1788344080933,
       "tag": "0046_lethal_sentinels",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1788423135502,
+      "tag": "0047_brainy_nitro",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1788437171000,
+      "tag": "0048_cool_the_hand",
+      "breakpoints": true
     }
   ]
 }

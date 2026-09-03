@@ -1,10 +1,19 @@
-import { and, count, desc, eq, gte, isNotNull, notExists } from 'drizzle-orm';
+import { and, count, desc, eq, gte, isNotNull, lt, notExists, sql } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { appointmentRequests, appointments, clients, session, weeklyPlans } from '@/db/schema';
+import {
+  appointmentRequests,
+  appointments,
+  clientMeasurements,
+  clients,
+  session,
+  weeklyPlans,
+} from '@/db/schema';
+import { addDays } from '@/features/booking/date';
 import { clientSeq } from '@/features/clients/seq';
 import { type RequestKind } from '@/features/portal/types';
 import { currentSunday } from '@/features/weekly-plans/week';
+import { type IsoDate } from '@/lib/iso-date';
 
 import { type AttentionReason } from './types';
 
@@ -177,4 +186,62 @@ export async function listClientsNeverSignedIn(clinicId: string, limit: number):
     .limit(limit);
 
   return rows.map((row) => ({ ...row, reason: 'neverSignedIn' as const }));
+}
+
+/**
+ * How long a client may go unmeasured before the dashboard mentions it.
+ *
+ * Twelve weeks, and it is a default rather than a rule. Review intervals are a
+ * clinic's own decision and vary by client; this is only the point past which
+ * "when did we last weigh them?" becomes worth surfacing unprompted. A clinic
+ * that reviews monthly will find it too slow and one that reviews twice a year
+ * too eager — the honest fix for either is a clinic setting, which is a
+ * migration and a settings panel, and not something to invent before anybody
+ * has asked for it.
+ */
+export const MEASUREMENT_REVIEW_DAYS = 84;
+
+/**
+ * Active clients whose last measurement is older than the review interval, and
+ * clients who have never been measured at all.
+ *
+ * Both are the same question — "nobody has weighed this person lately" — so they
+ * are one category rather than two: a separate "never measured" row would put
+ * every client added this morning on the dashboard, which is noise, and the
+ * `created_at` guard below is what keeps a new record out of it until they have
+ * had time to come in.
+ */
+export async function listClientsWithStaleMeasurement(
+  clinicId: string,
+  today: IsoDate,
+  limit: number,
+): Promise<AttentionItem[]> {
+  const cutoff = addDays(today, -MEASUREMENT_REVIEW_DAYS);
+
+  const rows = await db
+    .select({ clientId: clients.id, clientName: clients.fullName, clientSeq })
+    .from(clients)
+    .where(
+      and(
+        eq(clients.clinicId, clinicId),
+        eq(clients.status, 'active'),
+        // A client added yesterday is not overdue for anything.
+        lt(clients.createdAt, sql`now() - make_interval(days => ${MEASUREMENT_REVIEW_DAYS})`),
+        notExists(
+          db
+            .select({ id: clientMeasurements.id })
+            .from(clientMeasurements)
+            .where(
+              and(
+                eq(clientMeasurements.clientId, clients.id),
+                gte(clientMeasurements.measuredOn, cutoff),
+              ),
+            ),
+        ),
+      ),
+    )
+    .orderBy(desc(clients.createdAt))
+    .limit(limit);
+
+  return rows.map((row) => ({ ...row, reason: 'measurementOverdue' as const }));
 }
