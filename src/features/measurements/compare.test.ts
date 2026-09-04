@@ -6,6 +6,7 @@ import {
   compareMeasurements,
   daysBetween,
   judgeChange,
+  clockDrift,
   measurementHeightCm,
   measurementValue,
   metricIntent,
@@ -326,5 +327,24 @@ describe('daysBetween', () => {
     // Asia/Hebron springs forward in late March. Both ends are wall-clock
     // dates, so the count is a plain calendar count either way.
     expect(daysBetween('2026-03-20', '2026-04-03')).toBe(14);
+  });
+});
+
+describe('clockDrift', () => {
+  const at = (minute: number) => ({ measuredAtMinute: minute });
+
+  it('names a gap of four hours or more', () => {
+    // 06:34 against 13:11 — the fasted morning reading and the after-lunch one.
+    expect(clockDrift(at(394), at(791))).toBe(397);
+  });
+
+  it('says nothing about two readings taken at a similar hour', () => {
+    expect(clockDrift(at(600), at(700))).toBeNull();
+  });
+
+  it('says nothing when either time is unknown', () => {
+    // Minute 0 is "no clock recorded", not midnight — see the note.
+    expect(clockDrift(at(0), at(791))).toBeNull();
+    expect(clockDrift(at(394), at(0))).toBeNull();
   });
 });

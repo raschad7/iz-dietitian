@@ -14,7 +14,7 @@ import {
   TableRoot,
   TableRow,
 } from '@/components/ui/table';
-import { formatMediumDate } from '@/features/booking/format';
+import { formatMediumDate, formatMinute } from '@/features/booking/format';
 import { type Locale } from '@/i18n/routing';
 import { formatNumber } from '@/lib/format';
 import { type IsoDate } from '@/lib/iso-date';
@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils';
 
 import {
   changeFor,
+  clockDrift,
   compareMeasurements,
   daysBetween,
   measurementValue,
@@ -30,15 +31,17 @@ import {
   trendSeries,
   type ChangeVerdict,
   type MeasurementChange,
+  type ComparableMeasurement,
   type MeasurementMetric,
   type MeasurementSubject,
+  type ProgressNarrative,
 } from '../compare';
 import { type MeasurementRow } from '../queries';
 
 import { MeasurementFormTrigger } from './measurement-form-trigger';
 import { MeasurementSharingSwitch } from './measurement-sharing-switch';
 import { MeasurementRowActions } from './measurement-row-actions';
-import { MeasurementRangeSwitch } from './measurement-range-switch';
+import { MeasurementHeadline } from './measurement-headline';
 import { MeasurementTrend, type TrendMetricSeries } from './measurement-trend';
 
 /**
@@ -128,8 +131,8 @@ type MeasurementsPanelProps = {
   currentWeightKg: number | null;
   /** `?range=` — which comparison the headline is showing. */
   range: 'last' | 'start';
-  /** Whether this client can see their measurements in the portal, and can be given them. */
-  sharing: { shared: boolean; hasProfile: boolean };
+  /** Whether this client can see their measurements in their portal. */
+  sharing: boolean;
   /**
    * Which measurements have a stored report behind them.
    *
@@ -204,8 +207,6 @@ export async function MeasurementsPanel({
   }
 
   const progress = summariseProgress(measurements, subject);
-  const changes = range === 'start' ? progress.sinceStart : progress.sinceLast;
-  const narrative = range === 'start' ? progress.narrativeSinceStart : progress.narrativeSinceLast;
   const latest = progress.latest!;
 
   /*
@@ -230,17 +231,99 @@ export async function MeasurementsPanel({
 
   const daysSinceLatest = daysBetween(latest.measuredOn, today);
 
+  /**
+   * One comparison, drawn: four tiles and the sentence under them.
+   *
+   * Called twice — once for "since last visit", once for "since the start" —
+   * because both are already in `progress` and the switch between them should
+   * not be a round trip. See `MeasurementHeadline`.
+   */
+  const comparison = (
+    changes: MeasurementChange[],
+    narrative: ProgressNarrative,
+    /* The visit being compared against — `ComparableMeasurement`, because that
+       is what `summariseProgress` hands back and all this needs is its clock. */
+    against: ComparableMeasurement | null,
+  ) => (
+    <div className="space-y-4">
+      {/*
+        Four tiles, so `columns={4}` — the default of three would leave the
+        fourth alone on a second row beside an empty cell, and `StatGrid` draws
+        its gaps as a hairline background, so the empty cell is visible rather
+        than blank. It falls to 2x2 below `md`, which is the shape these four
+        want on a phone anyway.
+      */}
+      <StatGrid columns={4}>
+        {HEADLINE_METRICS.map((metric) => {
+          const value = measurementValue(latest, metric, subject);
+          const change = changeFor(changes, metric);
+
+          return (
+            <StatTile
+              key={metric}
+              label={t(`metrics.${metric}`)}
+              value={value === null ? null : number(value, metricDecimals(metric))}
+              unit={unitLabel(metric)}
+              note={change ? <DeltaBadge change={change} format={number} /> : undefined}
+            />
+          );
+        })}
+      </StatGrid>
+
+      {/*
+        The sentence. `progressNarrative` chose which fact to lead with; this
+        only fills in the numbers, because the wording is Arabic and English and
+        the choice is clinical.
+      */}
+      <p
+        className={cn(
+          'rounded-lg border border-primary-subtle bg-secondary px-4 py-3',
+          'text-body text-foreground',
+        )}
+      >
+        {t(`narrative.${narrative}`, narrativeValues(changes, number))}
+        {narrative === 'fatDownMuscleUp' ? (
+          <span className="mt-1.5 block text-caption text-muted-foreground">
+            {t('narrative.why')}
+          </span>
+        ) : null}
+      </p>
+
+      {/*
+        The caveat, when the clock says one is owed.
+
+        An analyser reads through body water, so two visits taken at very
+        different hours are not cleanly comparable — see `clockDrift`. It is
+        printed under the sentence rather than beside a figure because it
+        qualifies the whole comparison, and it appears only when both readings
+        carry a real clock and they are hours apart, so a clinic that measures
+        everyone at the same time of day never sees it.
+      */}
+      {against && clockDrift(latest, against) !== null ? (
+        <p className="text-caption text-muted-foreground">
+          {t('narrative.clockDrift', {
+            from: formatMinute(locale, against.measuredOn, against.measuredAtMinute),
+            to: formatMinute(locale, latest.measuredOn, latest.measuredAtMinute),
+          })}
+        </p>
+      ) : null}
+    </div>
+  );
+
   return (
     <div className="space-y-4">
       {/* ── The headline ─────────────────────────────────────────────── */}
-      <Card>
-        {/*
-          `items-center`, not `items-baseline`: the range switch is a 52px
-          control and a baseline row would hang it off the title's text
-          baseline. The title and its subline keep their own baseline inside the
-          group they share.
-        */}
-        <CardHeader className="flex flex-wrap items-center gap-x-4 gap-y-3">
+      {/*
+        Both comparisons are rendered here and the switch picks one, rather than
+        the switch fetching one — see `MeasurementHeadline`. Everything below is
+        server-built markup; the client component owns the selection and nothing
+        else.
+      */}
+      <MeasurementHeadline
+        defaultRange={range}
+        showSwitch={progress.previous !== null}
+        labels={{ last: t('range.last'), start: t('range.start'), group: t('range.label') }}
+        header={
           <div className="me-auto flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <CardTitle>{t('headline.title')}</CardTitle>
             <p className="text-caption text-muted-foreground">
@@ -250,61 +333,12 @@ export async function MeasurementsPanel({
                 : null}
             </p>
           </div>
-          {progress.previous ? (
-            <MeasurementRangeSwitch
-              range={range}
-              lastLabel={t('range.last')}
-              startLabel={t('range.start')}
-              ariaLabel={t('range.label')}
-            />
-          ) : null}
-        </CardHeader>
-
-        <CardContent className="space-y-4">
-          {/*
-            Four tiles, so `columns={4}` — the default of three would leave the
-            fourth alone on a second row beside an empty cell, and `StatGrid`
-            draws its gaps as a hairline background, so the empty cell is
-            visible rather than blank. It falls to 2x2 below `md`, which is the
-            shape these four want on a phone anyway.
-          */}
-          <StatGrid columns={4}>
-            {HEADLINE_METRICS.map((metric) => {
-              const value = measurementValue(latest, metric, subject);
-              const change = changeFor(changes, metric);
-
-              return (
-                <StatTile
-                  key={metric}
-                  label={t(`metrics.${metric}`)}
-                  value={value === null ? null : number(value, metricDecimals(metric))}
-                  unit={unitLabel(metric)}
-                  note={change ? <DeltaBadge change={change} format={number} /> : undefined}
-                />
-              );
-            })}
-          </StatGrid>
-
-          {/*
-            The sentence. `progressNarrative` chose which fact to lead with;
-            this only fills in the numbers, because the wording is Arabic and
-            English and the choice is clinical.
-          */}
-          <p
-            className={cn(
-              'rounded-lg border border-primary-subtle bg-secondary px-4 py-3',
-              'text-body text-foreground',
-            )}
-          >
-            {t(`narrative.${narrative}`, narrativeValues(changes, number))}
-            {narrative === 'fatDownMuscleUp' ? (
-              <span className="mt-1.5 block text-caption text-muted-foreground">
-                {t('narrative.why')}
-              </span>
-            ) : null}
-          </p>
-        </CardContent>
-      </Card>
+        }
+        panels={{
+          last: comparison(progress.sinceLast, progress.narrativeSinceLast, progress.previous),
+          start: comparison(progress.sinceStart, progress.narrativeSinceStart, progress.baseline),
+        }}
+      />
 
       {/* ── The trend ────────────────────────────────────────────────── */}
       {series.length > 0 ? (
@@ -475,8 +509,7 @@ export async function MeasurementsPanel({
           <MeasurementSharingSwitch
             clientId={clientId}
             locale={locale}
-            shared={sharing.shared}
-            hasProfile={sharing.hasProfile}
+            shared={sharing}
           />
         </CardContent>
       </Card>

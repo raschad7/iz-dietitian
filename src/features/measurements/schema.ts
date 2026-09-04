@@ -55,22 +55,27 @@ export const measuredOnSchema = z
   .refine(isIsoDate, 'measuredOnInvalid');
 
 /**
- * `HH:MM` from a time input, stored as minutes from midnight.
+ * Minutes from clinic-local midnight, 0–1439.
  *
- * Optional: a dietitian typing up yesterday's weigh-in may not remember the
- * time, and refusing the whole record over it would be absurd. An absent time
- * becomes minute 0, matching the column's default — the day is the fact, the
- * time is detail.
+ * ⚠ **This used to parse `HH:MM` from a time input, and the form no longer has
+ * one.** The dialog stopped asking for a time — the day is the fact, the minute
+ * is the machine's footnote — and started posting the minute itself in a hidden
+ * field: the one on the row being edited, or the clock printed on the report,
+ * or zero. A `"0"` does not match `HH:MM`, so every save was refused with
+ * `timeInvalid` against a field that has no box on the screen, and the dialog
+ * sat there doing nothing. See `MeasurementForm`'s `FormMessage`, which now
+ * refuses to stay quiet about a refusal it cannot show.
+ *
+ * Optional, as before: an absent time becomes minute 0, matching the column's
+ * default.
  */
 export const measuredAtMinuteSchema = z.preprocess(
   blankToUndefined,
-  z
-    .string()
-    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'timeInvalid')
-    .transform((clock) => {
-      const [hours, minutes] = clock.split(':').map(Number);
-      return hours! * 60 + minutes!;
-    })
+  z.coerce
+    .number({ error: 'timeInvalid' })
+    .int('timeInvalid')
+    .min(0, 'timeInvalid')
+    .max(1439, 'timeInvalid')
     .optional(),
 );
 

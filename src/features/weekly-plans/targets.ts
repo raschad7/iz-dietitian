@@ -139,16 +139,17 @@ export type SuggestedTargets = {
   bmiCategory: BmiCategory | null;
   bmr: number | null;
   /**
-   * Which BMR the target above was built on.
-   *
-   * `measured` means an analyser reported one and it was used; `estimated`
-   * means Mifflin-St Jeor. Worth reporting rather than inferring, because the
-   * two can differ by a tenth and a screen that does not say which it used
-   * cannot be checked.
+   * Which BMR the target above was built on. Always `estimated` when there is
+   * one — see `measuredBmrKcal` for why the analyser's figure does not displace
+   * it, and why this field is still worth reporting rather than assuming.
    */
   bmrSource: 'measured' | 'estimated' | null;
-  /** Mifflin's answer, kept even when a measured one displaced it. */
+  /** Mifflin's answer. The one the suggestion is built on. */
   estimatedBmr: number | null;
+  /** What the analyser's own equation said, when a report carried one. */
+  deviceBmr: number | null;
+  /** `(device − estimate) / estimate`, or null when there is nothing to compare. */
+  bmrGap: number | null;
   tdee: number | null;
   /** Null when the profile is too incomplete to compute one. */
   suggestedKcal: number | null;
@@ -178,26 +179,34 @@ export function suggestTargets({
   activityLevel: string | null;
   goal: string | null;
   /**
-   * The BMR a body composition analyser actually measured, when there is one.
+   * The BMR printed on a body composition report, when there is one.
    *
-   * ## It wins over the formula, and this is why
+   * ## It does **not** win, and correcting that is why this comment is long
    *
-   * Mifflin-St Jeor estimates resting metabolism from height, weight, age and
-   * sex — which means it cannot tell a muscular 72 kg from a soft one, because
-   * it never sees the fat-free mass. An analyser measures that mass, and
-   * resting metabolism is very largely a function of it. On a real report the
-   * two differed by about 125 kcal a day: the formula said 1,321 and the
-   * machine said 1,446. Nine percent of a day's intake is a materially
-   * different meal plan.
+   * An earlier version of this let the analyser's figure displace Mifflin-St
+   * Jeor, on the reasoning that the machine "measures" what the formula guesses
+   * at. That reasoning is wrong, and the error matters because it was setting
+   * people's calorie targets.
    *
-   * ## Nobody's saved target moves because of this
+   * A Tanita does not measure metabolic rate. Measuring it means indirect
+   * calorimetry — the gold standard, and a different machine. What an analyser
+   * does is measure *impedance*, estimate fat-free mass from it, and then run
+   * its own proprietary equation from that mass to a BMR. It is a prediction
+   * too. So the choice is not measurement against estimate; it is one
+   * undisclosed equation against Mifflin-St Jeor, which is the best-validated
+   * one in the literature (roughly 73–82% accuracy against calorimetry) and the
+   * one the Academy of Nutrition and Dietetics recommends when calorimetry is
+   * not available.
    *
-   * What this changes is the *suggestion*. `client_nutrition_profiles.
-   * daily_kcal_target` is stored separately and, when a dietitian has set one,
-   * overrides everything here — so shipping this cannot silently re-cut a plan
-   * somebody already decided on. It only makes the number the app proposes,
-   * for clients who have no explicit target, the better of the two available
-   * answers. `bmrSource` says which it used so the screen can label it.
+   * On a real report the two differed by 125 kcal a day — 1,321 against 1,446 —
+   * and that gap is exactly why the app must not pick silently. It is shown
+   * beside the estimate instead, on the Nutrition tab, so a dietitian who knows
+   * this client is unusually muscular can set `daily_kcal_target` by hand and
+   * knows they are doing it.
+   *
+   * `bmrSource` therefore always reports `estimated` when a BMR exists at all.
+   * The field is kept so the screen can name the difference, and so the day
+   * somebody adds a per-client choice there is a place to put it.
    */
   measuredBmrKcal?: number | null;
 }): SuggestedTargets {
@@ -211,20 +220,28 @@ export function suggestTargets({
   const estimated = mifflinStJeorBmr({ weightKg, heightCm, age, sex });
 
   /*
-    A measured BMR needs no height, age or sex — the machine already accounted
-    for them — so it can answer where the formula cannot. A client with no
-    recorded birth date still gets a target if they have been on the analyser.
+    The device's figure is reported, never substituted — see the note on
+    `measuredBmrKcal`. The suggestion is built on Mifflin-St Jeor and only on
+    Mifflin-St Jeor, so shipping the device reading cannot move a number anybody
+    is already eating to.
   */
-  const measured = measuredBmrKcal !== null && measuredBmrKcal > 0 ? measuredBmrKcal : null;
-  const bmrValue = measured ?? estimated;
-  const tdeeValue = bmrValue === null ? null : tdee(bmrValue, activityLevel);
+  const device = measuredBmrKcal !== null && measuredBmrKcal > 0 ? measuredBmrKcal : null;
+  const tdeeValue = estimated === null ? null : tdee(estimated, activityLevel);
 
   return {
     bmi: bmiValue,
     bmiCategory: bmiValue === null ? null : bmiCategory(bmiValue),
-    bmr: bmrValue,
-    bmrSource: bmrValue === null ? null : measured !== null ? 'measured' : 'estimated',
+    bmr: estimated,
+    bmrSource: estimated === null ? null : 'estimated',
     estimatedBmr: estimated,
+    deviceBmr: device,
+    /*
+      How far apart the two answers are, as a fraction of the estimate, when
+      both exist. `null` when there is nothing to compare — the screen shows the
+      device figure only when this crosses its own threshold, so an analyser
+      that agrees with the formula adds no clutter.
+    */
+    bmrGap: device === null || estimated === null ? null : (device - estimated) / estimated,
     tdee: tdeeValue,
     suggestedKcal: tdeeValue === null ? null : goalKcal(tdeeValue, goal),
     missing,

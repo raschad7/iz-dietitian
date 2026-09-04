@@ -10,13 +10,18 @@ import { type IsoDate } from '@/lib/iso-date';
  * relations the parser's checksums assert, so a screenshot of this harness is a
  * screenshot of numbers a machine could actually have printed.
  *
+ * The 19/8 visit is a 06:34 reading and the 26/8 one is 13:11, which is what
+ * makes the clock-drift caveat appear on "since last visit" — a fasted morning
+ * measurement against an after-lunch one is exactly the pair a dietitian should
+ * read carefully, and exactly the pair a tidy fixture would never contain.
+ *
  * The newest visit carries no waist or hip on purpose. That is the null case
  * the whole feature is built around — "not measured" is not zero — and it is
  * the one state a fixture of tidy rows would otherwise never show.
  */
 const VISITS = [
   { on: '2026-08-26', at: 791, w: 72.2, fat: 38.4, fatKg: 27.72, ffm: 44.48, muscle: 42.2, water: 32.92, waterPct: 45.6, vis: 4.5, bmr: 1446, age: 33, waist: null, hip: null },
-  { on: '2026-08-19', at: 625, w: 73.3, fat: 39.43, fatKg: 28.9, ffm: 44.4, muscle: 42.1, water: 32.86, waterPct: 44.8, vis: 4.5, bmr: 1445, age: 35, waist: 93.0, hip: 108.5 },
+  { on: '2026-08-19', at: 394, w: 73.3, fat: 39.43, fatKg: 28.9, ffm: 44.4, muscle: 42.1, water: 32.86, waterPct: 44.8, vis: 4.5, bmr: 1445, age: 35, waist: 93.0, hip: 108.5 },
   { on: '2026-08-12', at: 610, w: 74.3, fat: 40.31, fatKg: 29.95, ffm: 44.35, muscle: 42.05, water: 32.82, waterPct: 44.2, vis: 5.0, bmr: 1444, age: 36, waist: 94.5, hip: 109.5 },
   { on: '2026-08-05', at: 630, w: 75.1, fat: 41.01, fatKg: 30.8, ffm: 44.3, muscle: 42.0, water: 32.78, waterPct: 43.7, vis: 5.5, bmr: 1443, age: 38, waist: 96.0, hip: 110.5 },
   { on: '2026-07-29', at: 615, w: 75.6, fat: 41.47, fatKg: 31.35, ffm: 44.25, muscle: 41.95, water: 32.75, waterPct: 43.3, vis: 5.5, bmr: 1441, age: 39, waist: 96.5, hip: 111.0 },

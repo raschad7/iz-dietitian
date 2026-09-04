@@ -118,13 +118,13 @@ export function ClientNutrition({
   intake: ClientIntakeValues;
   locale: Locale;
   /**
-   * The resting metabolism an analyser actually measured, from this client's
-   * most recent body composition report.
+   * The BMR printed on this client's most recent body composition report.
    *
-   * It displaces the Mifflin-St Jeor estimate in the calorie target — see
-   * `suggestTargets`, which explains why the measured figure is the better
-   * input and why nothing a dietitian has already set can move because of it.
-   * The tile says which of the two was used.
+   * It does **not** set the calorie target — `suggestTargets` explains at
+   * length why an analyser's BMR is a second prediction rather than a
+   * measurement, and why Mifflin-St Jeor stays the one the suggestion is built
+   * on. What it does is get *shown*, when the two disagree by enough to matter,
+   * so the dietitian can decide.
    */
   measuredBmrKcal?: number | null;
 }) {
@@ -448,6 +448,31 @@ export function ClientNutrition({
           not on the shared token.
         */}
         <CardContent className="flex flex-col gap-4 pt-2">
+          {/*
+            The analyser and the formula disagreeing about resting metabolism.
+
+            Shown only past 8%, which is roughly where the difference becomes a
+            different meal plan rather than rounding — on a real report the gap
+            was 125 kcal a day on 1,321, or nine and a half percent. Below that
+            a second number on the card is noise.
+
+            `neutral`, not `attention`: neither figure is wrong and there is
+            nothing to chase. It is a fact about this client that the dietitian
+            is better placed to act on than the app is — see `suggestTargets` on
+            why the app does not pick.
+          */}
+          {targets.bmrGap !== null &&
+          targets.deviceBmr !== null &&
+          targets.estimatedBmr !== null &&
+          Math.abs(targets.bmrGap) >= 0.08 ? (
+            <Callout tone="neutral">
+              {t('intake.bmrDisagreement', {
+                device: Math.round(targets.deviceBmr),
+                estimate: Math.round(targets.estimatedBmr),
+              })}
+            </Callout>
+          ) : null}
+
           {targets.missing.length > 0 ? (
             <Callout tone="attention">
               {t('intake.missingFields', {
@@ -552,21 +577,6 @@ export function ClientNutrition({
               value={effectiveKcal}
               unit={t('units.kcal')}
               flagged={kcalMismatch !== null}
-              /*
-                Which metabolism the suggestion was built on — the machine's
-                measurement or the formula's estimate. The two can differ by a
-                tenth, so a target shown without saying which one produced it
-                is a number nobody can check.
-
-                Only on a *suggested* target. A figure the dietitian typed in
-                was not built on either, and labelling it as though it were
-                would be the card claiming an arithmetic it did not do.
-              */
-              note={
-                intake.dailyKcalTarget === null && targets.bmrSource !== null
-                  ? t(`intake.${targets.bmrSource === 'measured' ? 'bmrMeasured' : 'bmrEstimated'}`)
-                  : undefined
-              }
             />
             <StatTile
               label={t('fields.proteinTargetGrams')}

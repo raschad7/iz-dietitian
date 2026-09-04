@@ -93,11 +93,18 @@ async function applyCurrentWeight(
   clientId: string,
   weightKg: number,
   requested: boolean,
-): Promise<'untouched' | 'applied' | 'noProfile'> {
+): Promise<'untouched' | 'applied'> {
   if (!requested) return 'untouched';
 
-  const applied = await applyWeightToProfile(clinicId, clientId, weightKg);
-  return applied ? 'applied' : 'noProfile';
+  /*
+    Two outcomes now, not three. `noProfile` was the case where the box was
+    ticked and nothing happened, because the client had no nutrition profile
+    yet — `applyWeightToProfile` creates one, so the box always does what it
+    says. Its `false` means the client is not in this clinic, which cannot be
+    true here: the measurement was written for them a line ago.
+  */
+  await applyWeightToProfile(clinicId, clientId, weightKg);
+  return 'applied';
 }
 
 /**

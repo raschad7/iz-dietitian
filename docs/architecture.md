@@ -251,10 +251,20 @@ lint rule. See [Design system](design-system.md) for the complete UI contract.
     The intake dialog's weight box calls `recordIntakeWeight`, so a weight that
     moves the calorie target always leaves a dated row behind it. It never
     writes over a day an analyser already covered.
-  - **A measured BMR displaces the Mifflin-St Jeor estimate** in
-    `suggestTargets`, because the formula cannot see fat-free mass and the
-    machine measured it. Only the *suggestion* moves; a `daily_kcal_target` a
-    dietitian set still overrides everything.
+  - **The calorie target is built on Mifflin-St Jeor, and the analyser's own
+    BMR is shown beside it rather than substituted for it.** An analyser does
+    not measure metabolic rate — that is indirect calorimetry, a different
+    machine. It measures impedance, estimates fat-free mass, and runs its own
+    undisclosed equation from there, so the choice is one prediction against
+    another and Mifflin is the one with published validation. When they
+    disagree by 8% or more the Nutrition tab names both and the dietitian
+    decides.
+  - **A comparison across very different times of day says so.** Impedance is
+    read through body water, so two visits four or more hours apart in the
+    clinic's day are not cleanly comparable; `clockDrift` finds that pair and
+    the panel prints the caveat under the sentence. This is what
+    `measured_at_minute` is for now that the form no longer asks for a time —
+    reports still carry their own clock.
 - `notifications`: the in-app notification feed and browser notification state
 - `portal`: client dashboard, appointments, profile, settings, and published
   plan access. `portal/pwa/` is the installable app and its service worker;

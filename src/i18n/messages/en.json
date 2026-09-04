@@ -881,8 +881,7 @@
       "balanceShares": "Balance to 100%",
       "allergenHint": "Only the ticks above remove dishes from the catalog.",
       "dailyTarget": "Daily target",
-      "bmrMeasured": "from measured BMR",
-      "bmrEstimated": "from the formula",
+      "bmrDisagreement": "The analyser put basal metabolism at {device, number} kcal; the formula estimates {estimate, number}. The calorie target is built on the formula — set it by hand if the device figure fits this client better.",
       "bmi": "BMI",
       "bmiScale": "Where it falls on the scale",
       "dismissWarning": "Dismiss this warning",
@@ -2894,7 +2893,8 @@
       "weightUp": "Up {weight} kg.",
       "holding": "Holding steady.",
       "notEnoughData": "Nothing to compare against yet.",
-      "why": "Losing more fat than total weight is the thing a scale on its own cannot tell you."
+      "why": "Losing more fat than total weight is the thing a scale on its own cannot tell you.",
+      "clockDrift": "These two readings were taken at different times of day ({from} and {to}). An analyser reads through body water, so part of this difference may be hydration rather than tissue."
     },
     "verdict": {
       "improved": "Moving the right way",
@@ -2979,12 +2979,11 @@
     "flash": {
       "saved": "Measurement saved.",
       "savedAndApplied": "Measurement saved, and the current weight is now {weight} kg.",
-      "savedNoProfile": "Measurement saved. The current weight was not changed — this client has no nutrition profile yet, so open the intake form to set it.",
       "deleted": "Measurement deleted."
     },
     "validation": {
       "measuredOnInvalid": "Pick a valid date.",
-      "timeInvalid": "Use a 24-hour time, like 06:34.",
+      "timeInvalid": "The measurement time could not be read. Reopen the dialog and try again.",
       "weightRequired": "Weight is required.",
       "weightOutOfRange": "Weight should be between {weightMin} and {weightMax} kg.",
       "heightOutOfRange": "Height should be between {heightMin} and {heightMax} cm.",
@@ -3031,8 +3030,7 @@
     },
     "sharing": {
       "label": "Show these measurements to this client",
-      "hint": "Off by default. When on, their portal shows weight, how much of the change was fat, and how much muscle they kept — never the visceral fat rating, the metabolic age, or the report itself.",
-      "noProfile": "This client has no nutrition profile yet. Save their intake form first."
+      "hint": "Off by default. When on, their portal shows weight, how much of the change was fat, and how much muscle they kept — never the visceral fat rating, the metabolic age, or the report itself."
     },
     "portalCard": {
       "title": "Your measurements",

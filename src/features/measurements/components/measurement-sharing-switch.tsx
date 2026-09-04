@@ -6,7 +6,6 @@ import { useFormStatus } from 'react-dom';
 
 import { Switch } from '@/components/ui/switch';
 import { type Locale } from '@/i18n/routing';
-import { cn } from '@/lib/utils';
 
 import { setMeasurementSharingAction } from '../actions';
 
@@ -33,20 +32,24 @@ import { setMeasurementSharingAction } from '../actions';
  * what settles is what the column says. A disclosure control that looks on while
  * the column says off is the one failure here worth a round trip to avoid.
  *
- * Disabled while the profile does not exist, because there is nothing to write
- * to — see `setMeasurementSharing`.
+ * ## It is never disabled
+ *
+ * ⚠ It used to be, for a client whose intake had never been saved: there was no
+ * `client_nutrition_profiles` row to write the flag to, so the switch greyed out
+ * and a sentence underneath said to go and save a different form first. On a
+ * card whose entire content is this one control, that is a screen that does
+ * nothing — and the dietitian's answer to "why can't I show them?" is not "fill
+ * in an unrelated dialog". `setMeasurementSharing` creates the row on the way
+ * through now. See its note for why only turning sharing *on* does that.
  */
 export function MeasurementSharingSwitch({
   clientId,
   locale,
   shared,
-  hasProfile,
 }: {
   clientId: string;
   locale: Locale;
   shared: boolean;
-  /** False when the client's intake has never been saved. */
-  hasProfile: boolean;
 }) {
   const t = useTranslations('measurements');
   const labelId = useId();
@@ -57,19 +60,14 @@ export function MeasurementSharingSwitch({
       <input type="hidden" name="locale" value={locale} />
       <input type="hidden" name="clientId" value={clientId} />
 
-      <SharingSwitch
-        shared={shared}
-        disabled={!hasProfile}
-        labelId={labelId}
-        hintId={hintId}
-      />
+      <SharingSwitch shared={shared} labelId={labelId} hintId={hintId} />
 
       <span className="space-y-1">
-        <span id={labelId} className="block text-body font-medium">
+        <span id={labelId} className="block text-body-md font-medium">
           {t('sharing.label')}
         </span>
         <span id={hintId} className="block text-caption text-muted-foreground">
-          {hasProfile ? t('sharing.hint') : t('sharing.noProfile')}
+          {t('sharing.hint')}
         </span>
       </span>
     </form>
@@ -78,12 +76,10 @@ export function MeasurementSharingSwitch({
 
 function SharingSwitch({
   shared,
-  disabled,
   labelId,
   hintId,
 }: {
   shared: boolean;
-  disabled: boolean;
   labelId: string;
   hintId: string;
 }) {
@@ -97,10 +93,10 @@ function SharingSwitch({
       // than "submit whatever it currently says".
       value={shared ? 'off' : 'on'}
       checked={pending ? !shared : shared}
-      disabled={disabled || pending}
+      disabled={pending}
       aria-labelledby={labelId}
       aria-describedby={hintId}
-      className={cn('shrink-0', disabled && 'opacity-50')}
+      className="shrink-0"
     />
   );
 }

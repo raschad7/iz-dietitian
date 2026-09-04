@@ -340,14 +340,18 @@ export function MeasurementForm({
         ) : null}
 
         {/*
-          The rule the whole form runs on, stated once at the top.
+          The upload's own instruction, and only that.
 
-          A `Callout` rather than a `FieldHint`, because it is not a hint about
-          the next box — it is the contract for all fourteen of them, and a
-          12px grey line above a wall of inputs is not where a reader finds a
-          rule they need before they start typing.
+          There used to be a second paragraph above it on every open — "weight
+          is the only required field, leave a box empty if the machine did not
+          report it" — which is a rule about the form rather than anything to do
+          with the visit being recorded. It was true, it was long, and it was in
+          the way of the first field on a dialog somebody opens several times a
+          day. The asterisk on الوزن says the same thing in one character, and
+          an empty box saving as "not measured" is the behaviour a dietitian
+          learns once.
         */}
-        <Callout tone="neutral">{report ? t('upload.checkHint') : t('form.hint')}</Callout>
+        {report ? <Callout tone="neutral">{t('upload.checkHint')}</Callout> : null}
 
         {/* ── When ─────────────────────────────────────────────────── */}
         <FormSection icon="calendar" title={t('form.when')}>
@@ -444,13 +448,19 @@ export function MeasurementForm({
             tab to retype a height they can already see is how a warning becomes
             something people learn to scroll past.
 
-            Unticked by default, unlike the weight box. The machine is not
-            automatically right: the operator typed that height too.
+            **Ticked by default, like the weight box.** The report is the
+            measurement of record: the figures on it were taken today, on
+            calibrated equipment, and the height beside them is the one the
+            machine's own BMI and body-fat estimates were computed from. A
+            record disagreeing with it is a record holding a stale or mistyped
+            number. Untick it when the machine is the one that is wrong — the
+            box in the form above still carries whichever height is about to be
+            written.
           */}
           {heightMismatch ? (
             <DecisionCheckbox
               name="applyHeightToClient"
-              defaultChecked={false}
+              defaultChecked
               label={t('form.applyHeightToClient', { height: heightMismatch.onReport })}
               hint={t('form.applyHeightHint', {
                 current: heightMismatch.onRecord,
@@ -534,17 +544,63 @@ function FormSection({
 }
 
 /**
+ * Every field this form actually draws a box for.
+ *
+ * The schema has more fields than the screen does — `clientId`, `locale`,
+ * `measuredAtMinute`, the report's origin — and they arrive in hidden inputs.
+ * This is the set a refusal can be *shown* against.
+ */
+const VISIBLE_FIELDS = new Set<string>([
+  'measuredOn',
+  'note',
+  ...GROUPS.flatMap((group) => group.fields.map((field) => field.name)),
+]);
+
+/**
  * The whole-form complaint.
  *
- * `errors.invalid` is suppressed because the fields are already saying it, one
- * by one — restating "some figures need checking" above fourteen inputs that
- * each carry their own message adds noise, not information. The other three
- * (a duplicate, a vanished row, an unexpected failure) have no field to attach
- * to and appear here.
+ * `errors.invalid` is normally suppressed because the fields are already saying
+ * it, one by one — restating "some figures need checking" above fourteen inputs
+ * that each carry their own message adds noise, not information. The other
+ * three (a duplicate, a vanished row, an unexpected failure) have no field to
+ * attach to and appear here.
+ *
+ * ⚠ **Unless the refusal names a field this form does not draw.** That
+ * suppression assumed every field error lands beside a visible box, and the day
+ * the time input was removed the assumption stopped being true: the hidden
+ * `measuredAtMinute` started failing validation, its message had nowhere to
+ * render, and pressing Save did *nothing at all* — no error, no row, no clue.
+ * A form that cannot show you why it refused you has to say so out loud, so an
+ * error on an invisible field is printed here with the field's own message.
+ * This is a backstop for a bug, not a feature: if a reader ever sees one, the
+ * fix is in the code that posts that field.
  */
 function FormMessage({ state }: { state: MeasurementFormState }) {
   const t = useTranslations('measurements');
-  if (state.status !== 'error' || state.messageKey === 'errors.invalid') return null;
+  if (state.status !== 'error') return null;
+
+  const hidden =
+    state.fieldErrors === undefined
+      ? []
+      : Object.entries(state.fieldErrors).filter(
+          ([field, messages]) =>
+            !VISIBLE_FIELDS.has(field) && messages !== undefined && messages.length > 0,
+        );
+
+  if (hidden.length > 0) {
+    return (
+      <Callout tone="medical">
+        {hidden
+          .map(([, messages]) => {
+            const key = messages![0]!;
+            return isMessageKey(key) ? t(`validation.${key}`, VALIDATION_VALUES) : key;
+          })
+          .join(' ')}
+      </Callout>
+    );
+  }
+
+  if (state.messageKey === 'errors.invalid') return null;
 
   return <Callout tone="medical">{t(state.messageKey)}</Callout>;
 }

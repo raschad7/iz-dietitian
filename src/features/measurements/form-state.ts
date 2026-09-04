@@ -31,16 +31,18 @@ export type MeasurementFormState =
       /** Which row was written, so the panel can open it or scroll to it. */
       measurementId: string;
       /**
-       * What became of the "make this the current weight" box.
+       * What became of the "make this the current weight" box: ticked and
+       * written, or not ticked.
        *
-       * Three outcomes and not two, because `applied: false` would collapse a
-       * box nobody ticked together with a box that was ticked and did nothing.
-       * A client who has never had their intake saved has no nutrition profile
-       * row to update — see `applyWeightToProfile` — and that case has to be
-       * said out loud, or the dietitian ticks a box and goes away believing the
-       * calorie target moved when it did not.
+       * ⚠ There used to be a third, `noProfile` — the box ticked and nothing
+       * happening, because the client had no nutrition profile row yet. It was
+       * reported out loud so a dietitian could not go away believing the
+       * calorie target had moved. `applyWeightToProfile` creates the row now,
+       * so the state it described cannot occur: measuring somebody before their
+       * assessment is filled in is an ordinary order of work, not a case to
+       * apologise for.
        */
-      currentWeight: 'untouched' | 'applied' | 'noProfile';
+      currentWeight: 'untouched' | 'applied';
       /** The weight just saved, for the confirmation that names it. */
       weightKg: number;
     }

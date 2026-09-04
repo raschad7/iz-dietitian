@@ -107,24 +107,16 @@ export function MeasurementFormTrigger({
   );
 
   const handleSaved = useCallback(
-    (state: { currentWeight: 'untouched' | 'applied' | 'noProfile'; weightKg: number }) => {
+    (state: { currentWeight: 'untouched' | 'applied'; weightKg: number }) => {
       close();
 
       /*
-        Three outcomes, not two. Ticking "make this the current weight" for a
-        client whose intake has never been saved updates nothing — there is no
-        nutrition profile row yet — and saying only "saved" would leave the
-        dietitian believing the calorie target had moved. See
-        `applyWeightToProfile`.
-
-        `noProfile` is the one that has to be read, so it goes out as a warning
-        rather than a success: it is the only case where the dietitian asked for
-        something and did not get it.
+        Two outcomes. The confirmation names the weight when the box moved it,
+        because that figure is what the calorie target and the next plan are
+        built from and a dietitian should see it land.
       */
       if (state.currentWeight === 'applied') {
         toast.success(t('flash.savedAndApplied', { weight: state.weightKg.toFixed(1) }));
-      } else if (state.currentWeight === 'noProfile') {
-        toast.warning(t('flash.savedNoProfile'));
       } else {
         toast.success(t('flash.saved'));
       }

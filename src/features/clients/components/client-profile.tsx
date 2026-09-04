@@ -114,7 +114,7 @@ export type ClientProfileProps = {
     /** Which of the rows have a stored report — see the panel's own note. */
     reportIds: Set<string>;
     /** The portal disclosure switch's state. */
-    sharing: { shared: boolean; hasProfile: boolean };
+    sharing: boolean;
   };
   /** The selected week's adherence, for the Progress view. */
   progress: ClientWeekProgress;

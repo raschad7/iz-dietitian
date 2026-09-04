@@ -574,7 +574,13 @@ Compose `TableRoot`, `Table`, `TableHeader`, `TableRow`, `TableHead`,
   `contained` appearances through matching `Tabs` and `tabLinkVariants` props.
 - `TabBadge` is a bare count, not a filled status pill.
 - `PanelTabs` switches panels within the current page.
-- `Segmented` switches a compact mode or view with few visible options.
+- `Segmented` switches a compact mode or view with few visible options. Its
+  `pill` and `contained` shapes are the same object in two sizes — a recessed
+  neutral track with a raised white thumb that travels — and a screen showing
+  more than one view switcher should use them rather than mixing a thumbed
+  control with the `default` shape's solid brand fill. Three segmented controls
+  on the Measurements tab, one of them filled green, read as three different
+  kinds of control.
 - `Pagination` owns list paging controls.
 
 Keep the distinction semantic: an address uses links, a panel uses tabs, and a

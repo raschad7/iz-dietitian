@@ -58,7 +58,7 @@ export default async function DevMeasurementsPage({
         currentWeightKg={72.2}
         range={range}
         reportIds={FIXTURE_REPORT_IDS}
-        sharing={{ shared: true, hasProfile: true }}
+        sharing
       />
     </main>
   );

@@ -463,3 +463,46 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 export function daysBetween(from: IsoDate, to: IsoDate): number {
   return Math.round((toUtcInstant(to).getTime() - toUtcInstant(from).getTime()) / MS_PER_DAY);
 }
+
+/**
+ * How far apart in the clinic's day two readings have to be before the app
+ * says so, in minutes.
+ *
+ * Four hours: the difference between a fasted first-thing reading and one taken
+ * after lunch, which is the shift a real clinic day produces and the one that
+ * moves body water.
+ */
+export const CLOCK_DRIFT_MINUTES = 240;
+
+/**
+ * Two visits measured at very different times of day, when they were.
+ *
+ * ## Why this exists
+ *
+ * Impedance is measured through body water, so a BIA reading moves with
+ * hydration and with what is in the gut. The standardisation literature is
+ * consistent about it: repeat measurements are only comparable when the
+ * conditions are — same posture, same device, similar prandial and hydration
+ * state. A client weighed fasted at 07:00 in March and after lunch at 14:00 in
+ * April can show a kilogram of "gain" that is water, and this panel would draw
+ * it as a confident amber badge.
+ *
+ * The app cannot know what somebody drank. It does know what time each reading
+ * was taken, because an analyser prints its own clock and the parser keeps it —
+ * which is most of why that column survived the form dropping its time field.
+ * So the one honest thing available is to name the gap and let the dietitian
+ * discount the comparison themselves.
+ *
+ * Returns null when either time is unknown. Minute 0 is exactly that: a
+ * hand-typed weigh-in records no clock, and treating midnight as a real reading
+ * time would make every manual entry look like a 3am outlier.
+ */
+export function clockDrift(
+  a: Pick<ComparableMeasurement, 'measuredAtMinute'>,
+  b: Pick<ComparableMeasurement, 'measuredAtMinute'>,
+): number | null {
+  if (a.measuredAtMinute === 0 || b.measuredAtMinute === 0) return null;
+
+  const gap = Math.abs(a.measuredAtMinute - b.measuredAtMinute);
+  return gap >= CLOCK_DRIFT_MINUTES ? gap : null;
+}

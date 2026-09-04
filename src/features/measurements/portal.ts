@@ -154,17 +154,21 @@ export async function getPortalMeasurements(
  * clients feature's shape — widening that to carry a measurements column would
  * put a disclosure rule in a type that has nothing to do with one.
  *
- * `hasProfile` is what disables the control: `client_nutrition_profiles` rows
- * are created lazily by the intake form, so a client whose intake has never been
- * saved has nothing for the switch to write to.
+ * ⚠ **This used to report `hasProfile` too, and the switch used it to disable
+ * itself.** `client_nutrition_profiles` rows are created lazily by the intake
+ * form, so a client whose intake had never been saved got a control that could
+ * not be moved and a sentence explaining why. That is a dead switch on a card
+ * whose entire content is that switch, and "go and save a different form first"
+ * is not an answer to "let this person see their numbers".
+ * `setMeasurementSharing` creates the row now, so there is nothing left to
+ * disable and nothing left to report.
+ *
+ * An absent row still means off, which is why the fallback is `false`.
  *
  * Scoped by clinic, unlike the reader above — that one is called from a portal
  * session which is already the client themselves.
  */
-export async function measurementSharing(
-  clinicId: string,
-  clientId: string,
-): Promise<{ shared: boolean; hasProfile: boolean }> {
+export async function measurementSharing(clinicId: string, clientId: string): Promise<boolean> {
   const [row] = await db
     .select({ shared: clientNutritionProfiles.shareMeasurementsWithClient })
     .from(clientNutritionProfiles)
@@ -176,5 +180,5 @@ export async function measurementSharing(
     )
     .limit(1);
 
-  return { shared: row?.shared ?? false, hasProfile: row !== undefined };
+  return row?.shared ?? false;
 }

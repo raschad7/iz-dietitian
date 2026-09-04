@@ -136,12 +136,32 @@ export function MeasurementTrendChart({
       <div className="-mx-0.5 overflow-x-auto px-0.5">
         <Segmented
           role="radiogroup"
-          size="sm"
+          /*
+            `contained` — the recessed track with a raised white thumb that the
+            record's tab bar and the comparison switch above both wear. It was
+            the `default` shape, which fills the selected chip with solid brand
+            green: three segmented controls on one screen, one of them shouting.
+            Elevation carries the selection here, so the green is left to the
+            things that are actually actions.
+          */
+          shape="contained"
           label={pickLabel}
           value={active.metric}
           onChange={setMetric}
           options={series.map((entry) => ({ value: entry.metric, label: entry.label }))}
-          className="w-max"
+          /*
+            `min-w-max`, and it is what makes the scroll work. `contained` is an
+            `inline-grid` of `minmax(0, 1fr)` columns, so inside a narrower box
+            the columns shrink and the labels clip instead of the track
+            overflowing. Sized to its content, the track keeps its five equal
+            columns — which the travelling thumb depends on — and the wrapper
+            scrolls.
+
+            A width, not a `display` utility: see the warning on `Segmented`
+            about what happens to the thumb when a call site changes the layout
+            mode.
+          */
+          className="min-w-max"
         />
       </div>
 

@@ -408,6 +408,8 @@ export function BoardHarness({ locale }: { locale: Locale }) {
         bmr: 1740,
         bmrSource: 'estimated',
         estimatedBmr: 1740,
+        deviceBmr: null,
+        bmrGap: null,
         tdee: 2697,
         suggestedKcal: 2178,
         missing: [],

@@ -9,6 +9,7 @@ import {
 } from '@/db/schema';
 
 import { type MeasurementSource } from '@/db/schema';
+import { DEFAULT_MEAL_SCHEDULE } from '@/features/clients/nutrition';
 import { type MeasurementInput } from './schema';
 
 /**
@@ -223,11 +224,21 @@ export async function deleteMeasurement(
  * It is called only when the dietitian ticked the box — see
  * `saveMeasurementSchema.applyToCurrentWeight`.
  *
- * ⚠ `client_nutrition_profiles` rows are created lazily by the intake form, so
- * a client who has never had one saved has no row to update. That is not an
- * error and not a reason to refuse the measurement: the weight is recorded in
- * this feature's own table either way, and the intake form will read it when it
- * is next opened. Returns whether a profile was actually updated.
+ * ⚠ **It creates the profile row when there is not one yet.** `client_
+ * nutrition_profiles` rows are made lazily by the intake form, so a client
+ * measured before their assessment was filled in had nowhere for this to go —
+ * and the old comment here claimed the intake would "read it when it is next
+ * opened", which was simply untrue: the intake reads that column, and nothing
+ * had written it. The dietitian ticked a box, got a warning, and then retyped a
+ * weight the app already had.
+ *
+ * Measure-first is a real order of work — a walk-in is weighed before anybody
+ * sits down with a form — so the weight is written and the assessment finds it
+ * waiting. Every other column takes its default; `meal_schedule` is the one
+ * that is `NOT NULL` without one.
+ *
+ * Returns false only when the client is not in this clinic, which is the same
+ * "not found" a cross-tenant id gets everywhere else.
  */
 export async function applyWeightToProfile(
   clinicId: string,
@@ -245,7 +256,25 @@ export async function applyWeightToProfile(
     )
     .returning({ id: clientNutritionProfiles.id });
 
-  return rows.length > 0;
+  if (rows.length > 0) return true;
+
+  const [client] = await db
+    .select({ id: clients.id })
+    .from(clients)
+    .where(and(eq(clients.clinicId, clinicId), eq(clients.id, clientId)))
+    .limit(1);
+
+  if (!client) return false;
+
+  await db
+    .insert(clientNutritionProfiles)
+    .values({ clinicId, clientId, weightKg, mealSchedule: DEFAULT_MEAL_SCHEDULE })
+    .onConflictDoUpdate({
+      target: clientNutritionProfiles.clientId,
+      set: { weightKg, updatedAt: new Date() },
+    });
+
+  return true;
 }
 
 /**
@@ -292,7 +321,51 @@ export async function setMeasurementSharing(
     )
     .returning({ id: clientNutritionProfiles.id });
 
-  return rows.length > 0;
+  if (rows.length > 0) return true;
+
+  /*
+    No profile row yet, so make one.
+
+    ⚠ **This used to return false and leave the switch disabled**, on the
+    reasoning that creating a nutrition profile "just to hold a preference"
+    invents a clinical record. That reasoning is right about turning sharing
+    *off* — the default is off and an absent row already means off — and wrong
+    about turning it on, which is a dietitian asking for something and getting a
+    control that does nothing. A switch that cannot be switched is a bug however
+    good the reason is.
+
+    So an "off" on a client with no profile stays a no-op, and an "on" creates
+    the row. Every column but the ids takes its own default; `meal_schedule` is
+    the one that is `NOT NULL` without one, and it gets the same starting
+    schedule the intake form would have written.
+
+    Scoped by `clinicId` on the insert as well as the update: the id came off a
+    form, and a row created here must not be able to land in another clinic.
+  */
+  if (!shared) return false;
+
+  const [client] = await db
+    .select({ id: clients.id })
+    .from(clients)
+    .where(and(eq(clients.clinicId, clinicId), eq(clients.id, clientId)))
+    .limit(1);
+
+  if (!client) return false;
+
+  await db
+    .insert(clientNutritionProfiles)
+    .values({
+      clinicId,
+      clientId,
+      mealSchedule: DEFAULT_MEAL_SCHEDULE,
+      shareMeasurementsWithClient: true,
+    })
+    .onConflictDoUpdate({
+      target: clientNutritionProfiles.clientId,
+      set: { shareMeasurementsWithClient: true, updatedAt: new Date() },
+    });
+
+  return true;
 }
 
 /**
