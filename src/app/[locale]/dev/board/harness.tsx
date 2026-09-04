@@ -406,6 +406,8 @@ export function BoardHarness({ locale }: { locale: Locale }) {
         bmi: 27.7,
         bmiCategory: 'overweight',
         bmr: 1740,
+        bmrSource: 'estimated',
+        estimatedBmr: 1740,
         tdee: 2697,
         suggestedKcal: 2178,
         missing: [],

@@ -113,9 +113,20 @@ import { cn } from '@/lib/utils';
 export function ClientNutrition({
   intake,
   locale,
+  measuredBmrKcal = null,
 }: {
   intake: ClientIntakeValues;
   locale: Locale;
+  /**
+   * The resting metabolism an analyser actually measured, from this client's
+   * most recent body composition report.
+   *
+   * It displaces the Mifflin-St Jeor estimate in the calorie target — see
+   * `suggestTargets`, which explains why the measured figure is the better
+   * input and why nothing a dietitian has already set can move because of it.
+   * The tile says which of the two was used.
+   */
+  measuredBmrKcal?: number | null;
 }) {
   const t = useTranslations('clients');
   const format = useFormatter();
@@ -129,6 +140,7 @@ export function ClientNutrition({
     sex: intake.sex,
     activityLevel: intake.activityLevel,
     goal: intake.goal,
+    measuredBmrKcal,
   });
 
   const effectiveKcal = intake.dailyKcalTarget ?? targets.suggestedKcal;
@@ -540,6 +552,21 @@ export function ClientNutrition({
               value={effectiveKcal}
               unit={t('units.kcal')}
               flagged={kcalMismatch !== null}
+              /*
+                Which metabolism the suggestion was built on — the machine's
+                measurement or the formula's estimate. The two can differ by a
+                tenth, so a target shown without saying which one produced it
+                is a number nobody can check.
+
+                Only on a *suggested* target. A figure the dietitian typed in
+                was not built on either, and labelling it as though it were
+                would be the card claiming an arithmetic it did not do.
+              */
+              note={
+                intake.dailyKcalTarget === null && targets.bmrSource !== null
+                  ? t(`intake.${targets.bmrSource === 'measured' ? 'bmrMeasured' : 'bmrEstimated'}`)
+                  : undefined
+              }
             />
             <StatTile
               label={t('fields.proteinTargetGrams')}
@@ -1335,4 +1362,4 @@ function Notes({
     </dl>
   );
 }
-
+

@@ -237,6 +237,24 @@ lint rule. See [Design system](design-system.md) for the complete UI contract.
   comparison between them, reading an analyser's PDF report, and the client's
   own view of it. `parse/` holds one template per machine; adding a clinic's
   analyser is a template and a test fixture, not a screen
+
+  Three rules keep it from contradicting the client record, which holds the
+  same figures for a different purpose:
+
+  - **`clients.height_cm` is the one height every screen computes BMI from.**
+    `measurementHeightCm` reads the record and falls back to the height typed
+    into the analyser only when the record has none. The machine's height is
+    still stored, still compared against the printed BMI, and still warned
+    about on upload — but two tabs must not answer the same question with two
+    numbers.
+  - **`client_nutrition_profiles.weight_kg` has one writer with a history.**
+    The intake dialog's weight box calls `recordIntakeWeight`, so a weight that
+    moves the calorie target always leaves a dated row behind it. It never
+    writes over a day an analyser already covered.
+  - **A measured BMR displaces the Mifflin-St Jeor estimate** in
+    `suggestTargets`, because the formula cannot see fat-free mass and the
+    machine measured it. Only the *suggestion* moves; a `daily_kcal_target` a
+    dietitian set still overrides everything.
 - `notifications`: the in-app notification feed and browser notification state
 - `portal`: client dashboard, appointments, profile, settings, and published
   plan access. `portal/pwa/` is the installable app and its service worker;

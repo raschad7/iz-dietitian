@@ -138,6 +138,17 @@ export type SuggestedTargets = {
   bmi: number | null;
   bmiCategory: BmiCategory | null;
   bmr: number | null;
+  /**
+   * Which BMR the target above was built on.
+   *
+   * `measured` means an analyser reported one and it was used; `estimated`
+   * means Mifflin-St Jeor. Worth reporting rather than inferring, because the
+   * two can differ by a tenth and a screen that does not say which it used
+   * cannot be checked.
+   */
+  bmrSource: 'measured' | 'estimated' | null;
+  /** Mifflin's answer, kept even when a measured one displaced it. */
+  estimatedBmr: number | null;
   tdee: number | null;
   /** Null when the profile is too incomplete to compute one. */
   suggestedKcal: number | null;
@@ -158,6 +169,7 @@ export function suggestTargets({
   sex,
   activityLevel,
   goal,
+  measuredBmrKcal = null,
 }: {
   weightKg: number | null;
   heightCm: number | null;
@@ -165,6 +177,29 @@ export function suggestTargets({
   sex: string | null;
   activityLevel: string | null;
   goal: string | null;
+  /**
+   * The BMR a body composition analyser actually measured, when there is one.
+   *
+   * ## It wins over the formula, and this is why
+   *
+   * Mifflin-St Jeor estimates resting metabolism from height, weight, age and
+   * sex — which means it cannot tell a muscular 72 kg from a soft one, because
+   * it never sees the fat-free mass. An analyser measures that mass, and
+   * resting metabolism is very largely a function of it. On a real report the
+   * two differed by about 125 kcal a day: the formula said 1,321 and the
+   * machine said 1,446. Nine percent of a day's intake is a materially
+   * different meal plan.
+   *
+   * ## Nobody's saved target moves because of this
+   *
+   * What this changes is the *suggestion*. `client_nutrition_profiles.
+   * daily_kcal_target` is stored separately and, when a dietitian has set one,
+   * overrides everything here — so shipping this cannot silently re-cut a plan
+   * somebody already decided on. It only makes the number the app proposes,
+   * for clients who have no explicit target, the better of the two available
+   * answers. `bmrSource` says which it used so the screen can label it.
+   */
+  measuredBmrKcal?: number | null;
 }): SuggestedTargets {
   const missing: SuggestedTargets['missing'][number][] = [];
   if (weightKg === null || !(weightKg > 0)) missing.push('weightKg');
@@ -173,13 +208,23 @@ export function suggestTargets({
   if (sex !== 'male' && sex !== 'female') missing.push('sex');
 
   const bmiValue = bmi(weightKg, heightCm);
-  const bmrValue = mifflinStJeorBmr({ weightKg, heightCm, age, sex });
+  const estimated = mifflinStJeorBmr({ weightKg, heightCm, age, sex });
+
+  /*
+    A measured BMR needs no height, age or sex — the machine already accounted
+    for them — so it can answer where the formula cannot. A client with no
+    recorded birth date still gets a target if they have been on the analyser.
+  */
+  const measured = measuredBmrKcal !== null && measuredBmrKcal > 0 ? measuredBmrKcal : null;
+  const bmrValue = measured ?? estimated;
   const tdeeValue = bmrValue === null ? null : tdee(bmrValue, activityLevel);
 
   return {
     bmi: bmiValue,
     bmiCategory: bmiValue === null ? null : bmiCategory(bmiValue),
     bmr: bmrValue,
+    bmrSource: bmrValue === null ? null : measured !== null ? 'measured' : 'estimated',
+    estimatedBmr: estimated,
     tdee: tdeeValue,
     suggestedKcal: tdeeValue === null ? null : goalKcal(tdeeValue, goal),
     missing,

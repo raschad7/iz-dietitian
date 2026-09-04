@@ -119,15 +119,31 @@ export function MeasurementTrendChart({
 
   return (
     <div className="space-y-3">
-      <Segmented
-        role="radiogroup"
-        size="sm"
-        label={pickLabel}
-        value={active.metric}
-        onChange={setMetric}
-        options={series.map((entry) => ({ value: entry.metric, label: entry.label }))}
-        className="flex-wrap"
-      />
+      {/*
+        The picker scrolls sideways; it does not wrap.
+
+        `flex-wrap` on a `size="sm"` track is a contradiction: the height is set
+        on the track (40px, to match a `Button size="sm"` beside it) and a second
+        row of chips has nowhere to go inside it. On a 375px phone the last two
+        Arabic labels — نسبة الدهون and مؤشر كتلة الجسم — fell straight out of
+        the rounded box and landed on top of the chart.
+
+        Scrolling is what the design system asks for here: "horizontal tab sets
+        scroll on narrow screens instead of wrapping into two ambiguous rows".
+        The bar's own scrollbar is hidden globally, and the cue is the chip cut
+        off at the edge.
+      */}
+      <div className="-mx-0.5 overflow-x-auto px-0.5">
+        <Segmented
+          role="radiogroup"
+          size="sm"
+          label={pickLabel}
+          value={active.metric}
+          onChange={setMetric}
+          options={series.map((entry) => ({ value: entry.metric, label: entry.label }))}
+          className="w-max"
+        />
+      </div>
 
       <ChartContainer config={config} className={cn(PLOT_HEIGHT, Y_TICKS_LTR)}>
         <AreaChart

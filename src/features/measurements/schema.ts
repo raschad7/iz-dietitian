@@ -191,6 +191,21 @@ export type MeasurementInput = z.infer<typeof measurementSchema>;
 export const saveMeasurementSchema = measurementSchema
   .extend({
     applyToCurrentWeight: z.preprocess((value) => value === 'on' || value === true, z.boolean()),
+    /**
+     * Correct `clients.height_cm` to the height on this form.
+     *
+     * Offered only when the upload found the two disagreeing. The warning used
+     * to state the disagreement and stop there — "the machine was told 157 cm,
+     * the record says 156" — which left the reader with a fact, no control, and
+     * a second screen to go and find. One of the two numbers is always wrong,
+     * and the moment somebody is looking at both is the moment to settle it.
+     *
+     * A checkbox rather than an automatic write, for the same reason
+     * `applyToCurrentWeight` is one: height feeds the BMI on two tabs and the
+     * calorie target underneath them, and the operator who typed it into the
+     * analyser is not always the authority on it.
+     */
+    applyHeightToClient: z.preprocess((value) => value === 'on' || value === true, z.boolean()),
   })
   .extend(reportOriginSchema.shape);
 

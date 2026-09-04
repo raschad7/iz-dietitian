@@ -113,17 +113,16 @@ describe('judgeChange', () => {
 });
 
 describe('measurementValue and height', () => {
-  it("derives BMI from the measurement's own height when it has one", () => {
-    const value = measurementValue(
-      measurement({ weightKg: 78.6, heightCm: 178 }),
-      'bmi',
-      { goal: 'weight_loss', heightCm: 160 },
-    );
+  it("derives BMI from the client's recorded height", () => {
+    const value = measurementValue(measurement({ weightKg: 78.6 }), 'bmi', losing);
     expect(value).toBeCloseTo(78.6 / 1.78 ** 2, 4);
   });
 
-  it("falls back to the client's recorded height", () => {
-    const value = measurementValue(measurement({ weightKg: 78.6 }), 'bmi', losing);
+  it("falls back to the machine's height when the record has none", () => {
+    const value = measurementValue(measurement({ weightKg: 78.6, heightCm: 178 }), 'bmi', {
+      goal: 'weight_loss',
+      heightCm: null,
+    });
     expect(value).toBeCloseTo(78.6 / 1.78 ** 2, 4);
   });
 
@@ -131,9 +130,14 @@ describe('measurementValue and height', () => {
     expect(measurementValue(measurement(), 'bmi', { goal: 'weight_loss', heightCm: null })).toBeNull();
   });
 
-  it('prefers the measurement height so a corrected client height cannot rewrite history', () => {
-    const past = measurement({ heightCm: 178 });
-    expect(measurementHeightCm(past, { goal: null, heightCm: 165 })).toBe(178);
+  /*
+    The case that put two BMIs on one record: the record says 156, the operator
+    typed 157 into the machine. Both tabs have to answer with the record's
+    height or a dietitian cannot tell which number is the app's.
+  */
+  it('prefers the record over the height typed into the machine', () => {
+    const scanned = measurement({ heightCm: 157 });
+    expect(measurementHeightCm(scanned, { goal: null, heightCm: 156 })).toBe(156);
   });
 });
 

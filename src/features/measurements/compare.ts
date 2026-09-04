@@ -171,16 +171,35 @@ export function metricIntent(metric: MeasurementMetric, goal: string | null): Me
 /**
  * The height a measurement's BMI is computed from.
  *
- * The measurement's own height wins when it has one, so a past visit stays
- * reproducible from its own row and correcting a client's height today does not
- * silently rewrite last year's BMI. `clients.height_cm` is the fallback, which
- * is the normal case for a hand-typed weigh-in that recorded no height.
+ * ## The record wins, and the machine is the fallback
+ *
+ * `clients.height_cm` is the authority — the schema says so on the column
+ * itself: "an analyser's height is whatever the operator typed into it, and is
+ * wrong often enough to be worth catching." The measurement's own height is
+ * used only when the record has none, which is the normal case for a
+ * hand-typed weigh-in that recorded no height.
+ *
+ * ⚠ **This used to be the other way around, and it put two BMIs on one
+ * record.** The intake tab computes BMI from the client's height; this tab
+ * computed it from the height typed into the machine. On a real client the two
+ * were 156 cm and 157 cm, so the same weight on the same day read 29.7 on one
+ * tab and 29.3 on the other — with no way for a dietitian to tell which was
+ * the app's answer. Two screens disagreeing about one number is worse than
+ * either answer being slightly off.
+ *
+ * What the old order bought was history: a past visit stayed reproducible from
+ * its own row, and correcting a height today could not rewrite last year's
+ * BMI. That is a real property and it is not gone — the machine's height is
+ * still stored on the row, `bmiDisagreement` still checks our BMI against the
+ * one the sheet printed, and the upload still warns when the two heights
+ * differ. What changed is which of them the *screens* read, and they now read
+ * the same one.
  */
 export function measurementHeightCm(
   measurement: Pick<ComparableMeasurement, 'heightCm'>,
   subject: MeasurementSubject,
 ): number | null {
-  return measurement.heightCm ?? subject.heightCm;
+  return subject.heightCm ?? measurement.heightCm;
 }
 
 /**

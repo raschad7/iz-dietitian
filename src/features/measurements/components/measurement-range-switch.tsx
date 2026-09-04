@@ -46,16 +46,40 @@ export function MeasurementRangeSwitch({
   }
 
   return (
-    <div aria-busy={isPending}>
+    /*
+      `shape="pill"` — the control the record's own tab bar wears, one screen
+      up. Both answer the same question ("which view of this am I in?") and they
+      were answering it in two visual languages: the tabs slid a raised white
+      thumb through a grey well, and this filled the selected half with solid
+      brand green. A segmented control that is *not* the page's primary action
+      should not be the loudest thing on the card, and two switches on one
+      record should not look like two different kinds of control.
+      `Segmented` supplies the travelling thumb and its easing; nothing here
+      re-animates it.
+
+      `pill` is `w-full` by construction — its two halves are equal because the
+      thumb behind them is sized `100% / count`, so the width belongs to this
+      wrapper rather than to the control. Full-bleed on a phone, where it sits
+      under the title on its own row and is aimed at with a thumb; capped from
+      `sm` up, where it sits at the end of the card header.
+    */
+    <div aria-busy={isPending} className="w-full sm:w-72">
       <Segmented
         role="radiogroup"
-        size="sm"
+        shape="pill"
         label={ariaLabel}
         value={range}
         onChange={handleChange}
+        /*
+          The group is named "Compare against", so the options do not repeat
+          "Since" — they complete that sentence. Shorter labels are what keep
+          each half on one line: a pill's segments are equal by construction,
+          so a label that will not fit wraps to two lines and takes the whole
+          control with it.
+        */
         options={[
-          { value: 'last', label: lastLabel },
-          { value: 'start', label: startLabel },
+          { value: 'last', label: <span className="truncate">{lastLabel}</span> },
+          { value: 'start', label: <span className="truncate">{startLabel}</span> },
         ]}
         className={isPending ? 'opacity-70 transition-opacity' : 'transition-opacity'}
       />

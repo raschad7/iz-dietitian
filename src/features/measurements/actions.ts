@@ -11,6 +11,7 @@ import { normalizeForSearch } from '@/features/clients/search';
 
 import { type MeasurementFormEcho, type MeasurementFormState } from './form-state';
 import {
+  applyHeightToClient,
   applyWeightToProfile,
   createMeasurement,
   createMeasurementWithFile,
@@ -194,6 +195,7 @@ export async function saveMeasurementAction(
     const {
       clientId,
       applyToCurrentWeight,
+      applyHeightToClient: correctHeight,
       deviceLabel,
       deviceSubjectId,
       parserVersion,
@@ -255,6 +257,16 @@ export async function saveMeasurementAction(
       applyToCurrentWeight,
     );
 
+    /*
+      The other box that reaches outside this feature, and the smaller one: the
+      height mismatch the upload found, settled from the screen that found it.
+      Only when it was ticked, and only when this form actually carries a
+      height to write.
+    */
+    if (correctHeight && input.heightCm != null) {
+      await applyHeightToClient(clinicId, clientId, input.heightCm);
+    }
+
     revalidateClient(locale, clientId);
 
     return { status: 'success', measurementId, currentWeight, weightKg: input.weightKg };
@@ -302,6 +314,13 @@ export async function updateMeasurementAction(
       clientId,
       measurementId,
       applyToCurrentWeight,
+      /*
+        Dropped, not applied. The height-correction box belongs to the confirm
+        screen for an upload — it exists because the *report* disagreed with
+        the record — and the edit form never shows it. Naming it here keeps it
+        out of `input`, which is spread onto the row.
+      */
+      applyHeightToClient: _applyHeightToClient,
       deviceLabel: _deviceLabel,
       deviceSubjectId: _deviceSubjectId,
       parserVersion: _parserVersion,

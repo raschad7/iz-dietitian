@@ -70,7 +70,7 @@ Check the directory itself for the exact API. The current shared inventory is:
 | Need | Reuse |
 |---|---|
 | Actions and status | `Button`, `Badge`, `StatusDot`, `CopyButton`, `ConfirmDialog`, `ConfirmSubmitButton` |
-| Form structure | `Field`, `FieldError`, `FieldHint`, `Label`, `Input`, `Textarea`, `InputGroup` |
+| Form structure | `Field`, `FieldError`, `FieldHint`, `Label`, `Input`, `Textarea`, `InputGroup`, `NumberField` |
 | Choice controls | `Select`, `SelectField`, `Combobox`, `Checkbox`, `RadioGroup`, `Switch`, `Segmented` |
 | Date, time, and phone | `DatePicker`, `DateChooser`, `DateCalendar`, `Calendar`, `TimeInput`, `PhoneField` |
 | Surfaces and overlays | `Card`, `Dialog`, `Sheet`, `Popover`, `DropdownMenu`, `Tooltip`, `TooltipHint`, `Toaster`/`toast` |
@@ -478,6 +478,15 @@ in `Field` so focus and error behavior remain consistent.
 - Error messages use `FieldError`; helper copy uses `FieldHint`.
 - Use `SelectField` for a simple flat list. Compose `Select` parts when options
   need groups, descriptions, icons, or separators.
+- Use `NumberField` for a labelled numeric box. It is the 48px, control-radius,
+  neutral-focus field the intake and measurement dialogs share. **A bare
+  `InputGroup` is not that control** — it is the upstream shadcn component at
+  32px with `rounded-lg` and the brand focus ring, and composing one directly in
+  a feature is how two dialogs two clicks apart ended up looking like two
+  applications.
+- **A unit belongs in the label, not in the box.** `NumberField` takes `unit`
+  and draws it after the field's name. A box holding a number and its own unit
+  reads as a composite control and invites the unit to be typed into it.
 - Use `Combobox` when the list needs search/filter behavior.
 - Use `TimeInput` for time values; its `step` is seconds and must match server
   validation.

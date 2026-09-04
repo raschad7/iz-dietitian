@@ -881,6 +881,8 @@
       "balanceShares": "Balance to 100%",
       "allergenHint": "Only the ticks above remove dishes from the catalog.",
       "dailyTarget": "Daily target",
+      "bmrMeasured": "from measured BMR",
+      "bmrEstimated": "from the formula",
       "bmi": "BMI",
       "bmiScale": "Where it falls on the scale",
       "dismissWarning": "Dismiss this warning",
@@ -2880,8 +2882,8 @@
       "daysSince": "{days, plural, =0 {today} one {# day ago} other {# days ago}}"
     },
     "range": {
-      "last": "Since last visit",
-      "start": "Since the start",
+      "last": "Last visit",
+      "start": "The start",
       "label": "Compare against"
     },
     "narrative": {
@@ -2969,6 +2971,8 @@
       "applyHint": "This is the weight the calorie target and the next weekly plan are built from. Plans already published keep the weight they were written with.",
       "applyHintCurrent": "It currently reads {weight} kg.",
       "applyHintUnset": "No weight is recorded on this client's nutrition profile yet.",
+      "applyHeightToClient": "Correct the record's height to {height} cm",
+      "applyHeightHint": "The record says {current} cm; the machine was told {height} cm. The record's height is what every screen computes BMI from.",
       "bmiPreview": "BMI from these figures",
       "bmiNoHeight": "No height on record, so no BMI."
     },

@@ -294,3 +294,120 @@ export async function setMeasurementSharing(
 
   return rows.length > 0;
 }
+
+/**
+ * The intake dialog's weight box, filed as a weigh-in.
+ *
+ * ## Why the intake writes here at all
+ *
+ * `client_nutrition_profiles.weight_kg` had two writers. The measurement form
+ * was one and it is careful — dated, sourced, and it *asks* before touching the
+ * profile. The intake dialog was the other and it left no trace: a dietitian
+ * typing 70 into that box moved the calorie target, the protein suggestion and
+ * the next plan, while the Measurements tab went on showing 72.2 with no row
+ * for the change and no point on the chart. A number that drives a meal plan
+ * should not be able to move without the history noticing.
+ *
+ * So the box still behaves exactly as it did — type a weight, press save — and
+ * a `manual` weigh-in is written behind it. Nothing about the form changes; the
+ * history simply stops having holes in it.
+ *
+ * ## What it will not do
+ *
+ * **It never touches a day the machine already covered.** A `device` reading
+ * dated today is the better record of that day by construction, and a report
+ * whose sheet carried no clock is stored at minute 0 — the same key this row
+ * would take. Overwriting an analyser's weight from a text box, silently,
+ * because someone corrected the profile the same afternoon, is the one outcome
+ * worth writing a branch to avoid.
+ *
+ * Two hand edits on one day upsert onto each other instead of stacking two
+ * rows: the second is a correction of the first, not a second weigh-in.
+ *
+ * Returns whether a row was written, so the caller can say so.
+ */
+/** The handle `db.transaction` hands its callback, as the other features spell it. */
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+export async function recordIntakeWeight(
+  tx: Tx,
+  input: {
+    clinicId: string;
+    clientId: string;
+    weightKg: number;
+    /** Clinic-local `YYYY-MM-DD`. */
+    measuredOn: string;
+    recordedBy?: string | null;
+  },
+): Promise<boolean> {
+  const [scanned] = await tx
+    .select({ id: clientMeasurements.id })
+    .from(clientMeasurements)
+    .where(
+      and(
+        eq(clientMeasurements.clientId, input.clientId),
+        eq(clientMeasurements.measuredOn, input.measuredOn),
+        eq(clientMeasurements.source, 'device'),
+      ),
+    )
+    .limit(1);
+
+  if (scanned) return false;
+
+  await tx
+    .insert(clientMeasurements)
+    .values({
+      clinicId: input.clinicId,
+      clientId: input.clientId,
+      measuredOn: input.measuredOn,
+      measuredAtMinute: 0,
+      source: 'manual',
+      weightKg: input.weightKg,
+      recordedBy: input.recordedBy ?? null,
+    })
+    .onConflictDoUpdate({
+      target: [
+        clientMeasurements.clientId,
+        clientMeasurements.measuredOn,
+        clientMeasurements.measuredAtMinute,
+      ],
+      /*
+        The weight and nothing else. A row created earlier today by the
+        measurement form may carry a waist, a note, a body-fat percentage typed
+        off the machine's screen — none of which this correction knows anything
+        about, and all of which a wholesale `set` would erase.
+      */
+      set: { weightKg: input.weightKg, updatedAt: new Date() },
+    });
+
+  return true;
+}
+
+/**
+ * Write the height on a measurement back onto the client record.
+ *
+ * `clients.height_cm` is the authority — `measurementHeightCm` says so, and
+ * both tabs' BMI now reads it — which is exactly why it has to be correctable
+ * from the screen that discovers it is wrong. The analyser is very often where
+ * the error is *found*, because a report carries the height its operator typed
+ * and the app can compare the two.
+ *
+ * The column is an integer and a tape measure does not resolve millimetres, so
+ * the value is rounded rather than refused.
+ *
+ * Returns false when the client is not in this clinic — the same "not found" a
+ * cross-tenant id gets everywhere else.
+ */
+export async function applyHeightToClient(
+  clinicId: string,
+  clientId: string,
+  heightCm: number,
+): Promise<boolean> {
+  const rows = await db
+    .update(clients)
+    .set({ heightCm: Math.round(heightCm), updatedAt: new Date() })
+    .where(and(eq(clients.clinicId, clinicId), eq(clients.id, clientId)))
+    .returning({ id: clients.id });
+
+  return rows.length > 0;
+}

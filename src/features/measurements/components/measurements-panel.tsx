@@ -1,7 +1,9 @@
 import { getTranslations } from 'next-intl/server';
 
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Icon } from '@/components/ui/icon';
 import { StatGrid, StatTile } from '@/components/ui/stat-tile';
 import {
   Table,
@@ -12,7 +14,7 @@ import {
   TableRoot,
   TableRow,
 } from '@/components/ui/table';
-import { formatMediumDate, formatMinute } from '@/features/booking/format';
+import { formatMediumDate } from '@/features/booking/format';
 import { type Locale } from '@/i18n/routing';
 import { formatNumber } from '@/lib/format';
 import { type IsoDate } from '@/lib/iso-date';
@@ -20,6 +22,7 @@ import { cn } from '@/lib/utils';
 
 import {
   changeFor,
+  compareMeasurements,
   daysBetween,
   measurementValue,
   metricDecimals,
@@ -70,6 +73,27 @@ const TABLE_METRICS = [
   'fatMassKg',
   'muscleMassKg',
 ] as const satisfies readonly MeasurementMetric[];
+
+/**
+ * Which columns of the history table carry a change badge.
+ *
+ * **Two, and not five.** Every cell used to trail a small grey delta, which
+ * turned a table of readings into a table of readings and deltas — twice the
+ * ink for a column a reader scans vertically anyway, and no signal about which
+ * of the five changes was the one worth noticing.
+ *
+ * Weight is the figure everyone reads first and the one the client asks about.
+ * Fat mass is the figure that says what *kind* of weight moved, which is the
+ * whole reason the clinic bought the analyser. Between them they answer "is
+ * this working?" — the other three columns are context for that answer and are
+ * read as values, not as movements.
+ *
+ * Muscle mass is deliberately not here despite being half the thesis: it moves
+ * in hundredths between visits, and a coloured chip on a 0.1 kg step claims a
+ * change the measurement cannot really support. It is a headline tile and a
+ * chart line instead, where the shape over months is the honest reading.
+ */
+const BADGED_METRICS = ['weightKg', 'fatMassKg'] as const satisfies readonly MeasurementMetric[];
 
 /** Which figures the trend chart offers to plot. */
 const TREND_METRICS = [
@@ -210,12 +234,22 @@ export async function MeasurementsPanel({
     <div className="space-y-4">
       {/* ── The headline ─────────────────────────────────────────────── */}
       <Card>
-        <CardHeader className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
-          <CardTitle>{t('headline.title')}</CardTitle>
-          <p className="me-auto text-caption text-muted-foreground">
-            {t('headline.lastMeasured', { date: formatMediumDate(locale, latest.measuredOn) })}
-            {daysSinceLatest > 0 ? ` · ${t('headline.daysSince', { days: daysSinceLatest })}` : null}
-          </p>
+        {/*
+          `items-center`, not `items-baseline`: the range switch is a 52px
+          control and a baseline row would hang it off the title's text
+          baseline. The title and its subline keep their own baseline inside the
+          group they share.
+        */}
+        <CardHeader className="flex flex-wrap items-center gap-x-4 gap-y-3">
+          <div className="me-auto flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <CardTitle>{t('headline.title')}</CardTitle>
+            <p className="text-caption text-muted-foreground">
+              {t('headline.lastMeasured', { date: formatMediumDate(locale, latest.measuredOn) })}
+              {daysSinceLatest > 0
+                ? ` · ${t('headline.daysSince', { days: daysSinceLatest })}`
+                : null}
+            </p>
+          </div>
           {progress.previous ? (
             <MeasurementRangeSwitch
               range={range}
@@ -245,14 +279,7 @@ export async function MeasurementsPanel({
                   label={t(`metrics.${metric}`)}
                   value={value === null ? null : number(value, metricDecimals(metric))}
                   unit={unitLabel(metric)}
-                  note={
-                    change && change.delta !== null ? (
-                      <DeltaNote
-                        change={change}
-                        text={`${change.delta > 0 ? '+' : '−'}${number(Math.abs(change.delta), metricDecimals(metric))}`}
-                      />
-                    ) : undefined
-                  }
+                  note={change ? <DeltaBadge change={change} format={number} /> : undefined}
                 />
               );
             })}
@@ -324,37 +351,46 @@ export async function MeasurementsPanel({
 
                   return (
                     <TableRow key={row.id}>
-                      <TableCell className="whitespace-nowrap">
-                        <span className="tabular-nums">
-                          {formatMediumDate(locale, row.measuredOn)}
-                        </span>
-                        {row.measuredAtMinute > 0 ? (
-                          <span className="ms-2 text-caption text-muted-foreground tabular-nums">
-                            {formatMinute(locale, row.measuredOn, row.measuredAtMinute)}
-                          </span>
-                        ) : null}
+                      {/*
+                        The date, and not the clock beside it. A visit is the
+                        unit this table is read in; the minute a client stood on
+                        the machine is the machine's own footnote and was
+                        putting a second grey number in the first column of
+                        every row.
+                      */}
+                      <TableCell className="whitespace-nowrap tabular-nums">
+                        {formatMediumDate(locale, row.measuredOn)}
                       </TableCell>
 
                       {TABLE_METRICS.map((metric) => {
                         const value = measurementValue(row, metric, subject);
-                        const previous = older ? measurementValue(older, metric, subject) : null;
-                        const delta =
-                          value === null || previous === null ? null : value - previous;
+                        /*
+                          The change against the visit *below* this row, judged
+                          by `compareMeasurements` rather than by the sign of
+                          the subtraction — so a falling weight reads as
+                          progress for a client losing weight, as a problem for
+                          one gaining, and as neither for one maintaining.
+                          Computed only for the badged columns; the rest are
+                          values, not movements.
+                        */
+                        const change =
+                          older && (BADGED_METRICS as readonly string[]).includes(metric)
+                            ? changeFor(compareMeasurements(older, row, subject), metric)
+                            : null;
 
                         return (
-                          <TableCell key={metric} className="tabular-nums">
+                          <TableCell key={metric}>
                             {value === null ? (
                               <span className="text-muted-foreground">—</span>
                             ) : (
-                              <>
-                                {number(value, metricDecimals(metric))}
-                                {delta !== null && Math.abs(delta) >= 0.05 ? (
-                                  <span className="ms-2 text-caption text-muted-foreground">
-                                    {delta > 0 ? '+' : '−'}
-                                    {number(Math.abs(delta), metricDecimals(metric))}
-                                  </span>
+                              <span className="flex items-center gap-2">
+                                <span className="tabular-nums">
+                                  {number(value, metricDecimals(metric))}
+                                </span>
+                                {change ? (
+                                  <DeltaBadge change={change} format={number} />
                                 ) : null}
-                              </>
+                              </span>
                             )}
                           </TableCell>
                         );
@@ -449,23 +485,62 @@ export async function MeasurementsPanel({
 }
 
 /**
- * The coloured change under a headline figure.
+ * A change, as a chip: which way it moved, how far, and whether that is good.
  *
- * Colour comes from the verdict, never from the sign — an `unjudged` change is
- * drawn in muted ink however far it moved, which is the visible half of the rule
- * `metricIntent` enforces. Status is also carried by the arrow's direction and
- * by the sign in the text, so colour is never the only carrier (design system,
- * accessibility floor).
+ * ## The colour comes from the verdict, never from the sign
+ *
+ * An `unjudged` change is drawn in neutral ink however far it moved, which is
+ * the visible half of the rule `metricIntent` enforces: a weight that falls is
+ * progress for a client losing weight, a problem for one gaining, and *neither*
+ * for one maintaining. A chip that went green on every downward arrow would be
+ * the app having an opinion the dietitian did not give it.
+ *
+ * ## Amber for the wrong direction, not clay
+ *
+ * `Badge`'s own note: "don't reach for `destructive` on a badge to mean 'bad',
+ * reach for the status that actually describes it." Clay is this system's only
+ * true alarm colour and the design system reserves it for a real allergy,
+ * condition or contraindication. A client whose fat mass rose 0.4 kg between
+ * two visits has not had a medical event — they have had a fortnight worth
+ * following up, which is exactly what amber means here and everywhere else in
+ * the app.
+ *
+ * ## Nothing at all when nothing moved
+ *
+ * `unchanged` renders `null` rather than a grey chip reading "0.0". A badge is
+ * a claim that something happened; the flat case is the one state on this
+ * screen where nothing did. The dashboard's `Trendline` makes the same call
+ * about its arrow, for the same reason.
+ *
+ * Direction is carried by the arrow as well as by the colour, so the chip still
+ * reads with no colour vision at all — the accessibility floor's "colour is
+ * never the only carrier".
  */
-function DeltaNote({ change, text }: { change: MeasurementChange; text: string }) {
-  const tone: Record<ChangeVerdict, string> = {
-    improved: 'text-status-on-track-fg',
-    declined: 'text-destructive',
-    unchanged: 'text-muted-foreground',
-    unjudged: 'text-muted-foreground',
+function DeltaBadge({
+  change,
+  format,
+}: {
+  change: MeasurementChange;
+  format: (value: number, decimals: number) => string;
+}) {
+  if (change.delta === null || change.verdict === 'unchanged') return null;
+
+  const variant: Record<Exclude<ChangeVerdict, 'unchanged'>, 'onTrack' | 'attention' | 'muted'> = {
+    improved: 'onTrack',
+    declined: 'attention',
+    unjudged: 'muted',
   };
 
-  return <span className={cn('font-medium tabular-nums', tone[change.verdict])}>{text}</span>;
+  const rose = change.delta > 0;
+
+  return (
+    <Badge variant={variant[change.verdict]} size="sm" className="gap-0.5">
+      <Icon name={rose ? 'driftUp' : 'driftDown'} className="shrink-0" />
+      <span className="tabular-nums">
+        {format(Math.abs(change.delta), metricDecimals(change.metric))}
+      </span>
+    </Badge>
+  );
 }
 
 /**

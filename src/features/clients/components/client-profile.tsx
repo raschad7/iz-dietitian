@@ -246,7 +246,23 @@ export async function ClientProfile({
             finding the height somewhere else first.
           */
           account: <ClientVisitRecord visits={visits.entries} locale={locale} today={today} />,
-          nutrition: <ClientNutrition intake={intake} locale={locale} />,
+          nutrition: (
+            <ClientNutrition
+              intake={intake}
+              locale={locale}
+              /*
+                The most recent visit that reported one. `measurements.rows` is
+                newest first, so the first hit is the freshest — and a client
+                nobody has measured in twelve weeks is already on the
+                dashboard's attention list, which is where staleness is
+                handled rather than with a second rule here.
+              */
+              measuredBmrKcal={
+                measurements.rows.find((row) => row.basalMetabolicRateKcal !== null)
+                  ?.basalMetabolicRateKcal ?? null
+              }
+            />
+          ),
           measurements: (
             <MeasurementsPanel
               clientId={client.id}

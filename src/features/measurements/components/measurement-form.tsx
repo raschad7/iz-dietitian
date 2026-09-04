@@ -1,21 +1,22 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useActionState, useEffect, useRef, useState } from 'react';
+import { useActionState, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useFormStatus } from 'react-dom';
 
 import { Button } from '@/components/ui/button';
+import { Callout } from '@/components/ui/callout';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DatePicker } from '@/components/ui/date-picker';
 import { DialogBody, DialogFooter } from '@/components/ui/dialog';
-import { Field, FieldError, FieldHint } from '@/components/ui/field';
-import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from '@/components/ui/input-group';
+import { Field, FieldError } from '@/components/ui/field';
+import { Icon, type IconName } from '@/components/ui/icon';
 import { Label } from '@/components/ui/label';
+import { NumberField } from '@/components/ui/number-field';
 import { Textarea } from '@/components/ui/textarea';
-import { TimeInput } from '@/components/ui/time-input';
 import { HEIGHT_CM_RANGE, WEIGHT_KG_RANGE } from '@/features/clients/form-rules';
 import { type Locale } from '@/i18n/routing';
 import { type IsoDate } from '@/lib/iso-date';
-import { cn } from '@/lib/utils';
 
 import { saveMeasurementAction, updateMeasurementAction } from '../actions';
 import { initialMeasurementFormState, type MeasurementFormState } from '../form-state';
@@ -40,6 +41,26 @@ import { ReportWarnings } from './report-warnings';
  * looking at fourteen empty boxes will otherwise wonder whether they have to
  * guess.
  *
+ * ## The boxes are the system's boxes
+ *
+ * Every figure is a shared `NumberField`: 48px, the 10px control radius, the
+ * neutral focus edge. This form used to compose a bare `InputGroup` — the
+ * upstream shadcn component, 32px with `rounded-lg` and the brand focus ring —
+ * with the unit sitting inside the box as an addon. Next to the intake dialog
+ * two clicks away it read as a different application, which is what a shared
+ * primitive exists to prevent. The unit moved into the label for the reason
+ * that component records, and took a real bug with it: `totalBodyWaterKg` and
+ * `totalBodyWaterPercent` are both called "body water", so the form was drawing
+ * the same label over two different boxes.
+ *
+ * ## There is no time field
+ *
+ * The column is still there and a report still files its own clock into it —
+ * that is free provenance and the duplicate check reads it. But a dietitian
+ * recording a visit does not know or care what minute the client stood on the
+ * scale, and asking for one put an empty box beside the date on every single
+ * entry. The date is the fact; the minute is the machine's footnote.
+ *
  * ## Field names are the schema's own keys
  *
  * `readForm` in `actions.ts` reads `Object.keys(schema.shape)`, so an input
@@ -59,43 +80,64 @@ function isMessageKey(value: string): value is MeasurementMessageKey {
   return (MEASUREMENT_MESSAGE_KEYS as readonly string[]).includes(value);
 }
 
-/** The figures, grouped the way the report itself is laid out. */
+/**
+ * The figures, grouped the way the report itself is laid out.
+ *
+ * One glyph per group and none on the fields themselves. Fourteen icons down a
+ * form is decoration; four beside four headings is a way to find the group you
+ * want without reading all four. The four are distinct on purpose — see the
+ * design system on two rows of one screen never sharing a picture.
+ */
 const GROUPS = [
   {
     key: 'core',
+    icon: 'weightOutline',
     fields: [
-      { name: 'weightKg', unit: 'kg', step: '0.1', required: true },
-      { name: 'heightCm', unit: 'cm', step: '0.1' },
+      { name: 'weightKg', unit: 'kg', required: true },
+      { name: 'heightCm', unit: 'cm' },
     ],
   },
   {
     key: 'composition',
+    icon: 'personOutline',
     fields: [
-      { name: 'bodyFatPercent', unit: 'percent', step: '0.1' },
-      { name: 'fatMassKg', unit: 'kg', step: '0.01' },
-      { name: 'muscleMassKg', unit: 'kg', step: '0.01' },
-      { name: 'fatFreeMassKg', unit: 'kg', step: '0.01' },
-      { name: 'boneMassKg', unit: 'kg', step: '0.01' },
-      { name: 'totalBodyWaterKg', unit: 'kg', step: '0.01' },
-      { name: 'totalBodyWaterPercent', unit: 'percent', step: '0.1' },
+      { name: 'bodyFatPercent', unit: 'percent' },
+      { name: 'fatMassKg', unit: 'kg' },
+      { name: 'muscleMassKg', unit: 'kg' },
+      { name: 'fatFreeMassKg', unit: 'kg' },
+      { name: 'boneMassKg', unit: 'kg' },
+      { name: 'totalBodyWaterKg', unit: 'kg' },
+      { name: 'totalBodyWaterPercent', unit: 'percent' },
     ],
   },
   {
     key: 'metabolism',
+    icon: 'calories',
     fields: [
-      { name: 'basalMetabolicRateKcal', unit: 'kcal', step: '1' },
-      { name: 'visceralFatRating', unit: 'rating', step: '0.5' },
-      { name: 'metabolicAge', unit: 'years', step: '1' },
+      { name: 'basalMetabolicRateKcal', unit: 'kcal' },
+      { name: 'visceralFatRating', unit: 'rating' },
+      { name: 'metabolicAge', unit: 'years' },
     ],
   },
   {
     key: 'girth',
+    icon: 'heightOutline',
     fields: [
-      { name: 'waistCm', unit: 'cm', step: '0.1' },
-      { name: 'hipCm', unit: 'cm', step: '0.1' },
+      { name: 'waistCm', unit: 'cm' },
+      { name: 'hipCm', unit: 'cm' },
     ],
   },
-] as const;
+  /*
+    `as const satisfies` and not a type annotation. The literal keys are what
+    next-intl checks `t('metrics.weightKg')` against — annotating this array
+    with `{ name: string }` widens them to `string`, and every lookup on this
+    form becomes an untyped `metrics.${string}` the message catalogue refuses.
+  */
+] as const satisfies readonly {
+  key: string;
+  icon: IconName;
+  fields: readonly { name: string; unit: string; required?: boolean }[];
+}[];
 
 export type MeasurementFormValues = {
   id: string;
@@ -228,10 +270,27 @@ export function MeasurementForm({
     return figure.raw;
   };
 
-  const clock = (minute: number) => {
-    const pad = (value: number) => String(value).padStart(2, '0');
-    return `${pad(Math.floor(minute / 60))}:${pad(minute % 60)}`;
-  };
+  /*
+    The minute the reading was taken at, carried rather than asked for.
+
+    An edited row keeps its own; a report keeps the clock printed on it; a
+    reading typed in by hand is filed at midnight, which is what "no time was
+    recorded" looks like in a column that cannot be null. The unique index is
+    `(client, date, minute)`, so a hand-typed entry and a machine reading on the
+    same day still sit apart.
+  */
+  const measuredAtMinute =
+    measurement?.measuredAtMinute ?? report?.parsed.measuredAtMinute ?? 0;
+
+  /*
+    The height disagreement, if the upload found one. `RecordWarning` is the
+    only warning kind this form turns into a control rather than a sentence —
+    see the checkbox below for why this one earns it.
+  */
+  const heightMismatch = report?.warnings.find(
+    (warning): warning is Extract<RecordWarning, { kind: 'heightMismatch' }> =>
+      'kind' in warning && warning.kind === 'heightMismatch',
+  );
 
   // Keyed on the refusal count so every uncontrolled field remounts and
   // re-seeds — see the long note in `client-form.tsx` on why this is a counter
@@ -248,6 +307,7 @@ export function MeasurementForm({
     <form action={formAction} noValidate className="flex min-h-0 flex-1 flex-col text-start">
       <input type="hidden" name="locale" value={locale} />
       <input type="hidden" name="clientId" value={clientId} />
+      <input type="hidden" name="measuredAtMinute" value={measuredAtMinute} />
       {measurement ? <input type="hidden" name="measurementId" value={measurement.id} /> : null}
 
       {/*
@@ -265,7 +325,7 @@ export function MeasurementForm({
         </>
       ) : null}
 
-      <DialogBody className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4 sm:p-5">
+      <DialogBody className="min-h-0 flex-1 space-y-6 overflow-y-auto p-4 sm:p-5">
         {report ? (
           <div className="space-y-3">
             <ReportSummary
@@ -279,17 +339,23 @@ export function MeasurementForm({
           </div>
         ) : null}
 
-        <FieldHint>{report ? t('upload.checkHint') : t('form.hint')}</FieldHint>
+        {/*
+          The rule the whole form runs on, stated once at the top.
+
+          A `Callout` rather than a `FieldHint`, because it is not a hint about
+          the next box — it is the contract for all fourteen of them, and a
+          12px grey line above a wall of inputs is not where a reader finds a
+          rule they need before they start typing.
+        */}
+        <Callout tone="neutral">{report ? t('upload.checkHint') : t('form.hint')}</Callout>
 
         {/* ── When ─────────────────────────────────────────────────── */}
-        <fieldset className="space-y-3">
-          <legend className="text-caption font-semibold text-muted-foreground uppercase">
-            {t('form.when')}
-          </legend>
-
-          <div className="grid gap-3 sm:grid-cols-2">
+        <FormSection icon="calendar" title={t('form.when')}>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Field>
-              <Label htmlFor="measuredOn">{t('form.measuredOn')}</Label>
+              <Label htmlFor="measuredOn" required>
+                {t('form.measuredOn')}
+              </Label>
               <DatePicker
                 id="measuredOn"
                 name="measuredOn"
@@ -301,133 +367,98 @@ export function MeasurementForm({
               />
               <FieldError>{errorFor('measuredOn')}</FieldError>
             </Field>
-
-            <Field>
-              <Label htmlFor="measuredAtMinute">{t('form.measuredAtMinute')}</Label>
-              <TimeInput
-                key={seedKey}
-                id="measuredAtMinute"
-                name="measuredAtMinute"
-                defaultValue={
-                  state.status === 'error' && state.values
-                    ? (state.values.measuredAtMinute ?? '')
-                    : measurement
-                      ? clock(measurement.measuredAtMinute)
-                      : ''
-                }
-                aria-invalid={Boolean(errorFor('measuredAtMinute'))}
-              />
-              <FieldError>{errorFor('measuredAtMinute')}</FieldError>
-            </Field>
           </div>
-        </fieldset>
+        </FormSection>
 
         {/* ── The figures ──────────────────────────────────────────── */}
         {GROUPS.map((group) => (
-          <fieldset key={group.key} className="space-y-3">
-            <legend className="text-caption font-semibold text-muted-foreground uppercase">
-              {t(`form.${group.key}`)}
-            </legend>
-
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {group.fields.map((field) => {
-                const error = errorFor(field.name);
-
-                return (
-                  <Field key={field.name}>
-                    <Label htmlFor={field.name}>
-                      {t(`metrics.${field.name}`)}
-                      {'required' in field && field.required ? (
-                        <span aria-hidden="true" className="ms-1 text-destructive">
-                          *
-                        </span>
-                      ) : null}
-                    </Label>
-
-                    <InputGroup>
-                      <InputGroupInput
-                        key={seedKey}
-                        id={field.name}
-                        name={field.name}
-                        /*
-                          `inputMode="decimal"` and `type="text"`, not
-                          `type="number"`: a number input silently discards a
-                          value the browser considers malformed, so a mistyped
-                          figure comes back as an empty box with no explanation
-                          — and this form's whole contract is that an empty box
-                          means "not measured". A text input hands the string to
-                          the schema, which says what is wrong with it.
-                        */
-                        type="text"
-                        inputMode="decimal"
-                        autoComplete="off"
-                        dir="ltr"
-                        className="tabular-nums"
-                        defaultValue={seed(field.name)}
-                        aria-invalid={Boolean(error)}
-                        aria-describedby={error ? `${field.name}-error` : undefined}
-                        required={'required' in field && field.required}
-                      />
-                      <InputGroupAddon align="inline-end">
-                        <InputGroupText>{t(`units.${field.unit}`)}</InputGroupText>
-                      </InputGroupAddon>
-                    </InputGroup>
-
-                    <FieldError id={`${field.name}-error`}>{error}</FieldError>
-
-                    {/*
-                      What the sheet actually printed, under the box it filled.
-                      The figures are located by position rather than by label
-                      (the labels on these sheets are images), so showing the
-                      reader the source text is how "check what we read" becomes
-                      something a person can actually do.
-                    */}
-                    {!error && provenance(field.name) ? (
-                      <FieldHint className="tabular-nums">{provenance(field.name)}</FieldHint>
-                    ) : null}
-                  </Field>
-                );
-              })}
+          <FormSection key={group.key} icon={group.icon} title={t(`form.${group.key}`)}>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {group.fields.map((field) => (
+                <NumberField
+                  key={field.name}
+                  name={field.name}
+                  label={t(`metrics.${field.name}`)}
+                  unit={t(`units.${field.unit}`)}
+                  /*
+                    Text, not a number input: see the note on `NumberField`'s
+                    `mode`. This form's whole contract is that an empty box
+                    means "not measured", so a value the browser would silently
+                    discard has to reach the schema instead.
+                  */
+                  mode="text"
+                  required={'required' in field && field.required}
+                  inputKey={seedKey}
+                  defaultValue={seed(field.name)}
+                  error={errorFor(field.name)}
+                  /*
+                    What the sheet actually printed, under the box it filled.
+                    The figures are located by position rather than by label
+                    (the labels on these sheets are images), so showing the
+                    reader the source text is how "check what we read" becomes
+                    something a person can actually do.
+                  */
+                  hint={provenance(field.name) ?? undefined}
+                />
+              ))}
             </div>
-          </fieldset>
+          </FormSection>
         ))}
 
         {/* ── Note ─────────────────────────────────────────────────── */}
-        <Field>
-          <Label htmlFor="note">{t('form.note')}</Label>
-          <Textarea
-            key={seedKey}
-            id="note"
-            name="note"
-            rows={2}
-            placeholder={t('form.notePlaceholder')}
-            defaultValue={seed('note')}
-          />
-        </Field>
+        <FormSection icon="notes" title={t('form.note')}>
+          <Field>
+            <Label htmlFor="note" className="sr-only">
+              {t('form.note')}
+            </Label>
+            <Textarea
+              key={seedKey}
+              id="note"
+              name="note"
+              rows={2}
+              placeholder={t('form.notePlaceholder')}
+              defaultValue={seed('note')}
+            />
+          </Field>
+        </FormSection>
 
-        {/* ── The one decision that reaches outside this feature ────── */}
-        <label
-          className={cn(
-            'flex cursor-pointer items-start gap-3 rounded-lg border border-border',
-            'bg-secondary/50 p-4',
-          )}
-        >
-          <input
-            type="checkbox"
+        {/* ── The decisions that reach outside this feature ─────────── */}
+        <div className="space-y-3">
+          <DecisionCheckbox
             name="applyToCurrentWeight"
             defaultChecked={!measurement}
-            className="mt-0.5 size-4 shrink-0 accent-[var(--primary)]"
-          />
-          <span className="space-y-1">
-            <span className="block text-body font-medium">{t('form.applyToCurrentWeight')}</span>
-            <span className="block text-caption text-muted-foreground">
-              {t('form.applyHint')}{' '}
-              {currentWeightKg === null
+            label={t('form.applyToCurrentWeight')}
+            hint={`${t('form.applyHint')} ${
+              currentWeightKg === null
                 ? t('form.applyHintUnset')
-                : t('form.applyHintCurrent', { weight: currentWeightKg.toFixed(1) })}
-            </span>
-          </span>
-        </label>
+                : t('form.applyHintCurrent', { weight: currentWeightKg.toFixed(1) })
+            }`}
+          />
+
+          {/*
+            Offered only when the upload found the two heights disagreeing.
+
+            The warning above already says so; this is the control that settles
+            it. One of the two numbers is wrong and the moment somebody has both
+            in front of them is the moment to fix it — sending them to another
+            tab to retype a height they can already see is how a warning becomes
+            something people learn to scroll past.
+
+            Unticked by default, unlike the weight box. The machine is not
+            automatically right: the operator typed that height too.
+          */}
+          {heightMismatch ? (
+            <DecisionCheckbox
+              name="applyHeightToClient"
+              defaultChecked={false}
+              label={t('form.applyHeightToClient', { height: heightMismatch.onReport })}
+              hint={t('form.applyHeightHint', {
+                current: heightMismatch.onRecord,
+                height: heightMismatch.onReport,
+              })}
+            />
+          ) : null}
+        </div>
 
         <FormMessage state={state} />
       </DialogBody>
@@ -439,6 +470,66 @@ export function MeasurementForm({
         <SubmitButton label={t('save')} />
       </DialogFooter>
     </form>
+  );
+}
+
+/**
+ * A decision that changes something outside this measurement.
+ *
+ * Both of them are checkboxes rather than automatic writes, and for the same
+ * reason: each moves a figure another screen is computing from — the calorie
+ * target, the BMI on two tabs — so a dietitian should be able to see
+ * themselves doing it. The shared `Checkbox` renders its native input inside,
+ * so this posts `name=on` and still works wrapped in a label.
+ */
+function DecisionCheckbox({
+  name,
+  defaultChecked,
+  label,
+  hint,
+}: {
+  name: string;
+  defaultChecked: boolean;
+  label: string;
+  hint: string;
+}) {
+  return (
+    <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-secondary/50 p-4">
+      <Checkbox name={name} defaultChecked={defaultChecked} className="mt-0.5" />
+      <span className="space-y-1">
+        <span className="block text-body-md font-medium">{label}</span>
+        <span className="block text-caption text-muted-foreground">{hint}</span>
+      </span>
+    </label>
+  );
+}
+
+/**
+ * One titled group of fields.
+ *
+ * `fieldset`/`legend`, because these really are groups of controls and saying
+ * so is free. The heading is `text-label` — the system's 13px/600 "labels and
+ * compact state text" — and **not uppercased**: the design system forbids an
+ * uppercase transform on Arabic, where it does nothing to the letterforms and
+ * only widens the tracking of a script that has no case at all.
+ */
+function FormSection({
+  icon,
+  title,
+  children,
+}: {
+  icon: IconName;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <fieldset className="space-y-3">
+      <legend className="mb-2 flex items-center gap-2 text-label font-semibold text-muted-foreground">
+        <Icon name={icon} className="size-4 shrink-0" />
+        {title}
+      </legend>
+      {children}
+    </fieldset>
   );
 }
 
@@ -455,11 +546,7 @@ function FormMessage({ state }: { state: MeasurementFormState }) {
   const t = useTranslations('measurements');
   if (state.status !== 'error' || state.messageKey === 'errors.invalid') return null;
 
-  return (
-    <p role="status" className="text-body text-destructive">
-      {t(state.messageKey)}
-    </p>
-  );
+  return <Callout tone="medical">{t(state.messageKey)}</Callout>;
 }
 
 function SubmitButton({ label }: { label: string }) {
