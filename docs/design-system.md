@@ -70,7 +70,7 @@ Check the directory itself for the exact API. The current shared inventory is:
 | Need | Reuse |
 |---|---|
 | Actions and status | `Button`, `Badge`, `StatusDot`, `CopyButton`, `ConfirmDialog`, `ConfirmSubmitButton` |
-| Form structure | `Field`, `FieldError`, `FieldHint`, `Label`, `Input`, `Textarea`, `InputGroup` |
+| Form structure | `Field`, `FieldError`, `FieldHint`, `Label`, `Input`, `Textarea`, `InputGroup`, `NumberField` |
 | Choice controls | `Select`, `SelectField`, `Combobox`, `Checkbox`, `RadioGroup`, `Switch`, `Segmented` |
 | Date, time, and phone | `DatePicker`, `DateChooser`, `DateCalendar`, `Calendar`, `TimeInput`, `PhoneField` |
 | Surfaces and overlays | `Card`, `Dialog`, `Sheet`, `Popover`, `DropdownMenu`, `Tooltip`, `TooltipHint`, `Toaster`/`toast` |
@@ -478,11 +478,27 @@ in `Field` so focus and error behavior remain consistent.
 - Error messages use `FieldError`; helper copy uses `FieldHint`.
 - Use `SelectField` for a simple flat list. Compose `Select` parts when options
   need groups, descriptions, icons, or separators.
+- Use `NumberField` for a labelled numeric box. It is the 48px, control-radius,
+  neutral-focus field the intake and measurement dialogs share. **A bare
+  `InputGroup` is not that control** — it is the upstream shadcn component at
+  32px with `rounded-lg` and the brand focus ring, and composing one directly in
+  a feature is how two dialogs two clicks apart ended up looking like two
+  applications.
+- **A unit belongs in the label, not in the box.** `NumberField` takes `unit`
+  and draws it after the field's name. A box holding a number and its own unit
+  reads as a composite control and invites the unit to be typed into it.
 - Use `Combobox` when the list needs search/filter behavior.
 - Use `TimeInput` for time values; its `step` is seconds and must match server
   validation.
 - Use the existing date primitives; date picker, calendar, checkbox, radio,
   switch, and toast are implemented and must not be recreated.
+- **A control whose shape carries its state takes `--control-edge`, not
+  `--input`.** `--input` is a deliberate sub-3:1 hairline and that is safe for a
+  48px field with a `Label` over it — a reader finds the box either way. An
+  unchecked checkbox has no fill, no size and no label of its own, so the edge
+  *is* the control: at `--input` on a tinted card it measured ~1.4:1 and
+  disappeared, and unticking it was reported as the control breaking.
+  `--control-edge` is c-500 (4.83:1 on white) and exists only for this.
 
 Popup components opened inside a native `Dialog` must portal through
 `useDialogContainer()` and use the available-height positioning contract.
@@ -495,17 +511,22 @@ when adapting another popup.
 server-held settings and may act as the submit button of its own form.
 
 The track is shadcn/ui's: 44×24, a plain 20px disc, `bg-primary` on and
-`bg-input/60` off, with upstream's 2px transparent border insetting the disc
+`bg-input` off, with upstream's 2px transparent border insetting the disc
 rather than edging the track. There is no `knob` prop and no leaf — the 52×30
 track whose knob carried the Arc sweep and rotated −45° as it landed is gone,
 and with it the choice between a leaf and a disc. One drawing, everywhere.
 
-Two departures from upstream, both about this app rather than about taste. The
-off fill is `bg-input/60`, not a flat `bg-input`: `--input` is `n-500` here and
-is a *border* color picked to read as a 1px line, so poured into a 44×24 slab it
-made the off state heavier than the on state. And the disc travels on
-`inset-inline-start` rather than upstream's `translate-x`, which is a physical
-direction and would slide the wrong way in Arabic.
+One departure from upstream, and it is about this app rather than about taste:
+the disc travels on `inset-inline-start` rather than upstream's `translate-x`,
+which is a physical direction and would slide the wrong way in Arabic.
+
+⚠ The off fill was `bg-input/60` for a while, and this document explained the
+60% by saying `--input` is `n-500` — a dark warm grey that poured into a 44×24
+slab made the off state heavier than the on state. `--input` has since moved
+two steps lighter to c-300, and the 60% went on compositing it away until the
+off track was barely there. **A rule written about a token outlives the token.**
+If you are about to justify an opacity by what a variable used to be, check
+what it is.
 
 ⚠ **This is why the switch is a hand-drawn `<button>` and not shadcn's own
 component.** Upstream's is a Radix root driven by `onCheckedChange` — controlled
@@ -565,7 +586,13 @@ Compose `TableRoot`, `Table`, `TableHeader`, `TableRow`, `TableHead`,
   `contained` appearances through matching `Tabs` and `tabLinkVariants` props.
 - `TabBadge` is a bare count, not a filled status pill.
 - `PanelTabs` switches panels within the current page.
-- `Segmented` switches a compact mode or view with few visible options.
+- `Segmented` switches a compact mode or view with few visible options. Its
+  `pill` and `contained` shapes are the same object in two sizes — a recessed
+  neutral track with a raised white thumb that travels — and a screen showing
+  more than one view switcher should use them rather than mixing a thumbed
+  control with the `default` shape's solid brand fill. Three segmented controls
+  on the Measurements tab, one of them filled green, read as three different
+  kinds of control.
 - `Pagination` owns list paging controls.
 
 Keep the distinction semantic: an address uses links, a panel uses tabs, and a
@@ -659,6 +686,16 @@ stylesheet and against the call sites the frame replaced.
 - Use the shared `toast`/`Toaster` API for transient confirmation that warrants
   a global message. Prefer inline status when the result belongs to a visible
   section.
+- ⚠ **A toast raised while a modal dialog is open cannot be seen.** `Toaster` is
+  mounted once in the locale layout, in the ordinary document; a `<dialog>`
+  opened with `showModal()` renders in the browser's **top layer**, which paints
+  above every element in the normal flow whatever its `z-index` — the same rule
+  that forces popups to portal through `useDialogContainer()`. Measured, not
+  assumed: a fixed element at `z-index: 2147483647` behind an open dialog is
+  invisible, and `elementFromPoint` over it returns the dialog. So a dialog
+  reports its own refusals **inside itself** — on the field that caused them
+  where there is one — and toasts only after it has closed, which is what
+  `BillingKeypadDialog` and `MeasurementFormTrigger` both do.
 - Avoid nested interactive triggers such as a tooltip trigger wrapping a menu
   trigger when the primitive composition does not support both.
 

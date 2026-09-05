@@ -35,6 +35,10 @@ The current repository includes:
 - Clinic onboarding, clinic and account settings, and in-app notifications
 - A guided in-app user tour
 >>>>>>> 2fc96edfef517fccc430d17ca971bb46fc56007a
+- Body composition tracking across visits: readings entered by hand or read
+  from a body composition analyser's PDF report, compared against the previous
+  visit and against the first, and optionally shown to the client in their own
+  portal
 - Optional WhatsApp reminders, confirmations, replies, and portal credentials
 - Arabic and English interfaces with RTL support
 

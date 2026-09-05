@@ -445,7 +445,8 @@
     "attention": {
       "noUpcomingAppointment": "No upcoming appointment",
       "noWeeklyPlan": "No plan this week",
-      "neverSignedIn": "Never signed in to the portal"
+      "neverSignedIn": "Never signed in to the portal",
+      "measurementOverdue": "Not measured in a while"
     },
     "seeAll": "See all notifications"
   },
@@ -603,6 +604,7 @@
       "tabs": {
         "account": "Visits",
         "nutrition": "Nutrition",
+        "measurements": "Measurements",
         "progress": "Progress",
         "security": "The Gate",
         "billing": "Plans",
@@ -879,6 +881,7 @@
       "balanceShares": "Balance to 100%",
       "allergenHint": "Only the ticks above remove dishes from the catalog.",
       "dailyTarget": "Daily target",
+      "bmrDisagreement": "The analyser put basal metabolism at {device, number} kcal; the formula estimates {estimate, number}. The calorie target is built on the formula — set it by hand if the device figure fits this client better.",
       "bmi": "BMI",
       "bmiScale": "Where it falls on the scale",
       "dismissWarning": "Dismiss this warning",
@@ -2852,6 +2855,201 @@
       "finish": {
         "title": "That is the whole tour",
         "body": "You can start it again from “User guide” at the foot of the sidebar whenever you want."
+      }
+    }
+  },
+  "measurements": {
+    "title": "Measurements",
+    "subtitle": "Body composition across visits.",
+    "empty": {
+      "title": "No measurements yet",
+      "body": "Record a weigh-in to start tracking this client's progress."
+    },
+    "firstOnly": {
+      "title": "One measurement so far",
+      "body": "The next one starts the comparison."
+    },
+    "add": "Add measurement",
+    "edit": "Edit",
+    "delete": "Delete",
+    "save": "Save measurement",
+    "cancel": "Cancel",
+    "deleteConfirm": "Delete this measurement? The reading is removed from the history and every chart on this tab.",
+    "headline": {
+      "title": "How it's going",
+      "lastMeasured": "Last measured {date}",
+      "daysSince": "{days, plural, =0 {today} one {# day ago} other {# days ago}}"
+    },
+    "range": {
+      "last": "Last visit",
+      "start": "The start",
+      "label": "Compare against"
+    },
+    "narrative": {
+      "fatDownMuscleUp": "Down {weight} kg — {fat} kg of it fat, and muscle is up {muscle} kg.",
+      "fatDown": "Down {weight} kg, and {fat} kg of it was fat.",
+      "weightDown": "Down {weight} kg.",
+      "weightUpMuscleUp": "Up {weight} kg, and {muscle} kg of it is muscle.",
+      "weightUp": "Up {weight} kg.",
+      "holding": "Holding steady.",
+      "notEnoughData": "Nothing to compare against yet.",
+      "why": "Losing more fat than total weight is the thing a scale on its own cannot tell you.",
+      "clockDrift": "These two readings were taken at different times of day ({from} and {to}). An analyser reads through body water, so part of this difference may be hydration rather than tissue."
+    },
+    "verdict": {
+      "improved": "Moving the right way",
+      "declined": "Moving the wrong way",
+      "unchanged": "No real change",
+      "unjudged": "Not graded for this goal"
+    },
+    "trend": {
+      "title": "Over time",
+      "subtitle": "{count, plural, one {# visit} other {# visits}}",
+      "pick": "Which figure to plot",
+      "notRecorded": "Not recorded at enough visits to plot."
+    },
+    "history": {
+      "title": "Every visit",
+      "subtitle": "Newest first. Change is against the visit below it.",
+      "baseline": "First",
+      "openRow": "Open this measurement"
+    },
+    "metrics": {
+      "weightKg": "Weight",
+      "heightCm": "Height",
+      "bmi": "BMI",
+      "bodyFatPercent": "Body fat",
+      "fatMassKg": "Fat mass",
+      "fatFreeMassKg": "Fat-free mass",
+      "muscleMassKg": "Muscle mass",
+      "boneMassKg": "Bone mass",
+      "totalBodyWaterKg": "Body water",
+      "totalBodyWaterPercent": "Body water",
+      "visceralFatRating": "Visceral fat",
+      "basalMetabolicRateKcal": "Measured BMR",
+      "metabolicAge": "Metabolic age",
+      "waistCm": "Waist",
+      "hipCm": "Hip"
+    },
+    "units": {
+      "kg": "kg",
+      "cm": "cm",
+      "percent": "%",
+      "kcal": "kcal",
+      "rating": "level",
+      "years": "years"
+    },
+    "detail": {
+      "title": "{date} at {time}",
+      "composition": "Body composition",
+      "metabolism": "Metabolism",
+      "measured": "Tape measurements",
+      "ourEstimate": "Our estimate",
+      "actualAge": "vs {age} actual",
+      "note": "Note",
+      "recorded": "Recorded {date}"
+    },
+    "source": {
+      "manual": "By hand",
+      "device": "From a report",
+      "label": "Source"
+    },
+    "form": {
+      "addTitle": "Record a measurement",
+      "editTitle": "Correct this measurement",
+      "hint": "Only the weight is required. Leave a box empty when the machine did not report it — an empty box is recorded as \"not measured\", never as zero.",
+      "when": "When",
+      "measuredOn": "Date",
+      "measuredAtMinute": "Time",
+      "core": "The basics",
+      "composition": "Body composition",
+      "metabolism": "Metabolism",
+      "girth": "Tape measurements",
+      "note": "Note",
+      "notePlaceholder": "Anything worth remembering about this reading.",
+      "applyToCurrentWeight": "Make this the client's current weight",
+      "applyHint": "This is the weight the calorie target and the next weekly plan are built from. Plans already published keep the weight they were written with.",
+      "applyHintCurrent": "It currently reads {weight} kg.",
+      "applyHintUnset": "No weight is recorded on this client's nutrition profile yet.",
+      "applyHeightToClient": "Correct the record's height to {height} cm",
+      "applyHeightHint": "The record says {current} cm; the machine was told {height} cm. The record's height is what every screen computes BMI from.",
+      "bmiPreview": "BMI from these figures",
+      "bmiNoHeight": "No height on record, so no BMI."
+    },
+    "flash": {
+      "saved": "Measurement saved.",
+      "savedAndApplied": "Measurement saved, and the current weight is now {weight} kg.",
+      "deleted": "Measurement deleted."
+    },
+    "validation": {
+      "measuredOnInvalid": "Pick a valid date.",
+      "dateTaken": "This client already has a measurement on this date. Pick another day, or edit the reading that is already there.",
+      "timeInvalid": "The measurement time could not be read. Reopen the dialog and try again.",
+      "weightRequired": "Weight is required.",
+      "weightOutOfRange": "Weight should be between {weightMin} and {weightMax} kg.",
+      "heightOutOfRange": "Height should be between {heightMin} and {heightMax} cm.",
+      "percentOutOfRange": "That percentage is outside the range a real reading falls in.",
+      "massOutOfRange": "That mass is outside the range a real reading falls in.",
+      "ratingOutOfRange": "That rating is outside the range a real reading falls in.",
+      "bmrOutOfRange": "BMR should be between 400 and 6,000 kcal.",
+      "metabolicAgeOutOfRange": "Metabolic age should be between 5 and 120 years.",
+      "girthOutOfRange": "That measurement should be between 30 and 250 cm."
+    },
+    "errors": {
+      "invalid": "Some figures need checking.",
+      "notFound": "That measurement no longer exists.",
+      "unexpected": "The measurement could not be saved. Try again.",
+      "fileMissing": "Choose a PDF to read.",
+      "fileTooLarge": "That file is larger than 8 MB.",
+      "fileNotPdf": "That is not a PDF. Export the report from your machine as a PDF.",
+      "unreadable": "That PDF could not be read. You can still enter the figures by hand."
+    },
+    "upload": {
+      "trigger": "Upload report",
+      "title": "Read a report",
+      "drop": "Choose the PDF your machine produced",
+      "dropHint": "PDF only, up to 8 MB. Nothing is saved until you check the figures and press Save.",
+      "reading": "Reading the report…",
+      "readAs": "Read as",
+      "unknownMachine": "Machine not recognised",
+      "found": "{found, number} of {total, number} figures found",
+      "openOriginal": "Open original",
+      "replace": "Choose a different file",
+      "checkTitle": "Check what we read",
+      "checkHint": "Every value is editable. An empty box means the machine did not report it — it is saved as “not measured”, never as zero.",
+      "attached": "The report will be saved with this measurement."
+    },
+    "warnings": {
+      "unknownDevice": "We don't recognise this machine yet, so nothing has been filled in. Type the figures from the report — it stays attached to the measurement either way, and we can add support for this machine later.",
+      "converted": "{field} was printed in {from} and converted to {to}. Check it before saving.",
+      "checksum": "Two figures on the report disagree ({check}): we expected about {expected} and read {found}. One of them may have been read from the wrong place — check them both.",
+      "dateAmbiguous": "The date reads “{raw}” and could be day/month or month/day. Confirm it below.",
+      "nameMismatch": "The report says “{onReport}” but this record is “{onRecord}”. Make sure this is the right client.",
+      "heightMismatch": "The machine was told {onReport} cm; the record says {onRecord} cm. The record's height is kept — change it here only if the machine was right.",
+      "duplicate": "There is already a measurement for this client on {measuredOn}."
+    },
+    "sharing": {
+      "label": "Show these measurements to this client",
+      "hint": "Off by default. When on, their portal shows weight, how much of the change was fat, and how much muscle they kept — never the visceral fat rating, the metabolic age, or the report itself."
+    },
+    "portalCard": {
+      "title": "Your measurements",
+      "sinceStart": "Since you started",
+      "latest": "Last measured {date}",
+      "fatLost": "Fat lost",
+      "fatGained": "Fat gained",
+      "muscleGained": "Muscle gained",
+      "muscleLost": "Muscle lost",
+      "weight": "Weight",
+      "onlyOne": "This is your first measurement. The next one starts the comparison.",
+      "story": {
+        "fatDownMuscleUp": "You lost more fat than total weight — the weight you kept is muscle. That is exactly what we are aiming for.",
+        "fatDown": "The weight you lost was fat.",
+        "weightDown": "You are down {weight} kg since you started.",
+        "weightUpMuscleUp": "You are up {weight} kg, and it is muscle.",
+        "weightUp": "You are up {weight} kg since you started.",
+        "holding": "You are holding steady.",
+        "notEnoughData": "Nothing to compare against yet."
       }
     }
   }

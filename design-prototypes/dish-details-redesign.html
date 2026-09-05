@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>إنزيم — تصميم درج تفاصيل الطبق (محدّث)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Readex+Pro:wght@500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    :root {
+      --n-0: #FFFFFF;
+      --n-25: #FCFBF7;
+      --n-50: #F7F5EF;
+      --n-100: #EFEDE4;
+      --n-200: #E2DFD3;
+      --n-300: #CDC9B9;
+      --n-400: #A8A493;
+      --n-500: #837F6E;
+      --n-600: #605D50;
+      --n-700: #46443B;
+      --n-800: #2F2E28;
+      --n-900: #1C1B17;
+
+      --c-50: #F9FAFB;
+      --c-100: #F3F4F6;
+      --c-200: #E5E7EB;
+      --c-300: #D1D5DB;
+
+      --green-50: #F1FBEA;
+      --green-100: #DFF6D1;
+      --green-200: #C2EDA9;
+      --green-300: #9BE076;
+      --green-400: #75CF48;
+      --green-500: #58B52D;
+      --green-600: #419020;
+      --green-700: #346E1D;
+
+      --macro-protein-stroke: #6366F1;
+      --macro-carbs-stroke: #F59E0B;
+      --macro-fat-stroke: #A855F7;
+
+      --background: #FFFFFF;
+      --card: #FFFFFF;
+      --foreground: var(--n-900);
+      --muted: var(--c-100);
+      --muted-foreground: var(--n-600);
+      --border: var(--n-200);
+
+      --primary: #75CF48;
+      --primary-hover: #419020;
+      --primary-foreground: #1C1B17;
+      --primary-subtle: #F1FBEA;
+
+      --medical-bg: #FAE9E4;
+      --medical-fg: #82291B;
+      --medical-border: rgba(130, 41, 27, 0.2);
+
+      --font-arabic: 'IBM Plex Sans Arabic', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-heading: 'Readex Pro', 'IBM Plex Sans Arabic', sans-serif;
+    }
+
+    .dark {
+      --background: #141412;
+      --card: #1C1C19;
+      --foreground: #F5F4F0;
+      --muted: #272622;
+      --muted-foreground: #A8A493;
+      --border: #33312B;
+
+      --primary: #75CF48;
+      --primary-hover: #9BE076;
+      --primary-foreground: #1C1B17;
+      --primary-subtle: #1C2D14;
+
+      --medical-bg: #371510;
+      --medical-fg: #FCA5A5;
+      --medical-border: rgba(252, 165, 165, 0.25);
+    }
+
+    body {
+      font-family: var(--font-arabic);
+      background-color: #F7F5EF;
+      color: var(--foreground);
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .dark body {
+      background-color: #0E0E0C;
+    }
+
+    h1, h2, h3, h4, .font-heading {
+      font-family: var(--font-heading);
+    }
+
+    .custom-scroll::-webkit-scrollbar {
+      width: 5px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-[var(--foreground)]">
+
+  <!-- TOP APP BAR -->
+  <header class="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--background)]/90 backdrop-blur-md px-4 py-3 shadow-xs">
+    <div class="max-w-4xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h1 class="text-base font-bold text-[var(--foreground)] leading-tight">
+          إنزيم — درج تفاصيل الطبق (تم إصلاح المشاكل كافة)
+        </h1>
+        <p class="text-xs text-[var(--muted-foreground)]">
+          محاذاة العنوان الإنجليزي لليمين · شارة الحساسية حمراء بدون إهدار مساحة · حلقة الطاقة بأبعاد كاملة
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <!-- LANGUAGE TOGGLE -->
+        <button onclick="toggleDir()" id="langBtn" class="px-3 py-1.5 rounded-xl border border-[var(--border)] bg-[var(--card)] text-xs font-semibold hover:bg-[var(--muted)]">
+          <span id="langLabel">English (LTR)</span>
+        </button>
+
+        <!-- THEME TOGGLE -->
+        <button onclick="toggleTheme()" class="px-3 py-1.5 rounded-xl border border-[var(--border)] bg-[var(--card)] text-xs font-semibold hover:bg-[var(--muted)]">
+          <span id="themeLabel">الوضع الداكن</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 flex justify-center">
+
+    <!-- THE REFINED SHEET -->
+    <div class="w-full max-w-md bg-[var(--card)] border border-[var(--border)] rounded-3xl shadow-xl overflow-hidden flex flex-col" style="min-height: 720px;">
+      
+      <!-- SHEET HEADER -->
+      <div class="p-5 border-b border-[var(--border)] space-y-2.5">
+        <!-- Top Row: Ownership + Meal Types + Close Button -->
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex flex-wrap items-center gap-1.5 pe-8">
+            <!-- Ownership Badge -->
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--green-50)] dark:bg-[var(--green-700)]/30 text-[var(--green-700)] dark:text-[var(--green-300)]">
+              أضيف بواسطتي
+            </span>
+            <!-- Meal Types -->
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border border-[var(--border)] text-[var(--foreground)]">
+              فطور
+            </span>
+          </div>
+          
+          <button class="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--muted-foreground)] hover:bg-[var(--muted)]">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+        </div>
+
+        <!-- Dish Title and Secondary Name (BOTH ALIGNED TO START / RIGHT IN RTL) -->
+        <div class="text-start">
+          <h2 class="text-xl font-bold text-[var(--foreground)] font-heading">
+            بيض مع لحمة وخبز
+          </h2>
+          <!-- English Subtitle properly anchored under Arabic title at text-start -->
+          <p class="text-xs text-[var(--muted-foreground)] mt-0.5">
+            <bdi>Eggs with meat and bread</bdi>
+          </p>
+        </div>
+
+        <!-- Dish Axes -->
+        <p class="text-xs text-[var(--muted-foreground)] pt-0.5 text-start">
+          بيتي · سريع · مكلف · يومي
+        </p>
+      </div>
+
+      <!-- SHEET BODY -->
+      <div class="flex-1 overflow-y-auto custom-scroll p-5 space-y-4">
+
+        <!-- SECTION 1: NUTRITION LABEL (EXACT ENERGY RING, NO CUTOFF, STABLE HEIGHT) -->
+        <section class="shrink-0 flex flex-col rounded-xl border border-[var(--border)] bg-[var(--background)] shadow-xs">
+          
+          <!-- Card Header -->
+          <div class="flex shrink-0 items-center justify-between border-b border-[var(--border)] px-4 py-2.5">
+            <h3 class="text-xs font-semibold text-[var(--foreground)]">القيم الغذائية</h3>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-[var(--muted)] text-[var(--muted-foreground)]">
+              غني بالدهون
+            </span>
+          </div>
+
+          <!-- Energy Ring + Macro Breakdown (Row layout, never cut off) -->
+          <div class="shrink-0 flex flex-row items-center justify-center gap-4 p-4">
+            
+            <!-- SVG Energy Ring (118px) -->
+            <div class="relative shrink-0 w-[118px] h-[118px] flex items-center justify-center">
+              <svg viewBox="0 0 118 118" class="w-full h-full -rotate-90">
+                <circle cx="59" cy="59" r="51.5" fill="none" stroke-width="13" class="stroke-[var(--muted)]" />
+                <!-- Protein 28% -->
+                <circle cx="59" cy="59" r="51.5" fill="none" stroke-width="13" 
+                  stroke="var(--macro-protein-stroke)" 
+                  stroke-dasharray="87.6 235.98" 
+                  stroke-dashoffset="0" />
+                <!-- Carbs 25% -->
+                <circle cx="59" cy="59" r="51.5" fill="none" stroke-width="13" 
+                  stroke="var(--macro-carbs-stroke)" 
+                  stroke-dasharray="77.9 245.68" 
+                  stroke-dashoffset="-90.6" />
+                <!-- Fat 47% -->
+                <circle cx="59" cy="59" r="51.5" fill="none" stroke-width="13" 
+                  stroke="var(--macro-fat-stroke)" 
+                  stroke-dasharray="149.1 174.48" 
+                  stroke-dashoffset="-171.5" />
+              </svg>
+
+              <!-- Calorie in center -->
+              <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                <span class="font-heading text-xl font-semibold tabular-nums text-[var(--foreground)]" dir="ltr">
+                  632
+                </span>
+                <span class="text-[11px] text-[var(--muted-foreground)] -mt-1">
+                  سعرة
+                </span>
+              </div>
+            </div>
+
+            <!-- Macro Bars -->
+            <div class="w-full min-w-0 flex-1 space-y-3">
+              <!-- Protein -->
+              <div>
+                <div class="mb-1 flex items-baseline gap-2 text-xs">
+                  <span class="size-2.5 shrink-0 rounded-full bg-[var(--macro-protein-stroke)]"></span>
+                  <span class="text-[var(--foreground)]">البروتين</span>
+                  <span class="ms-auto font-medium tabular-nums text-[var(--foreground)]" dir="ltr">
+                    43.7 <span class="text-[var(--muted-foreground)] text-[11px]">غ</span>
+                  </span>
+                  <span class="w-8 text-end tabular-nums text-[var(--muted-foreground)] text-[11px]" dir="ltr">
+                    28%
+                  </span>
+                </div>
+                <div class="h-2 overflow-hidden rounded-full bg-[var(--muted)]">
+                  <div class="h-full rounded-full bg-[var(--macro-protein-stroke)]" style="width: 28%"></div>
+                </div>
+              </div>
+
+              <!-- Carbs -->
+              <div>
+                <div class="mb-1 flex items-baseline gap-2 text-xs">
+                  <span class="size-2.5 shrink-0 rounded-full bg-[var(--macro-carbs-stroke)]"></span>
+                  <span class="text-[var(--foreground)]">الكربوهيدرات</span>
+                  <span class="ms-auto font-medium tabular-nums text-[var(--foreground)]" dir="ltr">
+                    39.2 <span class="text-[var(--muted-foreground)] text-[11px]">غ</span>
+                  </span>
+                  <span class="w-8 text-end tabular-nums text-[var(--muted-foreground)] text-[11px]" dir="ltr">
+                    25%
+                  </span>
+                </div>
+                <div class="h-2 overflow-hidden rounded-full bg-[var(--muted)]">
+                  <div class="h-full rounded-full bg-[var(--macro-carbs-stroke)]" style="width: 25%"></div>
+                </div>
+              </div>
+
+              <!-- Fat -->
+              <div>
+                <div class="mb-1 flex items-baseline gap-2 text-xs">
+                  <span class="size-2.5 shrink-0 rounded-full bg-[var(--macro-fat-stroke)]"></span>
+                  <span class="text-[var(--foreground)]">الدهون</span>
+                  <span class="ms-auto font-medium tabular-nums text-[var(--foreground)]" dir="ltr">
+                    33.1 <span class="text-[var(--muted-foreground)] text-[11px]">غ</span>
+                  </span>
+                  <span class="w-8 text-end tabular-nums text-[var(--muted-foreground)] text-[11px]" dir="ltr">
+                    47%
+                  </span>
+                </div>
+                <div class="h-2 overflow-hidden rounded-full bg-[var(--macro-fat-stroke)]" style="width: 47%"></div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Bottom strip -->
+          <div class="shrink-0 flex items-center justify-between border-t border-[var(--border)] bg-[var(--muted)]/40 px-4 py-2 text-xs text-[var(--muted-foreground)]">
+            <span class="tabular-nums">358 غرام لكل وجبة</span>
+            <span class="tabular-nums">176 سعرة / 100غ</span>
+          </div>
+        </section>
+
+        <!-- SECTION 2: ALLERGENS AS COMPACT RED BADGES (NO BIG BOX!) -->
+        <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
+          <span class="text-xs font-medium text-[var(--muted-foreground)]">مسببات الحساسية:</span>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-[var(--medical-bg)] text-[var(--medical-fg)] border border-[var(--medical-border)]">
+            غلوتين
+          </span>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-[var(--medical-bg)] text-[var(--medical-fg)] border border-[var(--medical-border)]">
+            بيض
+          </span>
+        </div>
+
+        <!-- SECTION 3: INGREDIENTS LIST -->
+        <section class="space-y-2.5 pt-1">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <h3 class="text-xs font-semibold text-[var(--foreground)]">المكوّنات</h3>
+              <span class="rounded-full bg-[var(--muted)] px-2 py-0.5 text-[11px] font-medium text-[var(--muted-foreground)]">
+                5 مكوّنات
+              </span>
+            </div>
+            <span class="text-xs text-[var(--muted-foreground)] tabular-nums">
+              الإجمالي: 358 غرام
+            </span>
+          </div>
+
+          <ul class="divide-y divide-[var(--border)] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)]">
+            <li class="flex items-center justify-between gap-3 p-3 text-sm hover:bg-[var(--muted)]/40 transition-colors">
+              <div class="flex min-w-0 flex-1 flex-col text-start">
+                <span class="font-medium text-[var(--foreground)]">بيض</span>
+                <span class="text-xs text-[var(--muted-foreground)]">Egg, whole, raw</span>
+              </div>
+              <span class="shrink-0 rounded-lg bg-[var(--muted)] px-2.5 py-1 text-xs font-medium tabular-nums text-[var(--foreground)]">
+                3 حبة
+              </span>
+            </li>
+
+            <li class="flex items-center justify-between gap-3 p-3 text-sm hover:bg-[var(--muted)]/40 transition-colors">
+              <div class="flex min-w-0 flex-1 flex-col text-start">
+                <span class="font-medium text-[var(--foreground)]">لحم بقري مفروم مطبوخ</span>
+                <span class="text-xs text-[var(--muted-foreground)]">Ground beef, 95% lean, cooked</span>
+              </div>
+              <span class="shrink-0 rounded-lg bg-[var(--muted)] px-2.5 py-1 text-xs font-medium tabular-nums text-[var(--foreground)]">
+                70 غرام
+              </span>
+            </li>
+
+            <li class="flex items-center justify-between gap-3 p-3 text-sm hover:bg-[var(--muted)]/40 transition-colors">
+              <div class="flex min-w-0 flex-1 flex-col text-start">
+                <span class="font-medium text-[var(--foreground)]">خبز عربي أسمر</span>
+                <span class="text-xs text-[var(--muted-foreground)]">Whole-wheat pita bread</span>
+              </div>
+              <span class="shrink-0 rounded-lg bg-[var(--muted)] px-2.5 py-1 text-xs font-medium tabular-nums text-[var(--foreground)]">
+                1 رغيف
+              </span>
+            </li>
+
+            <li class="flex items-center justify-between gap-3 p-3 text-sm hover:bg-[var(--muted)]/40 transition-colors">
+              <div class="flex min-w-0 flex-1 flex-col text-start">
+                <span class="font-medium text-[var(--foreground)]">زيت زيتون</span>
+                <span class="text-xs text-[var(--muted-foreground)]">Olive oil</span>
+              </div>
+              <span class="shrink-0 rounded-lg bg-[var(--muted)] px-2.5 py-1 text-xs font-medium tabular-nums text-[var(--foreground)]">
+                14 غرام
+              </span>
+            </li>
+
+            <li class="flex items-center justify-between gap-3 p-3 text-sm hover:bg-[var(--muted)]/40 transition-colors">
+              <div class="flex min-w-0 flex-1 flex-col text-start">
+                <span class="font-medium text-[var(--foreground)]">بندورة</span>
+                <span class="text-xs text-[var(--muted-foreground)]">Tomato, raw</span>
+              </div>
+              <span class="shrink-0 rounded-lg bg-[var(--muted)] px-2.5 py-1 text-xs font-medium tabular-nums text-[var(--foreground)]">
+                60 غرام
+              </span>
+            </li>
+          </ul>
+        </section>
+
+      </div>
+
+      <!-- FOOTER -->
+      <div class="p-4 border-t border-[var(--border)] bg-[var(--card)] flex items-center justify-end">
+        <button class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--primary)] text-[var(--primary-foreground)] font-semibold text-sm hover:bg-[var(--primary-hover)] transition-colors shadow-xs">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>
+          <span>تعديل الطبق</span>
+        </button>
+      </div>
+
+    </div>
+
+  </main>
+
+  <script>
+    let isRtl = true;
+    let isDark = false;
+
+    function toggleDir() {
+      isRtl = !isRtl;
+      const html = document.documentElement;
+      const label = document.getElementById('langLabel');
+      if (isRtl) {
+        html.setAttribute('dir', 'rtl');
+        html.setAttribute('lang', 'ar');
+        label.textContent = 'English (LTR)';
+      } else {
+        html.setAttribute('dir', 'ltr');
+        html.setAttribute('lang', 'en');
+        label.textContent = 'العربية (RTL)';
+      }
+    }
+
+    function toggleTheme() {
+      isDark = !isDark;
+      const html = document.documentElement;
+      const label = document.getElementById('themeLabel');
+      if (isDark) {
+        html.classList.add('dark');
+        label.textContent = 'الوضع الفاتح';
+      } else {
+        html.classList.remove('dark');
+        label.textContent = 'الوضع الداكن';
+      }
+    }
+  </script>
+</body>
+</html>

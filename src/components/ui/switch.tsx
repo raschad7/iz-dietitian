@@ -70,17 +70,22 @@ export function Switch({
         className={cn(
           'relative block h-6 w-11 rounded-full border-2 border-transparent shadow-xs transition-colors duration-200 ease-out',
           /*
-            `bg-input/60` off, not upstream's flat `bg-input`.
+            Upstream's flat `bg-input` off.
 
-            `--input` is `n-500` (#837F6E) here and is documented as
-            `border.interactive — meets 3:1`: it is a *border* colour in this
-            system, picked to be legible as a 1px line. Poured into a 44×24 slab
-            it reads as a dark grey bar — heavier than the olive it toggles to,
-            so the switch looked more emphatic off than on. 60% lands it near
-            n-300 and keeps the off state the quieter of the two, which is the
-            only thing upstream's token was chosen to do.
+            ⚠ **This was `bg-input/60`, and the reason for the 60% expired.** It
+            was written when `--input` was n-500 (#837F6E) — a dark warm grey
+            picked to read as a 1px line, which poured into a 44×24 slab made
+            the off state heavier than the on state. The token has since moved
+            two steps lighter, to c-300 (#D1D5DB), and 60% of that composites to
+            about #E3E6EA: roughly 1.2:1 against the card, so the off track had
+            faded to the point where the switch read as a disc floating on
+            nothing.
+
+            Flat c-300 measures ~1.5:1 and `--primary` ~1.9:1, so the off state
+            is still the quieter of the two — which is the only thing the 60%
+            was ever there to guarantee.
           */
-          checked ? 'bg-primary' : 'bg-input/60',
+          checked ? 'bg-primary' : 'bg-input',
         )}
       >
         <span

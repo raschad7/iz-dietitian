@@ -8,6 +8,8 @@ import { PROFILE_TABS, type ProfileTab } from '@/features/clients/components/pro
 import { getPortalUsername, suggestPortalUsername } from '@/features/clients/portal-credentials';
 import { getClientWeekMeals, getClientWeekProgress } from '@/features/clients/progress';
 import { getClient, getClientIntake } from '@/features/clients/queries';
+import { measurementSharing } from '@/features/measurements/portal';
+import { listMeasurements, measurementsWithFiles } from '@/features/measurements/queries';
 import { clinicServicePrices, consultedClients, ledgerByClient } from '@/features/billing/queries';
 import { currentSunday } from '@/features/weekly-plans/week';
 import { listPlans } from '@/features/weekly-plans/queries';
@@ -19,7 +21,7 @@ import { requireStaffClinic } from '@/lib/session';
 
 type ClientInfoPageProps = {
   params: Promise<{ locale: string; clientId: string }>;
-  searchParams: Promise<{ tab?: string; week?: string }>;
+  searchParams: Promise<{ tab?: string; week?: string; range?: string }>;
 };
 
 /**
@@ -72,6 +74,9 @@ export default async function ClientInfoPage({ params, searchParams }: ClientInf
     ledgers,
     prices,
     consulted,
+    measurementRows,
+    measurementReportIds,
+    measurementSharingState,
   ] = await Promise.all([
       listClientVisits(clinicId, client.id),
       listPlans(clinicId, client.id),
@@ -96,6 +101,16 @@ export default async function ClientInfoPage({ params, searchParams }: ClientInf
       ledgerByClient(clinicId, [client.id]),
       clinicServicePrices(clinicId),
       consultedClients(clinicId, [client.id]),
+      /*
+        The Measurements view. Newest first, which is the order
+        `summariseProgress` documents that it expects — nothing downstream
+        re-sorts, so this query's ordering is load-bearing.
+      */
+      listMeasurements(clinicId, client.id),
+      // Ids only. `listMeasurements` never joins the file table, so this is what
+      // tells the history which rows can offer "open the original".
+      measurementsWithFiles(clinicId, client.id),
+      measurementSharing(clinicId, client.id),
     ]);
 
   // An unknown `?tab=` opens on the first view — Nutrition — rather than 404ing: the param is
@@ -147,6 +162,13 @@ export default async function ClientInfoPage({ params, searchParams }: ClientInf
   */
   const selectedPlan = progressWeeks.find((plan) => plan.weekStartDate === selectedWeek);
 
+  /*
+    The Measurements view's comparison, from `?range=` — the same "hint, not an
+    address" rule the tab and the week follow. Anything unrecognised falls back
+    to "since last visit", which is the question a dietitian opens the tab with.
+  */
+  const range = resolvedSearchParams.range === 'start' ? 'start' : 'last';
+
   const [progress, mealsByDay] = await Promise.all([
     getClientWeekProgress(clinicId, client.id, selectedWeek, today),
     selectedPlan
@@ -163,6 +185,17 @@ export default async function ClientInfoPage({ params, searchParams }: ClientInf
       visits={{ entries: visitEntries }}
       plans={plans}
       intake={intake}
+      measurements={{
+        rows: measurementRows,
+        // The two client facts a comparison needs. Read off the record already
+        // in hand rather than re-queried — see `MeasurementSubject`, which is
+        // deliberately not a client row.
+        subject: { goal: client.goal, heightCm: client.heightCm },
+        currentWeightKg: intake.weightKg ?? null,
+        range,
+        reportIds: measurementReportIds,
+        sharing: measurementSharingState,
+      }}
       progress={progress}
       progressWeeks={progressWeeks}
       mealsByDay={mealsByDay}

@@ -80,6 +80,8 @@ const CROSSFADE_MS = 140;
  */
 const TAB_ICONS: Record<ProfileTab, IconName> = {
   nutrition: 'leaf',
+  // "Measurements" — the scale, the same mark the intake's weight field wears.
+  measurements: 'weightOutline',
   progress: 'progress',
   // "Visits" — the view leads with the next appointment and holds the whole
   // visit record under it.
@@ -191,7 +193,17 @@ export function ClientProfileTabs({
   );
 
   return (
-    <div className="flex min-h-0 flex-col gap-3 lg:h-full">
+    /*
+      `@container/record-tabs`: the bar's labels have to answer to *its* width,
+      not the window's.
+
+      The viewport is a poor proxy here — this column sits beside a 23rem
+      identity panel that only exists from `lg` up, so the same 1280px window
+      gives the bar ~780px on a record and the full width elsewhere. A `sm:`
+      breakpoint therefore turned labels on at a width where seven of them did
+      not fit.
+    */
+    <div className="@container/record-tabs flex min-h-0 flex-col gap-3 lg:h-full">
       {/*
         `shrink-0`, and nothing here that touches `display`: the pill's thumb is
         sized `100% / count` of the track and only lands on a segment because the
@@ -207,11 +219,43 @@ export function ClientProfileTabs({
         options={PROFILE_TABS.map((tab) => ({
           value: tab,
           label: (
-            <span className="inline-flex min-w-0 items-center gap-1.5">
-              {/* A touch larger while it is carrying the tab on its own below
-                  `sm`, back to the row's 17px once the label is beside it. */}
-              <Icon name={TAB_ICONS[tab]} className="size-5 shrink-0 sm:size-[17px]" />
-              <span className="sr-only truncate sm:not-sr-only">{labels[tab]}</span>
+            /*
+              ⚠ `w-full overflow-hidden` is what makes the `truncate` below
+              actually truncate.
+
+              The class was always here, and it did nothing: the segment button
+              is `overflow: visible`, so this flex row sized itself to its
+              content and the label spilled *past* its segment instead of being
+              clipped inside it. At six tabs nothing was wide enough to notice.
+              At seven the segments lost 16px each and three labels — Nutrition,
+              Measurements and Expenses — began overrunning their neighbours,
+              which is what a pill cannot do: its segments are equal by
+              construction, so a label that will not fit has to ellipsis rather
+              than borrow room from the tab beside it.
+            */
+            <span className="inline-flex w-full min-w-0 items-center justify-center gap-1.5 overflow-hidden">
+              {/* A touch larger while it is carrying the tab on its own, back
+                  to the row's 17px once the label is beside it. */}
+              <Icon
+                name={TAB_ICONS[tab]}
+                className="size-5 shrink-0 @3xl/record-tabs:size-[17px]"
+              />
+              {/*
+                ⚠ `sm:overflow-hidden sm:text-ellipsis sm:whitespace-nowrap`
+                restates what `truncate` already says, and it is not redundant.
+
+                `not-sr-only` sets `overflow: visible` and `white-space: normal`
+                as part of undoing `sr-only`. Both land in the same layer as
+                `truncate` and later in source order, so from `sm` up — which is
+                every width that shows a label at all — they silently cancelled
+                it. The label therefore wrapped inside its segment and overran
+                the tabs beside it, which a pill cannot absorb: its segments are
+                equal by construction. Restating the three properties under the
+                same `sm:` variant puts them back after the reset.
+              */}
+              <span className="sr-only truncate @3xl/record-tabs:not-sr-only @3xl/record-tabs:overflow-hidden @3xl/record-tabs:text-ellipsis @3xl/record-tabs:whitespace-nowrap">
+                {labels[tab]}
+              </span>
               {tab === 'nutrition' && nutritionGaps > 0 ? (
                 /* A bare numeral, never a pill — see "A badge is a state" in
                    docs/design-system.md. This is a quantity. It stays visible

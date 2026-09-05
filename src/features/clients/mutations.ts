@@ -2,6 +2,8 @@ import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { clientNutritionProfiles, clients, user } from '@/db/schema';
+import { recordIntakeWeight } from '@/features/measurements/mutations';
+import { toIsoDate } from '@/lib/iso-date';
 
 import { normalizeForSearch } from './search';
 import { type ClientFormInput, type IntakeInput } from './schema';
@@ -122,7 +124,12 @@ export async function updateClient(
 export type IntakeRecordInput = Partial<IntakeInput> &
   Pick<IntakeInput, 'clientId' | 'allergenTags' | 'customAllergens' | 'mealSchedule'>;
 
-export async function saveIntake(clinicId: string, input: IntakeRecordInput): Promise<boolean> {
+export async function saveIntake(
+  clinicId: string,
+  input: IntakeRecordInput,
+  /** Who is saving, for the weigh-in this may write. Absent in tests and scripts. */
+  recordedBy?: string | null,
+): Promise<boolean> {
   return db.transaction(async (tx) => {
     const rows = await tx
       .update(clients)
@@ -198,6 +205,16 @@ export async function saveIntake(clinicId: string, input: IntakeRecordInput): Pr
       sweetsFrequency: input.sweetsFrequency ?? null,
     };
 
+    /*
+      Read before the upsert overwrites it: the weight this save is replacing,
+      which is what decides whether anything actually moved.
+    */
+    const [before] = await tx
+      .select({ weightKg: clientNutritionProfiles.weightKg })
+      .from(clientNutritionProfiles)
+      .where(eq(clientNutritionProfiles.clientId, input.clientId))
+      .limit(1);
+
     await tx
       .insert(clientNutritionProfiles)
       .values({ clinicId, clientId: input.clientId, ...profile })
@@ -205,6 +222,34 @@ export async function saveIntake(clinicId: string, input: IntakeRecordInput): Pr
         target: clientNutritionProfiles.clientId,
         set: { ...profile, updatedAt: new Date() },
       });
+
+    /*
+      One writer for the current weight.
+
+      `weight_kg` on the row above is what the calorie target, the protein
+      suggestion and the next plan are built from — and until now this dialog
+      could move it without the Measurements tab ever hearing about it. A
+      dietitian who typed 70 into the box left a record whose history still
+      said 72.2, with no row for the change and a gap in the chart nobody could
+      explain.
+
+      So the box now writes a weigh-in behind itself, in the same transaction:
+      either both land or neither does. `recordIntakeWeight` owns the rules —
+      in particular that it will not write over a day the analyser already
+      covered.
+
+      Only on a real change. Re-saving the intake for an unrelated field must
+      not file a fresh weigh-in for a number nobody touched.
+    */
+    if (input.weightKg != null && (before?.weightKg ?? null) !== input.weightKg) {
+      await recordIntakeWeight(tx, {
+        clinicId,
+        clientId: input.clientId,
+        weightKg: input.weightKg,
+        measuredOn: toIsoDate(new Date()),
+        recordedBy,
+      });
+    }
 
     return true;
   });

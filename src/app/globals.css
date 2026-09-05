@@ -660,6 +660,7 @@
   --color-ring: var(--ring);
   --color-focus-halo: var(--focus-halo);
   --color-input: var(--input);
+  --color-control-edge: var(--control-edge);
   --color-border: var(--border);
 
   /*
@@ -1082,6 +1083,26 @@
    * contrast, and every field carries a visible `Label` above it.
    */
   --input: var(--c-300);                /* border.interactive */
+  /*
+   * border.control — the edge of a control whose *shape* is its state.
+   *
+   * `--input` is the resting edge of a labelled box, and the trade recorded
+   * above is safe there for one reason: a text field is 48px tall with a `Label`
+   * over it, so a reader finds the control even when its hairline is barely
+   * there. A 16px checkbox has neither. Unchecked it has no fill, no label of
+   * its own and no size — the 1px line *is* the control, and at c-300 on the
+   * pale green card the decision boxes sit on it measured ~1.4:1 and simply
+   * vanished. Ticking it and unticking it looked like the control breaking.
+   *
+   * c-500 is the same cool family two steps down and measures 4.83:1 on white,
+   * 4.6:1 on `--secondary` — clear of the 3:1 a control boundary owes, and no
+   * darker than that, because an unchecked box should not read as emphatic.
+   *
+   * ⚠ Not a general-purpose "darker border". A divider takes `--border` and a
+   * field edge takes `--input`; this is only for a control that would otherwise
+   * have nothing to see.
+   */
+  --control-edge: var(--c-500);
   /*
    * Field hover edge. Now the *same* olive as `--primary`, because every olive
    * quieter than 500 falls under the 3:1 a control boundary needs (green-400 is
@@ -1658,6 +1679,9 @@
 
   --border: var(--green-700);
   --input: var(--n-400);
+  /* One step brighter than the field edge, the same relationship light mode
+     has: on green-950 the ramp runs the other way, so "stronger" means lighter. */
+  --control-edge: var(--n-300);
   /*
    * Inverted against light mode: `--primary` is green-500 here, so the hover
    * edge steps *down* to green-600 to stay a shade short of the focused one.
@@ -1859,6 +1883,7 @@
 
     --border: var(--green-700);
     --input: var(--n-400);
+    --control-edge: var(--n-300);
     --ring: var(--green-300);
     --focus-halo: var(--n-25);
 

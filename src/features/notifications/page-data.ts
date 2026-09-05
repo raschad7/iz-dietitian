@@ -4,6 +4,7 @@ import {
   listClientsNeverSignedIn,
   listClientsWithNoUpcomingAppointment,
   listClientsWithoutWeeklyPlan,
+  listClientsWithStaleMeasurement,
 } from './queries';
 import {
   type NotificationsData,
@@ -32,11 +33,13 @@ export async function loadStaffAttention(
 ): Promise<StaffAttentionNotification[]> {
   const today = toIsoDate(new Date());
 
-  const [noUpcomingAppointment, noWeeklyPlan, neverSignedIn] = await Promise.all([
-    listClientsWithNoUpcomingAppointment(clinicId, today, perCategory),
-    listClientsWithoutWeeklyPlan(clinicId, perCategory),
-    listClientsNeverSignedIn(clinicId, perCategory),
-  ]);
+  const [noUpcomingAppointment, noWeeklyPlan, neverSignedIn, measurementOverdue] =
+    await Promise.all([
+      listClientsWithNoUpcomingAppointment(clinicId, today, perCategory),
+      listClientsWithoutWeeklyPlan(clinicId, perCategory),
+      listClientsNeverSignedIn(clinicId, perCategory),
+      listClientsWithStaleMeasurement(clinicId, today, perCategory),
+    ]);
 
   /*
    * One client can qualify for several attention categories at once (no plan
@@ -47,7 +50,18 @@ export async function loadStaffAttention(
   const seen = new Set<string>();
   const attention: StaffAttentionNotification[] = [];
 
-  for (const item of [...noUpcomingAppointment, ...noWeeklyPlan, ...neverSignedIn]) {
+  /*
+    `measurementOverdue` comes last in the precedence order deliberately. A
+    client with no upcoming visit and no plan has a more pressing gap than one
+    who is simply due a weigh-in, and a client who is about to be seen anyway
+    will be measured at that visit.
+  */
+  for (const item of [
+    ...noUpcomingAppointment,
+    ...noWeeklyPlan,
+    ...neverSignedIn,
+    ...measurementOverdue,
+  ]) {
     if (seen.has(item.clientId)) continue;
     seen.add(item.clientId);
     attention.push({ kind: 'attention', id: `${item.clientId}-${item.reason}`, ...item });

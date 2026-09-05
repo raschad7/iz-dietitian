@@ -378,7 +378,7 @@ export async function saveIntakeAction(
   formData: FormData,
 ): Promise<IntakeFormState> {
   const locale = readLocale(formData);
-  const { clinicId } = await requireStaffClinic(locale);
+  const { clinicId, session } = await requireStaffClinic(locale);
 
   const parsed = intakeSchema.safeParse(readIntakeForm(formData));
 
@@ -391,7 +391,7 @@ export async function saveIntakeAction(
   }
 
   try {
-    const saved = await saveIntake(clinicId, parsed.data);
+    const saved = await saveIntake(clinicId, parsed.data, session.user.id);
     if (!saved) return { status: 'error', messageKey: 'errors.clientNotFound' };
   } catch (error) {
     console.error('[clients] intake save failed', error);
