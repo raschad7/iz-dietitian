@@ -51,6 +51,7 @@ export function MeasurementFormTrigger({
   locale,
   today,
   currentWeightKg,
+  takenSlots,
   label,
   measurement,
   mode = 'manual',
@@ -61,6 +62,12 @@ export function MeasurementFormTrigger({
   locale: Locale;
   today: IsoDate;
   currentWeightKg: number | null;
+  /**
+   * When every existing reading for this client was taken. Handed straight to
+   * the form, which drops the row it is editing by id — so callers pass the same
+   * list whether they are recording or correcting, and cannot get that wrong.
+   */
+  takenSlots: readonly { id: string; measuredOn: IsoDate; measuredAtMinute: number }[];
   label: string;
   /** Editing an existing reading. Absent records a new one. */
   measurement?: MeasurementFormValues;
@@ -192,6 +199,7 @@ export function MeasurementFormTrigger({
                   locale={locale}
                   today={today}
                   currentWeightKg={currentWeightKg}
+                  takenSlots={takenSlots}
                   measurement={measurement}
                   report={
                     read

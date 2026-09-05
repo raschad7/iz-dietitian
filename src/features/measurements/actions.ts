@@ -26,6 +26,7 @@ import { REPORT_FIGURES } from './parse/types';
 import { getClientForReport, measurementExistsAt } from './queries';
 import { type RecordWarning, type ReadReportState } from './report-state';
 import {
+  DATE_TAKEN_ERROR,
   deleteMeasurementSchema,
   MEASUREMENT_FILE_MAX_BYTES,
   MEASUREMENT_FILE_TYPES,
@@ -214,14 +215,20 @@ export async function saveMeasurementAction(
     /*
       The courtesy check. The unique index is the guarantee — see
       `measurementExistsAt` — but a constraint violation surfaces as an
-      unexplained failure, and "there is already a reading for this date and
-      time" is something the dietitian can act on. Uploading the same report
-      twice is the ordinary mistake here.
+      unexplained failure, and "there is already a reading on that date" is
+      something the dietitian can act on. Uploading the same report twice is the
+      ordinary mistake here.
+
+      Reported against `measuredOn`, not as a whole-form message: the date is
+      both the cause and the fix, so the complaint belongs under the date box.
+      The form also knows which days are taken and refuses to submit one, so
+      reaching this line means two people were recording the same visit at once.
     */
     if (await measurementExistsAt(clinicId, clientId, input.measuredOn, input.measuredAtMinute ?? 0)) {
       return {
         status: 'error',
-        messageKey: 'errors.duplicate',
+        messageKey: 'errors.invalid',
+        fieldErrors: DATE_TAKEN_ERROR,
         values: echoForm(formData, shape),
         attempt,
       };
@@ -348,7 +355,8 @@ export async function updateMeasurementAction(
     if (collides) {
       return {
         status: 'error',
-        messageKey: 'errors.duplicate',
+        messageKey: 'errors.invalid',
+        fieldErrors: DATE_TAKEN_ERROR,
         values: echoForm(formData, shape),
         attempt,
       };

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 
-import { saveMeasurementSchema } from './schema';
+import { DATE_TAKEN_ERROR, MEASUREMENT_MESSAGE_KEYS, saveMeasurementSchema } from './schema';
 
 /**
  * The schema against what the dialog actually posts.
@@ -125,5 +125,28 @@ describe('saveMeasurementSchema against what the form posts', () => {
     const missing = Object.keys(saveMeasurementSchema.shape).filter((key) => !posted.has(key));
 
     expect(missing).toEqual([]);
+  });
+});
+
+/*
+  The same-day refusal is a *field* error the server invents — it is not
+  produced by Zod, so nothing about its shape is checked by parsing. Both halves
+  can therefore be wrong silently: a field name the form draws no box for
+  renders nowhere (the bug above, again), and a message key the catalogue does
+  not carry is dropped by `errorFor` without a word.
+*/
+describe('the same-day refusal', () => {
+  it('names a field the form actually posts', () => {
+    for (const field of Object.keys(DATE_TAKEN_ERROR)) {
+      expect(Object.keys(saveMeasurementSchema.shape)).toContain(field);
+    }
+  });
+
+  it('carries a message key the catalogue knows', () => {
+    for (const messages of Object.values(DATE_TAKEN_ERROR)) {
+      for (const key of messages) {
+        expect(MEASUREMENT_MESSAGE_KEYS as readonly string[]).toContain(key);
+      }
+    }
   });
 });

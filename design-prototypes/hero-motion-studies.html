@@ -1,0 +1,896 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>inzem · hero motion studies</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&family=Almarai:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F7F4EA;
+  --ink:#1D3A10;
+  --ink-2:#4A6B3A;
+  --green:#75CF48;
+  --green-deep:#266805;
+  --gold:#FFB422;
+  --radius:28px;
+  --display:"Fredoka","Quicksand","Varela Round",ui-rounded,system-ui,sans-serif;
+  --text:"Nunito",ui-rounded,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --ar:"Almarai",system-ui,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;min-height:100vh;
+  background:var(--bg);
+  background-image:
+    radial-gradient(1100px 640px at 6% -8%, rgba(117,207,72,.24), transparent 62%),
+    radial-gradient(900px 620px at 102% 102%, rgba(117,207,72,.14), transparent 60%);
+  color:var(--ink);
+  font-family:var(--text);
+  font-size:1.0625rem;line-height:1.55;
+}
+.defs{position:absolute;width:0;height:0;overflow:hidden}
+.wrap{width:min(1240px,100% - 3rem);margin-inline:auto}
+
+/* ---------- chrome ---------- */
+header{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1.4rem 0 .4rem}
+.brand{display:flex;align-items:center;gap:.65rem;font-family:var(--display);font-weight:700;font-size:1.55rem;letter-spacing:-.01em;color:var(--ink);text-decoration:none}
+.brand svg{width:38px;height:38px;overflow:visible;display:block}
+
+.top-bar{display:flex;align-items:center;gap:.6rem}
+.btn{
+  display:inline-flex;align-items:center;gap:.5rem;border:0;border-radius:999px;
+  padding:.65rem 1.1rem;font:700 .92rem/1 var(--text);color:var(--ink);background:#fff;cursor:pointer;
+  box-shadow:0 1px 2px rgba(29,58,16,.08),0 8px 18px -10px rgba(29,58,16,.3);
+  transition:transform .16s cubic-bezier(.16,1,.3,1),box-shadow .16s cubic-bezier(.16,1,.3,1),background .16s;
+}
+.btn:hover{transform:translateY(-1px);box-shadow:0 2px 4px rgba(29,58,16,.08),0 14px 26px -12px rgba(29,58,16,.35)}
+.btn:active{transform:translateY(0) scale(.98)}
+.btn:focus-visible{outline:3px solid var(--green);outline-offset:3px}
+.btn svg{width:16px;height:16px;flex:none}
+.btn.primary{background:#75CF48;color:#0F2A06;box-shadow:0 1px 2px rgba(29,58,16,.15),0 12px 22px -10px rgba(74,156,43,.75)}
+.btn.primary:hover{background:#82D957}
+.btn.small{padding:.45rem .8rem;font-size:.84rem;box-shadow:inset 0 0 0 1px rgba(29,58,16,.1);background:transparent}
+.btn.small:hover{background:#fff;box-shadow:inset 0 0 0 1px rgba(29,58,16,.1),0 8px 16px -10px rgba(29,58,16,.3)}
+.btn[aria-pressed="true"]{background:rgba(29,58,16,.1);box-shadow:inset 0 0 0 2px var(--green)}
+.btn .ico-play{display:none}
+.paused .btn .ico-pause{display:none}
+.paused .btn .ico-play{display:block}
+
+/* ---------- hero stage display ---------- */
+.hero-deck{
+  display:grid;grid-template-columns:minmax(0,1.18fr) minmax(0,1fr);
+  gap:clamp(2rem,5vw,4.5rem);align-items:center;
+  padding:clamp(1.2rem,3vw,2.5rem) 0 clamp(2.5rem,6vw,4rem);
+}
+.hero-deck .stage-card{position:relative;width:100%;max-width:600px;margin-inline:auto}
+.hero-deck .stage{width:100%;aspect-ratio:1;border-radius:var(--radius);overflow:hidden;box-shadow:0 24px 48px -20px rgba(29,58,16,.35)}
+
+.hero-info h1{
+  font-family:var(--display);font-weight:700;
+  font-size:clamp(2.4rem,5.4vw,4.2rem);line-height:1.02;letter-spacing:-.025em;
+  margin:0 0 1rem;text-wrap:balance;
+}
+.hero-info .lead{font-size:1.15rem;line-height:1.5;color:var(--ink);margin:0 0 1rem;text-wrap:pretty}
+.hero-info .meta-tag{
+  display:inline-flex;align-items:center;gap:.4rem;padding:.35rem .75rem;
+  background:rgba(117,207,72,.2);color:var(--green-deep);
+  border-radius:999px;font:700 .82rem/1 var(--text);margin-bottom:1rem;
+}
+.hero-info .desc{color:var(--ink-2);font-size:.98rem;margin:0 0 1.5rem}
+.timeline-pills{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1.6rem}
+.t-pill{
+  font-size:.78rem;font-weight:700;padding:.3rem .65rem;border-radius:8px;
+  background:rgba(29,58,16,.06);color:var(--ink-2);
+}
+.t-pill b{color:var(--ink);margin-right:.25rem}
+
+.hero-actions{display:flex;gap:.75rem;flex-wrap:wrap;align-items:center}
+
+/* ---------- hero selector tabs ---------- */
+.hero-tabs{
+  display:flex;gap:.6rem;overflow-x:auto;padding-bottom:.5rem;margin:0 0 2rem;
+  scrollbar-width:none;-ms-overflow-style:none;
+}
+.hero-tabs::-webkit-scrollbar{display:none}
+.hero-tab{
+  flex:none;display:flex;align-items:center;gap:.65rem;padding:.55rem 1.1rem;
+  border-radius:999px;border:0;background:#fff;
+  box-shadow:inset 0 0 0 1px rgba(29,58,16,.1);font:700 .92rem/1 var(--text);
+  color:var(--ink);cursor:pointer;white-space:nowrap;
+  transition:all .18s cubic-bezier(.16,1,.3,1);
+}
+.hero-tab:hover{transform:translateY(-1px);box-shadow:inset 0 0 0 1px rgba(29,58,16,.15),0 8px 16px -8px rgba(29,58,16,.3)}
+.hero-tab[aria-selected="true"]{
+  background:var(--green);color:#0F2A06;
+  box-shadow:inset 0 0 0 2px #1D3A10,0 8px 18px -8px rgba(74,156,43,.75);
+}
+.hero-tab .num{
+  display:inline-grid;place-content:center;width:22px;height:22px;
+  border-radius:50%;background:rgba(29,58,16,.1);font-size:.78rem;font-weight:800;
+}
+.hero-tab[aria-selected="true"] .num{background:#0F2A06;color:#fff}
+
+/* ---------- looks picker ---------- */
+.section-head{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin:0 0 1rem}
+.section-head h2{font-family:var(--display);font-weight:700;font-size:clamp(1.5rem,2.8vw,2.1rem);letter-spacing:-.02em;margin:0}
+.section-head p{margin:0;color:var(--ink-2);font-size:.95rem}
+.looks{display:flex;flex-wrap:wrap;gap:.55rem;margin:0 0 2.8rem}
+.chip{
+  display:inline-flex;align-items:center;gap:.55rem;padding:.4rem .95rem .4rem .45rem;border-radius:999px;border:0;
+  background:#fff;box-shadow:inset 0 0 0 1px rgba(29,58,16,.1);font:700 .9rem/1 var(--text);color:var(--ink);cursor:pointer;
+  transition:box-shadow .16s,transform .16s cubic-bezier(.16,1,.3,1);
+}
+.chip:hover{transform:translateY(-1px)}
+.chip:focus-visible{outline:3px solid var(--green);outline-offset:3px}
+.chip[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--green),0 8px 16px -10px rgba(29,58,16,.35)}
+.chip svg{width:32px;height:32px;overflow:visible;display:block}
+.chip[data-style="inverse"]{background:#75CF48;color:#0F2A06}
+.chip[data-style="inverse"][aria-pressed="true"]{box-shadow:inset 0 0 0 2px #1D3A10,0 8px 16px -10px rgba(29,58,16,.35)}
+
+/* ---------- grid of all 5 heroes ---------- */
+.grid-5{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:2rem;padding-bottom:4rem}
+.hero-card{
+  background:#fff;border-radius:24px;padding:1.2rem;
+  box-shadow:inset 0 0 0 1px rgba(29,58,16,.08),0 12px 30px -16px rgba(29,58,16,.25);
+  display:flex;flex-direction:column;gap:1rem;
+}
+.hero-card .stage{width:100%;aspect-ratio:1;border-radius:18px;overflow:hidden;position:relative}
+.hero-card h3{font-family:var(--display);font-weight:700;font-size:1.35rem;margin:0;letter-spacing:-.015em}
+.hero-card .card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem}
+.hero-card p{margin:0;font-size:.92rem;color:var(--ink-2);line-height:1.45}
+.hero-card .phases{list-style:none;padding:0;margin:.4rem 0 0;font-size:.82rem;color:var(--ink-2);display:flex;flex-direction:column;gap:.25rem}
+.hero-card .phases li{display:flex;align-items:baseline;gap:.4rem}
+.hero-card .phases li b{color:var(--ink);flex:none}
+
+/* ---------- stage styling ---------- */
+.stage{
+  position:relative;background:radial-gradient(130% 110% at 50% 0%,#FFFFFF 0%,#F2F6EA 68%,#E7EEDA 100%);
+  box-shadow:inset 0 0 0 1px rgba(29,58,16,.06);
+}
+body[data-style="inverse"] .stage{background:radial-gradient(130% 110% at 50% 0%,#8ADB60 0%,#75CF48 60%,#66C03B 100%)}
+.mark{position:absolute;left:15%;top:15%;width:70%;height:70%;overflow:visible;display:block}
+.t{transform-box:fill-box;transform-origin:50% 50%}
+.c{transform-box:view-box;transform-origin:371.5px 371.5px}
+.boil{filter:url(#f-boil)}
+.chip .boil,.brand .boil{filter:none}
+
+/* ---------- looks definitions ---------- */
+[data-style="flat"]   {--body:#75CF48;--shade:#75CF48;--eye:#266805;--accent:#75CF48;--side:#5DB33A;--shadow:#1D3A10;--shadow-o:.14;--glow:rgba(117,207,72,.4)}
+[data-style="cel"]    {--body:#75CF48;--shade:#5DB93A;--eye:#266805;--accent:#75CF48;--side:#5DB33A;--shadow:#1D3A10;--shadow-o:.15;--d-hi:block;--d-glint:block;--glow:rgba(117,207,72,.45)}
+[data-style="soft"]   {--body:url(#g-soft);--shade:#5FB93A;--shade-blur:18px;--eye:#266805;--accent:#75CF48;--side:#5DB33A;--shadow:#1D3A10;--shadow-o:.18;--shadow-blur:10px;--d-glint:block;--glow:rgba(117,207,72,.5)}
+[data-style="outline"]{--body:#75CF48;--shade:#75CF48;--eye:#1D3A10;--accent:#75CF48;--side:#1D3A10;--shadow:#1D3A10;--shadow-o:.13;--d-line:block;--line:#1D3A10;--line-w:22px;--glow:rgba(29,58,16,.2)}
+[data-style="sticker"]{--body:#75CF48;--shade:#5DB93A;--eye:#266805;--accent:#75CF48;--side:#fff;--shadow:#1D3A10;--shadow-o:.16;--shadow-blur:6px;--d-sticker:block;--d-hi:block;--d-glint:block;--glow:rgba(117,207,72,.4)}
+[data-style="mono"]   {--body:none;--shade:none;--eye:#75CF48;--accent:#75CF48;--side:#75CF48;--shadow:#1D3A10;--shadow-o:0;--d-line:block;--line:#75CF48;--line-w:26px;--shine:transparent;--glow:rgba(117,207,72,.3)}
+[data-style="inverse"]{--body:#FFF8E8;--shade:#F0E3C4;--eye:#266805;--accent:#FFF8E8;--side:#E8D8B2;--shadow:#1E5A08;--shadow-o:.28;--shine:rgba(255,255,255,.55);--hi:#fff;--glow:rgba(255,248,232,.55)}
+
+.skin .sticker-edge{display:var(--d-sticker,none);fill:none;stroke:rgba(29,58,16,.32);stroke-width:64px;stroke-linejoin:round}
+.skin .sticker{display:var(--d-sticker,none);fill:#fff;stroke:#fff;stroke-width:58px;stroke-linejoin:round}
+.skin .base{fill:var(--shade)}
+.skin .top{fill:var(--body);filter:blur(var(--shade-blur,0px))}
+.skin .hi{display:var(--d-hi,none);fill:var(--hi,#B4F08E)}
+.skin .line{display:var(--d-line,none);fill:none;stroke:var(--line,#1D3A10);stroke-width:var(--line-w,22px);stroke-linejoin:round}
+.eye .pupil{fill:var(--eye)}
+.eye .glint{display:var(--d-glint,none);fill:#fff}
+.shadow{fill:var(--shadow);opacity:var(--shadow-o);filter:blur(var(--shadow-blur,0px))}
+
+.paused .stage *,.stage.off *{animation-play-state:paused!important}
+body.slow-mo .stage *{animation-duration:calc(var(--dur, 5s) * 1.8)!important}
+
+/* ==========================================================================
+   HERO 1: THE CATALYST (Active Site & Substrate Reaction)
+   Cycle: 5.6s
+   ========================================================================== */
+.v-catalyst{--dur:5.6s}
+.v-catalyst .orb{transform-origin:638.6px 121.2px;animation:orbPath var(--dur) cubic-bezier(.2,.8,.3,1) infinite}
+@keyframes orbPath{
+  0%{transform:translate(280px,-260px) scale(0);opacity:0}
+  12%{transform:translate(180px,-140px) scale(.7);opacity:1}
+  24%{transform:translate(40px,-30px) scale(1.05);animation-timing-function:cubic-bezier(.3,0,.2,1)}
+  28%{transform:translate(0,0) scale(1)}
+  33%{transform:translate(0,0) scale(1.18);opacity:1;filter:brightness(1.5)}
+  36%{transform:translate(0,0) scale(0);opacity:0}
+  100%{transform:translate(0,0) scale(0);opacity:0}
+}
+.v-catalyst .look-at-orb{animation:catalystLook var(--dur) ease-in-out infinite}
+@keyframes catalystLook{
+  0%,8%{transform:translate(0,0) rotate(0)}
+  14%,26%{transform:translate(28px,-22px) rotate(4deg)}
+  28%{transform:translate(20px,-16px) rotate(3deg)}
+  32%,38%{transform:translate(0,0) rotate(0) scale(1.08)}
+  46%{transform:translate(0,-6px) scale(1)}
+  60%,100%{transform:translate(0,0)}
+}
+.v-catalyst .cat-body{animation:catalystBody var(--dur) cubic-bezier(.2,.8,.3,1) infinite}
+@keyframes catalystBody{
+  0%,27%{transform:translateY(0) scale(1)}
+  28%{transform:translateY(4px) scale(1.02,.98)}
+  32%{transform:translateY(-14px) scale(.94,1.08);filter:drop-shadow(0 0 28px var(--glow))}
+  37%{transform:translateY(0) scale(1.06,.95);filter:drop-shadow(0 0 12px var(--glow))}
+  44%{transform:translateY(-4px) scale(.99,1.01);filter:none}
+  50%,100%{transform:translateY(0) scale(1)}
+}
+.v-catalyst .burst-ring{transform-origin:638.6px 121.2px;animation:catalystRing var(--dur) cubic-bezier(.1,.7,.3,1) infinite}
+@keyframes catalystRing{
+  0%,29%{transform:scale(0);opacity:0;stroke-width:14px}
+  32%{opacity:.9;stroke-width:18px}
+  48%{transform:scale(3.4);opacity:0;stroke-width:2px}
+  100%{transform:scale(3.4);opacity:0}
+}
+.v-catalyst .spark-nutri{animation:sparkNutri var(--dur) var(--delay,0s) cubic-bezier(.1,.8,.2,1) infinite}
+@keyframes sparkNutri{
+  0%,31%{transform:translate(638.6px,121.2px) scale(0);opacity:0}
+  33%{opacity:1;transform:translate(638.6px,121.2px) scale(1.2)}
+  45%{transform:translate(calc(638.6px + var(--tx)*1px),calc(121.2px + var(--ty)*1px)) scale(0);opacity:0}
+  100%{opacity:0}
+}
+.v-catalyst .joy-eyes{animation:joyBlink var(--dur) infinite}
+@keyframes joyBlink{
+  0%,28%{transform:scaleY(1)}
+  32%,42%{transform:scaleY(.12)}
+  46%{transform:scaleY(1.08)}
+  50%,82%{transform:scaleY(1)}
+  85%{transform:scaleY(.1)}
+  88%,100%{transform:scaleY(1)}
+}
+
+/* ==========================================================================
+   HERO 2: THE SPROUT (Genesis: From Two Seeds to Living Leaf)
+   Cycle: 6.4s
+   ========================================================================== */
+.v-sprout{--dur:6.4s}
+.v-sprout .soil-seeds{animation:sproutSeeds var(--dur) cubic-bezier(.2,.8,.3,1) infinite}
+@keyframes sproutSeeds{
+  0%{transform:translate(74px,80px) scale(.92);opacity:1}
+  10%{transform:translate(74px,74px) scale(.98);animation-timing-function:cubic-bezier(.3,0,.2,1)}
+  18%{transform:translate(74px,82px) scale(1.04,.88)}
+  24%{transform:translate(38px,36px) scale(1.02);opacity:1}
+  32%,100%{transform:translate(0,0) scale(1);opacity:1}
+}
+.v-sprout .seed-left{animation:seedWiggleL var(--dur) ease-in-out infinite}
+@keyframes seedWiggleL{
+  0%,8%{transform:rotate(0)}
+  12%{transform:rotate(-14deg)}
+  18%{transform:rotate(6deg)}
+  24%,100%{transform:rotate(0)}
+}
+.v-sprout .seed-right{animation:seedWiggleR var(--dur) ease-in-out infinite}
+@keyframes seedWiggleR{
+  0%,8%{transform:rotate(0)}
+  14%{transform:rotate(16deg)}
+  20%{transform:rotate(-4deg)}
+  24%,100%{transform:rotate(0)}
+}
+.v-sprout .leaf-bloom{transform-origin:371.5px 700px;animation:sproutBloom var(--dur) cubic-bezier(.22,1.25,.36,1) infinite}
+@keyframes sproutBloom{
+  0%,18%{transform:scale(0);opacity:0}
+  24%{opacity:1}
+  36%{transform:scale(1.14,.92);animation-timing-function:cubic-bezier(.3,0,.2,1)}
+  44%{transform:scale(.95,1.06)}
+  52%{transform:scale(1.02,.99)}
+  60%,88%{transform:scale(1);opacity:1}
+  94%,100%{transform:scale(0);opacity:0}
+}
+.v-sprout .dewdrop{transform-origin:518px 46px;animation:dewdropGlint var(--dur) ease-in-out infinite}
+@keyframes dewdropGlint{
+  0%,42%{transform:scale(0);opacity:0}
+  48%{transform:scale(1.2);opacity:1}
+  52%{transform:scale(.9)}
+  56%,84%{transform:scale(1);opacity:1}
+  90%,100%{transform:scale(0);opacity:0}
+}
+.v-sprout .sprout-shadow{animation:sproutShadow var(--dur) infinite}
+@keyframes sproutShadow{
+  0%,18%{transform:scale(.35);opacity:calc(var(--shadow-o)*.3)}
+  36%{transform:scale(1.15);opacity:calc(var(--shadow-o)*1.2)}
+  52%,88%{transform:scale(1);opacity:var(--shadow-o)}
+  94%,100%{transform:scale(.35);opacity:0}
+}
+
+/* ==========================================================================
+   HERO 3: THE BILINGUAL ASSEMBLY (Arabic Calligraphy & Lockup Reveal)
+   Cycle: 6.2s
+   ========================================================================== */
+.v-assembly{--dur:6.2s}
+.v-assembly .mark-entry{transform-origin:1558px 371.5px;animation:assemblyMark var(--dur) cubic-bezier(.16,1,.3,1) infinite}
+@keyframes assemblyMark{
+  0%{transform:translateX(500px) rotate(45deg) scale(.4);opacity:0}
+  14%{transform:translateX(0) rotate(-6deg) scale(1.08);opacity:1}
+  22%{transform:translateX(0) rotate(2deg) scale(.97)}
+  28%,88%{transform:translateX(0) rotate(0) scale(1);opacity:1}
+  94%,100%{transform:translateX(500px) scale(.6);opacity:0}
+}
+.v-assembly .arabic-calligraphy{
+  stroke-dasharray:8200;stroke-dashoffset:8200;
+  animation:assemblyDraw var(--dur) cubic-bezier(.45,0,.2,1) infinite;
+}
+@keyframes assemblyDraw{
+  0%,16%{stroke-dashoffset:8200;opacity:0}
+  20%{opacity:1}
+  44%{stroke-dashoffset:0;opacity:1}
+  50%{fill:transparent}
+  56%,88%{stroke-dashoffset:0;opacity:1;fill:var(--eye)}
+  94%,100%{stroke-dashoffset:0;opacity:0;fill:transparent}
+}
+.v-assembly .sheen-sweep{
+  transform:translateX(-1400px) skewX(-25deg);
+  animation:assemblySheen var(--dur) cubic-bezier(.25,1,.5,1) infinite;
+}
+@keyframes assemblySheen{
+  0%,48%{transform:translateX(-1400px) skewX(-25deg);opacity:0}
+  52%{opacity:1}
+  66%{transform:translateX(2400px) skewX(-25deg);opacity:.8}
+  72%,100%{transform:translateX(2400px) skewX(-25deg);opacity:0}
+}
+.v-assembly .nod{animation:assemblyNod var(--dur) ease-in-out infinite}
+@keyframes assemblyNod{
+  0%,46%{transform:rotate(0)}
+  49%{transform:rotate(-4deg) translateY(6px)}
+  54%{transform:rotate(1.5deg) translateY(-2px)}
+  58%,100%{transform:rotate(0) translateY(0)}
+}
+
+/* ==========================================================================
+   HERO 4: THE SUPERNOVA (Milestone / Streak Rocket Launch)
+   Cycle: 5.8s
+   ========================================================================== */
+.v-supernova{--dur:5.8s}
+.v-supernova .rocket{transform-origin:371.5px 371.5px;animation:supernovaFlight var(--dur) infinite}
+@keyframes supernovaFlight{
+  0%,6%{transform:translateY(0) scale(1)}
+  14%{transform:translateY(40px) scale(1.28,.68);animation-timing-function:cubic-bezier(.1,.9,.2,1)}
+  22%{transform:translateY(-180px) scale(.8,1.3);animation-timing-function:cubic-bezier(.25,1,.5,1)}
+  28%{transform:translateY(-230px) rotate(0deg) scale(1.05)}
+  35%{transform:translateY(-230px) rotate(360deg) scale(1.15);filter:drop-shadow(0 0 32px var(--glow))}
+  44%{transform:translateY(-160px) rotate(360deg) scale(.95);animation-timing-function:cubic-bezier(.4,0,.2,1)}
+  56%{transform:translateY(0) rotate(360deg) scale(1.18,.82)}
+  62%{transform:translateY(-14px) rotate(360deg) scale(.96,1.04)}
+  68%,88%{transform:translateY(0) rotate(360deg) scale(1);filter:none}
+  94%,100%{transform:translateY(0) scale(1)}
+}
+.v-supernova .squint-eyes{animation:superEyes var(--dur) infinite}
+@keyframes superEyes{
+  0%,8%{transform:scale(1)}
+  14%,24%{transform:scaleY(.12)}
+  28%,44%{transform:scale(1.24)}
+  56%,64%{transform:scaleY(.15)}
+  68%,100%{transform:scale(1)}
+}
+.v-supernova .confetti-blast{animation:superConfetti var(--dur) var(--delay,0s) cubic-bezier(.1,.8,.2,1) infinite}
+@keyframes superConfetti{
+  0%,33%{transform:translate(371.5px,140px) scale(0) rotate(0deg);opacity:0}
+  36%{opacity:1;transform:translate(371.5px,140px) scale(1.3) rotate(45deg)}
+  50%{transform:translate(calc(371.5px + var(--cx)*1px),calc(140px + var(--cy)*1px)) scale(.9) rotate(220deg);opacity:1}
+  64%,100%{transform:translate(calc(371.5px + var(--cx)*1.2px),calc(140px + var(--cy)*1px + 180px)) scale(0) rotate(360deg);opacity:0}
+}
+.v-supernova .shock-ring{transform-origin:371.5px 140px;animation:superShock var(--dur) cubic-bezier(.15,.85,.35,1) infinite}
+@keyframes superShock{
+  0%,34%{transform:scale(0);opacity:0;stroke-width:18px}
+  36%{opacity:1;stroke-width:24px}
+  48%{transform:scale(3.2);opacity:0;stroke-width:2px}
+  100%{transform:scale(3.2);opacity:0}
+}
+.v-supernova .shadow{animation:superShadow var(--dur) infinite}
+@keyframes superShadow{
+  0%,6%{transform:scale(1);opacity:var(--shadow-o)}
+  14%{transform:scale(1.35);opacity:calc(var(--shadow-o)*1.3)}
+  24%,46%{transform:scale(.3);opacity:calc(var(--shadow-o)*.25)}
+  56%{transform:scale(1.25);opacity:calc(var(--shadow-o)*1.2)}
+  68%,100%{transform:scale(1);opacity:var(--shadow-o)}
+}
+
+/* ==========================================================================
+   HERO 5: THE CIRCADIAN ORBIT (Day-to-Night Metabolic Cycle)
+   Cycle: 8.0s
+   ========================================================================== */
+.v-circadian{--dur:8.0s}
+.v-circadian .sun-moon-orbit{transform-origin:371.5px 371.5px;animation:circOrbit var(--dur) linear infinite}
+@keyframes circOrbit{
+  0%{transform:rotate(-45deg)}
+  100%{transform:rotate(315deg)}
+}
+.v-circadian .body-cycle{animation:circBody var(--dur) ease-in-out infinite}
+@keyframes circBody{
+  0%,8%{transform:translateY(12px) scale(.98,.95)}
+  14%{transform:translateY(-8px) scale(.94,1.06)}
+  22%,45%{transform:translateY(0) scale(1)}
+  32%{transform:translateY(-4px) rotate(2deg)}
+  38%{transform:translateY(0) rotate(-2deg)}
+  62%,75%{transform:translateY(8px) scale(1.02,.98)}
+  82%,96%{transform:translateY(14px) scale(1.04,.94)}
+  100%{transform:translateY(12px) scale(.98,.95)}
+}
+.v-circadian .eyes-cycle{animation:circEyes var(--dur) ease-in-out infinite}
+@keyframes circEyes{
+  0%,8%{transform:scaleY(.1)}
+  14%{transform:scaleY(.3)}
+  18%,48%{transform:scaleY(1)}
+  26%{transform:scaleY(.15)}
+  28%,48%{transform:scaleY(1)}
+  60%{transform:scaleY(.5)}
+  76%,100%{transform:scaleY(.08)}
+}
+.v-circadian .sleep-bubble{animation:sleepZ var(--dur) var(--delay,0s) ease-in infinite}
+@keyframes sleepZ{
+  0%,74%{transform:translate(371.5px,220px) scale(0);opacity:0}
+  78%{opacity:.8;transform:translate(385px,180px) scale(.7)}
+  88%{opacity:.6;transform:translate(365px,110px) scale(1)}
+  95%,100%{opacity:0;transform:translate(390px,40px) scale(1.2)}
+}
+
+footer{padding:2rem 0 4rem;color:var(--ink-2);font-size:.92rem;border-top:1px solid rgba(29,58,16,.1)}
+footer p{max-width:75ch;margin:0 0 .6rem}
+footer code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.85em;background:rgba(29,58,16,.06);padding:.1em .35em;border-radius:6px}
+
+@media (max-width:960px){.hero-deck{grid-template-columns:1fr}.hero-deck .copy{order:1}}
+</style>
+</head>
+<body data-style="flat">
+
+<svg class="defs" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g-soft" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8ADD5C"/>
+      <stop offset="1" stop-color="#6CC43F"/>
+    </linearGradient>
+    <linearGradient id="g-gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFE169"/>
+      <stop offset="1" stop-color="#E59400"/>
+    </linearGradient>
+    <linearGradient id="g-sheen" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="rgba(255,255,255,0)"/>
+      <stop offset="50%" stop-color="rgba(255,255,255,0.7)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </linearGradient>
+    <filter id="f-boil" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.0055" numOctaves="1" seed="3" result="noise"/>
+      <feOffset in="noise" dx="0" dy="0" result="drift">
+        <animate attributeName="dx" values="0;150;0" keyTimes="0;.5;1" dur="7s" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" repeatCount="indefinite"/>
+        <animate attributeName="dy" values="0;-120;0" keyTimes="0;.5;1" dur="9.5s" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" repeatCount="indefinite"/>
+      </feOffset>
+      <feDisplacementMap in="SourceGraphic" in2="drift" scale="11" xChannelSelector="R" yChannelSelector="G"/>
+      <feGaussianBlur stdDeviation="0.6"/>
+    </filter>
+    <clipPath id="c-body"><path d="M371.5 0C421.797 0 469.759 9.99605 513.508 28.1089C520.466 30.9895 522.551 39.7041 518.553 46.0856C504.918 67.848 497.035 93.5815 497.035 121.156C497.035 199.356 560.429 262.749 638.629 262.749C662.921 262.749 685.784 256.63 705.762 245.851C712.393 242.273 720.958 244.92 723.379 252.054C736.1 289.54 743 329.714 743 371.5C743 576.674 576.674 743 371.5 743C166.326 743 0 576.674 0 371.5C0 166.326 166.326 0 371.5 0Z"/></clipPath>
+    <clipPath id="c-circle"><circle cx="371.5" cy="371.5" r="371.5"/></clipPath>
+    <clipPath id="c-assembly">
+      <path d="M76.2923 612.417C43.3757 611.583 14.209 597.417 14.209 568.667V526.167H15.8757C27.1257 529.5 40.0423 533.667 71.2923 531.167C116.709 527.833 153.376 504.5 153.376 442.833V392.417C153.376 340.333 179.209 277.833 261.709 277.833C345.042 277.833 370.876 340.333 370.876 392.417V424.917H406.709C412.959 424.917 425.459 441.167 425.459 466.167C425.459 490.75 412.959 507 406.709 507H270.459C246.292 507 227.959 497 217.542 481.167C199.626 593.667 117.959 612.833 76.2923 612.417ZM220.876 416.583C229.626 422 239.626 424.917 255.876 424.917H303.376V392.417C303.376 369.917 294.626 341.167 261.709 341.167C229.209 341.167 220.876 370.333 220.876 392.417V416.583ZM406.709 424.917C462.959 424.917 479.209 398.25 477.959 354.917C477.126 332.833 471.709 307.417 464.626 280.75V277.833C490.042 271.583 512.959 271.167 526.709 284.5C540.042 298.25 544.626 324.083 545.876 369.5C547.542 470.75 482.126 507 406.709 507V424.917ZM519.209 612C500.459 612 485.459 597.417 485.459 578.25C485.459 559.083 500.459 544.5 519.209 544.5C537.959 544.5 552.959 559.5 552.959 578.25C552.959 597.417 537.959 612 519.209 612ZM437.959 612C419.209 612 404.209 597.417 404.209 578.25C404.209 559.083 419.209 544.5 437.959 544.5C456.709 544.5 471.709 559.5 471.709 578.25C471.709 597.417 456.709 612 437.959 612ZM592.406 647.417C561.989 647.833 539.906 636.167 525.739 624.083V620.75C580.322 611.583 636.572 582.833 636.989 470.333V300.333H657.406C687.822 300.333 704.072 317 704.072 347V419.917C721.156 424.5 738.239 424.917 746.572 424.917H746.989C753.239 424.917 765.739 441.167 765.739 466.167C765.739 491.167 753.239 507 746.989 507H746.572C737.822 507 719.906 506.583 703.239 502.417C696.989 588.667 656.572 646.167 592.406 647.417ZM666.989 254.917C647.406 254.917 631.572 239.5 631.572 219.5C631.572 199.917 647.822 184.5 666.989 184.5C686.572 184.5 701.989 199.917 701.989 219.5C701.989 239.5 686.572 254.917 666.989 254.917ZM747.041 424.917C803.291 424.917 819.541 398.25 818.291 354.917C817.458 332.833 812.041 307.417 804.958 280.75V277.833C830.374 271.583 853.291 271.167 867.041 284.5C880.374 298.25 884.958 324.083 886.208 369.5C887.874 470.75 822.458 507 747.041 507V424.917ZM838.708 227.833C819.124 227.833 803.291 212.417 803.291 192.417C803.291 172.833 819.541 157.417 838.708 157.417C858.291 157.417 873.708 172.833 873.708 192.417C873.708 212.417 858.291 227.833 838.708 227.833ZM998.187 507C968.187 507 951.52 490.333 951.52 459.917L951.937 111.167H971.937C1002.35 111.167 1019.02 127.833 1019.02 157.833V507H998.187ZM924.02 625.333C924.02 612.833 930.687 604.917 942.354 603.25C937.77 596.583 935.687 589.5 936.104 580.75C936.52 547.417 964.02 531.167 989.854 531.167C1012.77 531.167 1031.52 538.667 1037.35 557.833C1040.69 569.917 1031.52 587.417 1009.02 583.667L1008.19 582.417C1008.19 572 1001.1 564.5 989.854 564.5C976.52 564.5 969.854 572 969.437 583.667C969.02 594.917 976.52 602.833 988.187 602.833H1046.94V607.833C1046.94 625.333 1036.52 634.917 1019.85 634.917H924.02V625.333Z"/>
+      <path d="${BODY}" transform="translate(1187 0)"/>
+    </clipPath>
+  </defs>
+</svg>
+
+<header class="wrap">
+  <a class="brand" href="#top"><span id="brand-mark"></span>inzem · hero suite</a>
+  <div class="top-bar">
+    <button class="btn small" id="toggle-speed" type="button" aria-pressed="false">
+      <span>1.0x speed</span>
+    </button>
+    <button class="btn pause-all" type="button" aria-pressed="false">
+      <svg class="ico-pause" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="3" y="2.5" width="3.5" height="11" rx="1"/><rect x="9.5" y="2.5" width="3.5" height="11" rx="1"/></svg>
+      <svg class="ico-play" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M4.5 2.8v10.4a.8.8 0 0 0 1.2.7l8-5.2a.8.8 0 0 0 0-1.4l-8-5.2a.8.8 0 0 0-1.2.7z"/></svg>
+      <span class="label">Pause all</span>
+    </button>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- Interactive Hero Deck -->
+  <section class="hero-deck">
+    <div class="stage-card">
+      <div class="stage" id="deck-stage"></div>
+    </div>
+    <div class="hero-info" id="deck-info">
+      <div class="meta-tag" id="deck-tag">Hero 1 · Biochemical Metaphor</div>
+      <h1 id="deck-title">The Catalyst</h1>
+      <p class="lead" id="deck-lead">A floating nutrient particle docks into the active site, unleashing a surge of metabolic energy.</p>
+      <div class="timeline-pills" id="deck-pills"></div>
+      <p class="desc" id="deck-desc"></p>
+      <div class="hero-actions">
+        <button class="btn primary" type="button" id="replay-deck">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3h-3"/></svg>
+          Replay animation
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Hero Switcher Tabs -->
+  <nav class="hero-tabs" id="hero-tabs" aria-label="Choose a hero animation"></nav>
+
+  <!-- Look / Skin Selector -->
+  <section>
+    <div class="section-head">
+      <h2>Looks</h2>
+      <p>Instant CSS custom property restyling across every hero study.</p>
+    </div>
+    <div class="looks" id="looks" role="group" aria-label="Choose a look"></div>
+  </section>
+
+  <!-- All 5 Heroes Display Grid -->
+  <section>
+    <div class="section-head">
+      <h2>All 5 Hero Studies</h2>
+      <p>Side-by-side view with stage choreography and timing breakdown.</p>
+    </div>
+    <div class="grid-5" id="hero-grid"></div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <p>Engineered for <strong>Enzyme (إنزيم)</strong> using exact vector coordinates from <code>src/features/brand/logo.ts</code> (<code>MARK_LEAF_PATH</code>, <code>LOCKUP_WORDMARK_PATH</code>, <code>SEED_ROTATION</code>). Pure SVG + CSS keyframes with no external animation runtime.</p>
+</footer>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const BODY = 'M371.5 0C421.797 0 469.759 9.99605 513.508 28.1089C520.466 30.9895 522.551 39.7041 518.553 46.0856C504.918 67.848 497.035 93.5815 497.035 121.156C497.035 199.356 560.429 262.749 638.629 262.749C662.921 262.749 685.784 256.63 705.762 245.851C712.393 242.273 720.958 244.92 723.379 252.054C736.1 289.54 743 329.714 743 371.5C743 576.674 576.674 743 371.5 743C166.326 743 0 576.674 0 371.5C0 166.326 166.326 0 371.5 0Z';
+  const WORDMARK = 'M76.2923 612.417C43.3757 611.583 14.209 597.417 14.209 568.667V526.167H15.8757C27.1257 529.5 40.0423 533.667 71.2923 531.167C116.709 527.833 153.376 504.5 153.376 442.833V392.417C153.376 340.333 179.209 277.833 261.709 277.833C345.042 277.833 370.876 340.333 370.876 392.417V424.917H406.709C412.959 424.917 425.459 441.167 425.459 466.167C425.459 490.75 412.959 507 406.709 507H270.459C246.292 507 227.959 497 217.542 481.167C199.626 593.667 117.959 612.833 76.2923 612.417ZM220.876 416.583C229.626 422 239.626 424.917 255.876 424.917H303.376V392.417C303.376 369.917 294.626 341.167 261.709 341.167C229.209 341.167 220.876 370.333 220.876 392.417V416.583ZM406.709 424.917C462.959 424.917 479.209 398.25 477.959 354.917C477.126 332.833 471.709 307.417 464.626 280.75V277.833C490.042 271.583 512.959 271.167 526.709 284.5C540.042 298.25 544.626 324.083 545.876 369.5C547.542 470.75 482.126 507 406.709 507V424.917ZM519.209 612C500.459 612 485.459 597.417 485.459 578.25C485.459 559.083 500.459 544.5 519.209 544.5C537.959 544.5 552.959 559.5 552.959 578.25C552.959 597.417 537.959 612 519.209 612ZM437.959 612C419.209 612 404.209 597.417 404.209 578.25C404.209 559.083 419.209 544.5 437.959 544.5C456.709 544.5 471.709 559.5 471.709 578.25C471.709 597.417 456.709 612 437.959 612ZM592.406 647.417C561.989 647.833 539.906 636.167 525.739 624.083V620.75C580.322 611.583 636.572 582.833 636.989 470.333V300.333H657.406C687.822 300.333 704.072 317 704.072 347V419.917C721.156 424.5 738.239 424.917 746.572 424.917H746.989C753.239 424.917 765.739 441.167 765.739 466.167C765.739 491.167 753.239 507 746.989 507H746.572C737.822 507 719.906 506.583 703.239 502.417C696.989 588.667 656.572 646.167 592.406 647.417ZM666.989 254.917C647.406 254.917 631.572 239.5 631.572 219.5C631.572 199.917 647.822 184.5 666.989 184.5C686.572 184.5 701.989 199.917 701.989 219.5C701.989 239.5 686.572 254.917 666.989 254.917ZM747.041 424.917C803.291 424.917 819.541 398.25 818.291 354.917C817.458 332.833 812.041 307.417 804.958 280.75V277.833C830.374 271.583 853.291 271.167 867.041 284.5C880.374 298.25 884.958 324.083 886.208 369.5C887.874 470.75 822.458 507 747.041 507V424.917ZM838.708 227.833C819.124 227.833 803.291 212.417 803.291 192.417C803.291 172.833 819.541 157.417 838.708 157.417C858.291 157.417 873.708 172.833 873.708 192.417C873.708 212.417 858.291 227.833 838.708 227.833ZM998.187 507C968.187 507 951.52 490.333 951.52 459.917L951.937 111.167H971.937C1002.35 111.167 1019.02 127.833 1019.02 157.833V507H998.187ZM924.02 625.333C924.02 612.833 930.687 604.917 942.354 603.25C937.77 596.583 935.687 589.5 936.104 580.75C936.52 547.417 964.02 531.167 989.854 531.167C1012.77 531.167 1031.52 538.667 1037.35 557.833C1040.69 569.917 1031.52 587.417 1009.02 583.667L1008.19 582.417C1008.19 572 1001.1 564.5 989.854 564.5C976.52 564.5 969.854 572 969.437 583.667C969.02 594.917 976.52 602.833 988.187 602.833H1046.94V607.833C1046.94 625.333 1036.52 634.917 1019.85 634.917H924.02V625.333Z';
+  const BITE = { x: 638.629, y: 121.156, r: 141.594 };
+  const VB = 'viewBox="0 0 743 743" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"';
+  const LOCKUP_VB = 'viewBox="0 0 1930 743" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"';
+
+  const geoOf = shape => shape === 'circle' ? `<circle cx="371.5" cy="371.5" r="371.5"` : `<path d="${BODY}"`;
+  const under = shape => `${geoOf(shape)} class="sticker-edge"/>${geoOf(shape)} class="sticker"/>`;
+  const over = shape => `${geoOf(shape)} class="line"/>`;
+
+  function shell({ shape = 'path', mirror = false, bare = false } = {}) {
+    const geo = geoOf(shape);
+    const clip = shape === 'circle' ? 'c-circle' : 'c-body';
+    const ox = mirror ? 403 : 340;
+    const hi = mirror
+      ? `<ellipse class="hi" cx="538" cy="110" rx="70" ry="26" transform="rotate(20 538 110)"/>`
+      : `<ellipse class="hi" cx="205" cy="110" rx="70" ry="26" transform="rotate(-20 205 110)"/>`;
+    return `<g class="skin">
+      ${bare ? '' : under(shape)}
+      ${geo} class="base"/>
+      <g clip-path="url(#${clip})"><circle class="top" cx="${ox}" cy="338" r="372"/>${hi}</g>
+      ${bare ? '' : over(shape)}
+    </g>`;
+  }
+
+  function eyes(cls = 'eyes') {
+    const eye = (cx, side) => `<g transform="translate(${cx} 253.436) rotate(15.995)"><g class="eye eye-${side} t">
+      <ellipse class="pupil" rx="56.5461" ry="96.3418"/>
+      <ellipse class="glint" cx="-19" cy="-46" rx="10" ry="16"/>
+    </g></g>`;
+    return `<g class="${cls} c">${eye(148.052, 'l')}${eye(299.13, 'r')}</g>`;
+  }
+
+  const shadow = (cx = 371.5, cy = 770, rx = 270, ry = 30) =>
+    `<ellipse class="shadow t" cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}"/>`;
+
+  /* ==========================================================================
+     HERO ANIMATION BUILDERS
+     ========================================================================== */
+
+  // 1. THE CATALYST
+  function renderCatalyst() {
+    const sparks = [
+      [40, -50, .02], [-60, -30, .05], [70, 20, .08], [-30, 60, .11],
+      [90, -10, .04], [-70, 40, .09], [30, 80, .12], [-80, -60, .06]
+    ].map(([tx, ty, d]) =>
+      `<circle class="spark-nutri" r="6" fill="var(--gold)" style="--tx:${tx};--ty:${ty};--delay:${d}s"/>`
+    ).join('');
+
+    return `<svg class="mark v-catalyst" ${VB}><g class="boil">
+      ${shadow()}
+      <!-- Docking Nutrient Particle -->
+      <g class="orb">
+        <circle cx="${BITE.x}" cy="${BITE.y}" r="${BITE.r}" fill="url(#g-gold)" filter="drop-shadow(0 0 20px rgba(255,180,34,.75))"/>
+        <circle cx="${BITE.x}" cy="${BITE.y}" r="${BITE.r * .7}" fill="#FFF8E0" opacity=".6"/>
+        <circle cx="${BITE.x - 35}" cy="${BITE.y - 35}" r="22" fill="#fff" opacity=".9"/>
+      </g>
+      <!-- Main Character reacting -->
+      <g class="cat-body c">
+        ${shell()}
+        <g class="look-at-orb c"><g class="joy-eyes c">${eyes()}</g></g>
+      </g>
+      <!-- Catalytic Energy Rings & Spark Burst -->
+      <circle class="burst-ring" cx="${BITE.x}" cy="${BITE.y}" r="40" fill="none" stroke="var(--gold)"/>
+      <circle class="burst-ring" cx="${BITE.x}" cy="${BITE.y}" r="40" fill="none" stroke="#fff" style="animation-delay:.08s"/>
+      <g>${sparks}</g>
+    </g></svg>`;
+  }
+
+  // 2. THE SPROUT
+  function renderSprout() {
+    return `<svg class="mark v-sprout" ${VB}><g class="boil">
+      <g class="sprout-shadow">${shadow()}</g>
+      <!-- Expanding Living Leaf Body -->
+      <g class="leaf-bloom c">${shell()}</g>
+      <!-- The Two Seeds / Eyes that Awaken & Guide the Growth -->
+      <g class="soil-seeds c">
+        <g transform="translate(148.052 253.436) rotate(15.995)"><g class="seed-left t"><g class="eye eye-l t">
+          <ellipse class="pupil" rx="56.5461" ry="96.3418"/>
+          <ellipse class="glint" cx="-19" cy="-46" rx="10" ry="16"/>
+        </g></g></g>
+        <g transform="translate(299.13 253.436) rotate(15.995)"><g class="seed-right t"><g class="eye eye-r t">
+          <ellipse class="pupil" rx="56.5461" ry="96.3418"/>
+          <ellipse class="glint" cx="-19" cy="-46" rx="10" ry="16"/>
+        </g></g></g>
+      </g>
+      <!-- Dewdrop Glint Spark at Crest -->
+      <g class="dewdrop">
+        <circle cx="518" cy="46" r="14" fill="#fff" filter="drop-shadow(0 0 10px #fff)"/>
+        <path d="M518 24 L522 46 L544 46 L526 58 L532 80 L518 66 L504 80 L510 58 L492 46 L514 46 Z" fill="#fff" transform="scale(.4) translate(770 10)"/>
+      </g>
+    </g></svg>`;
+  }
+
+  // 3. THE BILINGUAL ASSEMBLY
+  function renderAssembly() {
+    return `<svg class="mark v-assembly" ${LOCKUP_VB} style="left:5%;width:90%"><g class="boil">
+      <!-- Ground shadow for the mark -->
+      ${shadow(1558, 770, 240, 28)}
+      <!-- Kinetic Wordmark Outlines (draws right-to-left) -->
+      <g class="wordmark-group">
+        <path class="arabic-calligraphy" d="${WORDMARK}" fill="none" stroke="var(--eye)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+      <!-- Dynamic Rolling & Snapping Mark -->
+      <g class="mark-entry c">
+        <g transform="translate(1187 0)"><g class="nod c">
+          ${shell()}
+          ${eyes()}
+        </g></g>
+      </g>
+      <!-- Unified Metallic Sheen Sweep -->
+      <g clip-path="url(#c-assembly)">
+        <rect class="sheen-sweep" x="0" y="-100" width="220" height="950" fill="url(#g-sheen)"/>
+      </g>
+    </g></svg>`;
+  }
+
+  // 4. THE SUPERNOVA
+  function renderSupernova() {
+    const confetti = [
+      [-140, -180, '#FFB422', 0], [150, -170, '#75CF48', .02],
+      [-210, -80, '#FF5252', .04], [220, -60, '#448AFF', .03],
+      [-90, -240, '#E040FB', .01], [100, -250, '#FFD740', .05],
+      [-180, -20, '#69F0AE', .06], [190, -10, '#FF6E40', .04],
+      [-60, -280, '#FFF', .02], [70, -290, '#75CF48', .05]
+    ].map(([cx, cy, col, d]) =>
+      `<g class="confetti-blast" style="--cx:${cx};--cy:${cy};--delay:${d}s">
+        <rect x="0" y="0" width="16" height="16" rx="4" fill="${col}"/>
+      </g>`
+    ).join('');
+
+    return `<svg class="mark v-supernova" ${VB}><g class="boil">
+      <ellipse class="shadow t" cx="371.5" cy="770" rx="270" ry="30"/>
+      <!-- Rocket Body -->
+      <g class="rocket c">
+        ${shell()}
+        <g class="squint-eyes c">${eyes()}</g>
+      </g>
+      <!-- Apex Shockwaves & Celebration Burst -->
+      <circle class="shock-ring" cx="371.5" cy="140" r="50" fill="none" stroke="var(--green)"/>
+      <circle class="shock-ring" cx="371.5" cy="140" r="50" fill="none" stroke="#FFD740" style="animation-delay:.08s"/>
+      <g>${confetti}</g>
+    </g></svg>`;
+  }
+
+  // 5. THE CIRCADIAN ORBIT
+  function renderCircadian() {
+    return `<svg class="mark v-circadian" ${VB}><g class="boil">
+      <!-- Ambient Orbit Track -->
+      <circle cx="371.5" cy="371.5" r="330" fill="none" stroke="rgba(29,58,16,.08)" stroke-width="2" stroke-dasharray="8 8"/>
+      <!-- Orbiting Sun & Moon Celestial Pair -->
+      <g class="sun-moon-orbit">
+        <!-- Sun (Golden Radiant) -->
+        <g transform="translate(371.5 41)">
+          <circle cx="0" cy="0" r="28" fill="url(#g-gold)" filter="drop-shadow(0 0 16px rgba(255,180,34,.8))"/>
+          <circle cx="0" cy="0" r="18" fill="#FFF" opacity=".8"/>
+        </g>
+        <!-- Moon (Silver-Crescent) -->
+        <g transform="translate(371.5 701)">
+          <circle cx="0" cy="0" r="24" fill="#E2EDF8" filter="drop-shadow(0 0 12px rgba(226,237,248,.6))"/>
+          <circle cx="7" cy="-5" r="20" fill="var(--bg)"/>
+        </g>
+      </g>
+      ${shadow()}
+      <!-- Circadian Breathing Body -->
+      <g class="body-cycle c">
+        ${shell()}
+        <g class="eyes-cycle c">${eyes()}</g>
+      </g>
+      <!-- Peaceful Sleeping Bubbles (Zzz) -->
+      <circle class="sleep-bubble" r="8" fill="rgba(117,207,72,.6)" style="--delay:0s"/>
+      <circle class="sleep-bubble" r="13" fill="rgba(117,207,72,.5)" style="--delay:.5s"/>
+      <circle class="sleep-bubble" r="18" fill="rgba(117,207,72,.4)" style="--delay:1s"/>
+    </g></svg>`;
+  }
+
+  /* ==========================================================================
+     HERO SUITE DATA
+     ========================================================================== */
+  const HEROES = [
+    {
+      id: 'catalyst',
+      num: '1',
+      tag: 'Hero 1 · Biochemical Metaphor',
+      title: 'The Catalyst',
+      lead: 'A floating nutrient particle docks precisely into the active-site bite notch, triggering a brilliant metabolic energy wave.',
+      desc: 'Connects directly to the name Enzyme (إنزيم) and the classic biochemical lock-and-key substrate mechanism. Perfect for food logging confirmation, meal plan activation, and first clinical intake completion.',
+      pills: ['0.0s Gaze Tracking', '1.8s Precision Docking', '2.4s Catalytic Burst', '3.6s Supercharged Joy'],
+      render: renderCatalyst
+    },
+    {
+      id: 'sprout',
+      num: '2',
+      tag: 'Hero 2 · Organic Genesis',
+      title: 'The Sprout',
+      lead: 'Begins as two seeds sleeping quietly in the soil, which awaken, nudge each other, and erupt into the iconic living leaf mark.',
+      desc: 'Plays on the origin of the logo seeds (MARK_SEED_CX). Represents patient health transformation, habit inception, and new beginnings. Ideal for client onboarding, account creation, and first app launch intro.',
+      pills: ['0.0s Dormant Seeds', '1.2s Inquisitive Awakening', '2.2s Elastic Bloom', '3.8s Dewdrop Sparkle'],
+      render: renderSprout
+    },
+    {
+      id: 'assembly',
+      num: '3',
+      tag: 'Hero 3 · Bilingual Calligraphy',
+      title: 'The Bilingual Assembly',
+      lead: 'The character rolls into place while the Arabic wordmark (إنزيم) flows onto the canvas with right-to-left calligraphic strokes.',
+      desc: 'Bridges the standalone mark with the official Arabic typographic lockup (LOCKUP_WORDMARK_PATH). Perfect for the web app landing page hero, dietitian clinic dashboard header, and official launch presentations.',
+      pills: ['0.0s Dynamic Roll-In', '1.2s Calligraphy Draw (RTL)', '3.0s Harmonious Nod', '3.8s Unified Sheen'],
+      render: renderAssembly
+    },
+    {
+      id: 'supernova',
+      num: '4',
+      tag: 'Hero 4 · Milestone Celebration',
+      title: 'The Supernova',
+      lead: 'A heavy anticipation squash leads to an explosive rocket leap, a mid-air 360° spin, and a radiant shower of confetti.',
+      desc: 'High-octane celebratory feedback designed for dopamine-rich patient milestones: hitting a 7-day adherence streak, completing a target weight goal, or graduating a nutrition program.',
+      pills: ['0.8s Gravitational Crouch', '1.4s Rocket Launch', '2.2s Apex 360° Blast', '3.6s Parachute Float'],
+      render: renderSupernova
+    },
+    {
+      id: 'circadian',
+      num: '5',
+      tag: 'Hero 5 · Circadian Rhythm',
+      title: 'The Circadian Orbit',
+      lead: 'A continuous 24-hour cycle: sunrise awakening, vibrant midday peak metabolism, twilight wind-down, and peaceful bioluminescent sleep.',
+      desc: 'Directly reflects clinical chronobiology, intermittent fasting eating windows, and circadian nutrition tracking. Ideal for the daily journal dashboard header, resting empty states, and sleep/fasting widgets.',
+      pills: ['Dawn Awakening', 'Midday Active Metabolism', 'Golden Twilight', 'Midnight Serene Rest'],
+      render: renderCircadian
+    }
+  ];
+
+  const LOOKS = [
+    { id: 'flat',    name: 'Flat' },
+    { id: 'cel',     name: 'Cel' },
+    { id: 'soft',    name: 'Soft' },
+    { id: 'outline', name: 'Outline' },
+    { id: 'sticker', name: 'Sticker' },
+    { id: 'mono',    name: 'Monoline' },
+    { id: 'inverse', name: 'On green' },
+  ];
+
+  let currentHero = HEROES[0];
+
+  function updateDeck(hero) {
+    currentHero = hero;
+    $('#deck-tag').textContent = hero.tag;
+    $('#deck-title').textContent = hero.title;
+    $('#deck-lead').textContent = hero.lead;
+    $('#deck-desc').textContent = hero.desc;
+
+    const pills = $('#deck-pills');
+    pills.innerHTML = hero.pills.map(p => `<span class="t-pill">${p}</span>`).join('');
+
+    const stage = $('#deck-stage');
+    stage.innerHTML = hero.render();
+
+    // Update tab active states
+    document.querySelectorAll('.hero-tab').forEach(t => {
+      t.setAttribute('aria-selected', String(t.dataset.id === hero.id));
+    });
+  }
+
+  // Build brand mark in header
+  $('#brand-mark').innerHTML = `<svg class="mark brand-svg" ${VB}><g class="boil">${shell()}${eyes()}</g></svg>`;
+
+  // Build Hero Switcher Tabs
+  const tabsContainer = $('#hero-tabs');
+  for (const h of HEROES) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'hero-tab';
+    btn.dataset.id = h.id;
+    btn.setAttribute('aria-selected', String(h.id === currentHero.id));
+    btn.innerHTML = `<span class="num">${h.num}</span><span>${h.title}</span>`;
+    btn.addEventListener('click', () => updateDeck(h));
+    tabsContainer.appendChild(btn);
+  }
+
+  // Replay deck button
+  $('#replay-deck').addEventListener('click', () => updateDeck(currentHero));
+
+  // Build Looks chips
+  const looksContainer = $('#looks');
+  for (const l of LOOKS) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip';
+    b.dataset.style = l.id;
+    b.setAttribute('aria-pressed', String(document.body.dataset.style === l.id));
+    b.innerHTML = `<svg viewBox="0 0 743 743" class="chip-svg"><g class="boil">${shell()}${eyes()}</g></svg><span>${l.name}</span>`;
+    b.addEventListener('click', () => {
+      document.body.dataset.style = l.id;
+      looksContainer.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', String(c === b)));
+    });
+    looksContainer.appendChild(b);
+  }
+
+  // Build All 5 Heroes Grid
+  const gridContainer = $('#hero-grid');
+  for (const h of HEROES) {
+    const card = document.createElement('article');
+    card.className = 'hero-card';
+    card.innerHTML = `
+      <div class="card-head">
+        <div>
+          <span style="font-size:.78rem;font-weight:700;color:var(--ink-2);text-transform:uppercase">${h.tag}</span>
+          <h3>${h.title}</h3>
+        </div>
+        <button class="btn small replay" type="button" aria-label="Replay ${h.title}">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3h-3"/></svg>
+          Replay
+        </button>
+      </div>
+      <div class="stage" data-hero="${h.id}">${h.render()}</div>
+      <p>${h.lead}</p>
+      <ul class="phases">
+        ${h.pills.map(p => `<li><b>•</b> ${p}</li>`).join('')}
+      </ul>
+    `;
+    const st = card.querySelector('.stage');
+    card.querySelector('.replay').addEventListener('click', () => {
+      st.innerHTML = h.render();
+    });
+    gridContainer.appendChild(card);
+  }
+
+  // Initialize deck
+  updateDeck(HEROES[0]);
+
+  // Speed Toggle
+  let slow = false;
+  const speedBtn = $('#toggle-speed');
+  speedBtn.addEventListener('click', () => {
+    slow = !slow;
+    document.body.classList.toggle('slow-mo', slow);
+    speedBtn.setAttribute('aria-pressed', String(slow));
+    speedBtn.querySelector('span').textContent = slow ? '0.5x slow-mo' : '1.0x speed';
+  });
+
+  // Global Pause/Play
+  const pauseButtons = document.querySelectorAll('.pause-all');
+  const defs = $('.defs');
+  const setPaused = on => {
+    document.body.classList.toggle('paused', on);
+    if (defs.pauseAnimations) on ? defs.pauseAnimations() : defs.unpauseAnimations();
+    pauseButtons.forEach(b => {
+      b.setAttribute('aria-pressed', String(on));
+      b.querySelector('.label').textContent = on ? 'Play all' : 'Pause all';
+    });
+  };
+  pauseButtons.forEach(b => b.addEventListener('click', () => setPaused(!document.body.classList.contains('paused'))));
+
+  // IntersectionObserver to sleep off-screen animations
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(entries => {
+      for (const e of entries) e.target.classList.toggle('off', !e.isIntersecting);
+    }, { rootMargin: '100px' });
+    document.querySelectorAll('.stage').forEach(s => io.observe(s));
+  }
+})();
+</script>
+</body>
+</html>

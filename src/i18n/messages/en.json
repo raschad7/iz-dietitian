@@ -2983,6 +2983,7 @@
     },
     "validation": {
       "measuredOnInvalid": "Pick a valid date.",
+      "dateTaken": "This client already has a measurement on this date. Pick another day, or edit the reading that is already there.",
       "timeInvalid": "The measurement time could not be read. Reopen the dialog and try again.",
       "weightRequired": "Weight is required.",
       "weightOutOfRange": "Weight should be between {weightMin} and {weightMax} kg.",
@@ -2996,7 +2997,6 @@
     },
     "errors": {
       "invalid": "Some figures need checking.",
-      "duplicate": "There is already a measurement for this client at that date and time.",
       "notFound": "That measurement no longer exists.",
       "unexpected": "The measurement could not be saved. Try again.",
       "fileMissing": "Choose a PDF to read.",

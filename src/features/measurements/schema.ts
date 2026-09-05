@@ -235,6 +235,16 @@ export const deleteMeasurementSchema = z.object({
  */
 export const MEASUREMENT_MESSAGE_KEYS = [
   'measuredOnInvalid',
+  /**
+   * There is already a reading on that day.
+   *
+   * Not a schema rule — nothing about the string is wrong, and only the database
+   * knows. It lives in this list because it is reported the same way every other
+   * complaint about the date is: as a field error under the date box, where the
+   * control that fixes it is. See `MeasurementForm`, which also refuses to
+   * *submit* a date it can already see is taken.
+   */
+  'dateTaken',
   'timeInvalid',
   'weightRequired',
   'weightOutOfRange',
@@ -248,3 +258,16 @@ export const MEASUREMENT_MESSAGE_KEYS = [
 ] as const;
 
 export type MeasurementMessageKey = (typeof MEASUREMENT_MESSAGE_KEYS)[number];
+
+/**
+ * "There is already a reading on that day", shaped like `z.flattenError`.
+ *
+ * Written once, here, rather than spelled out at each of the two call sites in
+ * `actions.ts`. `fieldErrors` is a `Record<string, string[]>` — nothing in its
+ * type says the strings have to be message keys — and the form silently drops a
+ * key it does not recognise, which is the exact shape of the bug that made Save
+ * do nothing once already. `satisfies` makes a typo a compile error instead.
+ */
+export const DATE_TAKEN_ERROR: Record<string, string[]> = {
+  measuredOn: ['dateTaken' satisfies MeasurementMessageKey],
+};

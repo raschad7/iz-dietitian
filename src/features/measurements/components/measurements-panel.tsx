@@ -168,6 +168,17 @@ export async function MeasurementsPanel({
   };
 
   /*
+    The slots already spoken for, so the record dialog can refuse a collision
+    before it costs a round trip. `(client, date, minute)` is a unique index;
+    this is that same rule, said early, out of rows this panel already has.
+  */
+  const takenSlots = measurements.map((row) => ({
+    id: row.id,
+    measuredOn: row.measuredOn,
+    measuredAtMinute: row.measuredAtMinute,
+  }));
+
+  /*
     Upload leads, and by hand sits beside it as the quieter option. That is the
     order of the day rather than a judgement about which is better: a clinic with
     an analyser runs the machine at the visit and uploads the sheet, and types a
@@ -182,6 +193,7 @@ export async function MeasurementsPanel({
         locale={locale}
         today={today}
         currentWeightKg={currentWeightKg}
+        takenSlots={takenSlots}
         mode="upload"
         icon="bills"
         label={t('upload.trigger')}
@@ -191,6 +203,7 @@ export async function MeasurementsPanel({
         locale={locale}
         today={today}
         currentWeightKg={currentWeightKg}
+        takenSlots={takenSlots}
         variant="outline"
         label={t('add')}
       />
@@ -457,6 +470,7 @@ export async function MeasurementsPanel({
                           locale={locale}
                           today={today}
                           currentWeightKg={currentWeightKg}
+                          takenSlots={takenSlots}
                           dateLabel={formatMediumDate(locale, row.measuredOn)}
                           /*
                             The stored row, flattened to the strings and numbers

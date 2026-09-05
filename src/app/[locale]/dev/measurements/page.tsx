@@ -5,11 +5,16 @@ import { resolveLocale } from '@/i18n/params';
 import { isMember } from '@/lib/enum';
 import { type IsoDate } from '@/lib/iso-date';
 
-import { FIXTURE_CLIENT_ID, FIXTURE_MEASUREMENTS, FIXTURE_REPORT_IDS } from './fixture';
+import {
+  FIXTURE_CLIENT_ID,
+  FIXTURE_INTAKE_WEIGH_IN,
+  FIXTURE_MEASUREMENTS,
+  FIXTURE_REPORT_IDS,
+} from './fixture';
 
 type DevMeasurementsPageProps = {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ range?: string; goal?: string }>;
+  searchParams: Promise<{ range?: string; goal?: string; extra?: string }>;
 };
 
 const RANGES = ['last', 'start'] as const;
@@ -31,6 +36,9 @@ const RANGES = ['last', 'start'] as const;
  * maintaining. Flipping the goal in the URL is how that is checked without
  * six fixtures.
  *
+ * `?extra=weighin` adds the hand-typed row the intake box files — today, at
+ * midnight, carrying only a weight. See the fixture for why it is opt-in.
+ *
  * Dev-only: 404 in production. It ships no data access and no session guard,
  * and must never acquire either — the same contract as `/dev/board`,
  * `/dev/meals`, `/dev/dishes` and `/dev/ui`.
@@ -47,13 +55,19 @@ export default async function DevMeasurementsPage({
   const query = await searchParams;
   const range = isMember(RANGES, query.range) ? query.range : 'last';
 
+  // Newest first, the order `listMeasurements` returns and the panel expects.
+  const measurements =
+    query.extra === 'weighin'
+      ? [FIXTURE_INTAKE_WEIGH_IN, ...FIXTURE_MEASUREMENTS]
+      : FIXTURE_MEASUREMENTS;
+
   return (
     <main className="mx-auto w-full max-w-6xl p-4 sm:p-6">
       <MeasurementsPanel
         clientId={FIXTURE_CLIENT_ID}
         locale={locale}
         today={'2026-09-04' as IsoDate}
-        measurements={FIXTURE_MEASUREMENTS}
+        measurements={measurements}
         subject={{ goal: query.goal ?? 'weight_loss', heightCm: 156 }}
         currentWeightKg={72.2}
         range={range}

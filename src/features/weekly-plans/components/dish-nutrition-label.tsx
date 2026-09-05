@@ -64,6 +64,8 @@ export function DishNutritionLabel({
   categoryLabel,
   totalGrams,
   stacked = false,
+  ringSize,
+  className,
 }: {
   /** Totals for the dish as entered — one serving. */
   totals: NutrientTotals;
@@ -74,18 +76,26 @@ export function DishNutritionLabel({
   totalGrams: number;
   /** Ring above the macros rather than beside them, for a narrow column. */
   stacked?: boolean;
+  /** Optional explicit ring size override ('narrow' = 118px, 'wide' = 190px). */
+  ringSize?: 'narrow' | 'wide';
+  className?: string;
 }) {
   const t = useTranslations('dishEditor.editor');
   const tNutrients = useTranslations('weeklyPlans.nutrients');
 
   const split = energySplit(totals);
-  const ring = stacked ? RING.narrow : RING.wide;
+  const ring = RING[ringSize ?? (stacked ? 'narrow' : 'wide')];
   const kcalPer100g = totalGrams > 0 ? Math.round((totals.kcal.value / totalGrams) * 100) : 0;
 
   return (
     /* `h-full` on both steps: this card is what makes its column end level with
        the one beside it — the recipe on step 2, the two label panels on step 3. */
-    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-background shadow-xs">
+    <section
+      className={cn(
+        'flex flex-col rounded-xl border border-border bg-background shadow-xs',
+        className ?? 'h-full min-h-0 overflow-hidden',
+      )}
+    >
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2.5">
         <h3 className="text-label font-medium">{t('nutritionTitle')}</h3>
         {!empty && (
@@ -102,8 +112,9 @@ export function DishNutritionLabel({
       ) : (
         <div
           className={cn(
-            'flex flex-1 items-center justify-center gap-4 px-4 py-4 sm:gap-5',
-            stacked ? 'flex-col' : 'flex-col sm:flex-row',
+            'flex items-center justify-center gap-4 px-4 py-4 sm:gap-5',
+            stacked ? 'flex-col' : 'flex-row',
+            !className && 'flex-1',
           )}
         >
           <EnergyRing

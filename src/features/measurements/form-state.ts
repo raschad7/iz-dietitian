@@ -48,11 +48,18 @@ export type MeasurementFormState =
     }
   | {
       status: 'error';
-      messageKey:
-        | 'errors.invalid'
-        | 'errors.duplicate'
-        | 'errors.notFound'
-        | 'errors.unexpected';
+      /**
+       * The whole-form complaint.
+       *
+       * ⚠ **`errors.duplicate` is gone, and deliberately.** "There is already a
+       * measurement on that date" was reported here, which rendered it as a red
+       * block at the foot of a dialog fourteen fields long — below the point
+       * most people press Save from, and nowhere near the date that caused it.
+       * It is a field error on `measuredOn` now (`validation.dateTaken`), so it
+       * appears under the control that fixes it, and the form refuses to submit
+       * a date it can already see is taken.
+       */
+      messageKey: 'errors.invalid' | 'errors.notFound' | 'errors.unexpected';
       /** Shaped to match `z.flattenError`, so no cast is needed at either end. */
       fieldErrors?: Record<string, string[] | undefined>;
       /** What was typed, so it survives React's reset. */

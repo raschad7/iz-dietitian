@@ -66,3 +66,43 @@ export const FIXTURE_MEASUREMENTS: ClientMeasurement[] = VISITS.map((visit, inde
 export const FIXTURE_REPORT_IDS = new Set(['fixture-0']);
 
 export const FIXTURE_CLIENT_ID = CLIENT;
+
+/**
+ * The hand-typed weigh-in the intake box files, at `?extra=weighin`.
+ *
+ * `saveIntake` writes one of these whenever the weight on the assessment form
+ * changes: `source: 'manual'`, today's date, minute 0, and **nothing but a
+ * weight** — a dietitian typing into the assessment has no fat mass to give it.
+ * Nothing in the six device visits above is shaped like that, so the panel's
+ * handling of a row with eleven empty columns went unseen, and so did the
+ * collision it causes: the unique index is `(client, date, minute)`, and a
+ * second hand-typed entry on the same day lands on the very same slot. That is
+ * the refusal the record dialog now catches before Save.
+ *
+ * Off by default because it takes the clock-drift caveat with it — `clockDrift`
+ * returns null when either reading sits at midnight, which is correct and would
+ * hide the case this harness exists to show.
+ */
+export const FIXTURE_INTAKE_WEIGH_IN: ClientMeasurement = {
+  ...FIXTURE_MEASUREMENTS[0]!,
+  id: 'fixture-weighin',
+  measuredOn: '2026-09-04' as IsoDate,
+  measuredAtMinute: 0,
+  source: 'manual',
+  weightKg: 71.8,
+  heightCm: null,
+  bodyFatPercent: null,
+  fatMassKg: null,
+  fatFreeMassKg: null,
+  muscleMassKg: null,
+  boneMassKg: null,
+  totalBodyWaterKg: null,
+  totalBodyWaterPercent: null,
+  visceralFatRating: null,
+  basalMetabolicRateKcal: null,
+  metabolicAge: null,
+  waistCm: null,
+  hipCm: null,
+  deviceLabel: null,
+  deviceSubjectId: null,
+};

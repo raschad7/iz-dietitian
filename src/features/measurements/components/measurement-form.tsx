@@ -152,6 +152,26 @@ type MeasurementFormProps = {
   today: IsoDate;
   /** `client_nutrition_profiles.weight_kg` — what the checkbox would replace. */
   currentWeightKg: number | null;
+  /**
+   * When this client's existing readings were taken — every one of them.
+   *
+   * ⚠ **So a collision is caught before Save, not after it.** The unique index
+   * on `(client, date, minute)` used to be the only thing that knew: you picked
+   * a day, filled fourteen boxes, pressed Save, waited for a round trip and got
+   * a red block at the foot of the dialog. The panel holds every measurement —
+   * the answer was three feet up the tree the whole time.
+   *
+   * **Minute, not just date**, because that is what the index actually says and
+   * a form that refuses more than the database does is its own bug. A day can
+   * legitimately hold two rows: the intake weight files a hand-typed row at
+   * midnight, and the machine's own sheet comes in at the clock it printed. That
+   * is the ordinary shape of a first visit, and blocking it would have broken
+   * the flow it belongs to.
+   *
+   * The id is here so the row being corrected is not a collision with itself —
+   * the same `excludeMeasurementId` `measurementExistsAt` takes on the server.
+   */
+  takenSlots: readonly { id: string; measuredOn: IsoDate; measuredAtMinute: number }[];
   /** Editing an existing reading. Absent creates a new one. */
   measurement?: MeasurementFormValues;
   /**
@@ -182,6 +202,7 @@ export function MeasurementForm({
   locale,
   today,
   currentWeightKg,
+  takenSlots,
   measurement,
   report,
   onCancel,
@@ -292,6 +313,27 @@ export function MeasurementForm({
       'kind' in warning && warning.kind === 'heightMismatch',
   );
 
+  /*
+    The collision, said before Save rather than after it.
+
+    Exactly the question `measurementExistsAt` asks on the server — same date,
+    same minute, ignoring the row being corrected — reached without a round trip
+    from a list the panel already had. A dietitian who opens this dialog on a
+    slot they have already recorded finds out while the date is still the thing
+    they are looking at, instead of after filling the form.
+
+    The refused-by-the-server message wins when there is one: it is about the
+    submission that was actually attempted, and this is about what is in the box
+    right now.
+  */
+  const dateTaken = takenSlots.some(
+    (slot) =>
+      slot.measuredOn === measuredOn &&
+      slot.measuredAtMinute === measuredAtMinute &&
+      slot.id !== measurement?.id,
+  );
+  const dateError = errorFor('measuredOn') ?? (dateTaken ? t('validation.dateTaken') : undefined);
+
   // Keyed on the refusal count so every uncontrolled field remounts and
   // re-seeds — see the long note in `client-form.tsx` on why this is a counter
   // and not the values themselves.
@@ -367,9 +409,9 @@ export function MeasurementForm({
                 onChange={setMeasuredOn}
                 locale={locale}
                 max={today}
-                aria-invalid={Boolean(errorFor('measuredOn'))}
+                aria-invalid={Boolean(dateError)}
               />
-              <FieldError>{errorFor('measuredOn')}</FieldError>
+              <FieldError>{dateError}</FieldError>
             </Field>
           </div>
         </FormSection>
@@ -477,7 +519,15 @@ export function MeasurementForm({
         <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
           {tCommon('cancel')}
         </Button>
-        <SubmitButton label={t('save')} />
+        {/*
+          Blocked while the date is one that already has a reading. A press that
+          can only come back refused is worse than a control that says it will
+          not go: the refusal costs a round trip and arrives somewhere else on
+          the screen, and this dialog has already had one bug where Save
+          appeared to do nothing at all. The reason is under the date box, which
+          is also where the fix is.
+        */}
+        <SubmitButton label={t('save')} disabled={dateTaken} />
       </DialogFooter>
     </form>
   );
@@ -561,9 +611,13 @@ const VISIBLE_FIELDS = new Set<string>([
  *
  * `errors.invalid` is normally suppressed because the fields are already saying
  * it, one by one — restating "some figures need checking" above fourteen inputs
- * that each carry their own message adds noise, not information. The other
- * three (a duplicate, a vanished row, an unexpected failure) have no field to
- * attach to and appear here.
+ * that each carry their own message adds noise, not information. The other two
+ * (a vanished row, an unexpected failure) have no field to attach to and appear
+ * here.
+ *
+ * A same-day collision used to be a third. It is `validation.dateTaken` on
+ * `measuredOn` now, so it renders under the date box like every other complaint
+ * about the date — see `MeasurementFormState`.
  *
  * ⚠ **Unless the refusal names a field this form does not draw.** That
  * suppression assumed every field error lands beside a visible box, and the day
@@ -605,12 +659,12 @@ function FormMessage({ state }: { state: MeasurementFormState }) {
   return <Callout tone="medical">{t(state.messageKey)}</Callout>;
 }
 
-function SubmitButton({ label }: { label: string }) {
+function SubmitButton({ label, disabled }: { label: string; disabled?: boolean }) {
   const tCommon = useTranslations('common');
   const { pending } = useFormStatus();
 
   return (
-    <Button type="submit" size="sm" disabled={pending}>
+    <Button type="submit" size="sm" disabled={pending || disabled}>
       {pending ? tCommon('loading') : label}
     </Button>
   );
