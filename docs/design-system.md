@@ -93,7 +93,7 @@ use the `Select` parts for a rich list and `SelectField` for a flat option list.
 - The dietitian remains in control of generated, reviewed, and published data.
 - Green identifies brand and action; it is not a universal data color.
 - The light green accent is a scarce fill, not readable foreground ink.
-- Medical risk uses red. Attention uses amber. Missing or incomplete data is
+- Medical risk uses `--red`. Attention uses `--amber-*`. Missing or incomplete data is
   not automatically an error.
 - One component structure serves Arabic RTL and English LTR.
 - Geometry stays stable on hover and focus.
@@ -107,9 +107,11 @@ use the `Select` parts for a rich list and `SelectField` for a flat option list.
 
 [`src/app/globals.css`](../src/app/globals.css) contains four relevant layers:
 
-1. Raw primitives such as `--green-*`, `--n-*`, `--c-*`, `--amber-*`,
-   `--flame-*`, and the single-value `--red` with its derived `--red-tint`,
-   `--red-light`, and `--red-deep`.
+1. Raw primitives: `--green-*` (11 steps), `--c-*` (the cool neutral ramp —
+   50/100/200/300/400/500/600, only the stops the app draws with), `--n-*`
+   (warm, now near-black ink and the `viz-seq-*` scale), `--amber-*`,
+   `--flame-*`, `--blue*`, and the single-value `--red` with its derived
+   `--red-tint`, `--red-light`, and `--red-deep`.
 2. `@theme inline`, which registers semantic Tailwind utilities.
 3. Light, dark, portal, sidebar, and planner semantic assignments.
 4. Shared component utilities such as `.q-field` and `.planner-theme`.
@@ -128,9 +130,9 @@ data or typed style helpers, not in reusable component classes.
 |---|---|---|
 | Primary | `--green-*` | Primary actions, links, active states, actionable emphasis |
 | Accent | `--green-*` (light steps) | Scarce fills, completion emphasis, chart range edge |
-| Warm neutrals | `--n-*` | Text, borders, cards, shadows, most chart marks |
-| Cool neutrals | `--c-*` | Muted surfaces, hover fills, sidebar, planner grid |
-| Attention | amber | Follow-up, caution, incomplete information that needs action |
+| Cool neutrals | `--c-*` | **Every grey**: surfaces, hover fills, edges, secondary ink, the sidebar, the planner grid |
+| Warm neutrals | `--n-*` | Near-black body ink (`n-900`), white (`n-0`), and the `viz-seq-*` chart scale — nothing else |
+| Attention | `--amber-*` | Follow-up, caution, incomplete information that needs action |
 | Medical/destructive | `--red` | Allergies, contraindications, destructive actions |
 | Completed-day accent | `--flame-*` | Portal completion marks only; one warm accent per screen |
 
@@ -150,6 +152,25 @@ Rules:
   `--red-tint` is the fill red ink sits on, `--red-light` is what the dark theme
   draws it in, and `--red-deep` is where a solid red goes under the pointer. Do
   not add a red stop by hand; derive it, or use one of the three.
+- **The red is deliberately not a loud one.** `oklch(0.512 0.145 27)` /
+  `#AA3D36`. It was `#BF180D`, which carried more chroma than anything else in
+  the palette; in a clinic application red means an allergy, a contraindication
+  or a deletion, and at that saturation an ordinary confirmation read as an
+  incident. Same lightness, less shout, and every ratio it carries held.
+- **The greys are cool. All of them.** `--muted`, `--accent`, `--input`, the
+  sidebar and the planner board crossed to `--c-*` one at a time; `--border`,
+  `--muted-foreground`, `--placeholder`, `--icon-chip`, `--status-incomplete-*`
+  and `--viz-cat-none` have now followed, so a warm fill can no longer end up
+  beside a cool one. Two neutral families touching at matched lightness reads as
+  a rendering fault, not a distinction — the register's payment column had a
+  cream "partly paid" chip next to a grey "no invoices" one at 1.07:1. The warm
+  ramp keeps `n-900` (body ink), `n-0` (white) and the `viz-seq-*` scale.
+- **Amber and flame are one hue each, and they are not each other's hue.** Amber
+  is H78, flame is H52. Both ramps used to drift 10-40° between their light and
+  dark stops, which left `--amber-100` and `--flame-100` at 1.03:1 and
+  `--amber-700` and `--flame-700` at 1.05:1 — the same colour for "needs
+  follow-up" and "day completed". Add a stop by moving along L and C at the
+  family's hue; never by picking a hex.
 - **There is one green family.** A second, yellow-green "lime" accent ramp
   (`#CBEA24` and neighbours) was removed; every green surface, fill, edge and
   mark now resolves to a step of `--green-*`. Do not reintroduce a second green,
@@ -165,7 +186,7 @@ Rules:
 |---|---|
 | On track | `Badge variant="onTrack"` or `StatusDot status="onTrack"` |
 | Needs follow-up | `attention` |
-| Missing/incomplete | `incomplete` |
+| Missing/incomplete | `incomplete` — cool neutral with a dashed edge, the same fill as `muted`; the dash is the distinction |
 | Not recorded and owed | `unrecorded` badge |
 | Medical flag | `medical` |
 | Rest | `rest` |

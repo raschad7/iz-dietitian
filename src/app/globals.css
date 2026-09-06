@@ -143,6 +143,15 @@
   --c-200: #E5E7EB;
   --c-300: #D1D5DB;
   /*
+   * The mid-grey mark. Added when the last warm surfaces crossed over: the
+   * planner's "no protein" dot and its "other side" tag were `--n-400`, and
+   * there was no cool stop at that lightness to take them — c-300 is a step
+   * too pale to read as a mark and c-500 a step too dark. L=0.714 against
+   * n-400's 0.717, so every one of those marks kept its weight and changed
+   * only its cast.
+   */
+  --c-400: #9CA3AF;
+  /*
    * The muted-label step. It exists for one job — the rail's section headings,
    * which have to read as *quieter* than the destinations under them without
    * dropping below the 4.5:1 that 12px text owes a reader. `--sidebar-foreground`
@@ -153,11 +162,29 @@
   --c-500: #6B7280;
   --c-600: #4B5563;
 
-  /* ── Support: amber = attention, red = medical/destructive (the only alarm) ── */
-  --amber-100: #FBF0D8;
-  --amber-300: #E8C46A;
-  --amber-600: #9B6A0C;
-  --amber-700: #7A5209;
+  /*
+   * ── Amber: attention, and it has to look like attention ──
+   *
+   * One hue through the ramp — H78 in OKLCH, a honey gold. It used to drift:
+   * the two light stops sat at H86 and the two dark ones at H75, so the fill
+   * was a yellow and the ink on it was an olive brown, and the pair read less
+   * like a warning than like paper that had been left in the sun. The fill was
+   * `#FBF0D8` at C=0.034 — barely a colour at all, which is why an unpaid
+   * invoice chip looked no more urgent than a neutral one.
+   *
+   * Now the fill carries C=0.055 and the ink C=0.120 at the same hue, so the
+   * chip reads as one warm material rather than two. amber-700 on amber-100 is
+   * 5.89:1, and 6.89:1 on white; amber-600, which draws chart series 3, the
+   * poultry protein mark and two intake glyphs, is 4.71:1 on white.
+   *
+   * ⚠ Hue is the family's identity here, not lightness — see `--flame-*`, which
+   * sits 20-25° further round at H52 and means something else entirely. Add a
+   * stop by moving along L and C at H78; do not add one by picking a hex.
+   */
+  --amber-100: #FFEBC6;
+  --amber-300: #F7BD5E;
+  --amber-600: #9B6A00;
+  --amber-700: #7F5000;
 
   /*
    * ── Red: the system’s one alarm colour ──
@@ -172,8 +199,18 @@
    * replaces was 6.84:1, so this gives up a little headroom and still clears
    * AA comfortably.
    *
-   * The two places a red cannot be *this* red are derived from it rather than
-   * chosen beside it, so that both follow it if it ever moves:
+   * ⚠ **It is quieter than it was, on purpose.** This was
+   * `oklch(0.5148 0.1993 29.64)` — `#BF180D`, a fire-engine red carrying more
+   * chroma than anything else in the palette by a distance. In a clinic
+   * application red is not excitement, it is an allergy, a contraindication and
+   * a deletion, and a colour that loud makes an ordinary confirmation feel like
+   * an incident. Dropping C from 0.199 to 0.145 at the same lightness leaves a
+   * brick red that is unmistakably still red and stops shouting; every ratio it
+   * carries is within 0.15 of what it was, and the solid `destructive` button
+   * is the case that mattered most (white on it, 6.12:1).
+   *
+   * The three places a red cannot be *this* red are derived from it rather than
+   * chosen beside it, so that all three follow it if it ever moves:
    *
    * - --red-tint is the fill that red ink sits on: destructive-subtle, and
    *   the medical status chip. --red on it is 5.38:1.
@@ -181,7 +218,7 @@
    *   2.50:1 on the dark card and would be unreadable there; lightened it is
    *   7.58:1, a shade better than the clay-300 it replaces.
    */
-  --red: oklch(0.5148 0.1993 29.64); /* #BF180D */
+  --red: oklch(0.512 0.145 27); /* #AA3D36 */
   --red-tint: color-mix(in oklab, var(--red) 10%, var(--n-0));
   --red-light: color-mix(in oklab, var(--red) 45%, var(--n-0));
   /*
@@ -223,16 +260,29 @@
    *
    * Not amber. Amber already means "needs follow-up", and a finished day
    * carrying the same hue as a problem is the one confusion this scale cannot
-   * afford. Flame is warmer and more saturated than amber so the two read
-   * apart at the 28px the portal's week strip draws them at.
+   * afford.
    *
-   * flame-700 on flame-100 is 5.6:1. flame-500 is a graphic fill only —
-   * it carries icons and rings, never text.
+   * ⚠ **That was the claim, and the ramp was not keeping it.** amber-100 and
+   * flame-100 measured 1.03:1 against each other and amber-700 and flame-700
+   * 1.05:1 — the same colour twice, for two meanings the scale exists to tell
+   * apart. Flame is one hue now, H52, a true orange, which puts a clear 20-25°
+   * between it and amber's H78 at every stop.
+   *
+   * ⚠ **And the ramp ran backwards in the middle.** flame-500 was
+   * `oklch(0.852 0.199 91.936)` — `#FDC700`, a pure *yellow*, lighter than the
+   * flame-300 above it and 40° off the hue of every other stop in its own
+   * family. It draws `--status-complete-mark` while flame-300 draws
+   * `--status-complete-mark-soft`, so the mark that is meant to be the stronger
+   * of the two was the paler one. Lightness now falls monotonically —
+   * .941 › .789 › .699 › .490 — and "soft" is softer than "mark".
+   *
+   * flame-700 on flame-100 is 5.5:1. flame-500 is a graphic fill only — it
+   * carries icons and rings, never text.
    */
-  --flame-100: #FBEBD9;
-  --flame-300: #F2A03D;
-  --flame-500: oklch(0.852 0.199 91.936);
-  --flame-700: #93490D;
+  --flame-100: #FFE6D5;
+  --flame-300: #FEA065;
+  --flame-500: #F07813;
+  --flame-700: #984500;
 
   /*
    * ── Tag identity hues: teal, plum, indigo ──
@@ -978,7 +1028,16 @@
    * a hair firmer than the warm n-50 (1.04:1) this replaced.
    */
   --muted: var(--c-100);
-  --muted-foreground: var(--n-600);     /* text.secondary — 6.38:1 floor */
+  /*
+   * text.secondary. c-600, not the warm n-600 it was.
+   *
+   * The last of the migration this file has been running one surface at a time
+   * — `--muted`, `--accent`, `--input`, the whole sidebar and the whole planner
+   * board had already crossed, and what was left was a warm cast on the ink
+   * *over* cool fills. It reads better and it measures better: 7.56:1 on white
+   * against n-600's 6.61:1.
+   */
+  --muted-foreground: var(--c-600);     /* text.secondary — 7.56:1 */
 
   /*
    * Placeholder text — a hint, not an answer.
@@ -993,7 +1052,14 @@
    * faded to. It stays a step darker than `--input`: the hint is still text
    * and has to out-read the box it sits in.
    */
-  --placeholder: var(--n-500);
+  /*
+   * ⚠ **This was failing, and moving families is what fixed it.** The warm
+   * n-500 (`#837F6E`) measures 4.02:1 on a white field — under the 4.5:1 that
+   * placeholder text owes a reader, in every input in the application. c-500 is
+   * 4.83:1 at the same visual weight, and is already the stop `--control-edge`
+   * uses for the same reason.
+   */
+  --placeholder: var(--c-500);
 
 
   /*
@@ -1006,19 +1072,20 @@
    * under green-500), which put a saturated olive dot beside every heading on
    * every screen — a dozen of them down a settings page, all saying nothing
    * about the row they belong to. A disc is a *place* for a glyph, not a
-   * status, so it is drawn in the warm neutral ramp and brand colour is left
-   * to the things that actually mean something by being olive.
+   * status, so it is drawn in the neutral ramp and brand colour is left to the
+   * things that actually mean something by being green.
    *
-   * n-600 on n-50 is 6.15:1 — above the 4.5:1 the glyph needs, and the same
-   * ink as `--muted-foreground`, so a disc icon and the secondary text beside
-   * it read as one weight.
+   * c-600 on c-50 is 6.93:1 — above the 4.5:1 the glyph needs, and the same ink
+   * as `--muted-foreground`, so a disc icon and the secondary text beside it
+   * read as one weight. Both stops crossed from the warm ramp with that pairing
+   * intact.
    *
-   * ⚠ Not for a disc sitting on a tinted or sunken ground. n-50 is a hair off
+   * ⚠ Not for a disc sitting on a tinted or sunken ground. c-50 is a hair off
    * white and vanishes on anything that is not `--card`; `SettingsAssurance`
    * keeps `primary-subtle` for exactly that reason and says so in place.
    */
-  --icon-chip: var(--n-50);             /* bg.icon — the plate */
-  --icon-chip-foreground: var(--n-600); /* the glyph on it — 6.15:1 */
+  --icon-chip: var(--c-50);             /* bg.icon — the plate */
+  --icon-chip-foreground: var(--c-600); /* the glyph on it — 6.93:1 */
 
 
   /*
@@ -1072,7 +1139,17 @@
   --spinner: var(--green-500);
 
   /* Border & focus */
-  --border: var(--n-200);               /* border.divider */
+  /*
+   * border.divider. c-200, matching every fill it is drawn beside.
+   *
+   * The planner board and the sidebar both overrode this to c-200 already, each
+   * with its own note about a warm hairline tinting a cool surface; a board is
+   * mostly hairlines, and thirty-five cards edged in warm n-200 tinted the
+   * whole page cream. The same is true of the register, the settings pages and
+   * every card in the app — they simply had fewer edges to make it obvious.
+   * Same lightness, cool cast, and the two scope overrides are now redundant.
+   */
+  --border: var(--c-200);               /* border.divider */
   /*
    * A field's resting edge. It was n-500 — the same stop as `--placeholder`,
    * chosen so box and hint read as one piece of chrome and so the boundary
@@ -1145,9 +1222,23 @@
   --status-on-track-bg: var(--green-100);
   --status-attention-fg: var(--amber-700);
   --status-attention-bg: var(--amber-100);
-  /* Missed/incomplete is neutral, never red — a missed day is information. */
-  --status-incomplete-fg: var(--n-700);
-  --status-incomplete-bg: var(--n-100);
+  /*
+   * Missed/incomplete is neutral, never red — a missed day is information.
+   *
+   * ⚠ **Neutral, and the *same* neutral as everything else.** These were n-100
+   * and n-700 while `--muted` had already gone cool, so the register's payment
+   * column drew a dashed cream chip ("partly paid") directly beside a grey one
+   * ("no invoices") at the same lightness and the opposite hue — 1.07:1 between
+   * the two fills, which is not a distinction, it is a rendering fault. Two
+   * neutral families touching is the one mixture this palette's own rules
+   * forbid, and a column of status chips is where they touch most.
+   *
+   * c-600 on c-100 is 6.87:1. Lower than the 8.33:1 the warm pair measured, and
+   * the right trade: both clear AA comfortably, and only one of them belongs to
+   * the same family as the chip beside it.
+   */
+  --status-incomplete-fg: var(--c-600);
+  --status-incomplete-bg: var(--c-100);
   --status-medical-fg: var(--red);
   --status-medical-bg: var(--red-tint);
   --status-rest-fg: var(--green-700);
@@ -1202,7 +1293,7 @@
   --planner-protein-nuts: var(--plum-500);
   /* Grey, and deliberately: a dish with no protein worth naming should not be
      competing with the seven that have one. */
-  --planner-protein-none: var(--n-400);
+  --planner-protein-none: var(--c-400);
 
   /*
    * ── What is standing beside the meal ──
@@ -1227,7 +1318,7 @@
   --planner-side-vegetables: var(--teal-500);
   /* Grey, like `none` above: an unrecognised side should not be shouting a hue
      it has not earned. */
-  --planner-side-other: var(--n-400);
+  --planner-side-other: var(--c-400);
 
   /*
    * ── The lifestyle record's icon tints ──
@@ -1264,7 +1355,7 @@
      glyphs resolved to nothing and drew in the inherited ink — the two
      uncoloured icons on a card whose whole point is that colour finds the row.
      Both now take the stop the palette actually carries for the same idea. */
-  --intake-icon-smoking: var(--n-600);
+  --intake-icon-smoking: var(--c-600);
   --intake-icon-caffeine: var(--flame-700);
   --intake-icon-sweet-drinks: var(--plum-500);
   --intake-icon-fast-food: var(--flame-300);
@@ -1296,7 +1387,7 @@
    * Semantic rather than palette because the card has to invert — a primitive
    * ramp would stay cream on an green-950 canvas.
    */
-  --progress-card-from: var(--n-25);
+  --progress-card-from: var(--c-50);
   --progress-card-via: var(--green-50);
   --progress-card-to: var(--green-100);
   --progress-card-edge: var(--green-200);
@@ -1413,7 +1504,7 @@
    */
   --viz-cat-1: var(--green-100);
   --viz-cat-2: var(--green-50);
-  --viz-cat-none: var(--n-300);
+  --viz-cat-none: var(--c-300);
 
   /* The dashboard's stat cards. See the note in `@theme` above. */
   --viz-brand: var(--green-500);
@@ -1716,8 +1807,8 @@
   --status-on-track-bg: var(--green-100);
   --status-attention-fg: var(--amber-700);
   --status-attention-bg: var(--amber-100);
-  --status-incomplete-fg: var(--n-700);
-  --status-incomplete-bg: var(--n-100);
+  --status-incomplete-fg: var(--c-600);
+  --status-incomplete-bg: var(--c-100);
   --status-medical-fg: var(--red);
   --status-medical-bg: var(--red-tint);
   --status-rest-fg: var(--green-700);
@@ -1912,8 +2003,8 @@
     --status-on-track-bg: var(--green-100);
     --status-attention-fg: var(--amber-700);
     --status-attention-bg: var(--amber-100);
-    --status-incomplete-fg: var(--n-700);
-    --status-incomplete-bg: var(--n-100);
+    --status-incomplete-fg: var(--c-600);
+    --status-incomplete-bg: var(--c-100);
     --status-medical-fg: var(--red);
     --status-medical-bg: var(--red-tint);
     --status-rest-fg: var(--green-700);
@@ -2030,10 +2121,16 @@
  * are whole surfaces, not stray accents.
  */
 :root .planner-theme {
-  --border: var(--c-200);               /* border.divider — the warm n-200's cool twin */
-  --muted: var(--c-50);                 /* bg.sunken — now the app-wide value too */
-  --accent: var(--c-100);               /* ambient hover tint */
-  --muted-foreground: var(--c-600);     /* text.secondary — 7.46:1 on white, clears the 6.38:1 floor n-600 set */
+  /*
+   * ⚠ Two of the four this block used to carry are gone, because the root
+   * caught up: `--border` and `--muted-foreground` are c-200 and c-600
+   * app-wide now, so restating them here would be a scope override that
+   * overrides nothing. What is left is a genuine difference of degree — the
+   * board takes a *lighter* sunken fill and a *lighter* hover than the rest of
+   * the application, because it draws far more of both.
+   */
+  --muted: var(--c-50);                 /* bg.sunken — one step under the app's c-100 */
+  --accent: var(--c-100);               /* ambient hover tint — one step under the app's c-200 */
 
   /* The `--planner-tag-*` stops used to be redeclared here. They now live at
      `:root` so the dish catalog can paint the same hues — see the block there.

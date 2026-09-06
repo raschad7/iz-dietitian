@@ -20,7 +20,7 @@
  * These are `--background`, not `--primary`. The staff app's top edge is its
  * app bar, which is the page background rather than a brand fill — a green
  * status bar would be a band of colour the app itself never shows. The portal
- * uses `--primary` because its own header genuinely is olive.
+ * uses `--primary` because its own header genuinely is the brand green.
  */
 
 /** `--background` in light mode: `--n-0`. */

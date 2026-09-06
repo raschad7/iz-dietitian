@@ -258,7 +258,7 @@ function page(app: App, locale: 'ar' | 'en', faces: Face[]): string {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#72AE34" />
+    <meta name="theme-color" content="#75cf48" />
     <title>${t.title}</title>
     <style>
 ${faces.map(faceCss).join('\n\n')}
@@ -266,8 +266,8 @@ ${faces.map(faceCss).join('\n\n')}
       :root {
         --bg: #ffffff; /* --background / --n-0 */
         --fg: #1c1b17; /* --foreground / --n-900 */
-        --muted: #605d50; /* --muted-foreground / --n-600 */
-        --border: #e2dfd3; /* --border / --n-200 */
+        --muted: #4b5563; /* --muted-foreground / --c-600 */
+        --border: #e5e7eb; /* --border / --c-200 */
         --tint: #f1fbea; /* --green-50, the hover wash */
         --brand: #75cf48; /* --primary / --green-400, and the mark's own fill */
         --ink: #266805; /* the mark's own ink — eyes and the control glyph */

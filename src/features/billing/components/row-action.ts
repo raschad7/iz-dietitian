@@ -87,7 +87,7 @@ export const ROW_ACTION_CLASS =
  *
  * ## The three tokens
  *
- * - `border-border` — `--n-200`, the divider grey. Present at rest and pinned
+ * - `border-border` — `--c-200`, the divider grey. Present at rest and pinned
  *   on hover, so the outline does not change colour as the fill arrives; the
  *   fill alone is the feedback.
  * - `text-foreground` — the app's near-black body ink rather than the button

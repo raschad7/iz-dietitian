@@ -9,8 +9,12 @@ import { cn } from "@/lib/utils"
  *
  * Status variants are deliberately not a traffic light. `incomplete` is
  * neutral, never red — a missed day is information, not a failure. `medical`
- * (clay) is the only true alarm colour; don't reach for `destructive` on a
+ * (`--red`) is the only true alarm colour; don't reach for `destructive` on a
  * badge to mean "bad", reach for the status that actually describes it.
+ *
+ * ⚠ Older comments in this repository call that colour **clay** and the brand
+ * green **olive**. Both are names from the palette before the rebrand and
+ * neither ramp exists: there is one green (`--green-*`) and one red (`--red`).
  */
 const badgeVariants = cva(
   "inline-flex w-fit shrink-0 items-center gap-1 rounded-full border px-2.5 py-0.5 text-label font-medium whitespace-nowrap transition-colors [&_svg]:pointer-events-none [&_svg]:size-3",
@@ -27,6 +31,14 @@ const badgeVariants = cva(
         /*
          * Dashed, because "incomplete" is an absence rather than an event. The
          * fill and text stay neutral.
+         *
+         * They are now the *same* neutral as `muted` above — c-100 under c-600
+         * — and the dash is the whole of the difference, which is the intended
+         * reading: both are neutral states and only one of them is a gap. They
+         * used to differ by being the warm ramp against `muted`'s cool one, so
+         * the register's payment column drew a cream chip beside a grey one at
+         * matched lightness, which read as a rendering fault rather than as a
+         * distinction. See `--status-incomplete-bg` in `globals.css`.
          */
         incomplete:
           "border-dashed border-status-incomplete-fg/40 bg-status-incomplete-bg text-status-incomplete-fg",
@@ -38,13 +50,13 @@ const badgeVariants = cva(
          * `attention`'s amber, because unlike a missed day this one is owed to
          * someone: an allergy list with nothing in it is a question the clinic
          * has not answered. Amber is §Status's "needs follow-up" and it is the
-         * warmest this scale goes before clay.
+         * warmest this scale goes before red.
          *
-         * ⚠ **Not clay, and this is the one place that matters most.** Clay is
+         * ⚠ **Not red, and this is the one place that matters most.** Red is
          * the system's only true alarm colour and §Status reserves it for a real
-         * allergy, condition or contraindication — so a clay chip on the
+         * allergy, condition or contraindication — so a red chip on the
          * *allergies* row would state the opposite of what "not recorded" means.
-         * Amber says the field is waiting; clay would say the client has one.
+         * Amber says the field is waiting; red would say the client has one.
          */
         unrecorded:
           "border-dashed border-status-attention-fg/40 bg-status-attention-bg text-status-attention-fg",
