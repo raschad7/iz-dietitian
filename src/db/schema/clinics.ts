@@ -76,6 +76,64 @@ export const clinics = pgTable(
     openMinute: integer('open_minute').notNull().default(8 * 60),
     closeMinute: integer('close_minute').notNull().default(18 * 60),
 
+    /**
+     * When the platform turned this clinic off, or null while it is running.
+     *
+     * **A timestamp rather than a boolean**, for the same reason
+     * `onboarding_completed_at` is one: "is it suspended" and "since when" are
+     * the same question asked twice, and a boolean can only answer the first.
+     *
+     * Read by `requireStaffSession`, which is what makes it bite: without that
+     * check the switch on the platform screen would change a column and nothing
+     * else, and a suspended clinic would carry on working. Staff are turned away
+     * at the guard; the clinic's CLIENTS are deliberately not — see the note on
+     * that function. Set only from the platform area, never by a clinic itself.
+     */
+    suspendedAt: timestamp('suspended_at', { withTimezone: true }),
+
+    /**
+     * Which subscription the practice is on — `trial`, `starter`, `pro`,
+     * `clinic`. The list itself lives in `src/features/admin/plans.ts`.
+     *
+     * `text` validated in the feature rather than a `pgEnum`, following
+     * `client_payments.method` and `clients.goal`: a price list is exactly the
+     * thing that grows, and adding a tier should not be a migration.
+     *
+     * Not nullable, and defaulted: every clinic is on some plan from the moment
+     * it exists, and `null` here would be a fourth state meaning "we do not
+     * know what they pay", which is never a fact worth storing about a customer.
+     */
+    plan: text('plan').notNull().default('trial'),
+
+    /**
+     * When the current plan started. Null on a clinic that has never been moved
+     * off the default, which is the same thing as "since it signed up".
+     */
+    planStartedAt: timestamp('plan_started_at', { withTimezone: true }),
+
+    /**
+     * When the trial runs out. Null on a paid plan, and on a trial with no
+     * deadline set yet.
+     *
+     * Nothing enforces this — an expired trial does not lock anyone out. It is
+     * a figure the platform screen sorts by so the person who runs the
+     * deployment can go and have the conversation. Making it bite is a product
+     * decision with a refund policy attached, not a column.
+     */
+    trialEndsAt: timestamp('trial_ends_at', { withTimezone: true }),
+
+    /**
+     * What this clinic actually pays each month, in minor units — agorot, like
+     * every amount in `billing.ts`, and for the reasons its header gives.
+     *
+     * Null means "whatever the tier lists", which is the ordinary case. A value
+     * here is a negotiated price, and it is stored on the clinic rather than
+     * derived from the tier for the same reason a charge stores its own amount:
+     * raising the list price of `pro` next year must not silently rewrite what
+     * a clinic on a fixed deal is recorded as paying.
+     */
+    planPriceMinor: integer('plan_price_minor'),
+
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -86,6 +144,9 @@ export const clinics = pgTable(
       'clinics_hours_ordered',
       sql`${table.openMinute} >= 0 AND ${table.closeMinute} <= 1440 AND ${table.openMinute} < ${table.closeMinute}`,
     ),
+    /* A negotiated price of zero is a real arrangement — a pilot, a favour.
+       A negative one is a typo that would subtract from platform revenue. */
+    check('clinics_plan_price_non_negative', sql`${table.planPriceMinor} >= 0`),
   ],
 );
 

@@ -60,6 +60,11 @@ describe('areaHomePath', () => {
     expect(areaHomePath('en', 'client')).toBe('/en/portal');
   });
 
+  test('sends the platform owner to the admin area', () => {
+    expect(areaHomePath('ar', 'admin')).toBe('/ar/admin');
+    expect(areaHomePath('en', 'admin')).toBe('/en/admin');
+  });
+
   test('agrees with the fallback resolveSafeRedirect uses', () => {
     // The same mapping, reached two ways. If these ever disagree, the locale
     // root and a rejected `?redirect=` would send the same person to different
@@ -75,16 +80,24 @@ describe('areaHomePath', () => {
  * function for why the fallback is safe.
  */
 describe('toUserRole', () => {
-  test('passes the two real values through', () => {
+  test('passes the three real values through', () => {
     expect(toUserRole('staff')).toBe('staff');
     expect(toUserRole('client')).toBe('client');
+    expect(toUserRole('admin')).toBe('admin');
   });
 
+  /**
+   * `'admin'` used to be the example of an unrecognised role here, back when
+   * there were two. It is a real one now, and the assertion that it resolved to
+   * staff was the only thing in the suite that failed when the platform area
+   * was added — which is what it was there to do.
+   */
   test('falls back to the column default for anything else', () => {
     expect(toUserRole(null)).toBe('staff');
     expect(toUserRole(undefined)).toBe('staff');
     expect(toUserRole('')).toBe('staff');
-    expect(toUserRole('admin')).toBe('staff');
+    expect(toUserRole('superadmin')).toBe('staff');
+    expect(toUserRole('owner')).toBe('staff');
   });
 
   test('is exact about `client` — no trimming, no case folding', () => {
@@ -94,5 +107,15 @@ describe('toUserRole', () => {
     // the same place.
     expect(toUserRole('Client')).toBe('staff');
     expect(toUserRole(' client')).toBe('staff');
+  });
+
+  /**
+   * The same exactness for the platform role, and it matters more here: staff
+   * is the least-privileged of the three areas a non-client can be pointed at,
+   * so a near-miss must never resolve *up* to admin.
+   */
+  test('is exact about `admin` too', () => {
+    expect(toUserRole('Admin')).toBe('staff');
+    expect(toUserRole('admin ')).toBe('staff');
   });
 });

@@ -72,6 +72,63 @@ const config = [
       'enzyme/no-raw-hex': 'off',
     },
   },
+
+  {
+    /*
+      The tenant boundary, enforced rather than only documented.
+
+      `src/features/admin/queries.ts` is the one module in the application whose
+      reads deliberately omit a `clinic_id` filter. That is correct behind
+      `requireAdminSession()`, which grants a session with no clinic of its own,
+      and it is a leak between tenants absolutely anywhere else — so the import
+      is banned everywhere and re-allowed for the admin area alone, below.
+
+      A ban rather than a convention because the failure is silent: an unscoped
+      query imported into a staff screen returns *more* rows, not an error, and
+      a reviewer has to already know this file is special to catch it.
+
+      The whole folder is listed, not just `queries.ts`. `ai-usage.ts` and
+      `pricing.ts` are pure and would be harmless to import, but "which files in
+      here are safe" is exactly the judgement this rule exists to remove.
+    */
+    files: ['src/**/*.{ts,tsx}'],
+    // A single-star path segment, NOT the literal `[locale]` directory name.
+    //
+    // These patterns are globs, and square brackets in a glob are a character
+    // class: `[locale]` matches one character out of l, o, c, a, e — never the
+    // directory actually called that. Written the obvious way the exemption
+    // silently covered nothing, and the admin screens were reported against
+    // their own rule. A star matches the one segment whatever it is named.
+    //
+    // `dev/admin` is the third entry and the only one that is not the platform
+    // area itself. It is the harness that renders those screens' components over
+    // a fixture, and it exists because everything under /admin sits behind
+    // `requireAdminSession` — so without it the metric row, the ranked charts
+    // and the activity feed are the one part of the product nobody can look at
+    // while changing it. Three shipped visual bugs were found the first time it
+    // was pointed at them.
+    //
+    // ⚠ The exemption is safe **because every route under `src/app/*/dev/`
+    // calls `notFound()` when `NODE_ENV === 'production'`**, so nothing there
+    // can serve a row to anyone on a deployment, scoped or not. That guard is
+    // the condition of this line: a dev route that loses it takes this
+    // exemption with it.
+    ignores: ['src/features/admin/**', 'src/app/*/admin/**', 'src/app/*/dev/admin/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/features/admin/*', '**/features/admin/*'],
+              message:
+                'src/features/admin/ holds the platform area’s cross-clinic reads. Importing it outside /admin escapes the tenant boundary — every other screen must read through a clinic-scoped query. See "The platform area" in docs/architecture.md.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 ];
 
 export default config;

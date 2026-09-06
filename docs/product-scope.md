@@ -12,9 +12,10 @@ The current repository includes:
 - A clinic client roster and client profiles
 - Appointment booking and calendar views
 - A staff dashboard
-<<<<<<< HEAD
-- Nutrition profiles and AI-assisted weekly plans based on a controlled dish
-  catalog
+- Nutrition profiles and AI-assisted weekly plans built from a canonical food
+  catalog and an editable dish catalog, downloadable from the plan board as a
+  client handout in PDF or Word, carrying each meal's portions and its
+  alternatives
 - A manual subscriber ledger: what each subscriber was billed, what they paid,
   and the balance between the two
 - A per-clinic price list for the services on offer, set by the dietitian in
@@ -24,23 +25,21 @@ The current repository includes:
 - A free first consultation for every subscriber. The first one is recorded at
   zero and every one after it at the price above; the zero row is what makes
   the second chargeable, so a free visit is written down rather than skipped
-- A client portal for appointments, profile details, and published plans
-=======
-- Nutrition profiles and AI-assisted weekly plans built from a canonical food
-  catalog and an editable dish catalog, downloadable from the plan board as a
-  client handout in PDF or Word, carrying each meal's portions and its
-  alternatives
 - A client portal for appointments, profile details, and published plans,
   installable as a PWA
 - Clinic onboarding, clinic and account settings, and in-app notifications
 - A guided in-app user tour
->>>>>>> 2fc96edfef517fccc430d17ca971bb46fc56007a
 - Body composition tracking across visits: readings entered by hand or read
   from a body composition analyser's PDF report, compared against the previous
   visit and against the first, and optionally shown to the client in their own
   portal
 - Optional WhatsApp reminders, confirmations, replies, and portal credentials
 - Arabic and English interfaces with RTL support
+- A platform area for whoever runs the deployment, above every clinic: a
+  registry with a health verdict per practice and the reasons behind it, the
+  account register, AI spend per clinic, subscription plans and what they come
+  to, shared-catalog editing, one search across all three, and an audit log of
+  every privileged action with the reason it was taken
 
 ## Product boundaries
 
@@ -57,6 +56,12 @@ The repository does not currently provide:
 - Tax invoicing. A printed bill states what this clinic recorded billing and
   receiving; it carries no VAT number and no fiscal sequence, and it is not a
   substitute for whatever the clinic's accountant issues.
+- Subscription billing for the platform itself. The plans in the platform area
+  record what a clinic has agreed to pay and what that comes to; nothing charges
+  a card, sends a dunning email, or cuts a clinic off when a trial ends. A clinic
+  over its plan's limits keeps working and is shown as over them.
+- Support impersonation. Nobody can sign in as a clinic or view its screens as
+  its staff see them; the tenant boundary holds for the platform operator too.
 - Insurance or claims workflows
 - A public third-party API
 - Native mobile applications

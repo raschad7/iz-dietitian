@@ -16,6 +16,12 @@ import type { UserRole } from '@/lib/auth';
 const AREA_BY_ROLE = {
   staff: 'app',
   client: 'portal',
+  /*
+    The platform area, above every clinic. It is reached from the staff sign-in
+    form — an admin types an email and a password exactly as a dietitian does —
+    so this map is the only thing that separates the two afterwards.
+  */
+  admin: 'admin',
 } as const satisfies Record<UserRole, string>;
 
 /**
@@ -27,26 +33,29 @@ const AREA_BY_ROLE = {
  * (see the `user.create.before` hook in `src/lib/auth.ts`), so the loose half of
  * that type describes no row this app can produce.
  *
- * `'client'` is the value that has to be recognised; anything else resolves to
- * the column's own default rather than throwing, because both callers are only
- * choosing *where to point a redirect*. Neither grants anything: an account
- * that somehow arrived at the wrong area meets `requireStaffSession` or
- * `requireClientSession` there and is turned around. The cost of the fallback
- * being wrong is one extra hop, not access.
+ * `'client'` and `'admin'` are the values that have to be recognised; anything
+ * else resolves to the column's own default rather than throwing, because every
+ * caller is only choosing *where to point a redirect*. None of them grants
+ * anything: an account that somehow arrived at the wrong area meets
+ * `requireStaffSession`, `requireClientSession` or `requireAdminSession` there
+ * and is turned around. The cost of the fallback being wrong is one extra hop,
+ * not access.
  */
 export function toUserRole(role: string | null | undefined): UserRole {
-  return role === 'client' ? 'client' : 'staff';
+  return role === 'client' || role === 'admin' ? role : 'staff';
 }
 
 /**
  * Where a role's own area starts — `/ar/app` for staff, `/ar/portal` for a
- * client.
+ * client, `/ar/admin` for the platform owner.
  *
- * Exported because the locale root needs the same answer for a different
- * question. `resolveSafeRedirect` below asks "may I send you where you asked to
- * go?"; the root asks "where do you belong at all?" — no untrusted input, no
- * allow-list, just the mapping. Writing that mapping out a second time there is
- * how the two come to disagree.
+ * Exported because two other places need the same answer for different
+ * questions. `resolveSafeRedirect` below asks "may I send you where you asked to
+ * go?"; the locale root asks "where do you belong at all?"; and `requireRole` in
+ * `src/lib/session.ts` asks "you are signed in, but not here — where should you
+ * be?" — no untrusted input in either of the last two, no allow-list, just the
+ * mapping. Writing that mapping out a second time is how the copies come to
+ * disagree, and adding a third role is precisely when they would have.
  */
 export function areaHomePath(locale: Locale, role: UserRole): string {
   return `/${locale}/${AREA_BY_ROLE[role]}`;

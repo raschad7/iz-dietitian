@@ -141,8 +141,45 @@ describe('the locale root', () => {
   });
 
   test('an unmatched path under a locale stays public and reaches the 404', () => {
-    // Only the root and the two named areas are guarded here; everything else
+    // Only the root and the three named areas are guarded here; everything else
     // is `[...rest]`, which must not be turned into a sign-in redirect.
     expect(redirectedTo(proxy(request('/ar/nonsense-typo', { session: false })))).toBeNull();
+  });
+});
+
+/**
+ * The platform area, above every clinic.
+ *
+ * The middleware's job here is exactly what it is for the other two areas and
+ * no more: turn away a request with no session cookie at all. It cannot tell an
+ * admin's cookie from a dietitian's — the cookie is opaque — so a signed-in
+ * request falls through to `requireAdminSession`, which is the check that
+ * actually compares the role against the database.
+ */
+describe('the platform area', () => {
+  test('a signed-out visitor is sent to the staff sign-in form', () => {
+    // Same form as a dietitian's, deliberately: see `LOGIN_PATHS` in
+    // `src/lib/session.ts`. Only the landing area differs.
+    expect(redirectedTo(proxy(request('/ar/admin', { session: false })))).toBe('/ar/login');
+  });
+
+  test('and is returned to the screen they were reaching for', () => {
+    const location = new URL(
+      proxy(request('/ar/admin/clinics', { session: false })).headers.get('location')!,
+      'https://clinic.example',
+    );
+
+    expect(location.pathname).toBe('/ar/login');
+    expect(location.searchParams.get('redirect')).toBe('/ar/admin/clinics');
+  });
+
+  test('a signed-in request falls through to the guard, which reads the role', () => {
+    expect(redirectedTo(proxy(request('/ar/admin')))).toBeNull();
+  });
+
+  test('it keeps prefix-wins routing, unlike the portal', () => {
+    // The portal's language is an account setting; this area has no such
+    // setting and no client to hold one, so the URL is authoritative.
+    expect(redirectedTo(proxy(request('/ar/admin', { locale: 'en' })))).toBeNull();
   });
 });

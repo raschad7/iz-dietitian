@@ -28,6 +28,14 @@ const intlMiddleware = createIntlMiddleware(routing);
 const PROTECTED_AREAS: Record<string, string> = {
   app: 'login',
   portal: 'client-login',
+  /*
+    The platform area signs in on the staff form — same email and password, a
+    different landing area, which `HOME_PATHS` in `src/lib/session.ts` decides.
+    As with the two above, this only turns away requests carrying no session
+    cookie at all; that the cookie belongs to an *admin* rather than to a
+    dietitian is something only `requireAdminSession` can tell, and it does.
+  */
+  admin: 'login',
 };
 
 /**

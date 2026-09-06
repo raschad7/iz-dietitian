@@ -54,6 +54,14 @@ export type NavHref =
   | '/app/calendar?view=month'
   | '/app/weekly-plans'
   | '/app/dishes'
+  | '/admin'
+  | '/admin/ai'
+  | '/admin/revenue'
+  | '/admin/clinics'
+  | '/admin/accounts'
+  | '/admin/catalog'
+  | '/admin/audit'
+  | '/admin/search'
   | '/portal'
   | '/portal/appointments'
   | '/portal/meal-plan'
@@ -75,6 +83,13 @@ export type NavLabelKey =
   | 'plans'
   | 'weeklyPlans'
   | 'dishes'
+  | 'adminOverview'
+  | 'adminAi'
+  | 'adminRevenue'
+  | 'adminClinics'
+  | 'adminAccounts'
+  | 'adminCatalog'
+  | 'adminAudit'
   | 'portalHome'
   | 'myAppointments'
   | 'myPlan'
@@ -589,7 +604,9 @@ function AppSidebar({
    * list is a hierarchy — the dashboard happens to be a top-level row, but
    * nothing about this should depend on that staying true.
    */
-  const homeHref = flatten(items).find((item) => item.href === '/app' || item.href === '/portal')?.href;
+  const homeHref = flatten(items).find(
+    (item) => item.href === '/app' || item.href === '/portal' || item.href === '/admin',
+  )?.href;
 
   return (
     <Sidebar collapsible="icon">

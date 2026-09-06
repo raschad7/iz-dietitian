@@ -27,6 +27,8 @@
     "db:build-catalog": "bun run scripts/build-catalog-dataset.ts",
     "db:build-food-dataset": "bun run scripts/build-food-dataset.ts",
     "db:reset": "bun run scripts/db-reset.ts",
+    "admin:sync": "bun run scripts/admin-sync.ts",
+    "db:export:catalog": "bun run scripts/export-catalog.ts",
     "db:backfill:plan-snapshots": "bun run scripts/backfill-plan-nutrition-snapshots.ts",
     "db:backfill:charge-services": "bun run scripts/backfill-charge-services.ts",
     "wa:reminders": "bun run scripts/whatsapp-reminders.ts",

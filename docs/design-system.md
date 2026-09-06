@@ -418,6 +418,21 @@ Phone numbers, times, IDs, units, and other LTR values must retain their interna
 order. Use `<span dir="ltr">` for an isolated value. Use a table's `numeric`
 prop only when the whole column should also align according to an LTR cell.
 
+Two traps that produce a working-looking layout in one language only:
+
+- **A `dir` attribute redefines that element's own logical properties.** A span
+  carrying both `dir="ltr"` and `ms-auto` resolves the margin as `margin-left`
+  inside an Arabic row, so the free space lands on the wrong side and the element
+  is pushed back toward the middle. Put the `dir` on an inner element and leave
+  the logical spacing on one that inherits the page's direction.
+- **SVG `text-anchor` mirrors and chart libraries do not expect it.** `start` and
+  `end` resolve against the inline base direction, so a plot drawn under
+  `dir="rtl"` paints every tick and label backwards from the coordinate the
+  library computed — labels land on top of the marks. Pin the SVG to
+  `direction: ltr` and mirror the layout explicitly (see
+  `src/features/admin/components/charts.tsx`); keep the tooltip, which is HTML,
+  in the document's direction.
+
 **The auth screen no longer locks its direction.** It did: the split and its
 language control pinned their outer geometry to LTR so that changing language
 did not move the furniture. That lock has been removed on request, and the
