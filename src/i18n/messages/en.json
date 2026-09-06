@@ -1959,6 +1959,7 @@
     "schedule": "Meal schedule",
     "missingFields": "To generate, add: {fields}",
     "editProfile": "Edit nutrition profile",
+    "openClientRecord": "Open {name}'s record",
     "createProfile": "Create nutrition profile",
     "backToBoard": "Back to the plan",
     "profileTitle": "Nutrition profile",

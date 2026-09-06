@@ -20,7 +20,7 @@ function Pending({ label, pendingLabel }: { label: string; pendingLabel: string 
   const { pending } = useFormStatus();
 
   return (
-    <Button type="submit" size="sm" variant="outline" disabled={pending}>
+    <Button type="submit" size="sm" variant="neutral" disabled={pending}>
       {pending ? pendingLabel : label}
     </Button>
   );

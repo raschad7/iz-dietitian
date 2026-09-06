@@ -15,6 +15,7 @@ import { TooltipHint } from '@/components/ui/tooltip-hint';
 import { patientToneStyle } from '@/features/booking/patient-color';
 import { IntakeFormTrigger } from '@/features/clients/components/intake-form-trigger';
 import { CLIENT_ACTIVITY_LEVELS, CLIENT_GOALS } from '@/features/clients/schema';
+import { Link } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
 import { isMember, membersOf } from '@/lib/enum';
 import { cn } from '@/lib/utils';
@@ -112,10 +113,45 @@ export function ContextPanel({
       */}
       {selectedClient ? (
         <span className="patient-tone contents" style={patientToneStyle(selectedClient.seq)}>
-          {/* `lg` (44px), not `planner` (56px). That size exists to match a row
-              of fact tiles, and the facts are a line of text now — a 56px disc
-              would be the one thing left setting the old height. */}
-          <Avatar name={selectedClient.fullName} color="var(--tone-mark)" size="lg" />
+          {/*
+            The disc is the way to the record.
+
+            The picker beside it changes *who the week is for* — it is a
+            control over this page — so it cannot also be the way off the page,
+            and until now nothing on the planner was. Opening the person you are
+            planning for meant the rail, the register and a search for a name
+            already printed at the top of the screen.
+
+            The mark is the right thing to hang it on: it is the client
+            themselves rather than anything about the plan, and it is the same
+            gesture the calendar already teaches, where a name on an appointment
+            goes to the record. `AppointmentBlock` says the same thing at
+            greater length.
+
+            `lg` (44px), not `planner` (56px). That size exists to match a row
+            of fact tiles, and the facts are a line of text now — a 56px disc
+            would be the one thing left setting the old height. 44px is also the
+            coarse-pointer floor this system reserves, so the disc is a legal
+            touch target as it stands and needs no padding to become one.
+          */}
+          <TooltipHint label={t('openClientRecord', { name: selectedClient.fullName })}>
+            <Link
+              href={`/app/clients/${selectedClient.id}`}
+              aria-label={t('openClientRecord', { name: selectedClient.fullName })}
+              className={cn(
+                'rounded-full outline-none transition-[box-shadow,opacity] duration-200',
+                // The ring is the client's own tone rather than the brand's, so
+                // the affordance belongs to the person it opens. Held off the
+                // disc by the halo for the reason every focus ring in this
+                // system is — a band running straight into the mark reads as
+                // the mark having grown rather than as a state.
+                'hover:ring-2 hover:ring-[var(--tone-mark)]/45 hover:ring-offset-2 hover:ring-offset-focus-halo',
+                'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo',
+              )}
+            >
+              <Avatar name={selectedClient.fullName} color="var(--tone-mark)" size="lg" />
+            </Link>
+          </TooltipHint>
         </span>
       ) : null}
 

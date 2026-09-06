@@ -1290,7 +1290,7 @@ function AllergenField({
           ) : (
             <Button
               type="button"
-              variant="outline"
+              variant="neutral"
               size="sm"
               disabled={custom.length >= 20}
               onClick={() => setAdding(true)}
@@ -1430,7 +1430,7 @@ function MealScheduleField({
         <Button
           type="button"
           size="sm"
-          variant="outline"
+          variant="neutral"
           disabled={slots.length >= 8}
           onClick={() =>
             onChange([
@@ -1459,7 +1459,7 @@ function MealScheduleField({
         <Button
           type="button"
           size="sm"
-          variant="outline"
+          variant="neutral"
           disabled={percent === 100}
           onClick={() => {
             const balanced = balanceToHundred(slots.map((slot) => Math.round(slot.kcalShare * 100)));

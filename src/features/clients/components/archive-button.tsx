@@ -25,7 +25,7 @@ export function ArchiveButton({
   locale,
   clientId,
   archived,
-  variant = 'outline',
+  variant = 'neutral',
   size = 'default',
   iconOnly = false,
   className,
@@ -33,7 +33,7 @@ export function ArchiveButton({
   locale: Locale;
   clientId: string;
   archived: boolean;
-  variant?: 'outline' | 'ghost' | 'neutral' | 'destructiveGhost';
+  variant?: 'ghost' | 'neutral' | 'destructiveGhost';
   size?: 'default' | 'sm';
   /** Table rows use the glyph; the record page keeps the words. */
   iconOnly?: boolean;

@@ -500,7 +500,7 @@ export function ClientPicker({
         anyone either, because the page is about one person by construction.
       */}
       {allowNewClient ? (
-        <Button type="button" variant="outline" size="sm" onClick={() => onNewClient(weeks)} className="justify-start">
+        <Button type="button" variant="neutral" size="sm" onClick={() => onNewClient(weeks)} className="justify-start">
           <Icon name="add" data-icon="inline-start" />
           {t('picker.newClient')}
         </Button>

@@ -217,6 +217,40 @@ with `bun run test:e2e` after `bunx playwright install`. Their setup lives in
 `e2e/global-setup.ts` and `e2e/fixtures.ts`, and they read the same test
 database as the rest of the suite.
 
+## Looking at a screen: the `/dev` harnesses
+
+Almost every screen in this application is behind a session guard, and browser
+automation cannot enter a password. That makes the screens with the most UI in
+them — the plan board, the client record, the platform area — the ones nobody
+can actually look at while changing them, which is backwards.
+
+`src/app/[locale]/dev/**` is the way round it. Each route renders the **real**
+components against a fixture, at `/{locale}/dev/<name>`, so a change can be
+driven, resized and screenshotted in either language. Start the dev server and
+open one:
+
+| Route | What it renders |
+| --- | --- |
+| `/dev/ui` | Every shared control on one page — the gallery. Has its own locale and light/dark switches |
+| `/dev/board` | The weekly-plan board, its header and its context panel |
+| `/dev/meals` | The meal inspector, staff and portal, editable and read-only |
+| `/dev/dishes` | The dish editor and ingredient search |
+| `/dev/measurements` | The Measurements tab: tiles, trend chart, history, and the record dialog. `?goal=`, `?range=`, `?extra=weighin` |
+| `/dev/admin` | The platform area's surfaces |
+| `/dev/bill` | The printable bill |
+| `/dev/shell` | The application shell and sidebar without a session |
+| `/dev/cal-check` | The calendar inside an exact copy of the shell's scroll frame |
+| `/dev/splash`, `/dev/dialog-motion` | The launch screen and candidate dialog entrances, replayable |
+
+Rules for these, and they are not negotiable:
+
+- **Dev-only.** Every one of them calls `notFound()` when
+  `process.env.NODE_ENV === 'production'`.
+- **No data access and no session guard, ever.** A harness that acquires either
+  is a route that leaks a clinic's data with no guard in front of it. Fixtures
+  live beside the page.
+- If a screen is hard to review, add a harness rather than a temporary sign-in.
+
 ## Optional integrations
 
 - WhatsApp/OpenWA: follow [`infra/openwa/README.md`](../infra/openwa/README.md).

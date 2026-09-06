@@ -106,7 +106,7 @@ export function ReasonDialog({
       */}
       <Button
         type="button"
-        variant={tone === 'destructive' ? 'destructive' : 'outline'}
+        variant={tone === 'destructive' ? 'destructive' : 'neutral'}
         size="sm"
         disabled={disabled || pending}
         onClick={() => setOpen(true)}

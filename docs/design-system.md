@@ -74,10 +74,14 @@ Check the directory itself for the exact API. The current shared inventory is:
 | Choice controls | `Select`, `SelectField`, `Combobox`, `Checkbox`, `RadioGroup`, `Switch`, `Segmented` |
 | Date, time, and phone | `DatePicker`, `DateChooser`, `DateCalendar`, `Calendar`, `TimeInput`, `PhoneField` |
 | Surfaces and overlays | `Card`, `Dialog`, `Sheet`, `Popover`, `DropdownMenu`, `Tooltip`, `TooltipHint`, `Toaster`/`toast` |
-| Navigation | `Sidebar`, `Tabs`, `PanelTabs`, `Pagination`, `FitRows` |
-| Data display | `Table`, `Chart`, `ChartTip`, `StatGrid`, `StatTile`, `Progress`, `ComfortBand`, `Timeline` |
-| Feedback | `Callout`, `EmptyState`, `Spokes`, `Spinner`, `PageLoading` |
-| Identity and graphics | `Avatar`, `Icon`, `Caret` |
+| Disclosure and scroll | `Collapsible`, `Disclosure`, `ScrollArea`, `ScrollWindow`, `Separator` |
+| Navigation | `Sidebar`, `Tabs`, `PanelTabs`, `Pagination`, `FitRows`, `NotificationInboxPopover` |
+| Data display | `Table`, `ChartContainer`/`ChartTooltip` (`chart.tsx`), `ChartTip`, `StatGrid`, `StatTile`, `Progress`, `ComfortBand`, `Timeline` |
+| Feedback | `Callout`, `DismissibleCallout`, `EmptyState`, `Spokes`, `Spinner` |
+| Identity and graphics | `Avatar`, `Icon`, `Caret`, `Kbd`, `WhatsappMark` |
+
+`PageLoading` is a route-level shell and lives in
+[`src/components/layout/`](../src/components/layout/), not in `ui/`.
 
 Some files export several parts. Compose those parts rather than rebuilding the
 same anatomy. For example, use `CardHeader`, `CardContent`, and `CardFooter`;
@@ -89,7 +93,7 @@ use the `Select` parts for a rich list and `SelectField` for a flat option list.
 - The dietitian remains in control of generated, reviewed, and published data.
 - Green identifies brand and action; it is not a universal data color.
 - The light green accent is a scarce fill, not readable foreground ink.
-- Medical risk uses clay. Attention uses amber. Missing or incomplete data is
+- Medical risk uses red. Attention uses amber. Missing or incomplete data is
   not automatically an error.
 - One component structure serves Arabic RTL and English LTR.
 - Geometry stays stable on hover and focus.
@@ -103,8 +107,9 @@ use the `Select` parts for a rich list and `SelectField` for a flat option list.
 
 [`src/app/globals.css`](../src/app/globals.css) contains four relevant layers:
 
-1. Raw primitives such as `--green-*`, `--n-*`, `--c-*`, and
-   `--clay-*`.
+1. Raw primitives such as `--green-*`, `--n-*`, `--c-*`, `--amber-*`,
+   `--flame-*`, and the single-value `--red` with its derived `--red-tint`,
+   `--red-light`, and `--red-deep`.
 2. `@theme inline`, which registers semantic Tailwind utilities.
 3. Light, dark, portal, sidebar, and planner semantic assignments.
 4. Shared component utilities such as `.q-field` and `.planner-theme`.
@@ -126,20 +131,25 @@ data or typed style helpers, not in reusable component classes.
 | Warm neutrals | `--n-*` | Text, borders, cards, shadows, most chart marks |
 | Cool neutrals | `--c-*` | Muted surfaces, hover fills, sidebar, planner grid |
 | Attention | amber | Follow-up, caution, incomplete information that needs action |
-| Medical/destructive | clay | Allergies, contraindications, destructive actions |
-| Completed-day accent | flame | Portal completion marks only; one warm accent per screen |
+| Medical/destructive | `--red` | Allergies, contraindications, destructive actions |
+| Completed-day accent | `--flame-*` | Portal completion marks only; one warm accent per screen |
 
 Rules:
 
 - The accent green is a fill, never text or an icon on a light background.
   Use `text-on-accent` on `bg-accent-green`.
 - Do not introduce blue for links, focus, or informational notices.
-- Do not use clay as a generic “bad” color.
+- Do not use red as a generic “bad” color.
 - Do not mix warm and cool neutral surfaces arbitrarily. Use the semantic token
   selected for the surface.
 - `--primary` is the brand green `#75CF48` in both light and dark;
   `--primary-hover` is green-600 in light and steps *up* to green-300 in dark,
   where a hover has to move towards the light to read as a response.
+- **There is one red, and it is one value.** `--red` replaced a four-stop clay
+  ramp; the only other stops are derived from it so they cannot drift —
+  `--red-tint` is the fill red ink sits on, `--red-light` is what the dark theme
+  draws it in, and `--red-deep` is where a solid red goes under the pointer. Do
+  not add a red stop by hand; derive it, or use one of the three.
 - **There is one green family.** A second, yellow-green "lime" accent ramp
   (`#CBEA24` and neighbours) was removed; every green surface, fill, edge and
   mark now resolves to a step of `--green-*`. Do not reintroduce a second green,
@@ -257,11 +267,17 @@ and the three brand colours, which mirror `--brand-leaf`, `--brand-seed` and
 
 ### One green, and what it costs
 
-`--primary` and `--brand-leaf` are both `#75CF48` — step 400 of the brand ramp.
-The action colour and the logo are deliberately the same green; `--primary-hover`
-is step 600 (`#419020`) from that ramp. Both are pinned literals, not steps of
-`--green-*`, which is a different curve with no stop on either value. Change one
-and change the other in the same commit.
+`--primary` and `--brand-leaf` are both `#75CF48`. The action colour and the
+logo are deliberately the same green; `--primary-hover` is `--green-600`
+(`#419020`), two steps down, which is a large enough move to be felt on a fill
+this light.
+
+They reach that value from different sides, and the difference matters when one
+of them changes. `--primary` is `var(--green-400)` — a step of the ramp, so it
+follows the ramp. `--brand-leaf` is a pinned literal, because the logo's colours
+are the brand sheet's and are also rendered outside React where no token can be
+read. Move the ramp's step 400 and you have moved the action colour and left the
+logo behind, so change both in the same commit.
 
 **The cost is contrast, and it is real.** White on `#75CF48` measures about
 1.95:1, down from ~2.68:1 on the `#72AE34` this replaced. WCAG AA asks 4.5:1,
@@ -456,20 +472,39 @@ Use [`Button`](../src/components/ui/button.tsx) and its existing variants:
 |---|---|
 | `default` | The action that closes or commits a decision |
 | `soft` | A quiet primary action on a reading-first screen |
-| `outline` | Secondary brand action |
 | `ghost` | Tertiary brand action |
 | `neutral` | Boxed peer action that should not compete with the primary |
 | `neutralGhost` | Repeated row action with no brand-color noise |
 | `accent` | Rare accent-green completion action |
-| `destructive` | Destructive decision, usually inside confirmation |
+| `destructive` | Destructive decision — a solid red block, usually inside a confirmation |
 | `destructiveGhost` | Destructive action among other controls |
 | `secondary` | Dense brand-tinted action |
 | `primarySubtle` | Affirmative action resting quietly on a content card |
 | `link` | Inline textual action |
 
+**There is no `outline` variant, and it is not coming back.** A white box with
+a green border and a green label was the secondary control across twenty-two
+call sites, and it spent the brand colour on things that had not earned it — a
+dialog's cancel button, a pager, an empty state's "open the calendar". Green is
+how this product says *press this*. Use `neutral` for a boxed peer action and
+`ghost` for a tertiary one; `Badge` keeps an `outline` of its own and is
+unaffected.
+
+**`destructive` is a filled red block, not a red outline.** It used to be an
+outline on the reasoning that a delete should read as legible rather than loud,
+which was right about the decision and wrong about the control: a red-bordered
+white box is the same shape as every other secondary button on the screen, so
+the appointment dialog's Delete and its Close were two outlines a hue apart. It
+is the only filled red in the system and cannot be confused with anything else.
+White on `--red` measures 6.27:1 and 7.68:1 on the `--red-deep` hover; in
+dark mode the pair inverts to green-950 on `--red-light` at 7.56:1 and 9.01:1. Use
+`destructiveGhost` for a destructive action sitting *among* other controls
+rather than closing a decision.
+
 `default` and `icon` targets are 48px. `sm` and `icon-sm` are 40px and reserved
-for dense pointer-oriented contexts such as toolbars and table rows. Do not add
-a size below 40px. Labels remain on one line and are capped at 320px.
+for dense pointer-oriented contexts such as toolbars and table rows. `fab` is a
+56px circle for the single floating action on a screen. Do not add a size below
+40px. Labels remain on one line and are capped at 320px.
 
 Keep one clear primary action in a group. Render an action disabled when its
 future availability matters and removing it would shift the toolbar. Put its
@@ -569,10 +604,15 @@ Use `Card` anatomy: `CardHeader`, `CardTitle`, optional `CardDescription` and
 `CardAction`, `CardContent`, optional `CardDivider`, and `CardFooter`.
 
 Current variants are `default`, `tinted`, `empty`, `listRow`, `tile`, and
-`archived`. Use `interactive` only when the whole card acts as a target;
-`selected` marks persistent selection; `flagged` marks a medical fact without
-turning the whole surface red. Use `CardSkeleton` for loading with stable
-geometry.
+`archived`. `interactive`, `selected`, and `flagged` are separate booleans, not
+variants: use `interactive` only when the whole card acts as a target,
+`selected` for persistent selection, and `flagged` to mark a medical fact
+without turning the whole surface red. `CardField` renders a labelled fact
+inside a card.
+
+There is no card skeleton, and there was never a `CardSkeleton` export — see
+**Empty, loading, and status feedback** for why the skeleton language was
+removed from this system entirely.
 
 `CardTitle` is not automatically a heading. Pass the appropriate `as` value
 when the card is a real section in the page outline.
@@ -671,7 +711,11 @@ So a new dialog needs *no* responsive class. In particular, do not add:
   one on a landscape phone;
 - `open:flex open:flex-col` — the frame supplies both;
 - `overflow-hidden` — the frame clips only when there is a body to scroll, and
-  deliberately does not when there is not.
+  deliberately does not when there is not. Where it clips it uses `overflow:
+  clip`, not `hidden`: `hidden` keeps the scrollport, so the browser can still
+  scroll the frame when focus lands on something it thinks is out of view, and
+  a checkbox near the end of a long form used to drag the whole surface up and
+  leave a band of bare `--popover` behind it.
 
 Two consequences worth knowing:
 
@@ -735,16 +779,25 @@ stylesheet and against the call sites the frame replaced.
   does not commit its navigation until the server has finished the page, and
   Next will not prefetch a dynamic route past its nearest boundary. Deleting one
   because "it only renders a spinner now" costs both.
-- `Callout tone="neutral"` communicates notable information,
-  `attention` requests follow-up, and `medical` communicates clinical risk.
-- There is no generic success callout. Confirm close-to-source when possible.
+- `Callout` has exactly three tones: `neutral` communicates notable
+  information, `attention` requests follow-up, and `medical` communicates
+  clinical risk. Each brings the glyph that pairs with its token.
+- There is no `success` tone and no generic success callout. Confirm
+  close-to-source when possible.
 
 ### Avatars
 
-`Avatar` represents a person and remains circular. Current sizes include `xs`,
-`sm`, `default`, `lg`, `planner`, and `xl`. The name is rendered beside it, so
-the graphic is decorative. Use the same entity color everywhere that person
+`Avatar` represents a person and remains circular. The sizes are `xs`, `sm`,
+`default`, `lg`, `planner`, and `xl`. The name is normally rendered beside it,
+so the graphic is decorative. Use the same entity color everywhere that person
 appears.
+
+Where the disc is also the way to that person's record — the weekly planner's
+header does this, because its only other control changes who the week is *for*
+— wrap it in a real `Link`, give the link its own `aria-label`, and let the
+hover ring take the client's `--tone-mark` rather than the brand green so the
+affordance belongs to the person it opens. Do not make an avatar a link where
+the name beside it already is one.
 
 ## Charts and figures
 
@@ -759,7 +812,7 @@ colors in feature components.
 | `viz-band-*` | Range, edge, and marker for tolerance bands |
 | `viz-brand`, `viz-brand-soft` | Scoped dashboard brand charts only |
 
-Olive generally remains an action color. `viz-brand` and the current
+The brand green remains an action colour first. `viz-brand` and the current
 categorical tokens are scoped exceptions for non-interactive charts. Do not
 generalize them to new data surfaces without reviewing action hierarchy and
 contrast.

@@ -62,7 +62,7 @@ export function SuspendClinicForm({
           label={t('reactivate')}
           confirmTitle={t('reactivateTitle', { name: clinicName })}
           confirmMessage={t('reactivateBody')}
-          variant="outline"
+          variant="neutral"
         />
       ) : (
         <ReasonDialog

@@ -149,7 +149,7 @@ export function SendBillButton({
           like one; a mark in a row is the quiet grey the row's other marks
           wear. The same split `PrintBillButton` makes.
         */
-        variant={text ? 'outline' : 'ghost'}
+        variant={text ? 'neutral' : 'ghost'}
         size={text ? 'default' : 'icon'}
         className={className ?? (text ? undefined : ROW_ACTION_CLASS)}
         iconClassName={iconClassName}

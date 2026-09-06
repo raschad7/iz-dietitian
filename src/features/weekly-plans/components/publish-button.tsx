@@ -78,7 +78,7 @@ export function PublishButton({
             pendingLabel={t('unpublishing')}
             labels={labels}
             icon="eyeOff"
-            variant="outline"
+            variant="neutral"
             title={t('publishedReadOnly')}
             confirmed={publishState.status === 'done'}
           />
@@ -134,7 +134,7 @@ function Submit({
   icon: IconName;
   disabled?: boolean;
   title?: string;
-  variant?: 'outline';
+  variant?: 'neutral';
   confirmed?: boolean;
 }) {
   const { pending } = useFormStatus();

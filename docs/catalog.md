@@ -276,6 +276,14 @@ first:
 | `regional_table` | citation, URL, date retrieved | a published composition table |
 | `label` | brand, product, date the panel was read | local products where a real label is the best truth |
 | `derived` | the analogue and the transformation | e.g. labaneh from strained yogurt, with the water loss written down |
+| `clinic_entered` | what the dietitian typed | a clinic's own food, added from the planner |
+
+The last rung is the one the *application* writes, and it is off the ladder
+rather than at the bottom of it: `createClinicFood` in
+[`catalog-mutations.ts`](../src/features/weekly-plans/catalog-mutations.ts)
+stamps `clinic_entered` with `verification_status: 'provisional'` on anything a
+dietitian adds mid-plan. It is not a source, it is a note that nobody has found
+one yet. The four rungs above are chosen by hand during seeding and review.
 
 USDA SR Legacy has no row for labaneh, nabulsi or akkawi cheese, freekeh,
 molokhia, jameed, kunafa, halva or baklava — this was checked directly against

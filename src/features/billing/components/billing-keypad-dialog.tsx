@@ -411,7 +411,7 @@ export function BillingKeypadDialog({
     <Button
       ref={triggerRef}
       type="button"
-      variant={trigger === 'icon' ? 'ghost' : emphasis === 'primary' ? 'default' : 'outline'}
+      variant={trigger === 'icon' ? 'ghost' : emphasis === 'primary' ? 'default' : 'neutral'}
       size={trigger === 'icon' ? 'icon' : 'default'}
       className={trigger === 'icon' ? ROW_ACTION_CLASS : triggerClassName}
       onClick={() => setOpen(true)}

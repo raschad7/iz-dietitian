@@ -163,12 +163,14 @@ export function DatePicker({
               ref={findHost}
               disabled={disabled}
               /*
-                `neutral` for the field: it is a box you fill in, not an action,
-                and the olive label `outline` draws would make every date field
-                on a form look like the thing to press. The icon trigger keeps
-                `outline` — it sits beside a text input and pairs with it.
+                `neutral` in both shapes: a date field is a box you fill in, not
+                an action, and an olive label would make every date on a form
+                look like the thing to press. The icon trigger took the green
+                `outline` until that variant was removed — it sits beside a text
+                input and has to pair with it, which `neutral` does and the
+                green never quite did.
               */
-              variant={trigger === 'icon' ? 'outline' : 'neutral'}
+              variant="neutral"
               size={trigger === 'icon' ? 'icon' : 'default'}
               aria-label={trigger === 'icon' ? (label ?? t('open')) : undefined}
               aria-invalid={ariaInvalid}

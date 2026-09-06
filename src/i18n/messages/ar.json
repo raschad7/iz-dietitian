@@ -1959,6 +1959,7 @@
     "schedule": "جدول الوجبات",
     "missingFields": "لإتمام التوليد أضف: {fields}",
     "editProfile": "تعديل الملف الغذائي",
+    "openClientRecord": "فتح ملف {name}",
     "createProfile": "إنشاء الملف الغذائي",
     "backToBoard": "رجوع إلى الخطة",
     "profileTitle": "الملف الغذائي",

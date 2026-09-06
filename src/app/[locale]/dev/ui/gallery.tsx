@@ -68,7 +68,7 @@ import { toIsoDate } from '@/lib/iso-date';
 
 const BUTTON_VARIANTS = [
   'default',
-  'outline',
+  'soft',
   'ghost',
   'neutral',
   'neutralGhost',
@@ -226,7 +226,7 @@ export function UiGallery({ locale }: { locale: Locale }) {
         </div>
       </header>
 
-      <Section title="Button" note="11 variants, 4 sizes.">
+      <Section title="Button" note={`${BUTTON_VARIANTS.length} variants, 5 sizes.`}>
         <Row label="variants">
           {BUTTON_VARIANTS.map((variant) => (
             <Button key={variant} variant={variant}>
@@ -243,18 +243,23 @@ export function UiGallery({ locale }: { locale: Locale }) {
           <Button size="icon-sm" aria-label="Edit">
             <Icon name="edit" />
           </Button>
+          {/* The floating action, out of its usual context: one per screen, and
+              only where the screen has exactly one thing to do. */}
+          <Button size="fab" aria-label="New">
+            <Icon name="add" />
+          </Button>
         </Row>
         <Row label="with icon / disabled">
           <Button>
             <Icon name="add" />
             Add client
           </Button>
-          <Button variant="outline">
+          <Button variant="neutral">
             Next
             <Icon name="chevronEnd" />
           </Button>
           <Button disabled>disabled</Button>
-          <Button variant="outline" disabled>
+          <Button variant="neutral" disabled>
             disabled
           </Button>
         </Row>
@@ -456,7 +461,7 @@ export function UiGallery({ locale }: { locale: Locale }) {
 
         <Row label="popover / tooltip">
           <Popover>
-            <PopoverTrigger render={<Button variant="outline">Open popover</Button>} />
+            <PopoverTrigger render={<Button variant="neutral">Open popover</Button>} />
             <PopoverContent className="w-64 p-4">
               <p className="text-body-sm">
                 Popover content. Check which edge it anchors to in Arabic.
@@ -588,7 +593,7 @@ export function UiGallery({ locale }: { locale: Locale }) {
       <Section title="Menus, sheets and choices" note="Added in phase 5. Open the menu near a viewport edge.">
         <Row label="dropdown menu">
           <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant="outline">Open menu</Button>} />
+            <DropdownMenuTrigger render={<Button variant="neutral">Open menu</Button>} />
             <DropdownMenuContent className="w-48">
               {/*
                 The label goes *inside* the group, not above it. Base UI backs
@@ -616,7 +621,7 @@ export function UiGallery({ locale }: { locale: Locale }) {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button variant="outline" onClick={() => setSheetOpen(true)}>
+          <Button variant="neutral" onClick={() => setSheetOpen(true)}>
             Open sheet
           </Button>
         </Row>

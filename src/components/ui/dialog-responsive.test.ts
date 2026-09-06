@@ -81,9 +81,24 @@ describe('the responsive dialog frame', () => {
   });
 
   test('hands the scrolling to the body, and clips only when there is one', () => {
-    // `overflow: hidden` on a dialog with nothing to scroll inside it makes the
-    // overflow unreachable, which is worse than the UA's `overflow: auto`.
+    /*
+     * `clip`, and never `hidden`. The two paint the same and only one of them
+     * is safe: `hidden` removes the scrollbars but keeps the scrollport, so the
+     * browser may still scroll the frame even though the reader cannot — and it
+     * does, whenever focus lands on something it believes to be out of view.
+     * Ticking a checkbox near the end of the measurement form scrolled the whole
+     * surface up by 239px, taking the title out through the top edge and the
+     * footer with Save on it after it, and leaving 239px of bare `--popover` at
+     * the bottom.
+     *
+     * `overflow: auto` stays on the other branch: a dialog with nothing to
+     * scroll inside it *is* its own scroller, and clipping there would make the
+     * overflow unreachable rather than merely still.
+     */
     expect(RULES).toContain(
+      ":has( > [data-slot='dialog-body'], > :where(form, div) > [data-slot='dialog-body'] ) { overflow: clip;",
+    );
+    expect(RULES).not.toContain(
       ":has( > [data-slot='dialog-body'], > :where(form, div) > [data-slot='dialog-body'] ) { overflow: hidden;",
     );
     expect(RULES).toContain(
@@ -113,6 +128,18 @@ describe('the responsive dialog frame', () => {
     // Without containment a flick past the end of the body scrolls the page
     // behind the scrim, or starts iOS's own pull-to-refresh, from inside a modal.
     expect(body).toContain('overscroll-behavior: contain;');
+    /*
+     * And a containing block, so the scroller actually clips what it scrolls.
+     * Clipping follows the containing-block chain: left `position: static`, the
+     * body does not clip an absolutely positioned descendant, which resolves
+     * against the `<dialog>` — `position: fixed` under the UA stylesheet —
+     * instead. Every Base UI checkbox, radio and switch renders a
+     * visually-hidden native input exactly that way, and so does every
+     * `sr-only` label, so one of them scrolled far enough down a long form
+     * lands outside the surface and stretches the frame's own scroll overflow
+     * to reach it. See the `overflow: clip` case above for what that then did.
+     */
+    expect(body).toContain('position: relative;');
   });
 
   test('keeps the header and the footer out of the scroll', () => {

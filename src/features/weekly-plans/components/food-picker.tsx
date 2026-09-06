@@ -260,7 +260,7 @@ export function IngredientSearch({
                 <p className="text-body-sm text-muted-foreground">{t('foodPicker.searchError')}</p>
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="neutral"
                   size="sm"
                   className="mt-2"
                   onClick={() => runSearch(term)}

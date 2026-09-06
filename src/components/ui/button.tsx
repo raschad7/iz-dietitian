@@ -103,14 +103,32 @@ const buttonVariants = cva(
          */
         soft: "border-transparent bg-secondary text-secondary-foreground hover:bg-primary-subtle",
 
-        /**
-         * Secondary — white box, green border and label, flipping to the
-         * accent fill on hover. The label darkens to green-950 with it, and has
-         * to: a mid-ramp green on a light green fill fails, green-950 on it is
-         * about 9.9:1.
+        /*
+         * ⚠ There is no `outline` variant, and its absence is deliberate.
+         *
+         * It was the secondary control for most of this system's life: a white
+         * box with a green border and a green label, flipping to the accent
+         * fill under the pointer. Twenty-two call sites wore it — "book an
+         * appointment", "add a measurement", "open the calendar", every dialog's
+         * cancel, both empty states, the pager.
+         *
+         * The trouble is what that spends. Green is how this product says *this
+         * is the thing to press*, and a bordered green control says it almost as
+         * loudly as a filled one — so a screen with a green-outlined "open the
+         * calendar" beside a solid green "publish" was making its case twice,
+         * and the cancel button in a dialog was making it for the action that
+         * throws the work away. `neutral` already existed for exactly this and
+         * already carried the reasoning: a row of peers must not all wear the
+         * brand colour, and the button that has earned it should be the only
+         * one that does.
+         *
+         * So `outline` is `neutral` now — a real box, a black label, a warm
+         * neutral hover — everywhere it appeared. Removed rather than aliased,
+         * so the look cannot come back one call site at a time.
+         *
+         * `Badge` keeps an `outline` of its own; it is a different component
+         * with a different job and is not affected.
          */
-        outline:
-          "border-primary bg-card text-secondary-foreground hover:border-accent-green hover:bg-accent-green hover:text-on-accent aria-expanded:border-accent-green aria-expanded:bg-accent-green aria-expanded:text-on-accent",
 
         /** Tertiary — no box until you touch it, then a warm neutral flip. */
         ghost:
@@ -164,12 +182,34 @@ const buttonVariants = cva(
         accent: "border-transparent bg-accent-green text-on-accent hover:bg-[var(--green-400)]",
 
         /**
-         * Destructive — a red outline, never a solid red block. A delete is a
-         * deliberate act, so it is legible rather than loud. 6.24:1 at rest,
-         * 5.38:1 on the --red-tint hover fill.
+         * Destructive — a solid red block with a white label, darkening under
+         * the pointer.
+         *
+         * **It was an outline, and the outline is gone.** The reasoning for the
+         * old one was that a delete is a deliberate act and should read as
+         * legible rather than loud — which is true of the *decision* and was
+         * wrong about the *control*. A red-bordered white box is the same shape
+         * as `neutral` and as every other secondary button on the screen, so on
+         * the appointment dialog's footer the button that erases the record and
+         * the button that closes the dialog were two outlined boxes a hue apart,
+         * and the meal inspector's remove sat in a row of outlines looking like
+         * one more thing to try. A filled block is unmistakable at a glance and
+         * at arm's length, which is what an irreversible action owes the reader
+         * — and it is still the *only* filled red in the system, so it cannot be
+         * confused with anything else.
+         *
+         * White on --red measures 6.27:1, and 7.68:1 on the --red-deep hover:
+         * the pointer state is the more legible one. Both clear AA for body
+         * text, unlike `default`'s knowing brand trade above. In dark mode the
+         * pair inverts — green-950 ink on --red-light — and measures 7.56:1
+         * resting and 9.01:1 on hover.
+         *
+         * `destructiveGhost` below is unchanged and is still the right control
+         * for a destructive action sitting *among* others rather than closing a
+         * decision.
          */
         destructive:
-          "border-destructive bg-card text-destructive hover:bg-destructive-subtle focus-visible:ring-destructive",
+          "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive-hover focus-visible:ring-destructive",
 
         /**
          * Destructive, tertiary — `ghost`'s shape with `destructive`'s colour.

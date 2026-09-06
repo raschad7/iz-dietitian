@@ -444,7 +444,7 @@ export function DishCatalog({
         <div className="pt-6 text-center">
           <p className="text-body-sm text-muted-foreground">{t('noDishes')}</p>
           {activeCount > 0 && (
-            <Button type="button" variant="outline" size="sm" className="mt-3" onClick={clearFilters}>
+            <Button type="button" variant="neutral" size="sm" className="mt-3" onClick={clearFilters}>
               {t('clearFilters')}
             </Button>
           )}

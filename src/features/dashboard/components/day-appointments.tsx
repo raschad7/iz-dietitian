@@ -450,7 +450,7 @@ export function DayAppointments({
             <p className="text-body-md text-muted-foreground">{labels.empty}</p>
             <Link
               href={dayHref(day.date)}
-              className={buttonVariants({ variant: 'outline', size: 'sm' })}
+              className={buttonVariants({ variant: 'neutral', size: 'sm' })}
             >
               <Icon name="bookAppointment" />
               {labels.emptyCta}

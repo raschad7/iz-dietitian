@@ -1,4 +1,6 @@
 // TEMPORARY verification harness — delete after measuring the calendar's fill.
+import { notFound } from 'next/navigation';
+
 import { Calendar } from '@/features/booking/components/calendar';
 
 const HOURS = { workingDays: [0, 1, 2, 3, 4, 5, 6], openMinute: 8 * 60, closeMinute: 18 * 60 };
@@ -37,6 +39,17 @@ const APPOINTMENTS = [
 const PROBE_CLOCK = { date: '2026-08-12', minute: 0 };
 
 export default async function CalCheckPage({ params }: { params: Promise<{ locale: string }> }) {
+  /*
+    Dev-only, like every other route under `/dev`. This one was the exception
+    and had no reason to be: it ships a fixture calendar and no guard, so in
+    production it was a real screen anyone could open. It carries no clinic
+    data, which is why nothing caught it — but the rule is the route, not the
+    payload, and the next harness copied from this one would not be so empty.
+  */
+  if (process.env.NODE_ENV === 'production') {
+    notFound();
+  }
+
   const { locale } = await params;
 
   return (

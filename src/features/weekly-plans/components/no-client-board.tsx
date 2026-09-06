@@ -98,7 +98,7 @@ export function NoClientBoard({
               </CardHeader>
               <CardContent className="flex flex-wrap items-center justify-between gap-4">
                 <p className="text-body-sm text-muted-foreground">{t('noActiveClientsHint')}</p>
-                <Link href="/app/clients" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+                <Link href="/app/clients" className={buttonVariants({ variant: 'neutral', size: 'sm' })}>
                   {t('browseClients')}
                   <Icon name="chevronEnd" />
                 </Link>

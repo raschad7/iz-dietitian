@@ -119,7 +119,7 @@ export function PrintBillButton({
       href={href}
       className={cn(
         text
-          ? buttonVariants({ variant: 'outline' })
+          ? buttonVariants({ variant: 'neutral' })
           : [buttonVariants({ variant: 'ghost', size: 'icon' }), ROW_ACTION_CLASS],
         className,
       )}

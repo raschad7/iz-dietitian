@@ -101,7 +101,7 @@ export async function ClientVisitRecord({ visits, locale, today }: ClientVisitRe
           <p className="text-body-md text-muted-foreground">{t('empty')}</p>
           <Link
             href="/app/calendar?view=day"
-            className={buttonVariants({ variant: 'outline', size: 'sm' })}
+            className={buttonVariants({ variant: 'neutral', size: 'sm' })}
           >
             {t('book')}
             <Icon name="chevronEnd" />
@@ -345,7 +345,7 @@ function VisitFacts({
           <Link
             href="/app/calendar?view=day"
             className={cn(
-              buttonVariants({ variant: 'outline', size: 'sm' }),
+              buttonVariants({ variant: 'neutral', size: 'sm' }),
               'mt-3 self-start sm:mt-auto',
             )}
           >

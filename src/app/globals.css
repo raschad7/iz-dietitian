@@ -184,6 +184,17 @@
   --red: oklch(0.5148 0.1993 29.64); /* #BF180D */
   --red-tint: color-mix(in oklab, var(--red) 10%, var(--n-0));
   --red-light: color-mix(in oklab, var(--red) 45%, var(--n-0));
+  /*
+   * - --red-deep is where a solid red goes under the pointer. `Button`'s
+   *   destructive variant is a filled block now rather than an outline, and a
+   *   fill has nowhere to go on hover unless there is a second stop to go to.
+   *   Darker rather than lighter: the fill is already mid-ramp, so lightening
+   *   it would read as the control fading out, and it takes white *up* to
+   *   7.68:1 from --red's 6.27:1 — the hover state is the more legible of the
+   *   two, which is the right way round for the one action in this system that
+   *   cannot be undone. Resolves to #A02215.
+   */
+  --red-deep: color-mix(in oklab, var(--red) 82%, var(--n-900));
 
   /*
    * ── Blue: what a subscription is bought as ──
@@ -676,6 +687,7 @@
 
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-hover: var(--destructive-hover);
   --color-destructive-subtle: var(--destructive-subtle);
 
   --color-blue: var(--blue);
@@ -1026,6 +1038,7 @@
 
   /* Destructive maps to --red — the system's only true alarm colour. */
   --destructive: var(--red);           /* 6.24:1 on white */
+  --destructive-hover: var(--red-deep);     /* the solid fill's pointer state */
   --destructive-subtle: var(--red-tint);    /* 5.38:1 against --red */
   --destructive-foreground: var(--n-0);
 
@@ -1674,6 +1687,13 @@
   --accent-foreground: var(--n-25);
 
   --destructive: var(--red-light);
+  /*
+    Lighter, not darker — the dark theme's hovers all step up the ramp, and the
+    ink on this fill is `--green-950` rather than white, so the pair gains
+    contrast by brightening the ground exactly as the light theme gains it by
+    darkening one.
+  */
+  --destructive-hover: color-mix(in oklab, var(--red-light) 78%, var(--n-0));
   --destructive-subtle: var(--green-800);
   --destructive-foreground: var(--green-950);
 
@@ -1879,6 +1899,7 @@
     --accent-foreground: var(--n-25);
 
     --destructive: var(--red);
+    --destructive-hover: var(--red-deep);
     --destructive-foreground: var(--n-25);
 
     --border: var(--green-700);
@@ -4954,11 +4975,51 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
  * answer for its host, and the host was clipped on the strength of a scrollport
  * that was not its own and was `display: none` besides.
  */
+/*
+ * ⚠ `clip`, and not `hidden`. The two paint identically and only one of them is
+ * safe here.
+ *
+ * `overflow: hidden` still makes the box a **scroll container** — it removes
+ * the scrollbars, not the scrollport. Nothing the reader does can scroll it,
+ * but the browser can, and does: focusing an element it believes to be out of
+ * view walks up the ancestors and scrolls every scrollport it finds on the way.
+ * A dialog in this branch has a body that scrolls, so the dialog itself moving
+ * is never right — the header and the footer are the two things that are meant
+ * to stay.
+ *
+ * They did not. Ticking the "make this the current weight" box in the
+ * measurement dialog scrolled the whole surface up by 239px: the title left
+ * through the top edge, the footer with Save on it came with it, and the 239px
+ * left at the bottom painted as bare `--popover` — a dialog that looked half
+ * white and half torn off, reported as the dialog breaking on click.
+ *
+ * The reason the browser had anywhere to scroll *to* is worth writing down,
+ * because it is not specific to this dialog. Base UI renders a checkbox as a
+ * visible control plus a **visually-hidden native `<input>`**, positioned
+ * `absolute` with no offsets — so it sits at its static position and is
+ * excluded from its parent's layout. `[data-slot='dialog-body']` is the
+ * scroller but is `position: static`, so it is not that input's containing
+ * block; the `<dialog>` is, being `position: fixed` under the UA stylesheet.
+ * An absolutely positioned box is only clipped by ancestors between it and its
+ * containing block, so the input was **not** clipped by the body it visually
+ * lives in. Scrolled far enough down a long form it landed 239px below the
+ * surface, and the dialog's own scroll overflow grew to reach it.
+ *
+ * `overflow: clip` clips without a scrollport. There is no scroll position to
+ * set, so focus, `scrollIntoView`, an anchor jump and a stray `scrollTop = n`
+ * are all inert on the frame — for this dialog and for every other one that
+ * composes a body. The `overflow: auto` branch below is untouched: a dialog
+ * with no body *is* its own scroller and must stay one.
+ *
+ * The escaping input is also contained at its source — see `position: relative`
+ * on the body further down — so the two together mean nothing inside a dialog
+ * can paint outside it either.
+ */
 .q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer):has(
     > [data-slot='dialog-body'],
     > :where(form, div) > [data-slot='dialog-body']
   ) {
-  overflow: hidden;
+  overflow: clip;
 }
 
 .q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer):not(
@@ -5044,6 +5105,25 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
     and under the header's own shadow.
   */
   scroll-padding-block: 1rem;
+  /*
+    The scroller is also the **containing block** for what it scrolls, and it
+    has to say so: a scrollport that is `position: static` does not clip the
+    absolutely positioned boxes inside it, because clipping follows the
+    containing-block chain rather than the DOM one. Those boxes resolve against
+    the `<dialog>` instead — `position: fixed` under the UA stylesheet — and
+    escape the body entirely, painting over the page and stretching the frame's
+    own scroll overflow to reach wherever they landed.
+
+    Not hypothetical, and not rare: every Base UI checkbox, radio and switch
+    renders a visually-hidden native `<input>` this way, and so does every
+    `sr-only` label in the app. See the ⚠ on the frame's `overflow: clip` for
+    the report this came from — a form scrolled far enough down put one of them
+    239px below the surface, and ticking it dragged the whole dialog after it.
+
+    `overflow: auto` above already establishes a containing block for `fixed`
+    descendants; this is the `absolute` half, which nothing else supplies.
+  */
+  position: relative;
 }
 
 /*

@@ -79,7 +79,7 @@ export async function Pager({
      "Showing 0–0 of 0" under an empty table is repeating the table. */
   if (total === 0) return null;
 
-  const link = cn(buttonVariants({ variant: 'outline', size: 'sm' }));
+  const link = cn(buttonVariants({ variant: 'neutral', size: 'sm' }));
   const dead = cn(link, 'pointer-events-none opacity-50');
 
   return (

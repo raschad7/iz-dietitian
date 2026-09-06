@@ -164,7 +164,7 @@ export function BillingEntryDialog({
             </DialogBody>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={pending}>
+              <Button type="button" variant="neutral" onClick={() => setOpen(false)} disabled={pending}>
                 {t('recordPayment.cancel')}
               </Button>
               <Button type="submit" disabled={pending}>

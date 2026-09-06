@@ -163,7 +163,7 @@ export function BillsTable({
                 {filtered ? (
                   <Link
                     href="/app/clients/bills"
-                    className={buttonVariants({ variant: 'outline', size: 'sm' })}
+                    className={buttonVariants({ variant: 'neutral', size: 'sm' })}
                   >
                     {t('clearFilters')}
                   </Link>

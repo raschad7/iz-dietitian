@@ -170,7 +170,7 @@ export function ConfirmDialog({
           it: pressing Enter the moment this appears must not delete anything.
         */}
         <div data-slot="dialog-footer" className="mt-1 flex items-center justify-end gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={() => beginClose(false)}>
+          <Button type="button" variant="neutral" size="sm" onClick={() => beginClose(false)}>
             {cancelLabel}
           </Button>
           <Button

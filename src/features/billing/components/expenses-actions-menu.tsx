@@ -64,7 +64,7 @@ export function ExpensesActionsMenu({
         <PopoverTrigger
           aria-label={label}
           className={cn(
-            buttonVariants({ variant: 'outline', size: 'icon' }),
+            buttonVariants({ variant: 'neutral', size: 'icon' }),
             PANEL_ACTION_CLASS,
             'rounded-sm hover:rounded-sm aria-expanded:rounded-sm',
           )}

@@ -75,11 +75,11 @@ export function MeasurementFormTrigger({
   mode?: 'manual' | 'upload';
   /**
    * `default` is the panel's own button. `ghost` is the same control shrunk into
-   * a table row, where an outlined box among other boxless cells would read as
+   * a table row, where a boxed control among other boxless cells would read as
    * one more destination — the distinction the design system draws is about what
    * a control sits among, not how important it is.
    */
-  variant?: 'default' | 'ghost' | 'outline';
+  variant?: 'default' | 'ghost' | 'neutral';
   icon?: IconName;
 }) {
   const t = useTranslations('measurements');

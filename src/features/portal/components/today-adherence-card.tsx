@@ -78,7 +78,7 @@ export function TodayAdherenceCard({ today, locale }: { today: TodayAdherence | 
           plan now lives on the home screen itself, below today's progress,
           rather than its own tab.
         */}
-        <Link href="/portal" className={buttonVariants({ variant: 'outline', className: 'w-full max-w-none' })}>
+        <Link href="/portal" className={buttonVariants({ variant: 'neutral', className: 'w-full max-w-none' })}>
           {t('cta')}
           <Icon name="chevronEnd" />
         </Link>

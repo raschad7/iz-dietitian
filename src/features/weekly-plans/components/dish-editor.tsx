@@ -907,7 +907,7 @@ export function DishEditor({
         <div className="ms-auto flex items-center gap-2">
           {step === 3 && !isEditing && onSaveAnother && (
             <SubmitButton
-              variant="outline"
+              variant="neutral"
               label={t('editor.saveAndAddAnother')}
               pendingLabel={t('editor.submitting')}
               onPress={() => {
@@ -1618,7 +1618,7 @@ function SubmitButton({
 }: {
   label: string;
   pendingLabel: string;
-  variant?: 'outline';
+  variant?: 'neutral';
   /** Runs before the form posts — records *which* save button was used. */
   onPress: () => void;
 }) {

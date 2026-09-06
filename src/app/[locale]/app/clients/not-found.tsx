@@ -18,7 +18,7 @@ export default async function ClientNotFound() {
     <div className="space-y-4 text-start">
       <h1 className="text-2xl font-semibold tracking-tight">{t('notFound')}</h1>
       <p className="text-muted-foreground">{t('notFoundDescription')}</p>
-      <Link href="/app/clients" className={buttonVariants({ variant: 'outline' })}>
+      <Link href="/app/clients" className={buttonVariants({ variant: 'neutral' })}>
         {t('backToList')}
       </Link>
     </div>

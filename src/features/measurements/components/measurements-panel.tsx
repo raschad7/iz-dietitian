@@ -204,7 +204,7 @@ export async function MeasurementsPanel({
         today={today}
         currentWeightKg={currentWeightKg}
         takenSlots={takenSlots}
-        variant="outline"
+        variant="neutral"
         label={t('add')}
       />
     </div>

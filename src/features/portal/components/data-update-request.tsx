@@ -234,7 +234,7 @@ function RequestDialogTrigger({
 
         Still `Button` and still 48px tall, so nothing is given up but the line.
       */
-      variant={standalone ? 'ghost' : 'outline'}
+      variant={standalone ? 'ghost' : 'neutral'}
       onClick={() => setOpen(true)}
     >
       <Icon name="edit" />

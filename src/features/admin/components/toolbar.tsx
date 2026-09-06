@@ -127,7 +127,7 @@ export function AdminToolbar({
 
       {children}
 
-      <Button type="submit" variant="outline">
+      <Button type="submit" variant="neutral">
         <Icon name="search" className="size-4" aria-hidden />
         {t('apply')}
       </Button>

@@ -57,7 +57,7 @@ export default async function DisabledPage({ params }: DisabledPageProps) {
 
       <form action={signOutAction}>
         <input type="hidden" name="locale" value={locale} />
-        <Button type="submit" variant="outline" size="sm">
+        <Button type="submit" variant="neutral" size="sm">
           {tCommon('signOut')}
         </Button>
       </form>

@@ -289,7 +289,7 @@ export function ClientTable({
                 {filtered ? (
                   <Link
                     href={{ pathname: '/app/clients', query: statusQuery }}
-                    className={buttonVariants({ variant: 'outline', size: 'sm' })}
+                    className={buttonVariants({ variant: 'neutral', size: 'sm' })}
                   >
                     {t('clearFilters')}
                   </Link>

@@ -26,7 +26,12 @@ pull request, not from commit messages:
 
 ## Note on early tags
 
-The current version is **0.4.0**. A `v1.1.0` tag exists from before the
-numbering was corrected — it does not represent a later release than `v0.4.0`,
-and this file previously claimed a `1.0.0` initial release that was never real.
-Treat `v0.4.0` and anything after it as the true line.
+A `v1.1.0` tag exists from before the numbering was corrected — it does not
+represent a later release than `v0.4.0`, and this file previously claimed a
+`1.0.0` initial release that was never real. Treat `v0.4.0` and anything after
+it as the true line.
+
+The current number is whatever `version` in `package.json` says; it is not
+repeated here, because a number written into prose is a number that goes stale
+the next time the release workflow runs — this paragraph claimed 0.4.0 for
+several releases after the workflow had moved on.

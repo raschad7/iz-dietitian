@@ -75,7 +75,7 @@ export function DisableAccountButton({
           label={t('enable')}
           confirmTitle={t('enableTitle', { name })}
           confirmMessage={t('enableBody')}
-          variant="outline"
+          variant="neutral"
         />
       ) : (
         <ReasonDialog

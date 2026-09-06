@@ -58,6 +58,16 @@ UI. HTTP route handlers are reserved for callers that cannot use server actions:
 - Better Auth under `src/app/api/auth/`
 - OpenWA webhook delivery under `src/app/api/whatsapp/webhook/`
 - Authenticated reminder ticks under `src/app/api/whatsapp/reminders/`
+- Web-push re-registration under `src/app/api/portal/push-subscription/`. A
+  service worker handling `pushsubscriptionchange` fires with no page open, so
+  it has no router and no server action to call — only `fetch`. Subscribing and
+  unsubscribing from a live page still go through
+  `src/features/portal/push/actions.ts`
+- Authenticated push reminder ticks under `src/app/api/portal/push-reminders/`,
+  which carries its own secret rather than sharing the WhatsApp one.
+  `scripts/push-reminders.ts` does the same job from a shell
+- Generated PWA icons under `src/app/api/pwa-icons/[size]/`, which render the
+  brand lockup from `src/features/brand/logo.ts` at install time
 - Printable bills under `src/app/[locale]/app/clients/bills/[clientId]/print/`,
   which answer with a PDF rather than a page. A server action cannot return a
   file for the browser to open, and rendering HTML that then fetches the bytes

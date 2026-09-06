@@ -70,7 +70,7 @@ export default async function SuspendedPage({ params }: SuspendedPageProps) {
       {/* The same shape `/verify-email` signs out with — an action, not a link. */}
       <form action={signOutAction}>
         <input type="hidden" name="locale" value={locale} />
-        <Button type="submit" variant="outline" size="sm">
+        <Button type="submit" variant="neutral" size="sm">
           {tCommon('signOut')}
         </Button>
       </form>
