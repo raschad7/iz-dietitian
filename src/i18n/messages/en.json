@@ -64,7 +64,14 @@
     "openNavigation": "Open navigation",
     "closeNavigation": "Close navigation",
     "expandSidebar": "Expand sidebar",
-    "collapseSidebar": "Collapse sidebar"
+    "collapseSidebar": "Collapse sidebar",
+    "adminOverview": "Overview",
+    "adminAi": "AI usage",
+    "adminClinics": "Clinics",
+    "adminAccounts": "Accounts",
+    "adminCatalog": "Shared catalog",
+    "adminAudit": "Audit",
+    "adminRevenue": "Revenue"
   },
   "commandPalette": {
     "label": "Search and commands",
@@ -3052,5 +3059,477 @@
         "notEnoughData": "Nothing to compare against yet."
       }
     }
+  },
+  "admin": {
+    "title": "Enzyme platform",
+    "railTitle": "Platform",
+    "dismissNotice": "Dismiss this notice",
+    "overview": {
+      "heading": "Overview",
+      "subtitle": "How the platform is doing over the chosen window, and who needs you now.",
+      "clinics": {
+        "heading": "Clinics",
+        "active": "Active",
+        "onboarding": "Onboarding",
+        "suspended": "Suspended"
+      },
+      "accounts": {
+        "heading": "Accounts",
+        "staff": "Dietitians",
+        "clients": "Portal clients",
+        "admins": "Platform admins",
+        "disabled": "Disabled"
+      },
+      "health": {
+        "heading": "Health",
+        "whatsappConnected": "WhatsApp connected",
+        "whatsappConfigured": "WhatsApp set up",
+        "appointments": "Appointments booked",
+        "whatsappGap": "{count} clinics set WhatsApp up and it is not connected."
+      },
+      "queue": {
+        "heading": "Needs attention",
+        "hint": "Clinics that have stopped, or are stopping. Ones you suspended are not listed.",
+        "all": "All clinics",
+        "empty": "Nothing needs attention",
+        "emptyHint": "Every working clinic has done something recently.",
+        "never": "Nothing yet",
+        "columns": {
+          "clinic": "Clinic",
+          "health": "Health",
+          "lastActive": "Last active",
+          "clients": "Patients",
+          "plans": "Plans"
+        }
+      },
+      "cards": {
+        "signups": "New clinics",
+        "signupsHint": "of {total} in total",
+        "plans": "Plans written",
+        "plansHint": "of {total} in total",
+        "ai": "AI runs",
+        "failures": "Failed runs"
+      },
+      "charts": {
+        "signups": "Signups by month",
+        "signupsSeries": "Clinics",
+        "plans": "Plans per day",
+        "plansSeries": "Plans"
+      },
+      "footnote": "Every compared figure covers {from} to {to}.",
+      "footnoteAll": "Every figure covers the whole history, so there is no earlier period to compare against."
+    },
+    "ai": {
+      "title": "AI usage",
+      "subtitle": "Every call the plan generator has made to a model, by clinic. Generation and plan review are both counted — review is a model call like any other.",
+      "tabsLabel": "Usage breakdown",
+      "byClinic": "By clinic",
+      "byModel": "By model",
+      "byScope": "By kind of call",
+      "empty": "No model calls in this window.",
+      "unpriced": "{count, plural, one {# model has no rate set} other {# models have no rate set}}: {models}. Their tokens are counted; their cost is not, so every cost below is a floor. Add them to MODEL_RATES in src/features/admin/pricing.ts.",
+      "idleClinics": "{count, plural, one {# clinic of} other {# clinics of}} {total} have not generated a plan in this window.",
+      "ranges": {
+        "label": "Time range",
+        "7d": "7 days",
+        "30d": "30 days",
+        "90d": "90 days",
+        "all": "All time"
+      },
+      "tiles": {
+        "runs": "Model calls",
+        "cost": "Cost",
+        "costFloor": "{count, plural, one {# run could not be priced} other {# runs could not be priced}}",
+        "tokens": "Tokens",
+        "tokenSplit": "{prompt} in · {completion} out",
+        "failures": "Failed",
+        "median": "Typical call",
+        "medianHint": "Median duration"
+      },
+      "columns": {
+        "clinic": "Clinic",
+        "model": "Model",
+        "scope": "Kind",
+        "runs": "Calls",
+        "failed": "Failed",
+        "tokens": "Tokens",
+        "median": "Typical",
+        "cost": "Cost",
+        "lastRun": "Last call",
+        "error": "What the provider said",
+        "when": "When"
+      },
+      "scopes": {
+        "week": "Full week",
+        "day": "One day",
+        "meal": "One meal",
+        "review": "Plan review"
+      },
+      "failures": {
+        "heading": "Recent failures",
+        "description": "The provider’s own message, kept as it arrived. A timeout, a rate limit and a refusal each call for something different."
+      },
+      "cards": {
+        "runs": "Runs",
+        "cost": "Cost",
+        "failed": "Failed",
+        "clinics": "Clinics using it"
+      },
+      "charts": {
+        "daily": "Runs and failures per day",
+        "dailyHint": "An outage shows up here as a shape before it shows up as a number.",
+        "runs": "Runs",
+        "failed": "Failed",
+        "spend": "Spend by clinic",
+        "spendHint": "The eight clinics costing the most in this window.",
+        "spendEmpty": "No priced spend in this window."
+      }
+    },
+    "clinics": {
+      "title": "Clinics",
+      "subtitle": "Every practice on this deployment, ordered by who needs you.",
+      "empty": "No clinics yet.",
+      "notFound": "No clinic with that id.",
+      "back": "All clinics",
+      "columns": {
+        "clinic": "Clinic",
+        "status": "Status",
+        "staff": "Staff",
+        "clients": "Clients",
+        "plans": "Plans",
+        "joined": "Joined",
+        "health": "Health",
+        "plan": "Plan",
+        "mrr": "Monthly",
+        "lastActive": "Last active"
+      },
+      "status": {
+        "active": "Active",
+        "suspended": "Suspended",
+        "onboarding": "Onboarding"
+      },
+      "statusHint": {
+        "suspended": "Suspended {when}",
+        "onboarding": "Signed up but has not finished setting the clinic up."
+      },
+      "detail": {
+        "contact": "Contact",
+        "noPhone": "No phone set",
+        "noEmail": "No email set",
+        "noAddress": "No address set",
+        "staff": "Staff",
+        "staffEmpty": "Nobody can sign in to this clinic.",
+        "unverified": "Email not verified",
+        "generations": "Model calls",
+        "joined": "Joined",
+        "phone": "Phone",
+        "email": "Email",
+        "address": "Address",
+        "plansRecent": "Plans, 30 days",
+        "plansPrevious": "{count} before that",
+        "billed": "Billed its patients",
+        "collected": "Collected {value}",
+        "history": "What was done here",
+        "historyEmpty": "Nothing has been done to this clinic.",
+        "disabled": "Disabled",
+        "lastSeen": "Last seen {when}",
+        "neverSeen": "Never signed in"
+      },
+      "suspend": {
+        "action": "Suspend this clinic",
+        "reactivate": "Reactivate this clinic",
+        "confirmTitle": "Suspend {name}?",
+        "confirmBody": "Its staff are signed out immediately and cannot sign back in until you reactivate it. Its clients keep their portal, their plans and their appointments.",
+        "reactivateTitle": "Reactivate {name}?",
+        "reactivateBody": "Its staff will be able to sign in again. They will need to enter their password.",
+        "failed": "That did not go through. Try again.",
+        "heading": "Suspend this clinic",
+        "hint": "Suspending signs the whole team out at once. Patients keep their portal and their plans.",
+        "reasonRequired": "Write a reason before suspending."
+      },
+      "searchLabel": "Search by clinic name",
+      "showing": "Showing {count} of {total}",
+      "never": "Nothing yet",
+      "sort": {
+        "label": "Order",
+        "attention": "Needs attention",
+        "joined": "Newest",
+        "name": "Name",
+        "clients": "Most patients",
+        "plans": "Most plans",
+        "revenue": "Monthly price"
+      }
+    },
+    "accounts": {
+      "title": "Accounts",
+      "subtitle": "Everyone who can sign in, across every clinic. Dietitians and admins first.",
+      "empty": "No accounts match.",
+      "searchLabel": "Search by name or email",
+      "columns": {
+        "account": "Account",
+        "role": "Role",
+        "clinic": "Clinic",
+        "status": "Status",
+        "joined": "Joined",
+        "actions": "",
+        "lastSeen": "Last seen"
+      },
+      "roles": {
+        "admin": "Platform",
+        "staff": "Dietitian",
+        "client": "Client"
+      },
+      "status": {
+        "active": "Active",
+        "disabled": "Disabled",
+        "unverified": "Unverified"
+      },
+      "noClinic": "—",
+      "clinicSuspended": "clinic suspended",
+      "disable": {
+        "action": "Disable",
+        "enable": "Enable",
+        "confirmTitle": "Disable {name}?",
+        "confirmBody": "They are signed out immediately and cannot sign back in until you enable the account again. Nothing is deleted.",
+        "enableTitle": "Enable {name}?",
+        "enableBody": "They will be able to sign in again with their existing password."
+      },
+      "promote": {
+        "action": "Make platform admin",
+        "confirmTitle": "Make {name} a platform admin?",
+        "confirmBody": "They leave their clinic and gain the platform area. This cannot be undone from here — an admin has no clinic to be moved back into."
+      },
+      "errors": {
+        "invalid": "That did not go through. Try again.",
+        "self": "You cannot disable the account you are signed in with.",
+        "lastAdmin": "This is the last platform admin. Disabling it would leave nobody able to reach this area.",
+        "notStaff": "Only a dietitian account can be made a platform admin.",
+        "hasClients": "That clinic still has clients. Promoting would leave nobody able to open it.",
+        "reasonRequired": "Write a reason first.",
+        "notFound": "That account no longer exists."
+      },
+      "neverSeen": "Never"
+    },
+    "catalog": {
+      "title": "Shared catalog",
+      "subtitle": "The food catalog every clinic sees. A clinic’s own private foods are its records and are not shown here.",
+      "exportNotice": "Edits here live in the database only. Run `bun run db:export:catalog --apply` and commit data/catalog-foods.json, or the next `db:seed:catalog` will overwrite them.",
+      "derivedNotice": "Nutrition, portions and provenance are derived from USDA by `db:build-catalog` and are shown read-only — editing them here would be reverted the next time that script runs.",
+      "searchLabel": "Search by name or slug",
+      "searchAction": "Search",
+      "empty": "No shared foods match.",
+      "truncated": "Showing the first {count}. Narrow the search to see more.",
+      "notFound": "No shared food with that id.",
+      "back": "All shared foods",
+      "columns": {
+        "food": "Food",
+        "category": "Category",
+        "state": "State",
+        "kcal": "kcal/100g",
+        "aliases": "Aliases",
+        "usedBy": "In dishes",
+        "status": "Status"
+      },
+      "status": {
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "form": {
+        "nameAr": "Arabic name",
+        "nameEn": "English name",
+        "category": "Category",
+        "state": "Preparation state",
+        "isActive": "Available to clinics",
+        "save": "Save",
+        "saved": "Saved. Remember to export."
+      },
+      "detail": {
+        "curated": "Curated",
+        "derived": "Derived (read-only)",
+        "nutrition": "Per 100 g",
+        "portions": "Portions",
+        "aliases": "Aliases",
+        "noAliases": "No aliases.",
+        "noPortions": "Grams only — no household measures.",
+        "source": "Source",
+        "usedBy": "Named by {count} dish ingredient lines."
+      },
+      "errors": {
+        "invalid": "Check the fields and try again.",
+        "notFound": "That food no longer exists."
+      }
+    },
+    "metrics": {
+      "noBaseline": "No earlier period",
+      "previous": "vs {value}"
+    },
+    "filters": {
+      "apply": "Search",
+      "clear": "Clear",
+      "any": "Any",
+      "role": "Role",
+      "status": "Status",
+      "plan": "Plan",
+      "health": "Health",
+      "action": "Action",
+      "target": "Type",
+      "showing": "Showing {from}–{to} of {total}",
+      "page": "Page {page} of {pages}",
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "reason": {
+      "label": "Why are you doing this?",
+      "placeholder": "This is recorded in the platform log.",
+      "hint": "At least {min} characters. The reason appears in the log and cannot be edited afterwards."
+    },
+    "health": {
+      "title": "Health",
+      "band": {
+        "dormant": "Dormant",
+        "at-risk": "At risk",
+        "watch": "Watch",
+        "new": "New",
+        "healthy": "Working"
+      },
+      "signals": {
+        "noStaff": "Nobody can sign in",
+        "noClients": "No patients after {days} days",
+        "noPlansEver": "Never written a plan",
+        "quiet": "Nothing for {days} days",
+        "slowing": "Plans fell from {limit} to {count}",
+        "trialExpired": "Trial ended {days} days ago",
+        "trialEnding": "Trial ends in {days} days",
+        "overSeats": "{count} seats of {limit}",
+        "overAi": "{count} AI plans of {limit}",
+        "onboardingStalled": "Setup unfinished after {days} days",
+        "suspended": "Suspended {days} days ago",
+        "more": "and {count} more"
+      }
+    },
+    "plans": {
+      "label": "Plan",
+      "tier": {
+        "trial": "Trial",
+        "starter": "Starter",
+        "pro": "Pro",
+        "clinic": "Clinic"
+      },
+      "trialExpired": "expired",
+      "trialEnding": "ending",
+      "seats": "{count} seats",
+      "seatsAny": "Unlimited seats",
+      "aiLimit": "{count} AI plans a month",
+      "aiAny": "No AI limit",
+      "listPrice": "List price",
+      "custom": "Negotiated",
+      "form": {
+        "heading": "Plan and price",
+        "plan": "Plan",
+        "price": "Monthly price",
+        "pricePlaceholder": "Blank for the list price",
+        "trialEndsAt": "Trial ends",
+        "save": "Save plan",
+        "saved": "Saved.",
+        "badPrice": "Write a number like 240 or 240.50.",
+        "badDate": "That date is not valid.",
+        "failed": "Could not save."
+      }
+    },
+    "revenue": {
+      "title": "Revenue",
+      "subtitle": "What clinics pay the platform, and what they collect from their own patients.",
+      "mrr": "Monthly recurring revenue",
+      "arr": "Annual run rate",
+      "arpa": "Average per paying clinic",
+      "paying": "Paying clinics",
+      "byTier": "By plan",
+      "pipeline": "Worth an upgrade call",
+      "pipelineHint": "Clinics on a free plan that are genuinely working: patients on the books and recent plans.",
+      "pipelineEmpty": "No candidates right now.",
+      "clinicFlow": "Money moving inside the clinics",
+      "clinicFlowHint": "What clinics billed their own patients and what they collected. Not platform revenue.",
+      "billed": "Billed",
+      "collected": "Collected",
+      "unknownPlan": "Plans this build does not know: {plans}",
+      "columns": {
+        "clinic": "Clinic",
+        "plan": "Plan",
+        "price": "Monthly",
+        "billed": "Billed",
+        "collected": "Collected"
+      },
+      "suspendedExcluded": "Suspended clinics are not counted as revenue."
+    },
+    "audit": {
+      "title": "Platform log",
+      "subtitle": "Every action the platform operator took, and the reason given.",
+      "empty": "Nothing matches.",
+      "searchLabel": "Search an address, a name, or a reason",
+      "columns": {
+        "when": "When",
+        "actor": "Operator",
+        "action": "Action",
+        "target": "Target",
+        "reason": "Reason"
+      },
+      "outcome": {
+        "ok": "Done",
+        "refused": "Refused"
+      },
+      "actions": {
+        "clinicSuspend": "Suspended a clinic",
+        "clinicReactivate": "Reactivated a clinic",
+        "clinicPlanUpdate": "Changed a plan",
+        "accountDisable": "Disabled an account",
+        "accountEnable": "Enabled an account",
+        "accountPromote": "Promoted to admin",
+        "catalogFoodUpdate": "Edited a shared food"
+      },
+      "targets": {
+        "clinic": "Clinic",
+        "account": "Account",
+        "food": "Food"
+      },
+      "refusals": {
+        "self": "tried to disable their own account",
+        "lastAdmin": "last enabled admin",
+        "reasonRequired": "no reason given",
+        "notStaff": "not a dietitian account",
+        "hasClients": "clinic still has patients"
+      },
+      "noReason": "—",
+      "recent": "Recent activity",
+      "viewAll": "Full log",
+      "changed": "from {before} to {after}"
+    },
+    "search": {
+      "title": "Search",
+      "placeholder": "Find a clinic, an account, or a food",
+      "label": "Search the platform",
+      "empty": "Nothing found for “{query}”.",
+      "hint": "Type at least two characters.",
+      "results": "{count} results",
+      "kinds": {
+        "clinic": "Clinic",
+        "account": "Account",
+        "food": "Food"
+      },
+      "flags": {
+        "suspended": "Suspended",
+        "disabled": "Disabled",
+        "inactive": "Inactive"
+      }
+    }
+  },
+  "suspended": {
+    "heading": "This clinic is not active",
+    "body": "Access to the dietitian workspace has been paused by the platform. Your clients can still reach their portal, their plans and their appointments — nothing of theirs has been removed.",
+    "contact": "Get in touch with the platform administrator to have it reactivated."
+  },
+  "disabled": {
+    "heading": "This account is disabled",
+    "body": "The platform has turned this account off. Nothing has been deleted — signing in will work again as soon as it is re-enabled.",
+    "contact": "Get in touch with the platform administrator."
   }
 }

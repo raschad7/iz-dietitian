@@ -19,7 +19,7 @@ import {
   recordAttempt,
   type AttemptKind,
 } from './rate-limit';
-import { resolveSafeRedirect } from './redirect';
+import { resolveSafeRedirect, toUserRole } from './redirect';
 import {
   firstSetPasswordMessage,
   readSetPasswordForm,
@@ -81,8 +81,10 @@ export async function signInWithPassword(
   const limited = await guard('sign_in', email);
   if (limited) return limited;
 
+  let signedIn: Awaited<ReturnType<typeof auth.api.signInEmail>> | undefined;
+
   try {
-    await auth.api.signInEmail({ body: { email, password }, headers: await headers() });
+    signedIn = await auth.api.signInEmail({ body: { email, password }, headers: await headers() });
   } catch (error) {
     await penalise('sign_in', email);
 
@@ -102,8 +104,21 @@ export async function signInWithPassword(
 
   await clearAttempts('sign_in', email);
 
-  // Outside the try/catch — `redirect` signals by throwing.
-  redirect(resolveSafeRedirect(redirectTo, locale, 'staff'));
+  /*
+    Outside the try/catch — `redirect` signals by throwing.
+
+    The role comes off the account that just signed in, and it used to be the
+    literal `'staff'`. That was true while this form served one role; the
+    platform area shares it now — an admin types the same email and password —
+    so hardcoding it landed a platform owner on `/app`, where
+    `requireStaffSession` bounced them straight back to `/admin`. Correct in the
+    end, and a wasted round trip through a screen they may not open.
+
+    `toUserRole` handles the widened type Better Auth hands back, and treats
+    anything it does not recognise as staff — see the note there for why that
+    fallback grants nothing.
+  */
+  redirect(resolveSafeRedirect(redirectTo, locale, toUserRole(signedIn?.user.role)));
 }
 
 /**

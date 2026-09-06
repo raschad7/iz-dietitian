@@ -69,10 +69,11 @@ A new HTTP endpoint needs an external caller or another clear boundary reason.
 
 ## Authentication and tenant boundaries
 
-Better Auth supports two application areas:
+Better Auth supports three application areas, one per role in `UserRole`:
 
 - `/{locale}/app/**` is for staff.
 - `/{locale}/portal/**` is for clients.
+- `/{locale}/admin/**` is for the platform owner, above every clinic.
 
 `src/proxy.ts` performs an optimistic session-cookie redirect. It is not an
 authorization boundary. Layouts and server-side operations must use the guards
@@ -82,6 +83,189 @@ database.
 Staff reads and writes must obtain `clinicId` through `requireStaffClinic()` and
 pass it to feature queries and mutations. Never fall back to an unscoped query
 when a clinic ID is missing.
+
+Where each role belongs is stated **once**, as `AREA_BY_ROLE` in
+`src/features/auth/redirect.ts`, and reached through `areaHomePath()`. Three
+places need that answer — the post-sign-in redirect, the locale root, and
+`requireRole` turning someone around — and a second copy of the mapping is how
+they come to disagree.
+
+### The platform area
+
+`/{locale}/admin/**` is the one part of the application that deliberately reads
+across clinics, and `requireAdminSession()` is the only guard that grants it.
+
+An `admin` is a third role, not a staff account with extra rights. It holds no
+`clinicId`, so `requireStaffClinic()` cannot hand it a tenant scope — it throws
+instead, which is the loud failure we want if the two are ever crossed. The
+tenant boundary is therefore a property of *which guard a route calls*, visible
+at the top of a file, rather than a permission check buried in a query.
+
+### The audit log
+
+Every privileged write in the platform area records a row in `admin_audit_log`,
+and destructive verbs will not proceed without a typed reason. The registry of
+verbs is `ADMIN_ACTIONS` in `src/features/admin/audit-rules.ts`; adding a
+privileged button means adding a line there first, so the log cannot fall behind
+the panel by accident.
+
+Three properties are load-bearing:
+
+- **Rows are snapshots, not pointers.** `actor_email` and `target_label` are
+  copied at write time. A log that renders "user 9f3a… suspended clinic 7c1b…"
+  after both rows are gone has recorded nothing.
+- **The entry is inside the action's transaction.** A panel that can suspend a
+  clinic and then fail to record it has a log that looks complete and is not.
+- **Refusals are recorded too.** The last admin trying to disable themselves, a
+  promotion blocked because the clinic still has patients — those are written
+  with `outcome: 'refused'`. A log of only successes cannot show an attempt.
+
+There is no update or delete path, which is why the table has no `updated_at`.
+Postgres cannot enforce append-only against a role holding `UPDATE`, so this is a
+rule about the code.
+
+⚠ `audit.ts` is `server-only`; the shared constants and pure rules live in
+`audit-rules.ts`. A client component importing the first pulls the postgres
+driver into the browser bundle.
+
+### Plans and platform revenue
+
+`clinics.plan`, `plan_price_minor` and `trial_ends_at` are what the *clinic* pays
+the *platform*. This is not the billing ledger — that one records what a clinic
+charges its own patients, and the two are never added together.
+
+The tiers live in `src/features/admin/plans.ts` as code, following
+`BILLING_SERVICES`: adding one is a line and a pair of strings, never a
+migration. A clinic's price is `plan_price_minor` when set and the tier's list
+price otherwise, so a negotiated deal survives a change to the list — the same
+reasoning `client_charges` uses for storing its own amount. Zero is a price, not
+an absence.
+
+Nothing is enforced. Seat and AI-plan counts are what a tier is *sold* with, and
+a clinic over them keeps working and shows up on the registry as over its limit.
+A clinic losing access to its patients' records because a number in that file was
+wrong is not a trade worth making inside an admin panel.
+
+### Clinic health
+
+`src/features/admin/health.ts` derives a band — dormant, at-risk, watch, new,
+healthy — plus the **signals** behind it, from six aggregates per clinic: last
+plan, last patient, last seen, plans this period against last, staff count, and
+AI usage this month.
+
+It is deliberately **not** a weighted score out of 100. A composite number is one
+nobody can argue with because nobody can see what is in it, two clinics on the
+same 38 can need opposite conversations, and there is no data on this deployment
+to fit weights against — they would be guesses wearing the costume of a
+measurement. The band sorts; the signals say what to do.
+
+Two rules stop the queue filling with noise: a clinic under `NEW_CLINIC_DAYS` is
+judged on setup rather than output, and a suspended clinic reports suspension as
+its cause rather than appearing as a health problem the operator caused.
+
+### Disabling an account
+
+`users.disabled_at` is checked in `requireRole`, so it covers all three areas at
+once — a disabled client is refused the portal exactly as a disabled dietitian is
+refused the app. That is the difference from clinic suspension below, which is
+deliberately staff-only. A disabled account lands on `/{locale}/disabled`.
+
+The action refuses two things, server-side rather than in the UI: disabling the
+account making the request, and disabling the last enabled admin. Neither is a
+state worth supporting, and the only way back from the second is
+`bun run admin:sync` on a machine with database access.
+
+### Suspending a clinic
+
+`clinics.suspended_at` is set only from the platform area, and two mechanisms
+carry it because neither is sufficient alone:
+
+- `requireStaffSession` reads it on every staff request, page or server action,
+  and redirects to `/{locale}/suspended`. This is what makes a suspension
+  **immediate** — a dietitian with the app already open is turned away at their
+  very next request.
+- The action also deletes that clinic's staff session rows. This is what makes it
+  **durable**. It is not instant: Better Auth caches a session in a signed cookie
+  for `SESSION_COOKIE_CACHE_SECONDS`, so for up to a minute a deleted row is
+  still honoured. The column check covers that window.
+
+**Clients are deliberately untouched.** `requireClientSession` never consults the
+clinic, so a suspended practice's patients keep their portal, their plans and
+their appointments. Suspension is the platform's dispute with the practice, and a
+patient is not a party to it.
+
+### Editing the shared catalog
+
+The shared catalog is generated data as much as it is a table, and the platform
+panel splits its fields accordingly:
+
+- **Curated** — names, category, preparation state, the active flag. A person
+  chose these, and `/admin/catalog` edits them.
+- **Derived** — nutrition, portions, provenance. `bun run db:build-catalog`
+  regenerates them from `data/usda-sr-legacy.ndjson` and would put its own
+  figures back over a hand correction, so the panel shows them read-only. There
+  is deliberately no kcal box.
+
+An edit is not durable until it is exported. `db:seed:catalog --apply` upserts
+every row in `data/catalog-foods.json` on `slug`, so
+`bun run db:export:catalog --apply` writes the database back out and the diff is
+committed, the way a generated migration is.
+
+**The export merges rather than overwrites**, because the database is not a
+complete copy of the file. `note` — the USDA description a `sourceRef` carried
+when the dataset was built, which `seed-dishes.ts` asserts against — is in the
+file and is null on 143 of the 145 rows. It also preserves food order, authored
+alias order and per-entry nutrition key order, all of which are part of the
+file's checksum. On an unedited database it is a no-op.
+
+Its first screen is AI usage — what the plan generator costs, per clinic. It
+adds no column and no write path: `weekly_plan_generations` has recorded one row
+per model call since the feature was written, for failures as well as successes,
+and plan review writes to that same table under `scope: 'review'` rather than
+keeping a ledger of its own. So a clinic's whole model bill is one read over one
+table, aggregated by pure functions in `ai-usage.ts`.
+
+What a model costs is *not* in the database, and deliberately: no API reports it,
+and freezing a price into a row would preserve whatever was true the day it was
+written. Rates live in `pricing.ts` for someone to keep current, matched by
+longest name prefix because the provider resolves an alias to a dated snapshot on
+the way out. A model with no rate contributes its tokens and no cost, and the
+screen names it — never a default rate, which would make an unnoticed guess look
+like a measurement.
+
+Two rules follow, and both matter more than they look:
+
+- **Unscoped reads live only in `src/features/admin/`.** Nothing under
+  `src/app/[locale]/app`, `src/app/[locale]/portal`, or any other feature may
+  import from it. A query that omits `clinic_id` is correct in exactly one
+  module and a data leak everywhere else.
+- **Promotion is deliberate and never a sign-up path.** `ADMIN_EMAILS`
+  bootstraps the first account through `bun run admin:sync`; the environment is
+  never consulted at request time, so the database stays the single authority on
+  who can reach the area.
+
+### What the platform area does not do
+
+Recorded here because each was considered and declined, and a later reader should
+not have to rediscover the reasoning:
+
+- **No impersonation, and no "view as clinic".** The tenant boundary stays
+  absolute. Support questions are answered from the platform screens and the
+  audit log.
+- **No graded admin roles.** `admin` is all-or-nothing. Splitting it into owner
+  and support is the obvious next step if more than one person ever holds it.
+- **No failed-sign-in metric.** `auth_attempts` is pruned to the longest
+  rate-limit window — one hour — on every write, and `clearAttempts` empties an
+  address's rows the moment it signs in. Any count over it reads near-zero during
+  an attack that ended an hour ago. Recording sign-in failures durably is a real
+  feature with a retention policy attached, and it belongs in the auth layer that
+  owns the table.
+- **No MRR history.** The revenue figures are live; nothing snapshots them
+  monthly, so the cards show "no earlier period" rather than a fabricated
+  baseline.
+- **No shared *dish* editing.** `data/dishes.json` addresses ingredients by USDA
+  `fdcId` while the database stores `catalog_food_id`, so a faithful dish export
+  is its own piece of work.
 
 ## Database
 
@@ -218,17 +402,16 @@ lint rule. See [Design system](design-system.md) for the complete UI contract.
 
 - `auth`: staff and client authentication, password policy, passkeys, and rate
   limiting
-<<<<<<< HEAD
 - `billing`: the subscriber ledger — `client_charges` and `client_payments`,
   the shekel arithmetic over them, and the Bills screen. Amounts are integer
   minor units everywhere; see `src/features/billing/money.ts`
-- `booking`: calendar, appointments, and appointment requests
-=======
-- `booking`: calendar, appointments, clinic hours, and appointment scheduling
+- `booking`: the calendar, appointments, and the constraints a booking is
+  checked against — the clinic's hours, repeats, and clashes. The hours
+  themselves are set in `clinic-profile`, and a client-raised request is
+  handled in `requests`
 - `brand`: the logo as path data plus the splash screen; the single source the
   in-app lockup, the PWA icon, the Open Graph card, and `public/brand/*.svg`
   are all drawn from
->>>>>>> 2fc96edfef517fccc430d17ca971bb46fc56007a
 - `clients`: clinic roster, client details, the nutrition intake, and portal
   credential issuing
 - `clinic-profile`: clinic onboarding, clinic details, and the default schedule

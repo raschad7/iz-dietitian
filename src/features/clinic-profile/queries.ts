@@ -1,4 +1,5 @@
 import { and, asc, eq, gte } from 'drizzle-orm';
+import { cache } from 'react';
 
 import { db } from '@/db';
 import { appointments, clinics, clinicWorkingHours, practitioners, user } from '@/db/schema';
@@ -6,6 +7,32 @@ import { weekdayOf } from '@/features/booking/date';
 
 import { toClinicSchedule } from './schedule';
 import type { ClinicDayHours, ClinicProfileSnapshot } from './types';
+
+/**
+ * Whether the platform has turned this clinic off.
+ *
+ * **Wrapped in React's `cache`, and that is not an optimisation you can skip.**
+ * `requireStaffSession` calls this, and that guard runs several times over a
+ * single staff render — the layout's, the page's, and `generateMetadata`'s. Left
+ * uncached it would be a fresh round trip on each, added to every screen in the
+ * dietitian area to serve a column that is null for almost every clinic almost
+ * always. `getSession` above it is cached for exactly this reason.
+ *
+ * `cache` is per-request, so one reader's answer can never be served to another.
+ *
+ * One column, and deliberately not folded into `getClinicBrand`: that runs once
+ * per render from the layout, this runs from a guard that also protects server
+ * actions, where no layout has run at all.
+ */
+export const isClinicSuspended = cache(async (clinicId: string): Promise<boolean> => {
+  const [row] = await db
+    .select({ suspendedAt: clinics.suspendedAt })
+    .from(clinics)
+    .where(eq(clinics.id, clinicId))
+    .limit(1);
+
+  return Boolean(row?.suspendedAt);
+});
 
 export async function isClinicOnboardingComplete(clinicId: string): Promise<boolean> {
   const [row] = await db

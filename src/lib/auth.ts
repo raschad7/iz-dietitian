@@ -22,7 +22,24 @@ import {
 } from './auth-constants';
 import { resolveAuthBaseURL, shouldUseSecureAuthCookies } from './auth-url';
 
-export type UserRole = 'staff' | 'client';
+/**
+ * Who an account is, and therefore which area of the app it may reach.
+ *
+ * `staff` reaches `/[locale]/app/**`, `client` reaches `/[locale]/portal/**`,
+ * and `admin` reaches `/[locale]/admin/**` — the platform area that sits above
+ * every clinic.
+ *
+ * **`admin` is a third role, not a staff account with extra rights.** It holds
+ * no `clinicId`, so `requireStaffClinic` can never hand it a tenant scope, and
+ * `requireAdminSession` is the only guard that admits it. The separation is
+ * what keeps the tenant boundary a property of the guard a route calls rather
+ * than of a permission check someone has to remember to write.
+ *
+ * Promotion is a deliberate act — `bun run admin:sync` — and never a sign-up
+ * path. The `user.create.before` hook below already enforces that half: it
+ * mints a clinic for `staff` and returns early for every other role.
+ */
+export type UserRole = 'staff' | 'client' | 'admin';
 
 /**
  * The email-verification gate, OFF for now.

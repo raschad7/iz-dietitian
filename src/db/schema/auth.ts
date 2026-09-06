@@ -57,6 +57,22 @@ export const user = pgTable('users', {
    */
   clinicId: uuid('clinic_id').references(() => clinics.id, { onDelete: 'set null' }),
 
+  /**
+   * When the platform disabled this account, or null while it can sign in.
+   *
+   * A timestamp rather than a boolean, matching `clinics.suspended_at`: "is it
+   * disabled" and "since when" are one question, and a boolean answers half.
+   *
+   * Read by `requireRole`, so it covers all three areas at once — a disabled
+   * account is refused whether it is staff, a client or another admin. That is
+   * the difference between this and clinic suspension, which is deliberately
+   * staff-only: suspending a practice is a dispute with the practice, where
+   * disabling an account is about that one account.
+   *
+   * Set only from the platform area. Nothing in the clinic app writes it.
+   */
+  disabledAt: timestamp('disabled_at', { withTimezone: true }),
+
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
