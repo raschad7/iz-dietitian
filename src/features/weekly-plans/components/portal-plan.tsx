@@ -2,6 +2,7 @@ import { useTranslations } from 'next-intl';
 
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Icon } from '@/components/ui/icon';
 
 import { PortalMealCard } from './portal-meal-card';
 import { PlanDayStrip } from './plan-day-strip';
@@ -150,6 +151,77 @@ export function PortalPlan({
         ) : null}
       </div>
 
+      {/*
+        What the dietitian wrote to this client about this week — the note she
+        used to send in a separate WhatsApp message after the plan, which meant
+        a client scrolling back to the plan did not have it.
+
+        ## Above the meals, not under them
+
+        It was under them, on the reasoning that the client opens this screen to
+        find out what to eat today and a paragraph between the heading and the
+        food would be scrolled past. What that produced was a white card at the
+        bottom of a long scroll, the same shape as the five meal rows above it,
+        which nobody reached — the dietitian looked at the portal and asked for
+        it to be put somewhere it could be seen.
+
+        A covering note is read before the thing it covers. This is the one
+        piece of the screen a person wrote to another person, and it is short by
+        nature; putting it first costs the meals three lines and gains it a
+        reader. From `lg` this column is the meals column, so the note opens it
+        there too.
+
+        ⚠ **Under the heading row, not above it.** The obvious placement is
+        first in the section, and it is wrong for one reason that is invisible
+        on a phone: from `lg` the heading above is *white*, because at that
+        break it sits about 100px down the page where the home glow is its solid
+        fill (see the ⚠ note on the section itself). A note card in front of it
+        pushes it a hundred-odd pixels further down, off the green and onto the
+        page's own white — white on white. So the heading keeps the top of the
+        column and the note takes the top of the content, which is the same
+        position for a reader and a different one for the glow.
+
+        ## It is a message, not another card
+
+        `tinted` — the variant for "this belongs to the clinic" — with the same
+        `notes` glyph the board's own editor row carries, so the two surfaces
+        show one thing. On the white stack of meal rows underneath, the green
+        fill is what separates somebody's words from the app's data.
+
+        ⚠ **Both text colours are stated, and that is not decoration.** The
+        portal redefines `--secondary-foreground` to the bright brand green
+        (`#76cf4a`), so the variant's own foreground lands at about 1.9:1 on its
+        own fill — fine for a two-word label, unreadable for three lines of
+        prose, which is what this card is. The paragraph therefore takes
+        `text-foreground` and the heading `--green-700`, the deep step that
+        still says "clinic" and clears 7:1.
+
+        It is about the *week*, so it shows on every day of it rather than
+        moving with the picker: the same note under Monday and under Thursday,
+        because that is what she wrote.
+
+        `whitespace-pre-line` because she writes in lines — one instruction per
+        line, the way it is typed into the dialog — and collapsing them would
+        run three instructions into one paragraph.
+      */}
+      {board.clientNote?.trim() ? (
+        <Card variant="tinted" className="gap-2 p-4">
+          <div className="flex items-center gap-2">
+            <span
+              aria-hidden
+              className="grid size-7 shrink-0 place-items-center rounded-full bg-[var(--green-600)] text-white"
+            >
+              <Icon name="notes" className="size-4" />
+            </span>
+            <p className="text-sm font-medium text-[var(--green-700)]">{tNote('heading')}</p>
+          </div>
+
+          <p className="whitespace-pre-line text-sm leading-relaxed text-foreground">
+            {board.clientNote}
+          </p>
+        </Card>
+      ) : null}
+
       {meals.length === 0 ? (
         <EmptyState icon="dish" title={t('emptyDayTitle')} description={t('emptyDayHint')} />
       ) : (
@@ -164,30 +236,6 @@ export function PortalPlan({
           ))}
         </ul>
       )}
-
-      {/*
-        What the dietitian wrote to this client about this week — the note she
-        used to send in a separate WhatsApp message after the plan, which meant
-        a client scrolling back to the plan did not have it.
-
-        **Under the meals, not above them.** The client opens this screen to
-        find out what to eat today; the note is advice about the week, and a
-        paragraph standing between the heading and the food would be read once
-        and scrolled past every day after that. It belongs where somebody
-        arrives after reading the day.
-
-        It is about the *week*, so it shows on every day of it rather than
-        moving with the picker — the same note under Monday and under Thursday,
-        because that is what she wrote.
-      */}
-      {board.clientNote?.trim() ? (
-        <Card className="gap-2 p-4">
-          <p className="text-sm font-medium text-foreground">{tNote('heading')}</p>
-          <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
-            {board.clientNote}
-          </p>
-        </Card>
-      ) : null}
     </section>
   );
 }
