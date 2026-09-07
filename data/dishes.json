@@ -41,8 +41,10 @@
         },
         {
           "fdcId": 170567,
-          "grams": 20,
-          "note": "Nuts, almonds"
+          "grams": 20.4,
+          "note": "Nuts, almonds",
+          "unit": "Piece",
+          "count": 17
         }
       ]
     },
@@ -839,8 +841,10 @@
         },
         {
           "fdcId": 169096,
-          "grams": 30,
-          "note": "Olives, pickled, canned or bottled, green"
+          "grams": 29.7,
+          "note": "Olives, pickled, canned or bottled, green",
+          "unit": "Piece",
+          "count": 11
         },
         {
           "fdcId": 174916,
@@ -1346,9 +1350,11 @@
       "ingredients": [
         {
           "fdcId": 170162,
-          "grams": 25,
+          "grams": 25.6,
           "note": "Nuts, cashew nuts, raw",
-          "primary": true
+          "primary": true,
+          "unit": "Piece",
+          "count": 16
         },
         {
           "fdcId": 168191,
@@ -1438,8 +1444,10 @@
         },
         {
           "fdcId": 169096,
-          "grams": 25,
-          "note": "Olives, pickled, canned or bottled, green"
+          "grams": 24.3,
+          "note": "Olives, pickled, canned or bottled, green",
+          "unit": "Piece",
+          "count": 9
         },
         {
           "fdcId": 168409,
@@ -1619,8 +1627,10 @@
         },
         {
           "fdcId": 169096,
-          "grams": 30,
-          "note": "Olives, pickled, canned or bottled, green"
+          "grams": 29.7,
+          "note": "Olives, pickled, canned or bottled, green",
+          "unit": "Piece",
+          "count": 11
         },
         {
           "fdcId": 174916,
@@ -1993,8 +2003,10 @@
         },
         {
           "fdcId": 170567,
-          "grams": 15,
-          "note": "Nuts, almonds"
+          "grams": 14.4,
+          "note": "Nuts, almonds",
+          "unit": "Piece",
+          "count": 12
         }
       ]
     },
@@ -2757,8 +2769,10 @@
         },
         {
           "fdcId": 170567,
-          "grams": 15,
-          "note": "Nuts, almonds"
+          "grams": 14.4,
+          "note": "Nuts, almonds",
+          "unit": "Piece",
+          "count": 12
         }
       ]
     },
@@ -2937,8 +2951,10 @@
         },
         {
           "fdcId": 170187,
-          "grams": 15,
-          "note": "Nuts, walnuts, english"
+          "grams": 16,
+          "note": "Nuts, walnuts, english",
+          "unit": "Piece",
+          "count": 4
         }
       ]
     },
@@ -4161,8 +4177,10 @@
         },
         {
           "fdcId": 170567,
-          "grams": 15,
-          "note": "Nuts, almonds"
+          "grams": 14.4,
+          "note": "Nuts, almonds",
+          "unit": "Piece",
+          "count": 12
         },
         {
           "fdcId": 173412,
@@ -4202,9 +4220,11 @@
         },
         {
           "fdcId": 170187,
-          "grams": 25,
+          "grams": 24,
           "note": "Nuts, walnuts, english",
-          "primary": true
+          "primary": true,
+          "unit": "Piece",
+          "count": 6
         },
         {
           "fdcId": 173412,
@@ -4237,19 +4257,25 @@
       "ingredients": [
         {
           "fdcId": 170184,
-          "grams": 20,
+          "grams": 20.3,
           "note": "Nuts, pistachio nuts, raw",
-          "primary": true
+          "primary": true,
+          "unit": "Piece",
+          "count": 29
         },
         {
           "fdcId": 170162,
-          "grams": 20,
-          "note": "Nuts, cashew nuts, raw"
+          "grams": 19.2,
+          "note": "Nuts, cashew nuts, raw",
+          "unit": "Piece",
+          "count": 12
         },
         {
           "fdcId": 170567,
-          "grams": 15,
-          "note": "Nuts, almonds"
+          "grams": 14.4,
+          "note": "Nuts, almonds",
+          "unit": "Piece",
+          "count": 12
         }
       ]
     },
@@ -4292,8 +4318,10 @@
         },
         {
           "fdcId": 170184,
-          "grams": 8,
-          "note": "Nuts, pistachio nuts, raw"
+          "grams": 7.7,
+          "note": "Nuts, pistachio nuts, raw",
+          "unit": "Piece",
+          "count": 11
         }
       ]
     },
@@ -4330,8 +4358,10 @@
         },
         {
           "fdcId": 170567,
-          "grams": 18,
-          "note": "Nuts, almonds"
+          "grams": 18.0,
+          "note": "Nuts, almonds",
+          "unit": "Piece",
+          "count": 15
         },
         {
           "fdcId": 170591,
@@ -5008,8 +5038,10 @@
         },
         {
           "fdcId": 170187,
-          "grams": 15,
-          "note": "Nuts, walnuts, english"
+          "grams": 16,
+          "note": "Nuts, walnuts, english",
+          "unit": "Piece",
+          "count": 4
         },
         {
           "fdcId": 169640,
@@ -6524,8 +6556,10 @@
         },
         {
           "fdcId": 170187,
-          "grams": 15,
-          "note": "Nuts, walnuts, english"
+          "grams": 16,
+          "note": "Nuts, walnuts, english",
+          "unit": "Piece",
+          "count": 4
         },
         {
           "fdcId": 169640,
@@ -7589,8 +7623,10 @@
         },
         {
           "fdcId": 170567,
-          "grams": 12,
-          "note": "Nuts, almonds"
+          "grams": 12.0,
+          "note": "Nuts, almonds",
+          "unit": "Piece",
+          "count": 10
         }
       ]
     },
@@ -7817,14 +7853,18 @@
       "ingredients": [
         {
           "fdcId": 170567,
-          "grams": 20,
+          "grams": 20.4,
           "note": "Nuts, almonds",
-          "primary": true
+          "primary": true,
+          "unit": "Piece",
+          "count": 17
         },
         {
           "fdcId": 170187,
-          "grams": 15,
-          "note": "Nuts, walnuts, english"
+          "grams": 16,
+          "note": "Nuts, walnuts, english",
+          "unit": "Piece",
+          "count": 4
         },
         {
           "fdcId": 168191,
@@ -8283,13 +8323,17 @@
       "ingredients": [
         {
           "fdcId": 170567,
-          "grams": 20,
-          "note": "Nuts, almonds"
+          "grams": 20.4,
+          "note": "Nuts, almonds",
+          "unit": "Piece",
+          "count": 17
         },
         {
           "fdcId": 170187,
-          "grams": 15,
-          "note": "Nuts, walnuts, english"
+          "grams": 16,
+          "note": "Nuts, walnuts, english",
+          "unit": "Piece",
+          "count": 4
         },
         {
           "fdcId": 168191,
@@ -8320,20 +8364,26 @@
       "ingredients": [
         {
           "fdcId": 170567,
-          "grams": 15,
+          "grams": 14.4,
           "note": "Nuts, almonds",
-          "primary": true
+          "primary": true,
+          "unit": "Piece",
+          "count": 12
         },
         {
           "fdcId": 170162,
-          "grams": 15,
+          "grams": 14.4,
           "note": "Nuts, cashew nuts, raw",
-          "primary": true
+          "primary": true,
+          "unit": "Piece",
+          "count": 9
         },
         {
           "fdcId": 170184,
-          "grams": 10,
-          "note": "Nuts, pistachio nuts, raw"
+          "grams": 9.8,
+          "note": "Nuts, pistachio nuts, raw",
+          "unit": "Piece",
+          "count": 14
         }
       ]
     },
@@ -8449,7 +8499,9 @@
         {
           "fdcId": 170187,
           "grams": 20,
-          "note": "Nuts, walnuts, english"
+          "note": "Nuts, walnuts, english",
+          "unit": "Piece",
+          "count": 5
         },
         {
           "fdcId": 169640,
@@ -8770,8 +8822,10 @@
         },
         {
           "fdcId": 170567,
-          "grams": 12,
-          "note": "Nuts, almonds"
+          "grams": 12.0,
+          "note": "Nuts, almonds",
+          "unit": "Piece",
+          "count": 10
         }
       ]
     },
@@ -9154,9 +9208,11 @@
         },
         {
           "fdcId": 169096,
-          "grams": 25,
+          "grams": 24.3,
           "note": "Olives, pickled, canned or bottled, green",
-          "primary": true
+          "primary": true,
+          "unit": "Piece",
+          "count": 9
         }
       ]
     },
@@ -9179,9 +9235,11 @@
       "ingredients": [
         {
           "fdcId": 170184,
-          "grams": 30,
+          "grams": 30.1,
           "note": "Nuts, pistachio nuts, raw",
-          "primary": true
+          "primary": true,
+          "unit": "Piece",
+          "count": 43
         }
       ]
     },
@@ -9397,9 +9455,11 @@
         },
         {
           "fdcId": 170187,
-          "grams": 25,
+          "grams": 24,
           "note": "Nuts, walnuts, english",
-          "primary": true
+          "primary": true,
+          "unit": "Piece",
+          "count": 6
         },
         {
           "fdcId": 169655,
@@ -9678,9 +9738,11 @@
         },
         {
           "fdcId": 170567,
-          "grams": 15,
+          "grams": 14.4,
           "note": "Nuts, almonds",
-          "primary": true
+          "primary": true,
+          "unit": "Piece",
+          "count": 12
         }
       ]
     },
@@ -9882,8 +9944,10 @@
         },
         {
           "fdcId": 170567,
-          "grams": 10,
-          "note": "Nuts, almonds"
+          "grams": 9.6,
+          "note": "Nuts, almonds",
+          "unit": "Piece",
+          "count": 8
         }
       ]
     },
@@ -12885,8 +12949,10 @@
         },
         {
           "fdcId": 170567,
-          "grams": 15,
-          "note": "Nuts, almonds"
+          "grams": 14.4,
+          "note": "Nuts, almonds",
+          "unit": "Piece",
+          "count": 12
         },
         {
           "fdcId": 169640,
@@ -12926,8 +12992,10 @@
         },
         {
           "fdcId": 170187,
-          "grams": 15,
-          "note": "Nuts, walnuts, english"
+          "grams": 16,
+          "note": "Nuts, walnuts, english",
+          "unit": "Piece",
+          "count": 4
         }
       ]
     },

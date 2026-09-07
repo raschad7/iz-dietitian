@@ -210,7 +210,11 @@ function build(): void {
       note: source.description,
       nutrition,
       portions: withExtras(
-        derivePortions({ category: curated.category, portions: source.portions ?? [] }),
+        derivePortions({
+          category: curated.category,
+          nameEn: curated.nameEn,
+          portions: source.portions ?? [],
+        }),
         curated.extraPortions,
       ),
     };

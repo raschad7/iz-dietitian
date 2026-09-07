@@ -318,7 +318,7 @@ describe('portions', () => {
       // curated portion is data a person wrote, and the check is that the derived
       // rows beside it are still exactly what the source produces.
       const rebuilt = withExtras(
-        derivePortions({ category: food.category, portions: source!.portions ?? [] }),
+        derivePortions({ category: food.category, nameEn: food.nameEn, portions: source!.portions ?? [] }),
         food.extraPortions,
       );
 
