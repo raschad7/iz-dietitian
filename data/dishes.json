@@ -15,6 +15,33 @@
   ],
   "dishes": [
     {
+      "slug": "almonds-snack",
+      "nameAr": "لوز",
+      "nameEn": "Almonds",
+      "mealTypes": [
+        "snack"
+      ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "nuts"
+      ],
+      "baseServingLabel": "حفنة",
+      "ingredients": [
+        {
+          "fdcId": 170567,
+          "grams": 24.0,
+          "note": "Nuts, almonds",
+          "primary": true,
+          "unit": "Piece",
+          "count": 20
+        }
+      ]
+    },
+    {
       "slug": "apple-almonds",
       "nameAr": "تفاح مع لوز",
       "nameEn": "Apple with almonds",
@@ -1363,6 +1390,33 @@
           "primary": true,
           "unit": "Piece",
           "count": 2
+        }
+      ]
+    },
+    {
+      "slug": "cashews-snack",
+      "nameAr": "كاجو",
+      "nameEn": "Cashews",
+      "mealTypes": [
+        "snack"
+      ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "expensive",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "nuts"
+      ],
+      "baseServingLabel": "حفنة",
+      "ingredients": [
+        {
+          "fdcId": 170162,
+          "grams": 24.0,
+          "note": "Nuts, cashew nuts, raw",
+          "primary": true,
+          "unit": "Piece",
+          "count": 15
         }
       ]
     },
@@ -5513,6 +5567,33 @@
           "fdcId": 168558,
           "grams": 20,
           "note": "Pickles, cucumber, dill or kosher dill"
+        }
+      ]
+    },
+    {
+      "slug": "hazelnuts-snack",
+      "nameAr": "بندق",
+      "nameEn": "Hazelnuts",
+      "mealTypes": [
+        "snack"
+      ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "expensive",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "nuts"
+      ],
+      "baseServingLabel": "حفنة",
+      "ingredients": [
+        {
+          "fdcId": 170581,
+          "grams": 21.0,
+          "note": "Nuts, hazelnuts or filberts",
+          "primary": true,
+          "unit": "Piece",
+          "count": 15
         }
       ]
     },
@@ -12617,6 +12698,33 @@
           "fdcId": 169276,
           "grams": 30,
           "note": "Radishes, raw"
+        }
+      ]
+    },
+    {
+      "slug": "walnuts-snack",
+      "nameAr": "جوز",
+      "nameEn": "Walnuts",
+      "mealTypes": [
+        "snack"
+      ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "everyday",
+      "isSide": false,
+      "allergenTags": [
+        "nuts"
+      ],
+      "baseServingLabel": "حفنة",
+      "ingredients": [
+        {
+          "fdcId": 170187,
+          "grams": 20.0,
+          "note": "Nuts, walnuts, english",
+          "primary": true,
+          "unit": "Piece",
+          "count": 5
         }
       ]
     },

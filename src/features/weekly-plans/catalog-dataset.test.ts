@@ -1,7 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 
-import { catalogChecksum, readUsdaReference, withExtras } from '../../../scripts/build-catalog-dataset';
+import {
+  catalogChecksum,
+  promoteCountedUnit,
+  readUsdaReference,
+  withExtras,
+} from '../../../scripts/build-catalog-dataset';
 import { readCatalogDataset, validateCuratedFoods } from '../../../scripts/seed-catalog-foods';
 
 import { normalizeArabic } from './arabic-normalize';
@@ -219,15 +224,39 @@ describe('portions', () => {
    * The clinic's spoon is a heaped eating spoon at roughly three times that. They
    * are different objects and no arithmetic turns one into the other, so this
    * weight is curated with a `sourceRef` naming whose decision it is.
+   *
+   * It is also the unit a fresh line of rice starts in, and that is `countedAs`
+   * rather than the derivation talking: cooked rice declares the spoon, the seed
+   * refuses a recipe line written in anything else, and a picker that opened on
+   * cups would have offered the one unit the seed will not take. See
+   * `promoteCountedUnit`.
    */
-  test('the clinic spoon for cooked rice is curated and says so', () => {
+  test('the clinic spoon for cooked rice is curated, says so, and is what rice starts in', () => {
     const spoon = bySlug
       .get('rice-white-cooked')!
       .portions.find((portion) => portion.labelEn === 'Tablespoon')!;
 
     expect(spoon.grams).toBe(25);
-    expect(spoon.isDefault).toBe(false);
+    expect(spoon.isDefault).toBe(true);
     expect(spoon.sourceRef).toContain('clinic practice');
+  });
+
+  /**
+   * The rule behind it, stated once rather than inferred from two foods.
+   *
+   * A declaration only ever moves the default; it never adds a portion, drops
+   * one, or reorders them. A food declaring a unit it does not have is left
+   * exactly as it was.
+   */
+  test('every declared unit is the default, and only it', () => {
+    for (const food of foods) {
+      if (!food.countedAs) continue;
+
+      const declared = food.portions.filter((portion) => portion.labelEn === food.countedAs);
+      if (declared.length === 0) continue;
+
+      expect(food.portions.filter((portion) => portion.isDefault)).toEqual(declared);
+    }
   });
 
   /** The three worked examples from the brief, each backed by real source data. */
@@ -251,11 +280,14 @@ describe('portions', () => {
       { labelAr: 'ملعقة صغيرة', labelEn: 'Teaspoon', grams: 4.5, isDefault: false, sortOrder: 1 },
     ]);
 
+    // `isDefault: false` on a first row is not a slip: cooked rice declares the
+    // spoon (`countedAs`), and the declaration takes the default off whatever
+    // the derivation put it on. The cup is still the first unit offered.
     expect(bySlug.get('rice-white-cooked')!.portions[0]).toEqual({
       labelAr: 'كوب',
       labelEn: 'Cup',
       grams: 158,
-      isDefault: true,
+      isDefault: false,
       sortOrder: 0,
     });
   });
@@ -314,12 +346,16 @@ describe('portions', () => {
       const source = usda.get(Number(food.sourceRef));
       expect(source).toBeDefined();
 
-      // `withExtras` is part of the build, so it is part of the reproduction: a
-      // curated portion is data a person wrote, and the check is that the derived
-      // rows beside it are still exactly what the source produces.
-      const rebuilt = withExtras(
-        derivePortions({ category: food.category, nameEn: food.nameEn, portions: source!.portions ?? [] }),
-        food.extraPortions,
+      // `withExtras` and `promoteCountedUnit` are part of the build, so they are
+      // part of the reproduction: a curated portion and a declared unit are both
+      // data a person wrote, and the check is that the derived rows beside them
+      // are still exactly what the source produces.
+      const rebuilt = promoteCountedUnit(
+        withExtras(
+          derivePortions({ category: food.category, nameEn: food.nameEn, portions: source!.portions ?? [] }),
+          food.extraPortions,
+        ),
+        food.countedAs,
       );
 
       expect(food.portions).toEqual(rebuilt);

@@ -251,6 +251,20 @@ all declare `countedAs: "Piece"`, so every recipe line for them states a count
 and `db:seed:dishes` refuses one written in grams. A plan says `١٧ حبة لوز`,
 which is what the dietitian writes on paper.
 
+A declaration does two more things, both because it is the strongest statement
+this file can make about a food's unit:
+
+- **It is the portion a fresh line starts in.** `promoteCountedUnit` in
+  `build-catalog-dataset.ts` moves `isDefault` onto it after the derivation has
+  run, so the picker never opens on a unit the seed would refuse. Cooked rice
+  starts in the clinic's spoon and walnuts in the piece, though the derivation
+  found a cup for both.
+- **It defeats the ten-count ceiling.** `meal-quantity.ts` normally stops writing
+  a derived piece above ten — `فراولة 24 حبة` is a weight pretending to be a
+  count — but an almond weighs 1.2 g, so *every* honest amount of one is a
+  two-digit count. A declared unit is a decision somebody made, and no count is
+  large enough to overrule it.
+
 A measure that only *yields* the food is refused too, but only for a countable
 unit: "1 wedge yields 5.9 g" is the juice out of a lemon wedge and is not a
 portion of lemon juice, while "1 can (12 oz) yields 211 g" is the drained weight

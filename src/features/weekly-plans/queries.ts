@@ -134,6 +134,14 @@ const foodColumns = {
   /** `raw` | `cooked` | `dry` | … — kept distinct, never merged. */
   state: catalogFoods.state,
   category: catalogFoods.category,
+  /**
+   * The unit this food is always counted in, or null when it is weighed.
+   *
+   * Selected because `ingredientAmount` reads it: a declared unit is never
+   * traded back for grams however large the count gets, which is what makes a
+   * handful of almonds print as حبات rather than as 20 غ.
+   */
+  countedAs: catalogFoods.countedAs,
   verificationStatus: catalogFoods.verificationStatus,
   kcal: catalogFoods.kcal,
   protein: catalogFoods.protein,
