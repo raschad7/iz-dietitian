@@ -195,9 +195,18 @@ export type VarietyReport = {
  * Rewrites the meals that break a variety rule, in place.
  *
  * Walks the week in order and keeps the FIRST use of anything: the repair falls on
- * the later meal, which is the one a reader would call the repeat. Within a day it
- * checks the dish and the protein source; across the week it checks how often each
- * source has carried a meal.
+ * the later meal, which is the one a reader would call the repeat.
+ *
+ * Three rules, and which meals each applies to matters as much as the rule:
+ *
+ *  - **A dish** may appear twice a week and not twice in a day, everywhere.
+ *  - **A protein source** may not repeat within a day, and may carry at most
+ *    {@link MAX_WEEK_USES} of the week — but only across the *plated* meals, and
+ *    not at all for the staples. See both constants for the real week that showed
+ *    why counting every meal was wrong.
+ *  - **A replacement stays inside the envelope** the model's own answer describes,
+ *    so a repair cannot introduce a kind of dish the model declined for a reason
+ *    it could read and this cannot.
  *
  * Returns what it did rather than logging it, so a caller can put the number in an
  * audit row and a test can assert on it.
