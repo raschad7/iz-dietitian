@@ -76,6 +76,24 @@ const CATALOG: CatalogDish[] = [
   dish('egg-a', 'dairy_eggs', 'egg'),
 ];
 
+/**
+ * Six distinct dairy-and-egg breakfasts, plus the rest of the catalog.
+ *
+ * Distinct dishes on purpose: a real week repeats the *source* through different
+ * plates — labneh, cheese, boiled eggs, an omelette — and never the identical dish
+ * six times, which is a repeat by anybody's reading.
+ */
+const BREAKFAST_CATALOG: CatalogDish[] = [
+  ...['a', 'b', 'c', 'd', 'e', 'f'].map((suffix) => ({
+    ...dish(`egg-${suffix}`, 'dairy_eggs', `egg ${suffix}`),
+    mealTypes: ['breakfast'],
+  })),
+  ...CATALOG.map((entry) => ({ ...entry, mealTypes: ['breakfast'] })),
+];
+
+/** A dish the prompt forbids in an ordinary week, for the envelope to keep out. */
+const FESTIVE_DISH: CatalogDish = { ...dish('festive-a', 'meat', 'festive lamb'), occasion: 'festive' };
+
 function meal(dayOfWeek: number, slotKey: string, dishId: string): VarietyMeal {
   return { dayOfWeek, slotKey, budgetKcal: 300, dishId, servings: 1 };
 }
@@ -102,24 +120,97 @@ describe('repairVariety', () => {
     expect(meals[1]!.dishId).not.toBe('fish-a');
   });
 
-  test('a fourth week-long use of one source is replaced', () => {
-    // Three chicken meals on separate days are allowed; the fourth is not.
+  test('a fifth week-long use of one source is replaced', () => {
+    // Four plated chicken meals on separate days are allowed; the fifth is not.
+    // Five sources at four each covers the fourteen lunches and dinners of a week,
+    // which is what makes the rule satisfiable — see MAX_WEEK_USES.
     const meals = [
       meal(0, 'lunch', 'chicken-a'),
       meal(1, 'lunch', 'chicken-b'),
       meal(2, 'lunch', 'chicken-a'),
       meal(3, 'lunch', 'chicken-b'),
+      meal(4, 'lunch', 'chicken-a'),
     ];
 
     const report = repairVariety({ meals, catalog: CATALOG, allergens: [] });
 
     expect(report.repaired).toBe(1);
-    expect(meals.slice(0, 3).map((entry) => entry.dishId)).toEqual([
+    expect(meals.slice(0, 4).map((entry) => entry.dishId)).toEqual([
       'chicken-a',
       'chicken-b',
       'chicken-a',
+      'chicken-b',
     ]);
-    expect(meals[3]!.dishId).not.toBe('chicken-b');
+    expect(meals[4]!.dishId).not.toBe('chicken-a');
+  });
+
+  /**
+   * The rules that came out of reading a real dietitian's week.
+   *
+   * Hers uses dairy in twelve of thirty-five meals and repeats the same bread in
+   * six of seven breakfasts, and the old rules called fourteen of her meals
+   * violations. What she varies is the centre of the plate; what she holds steady
+   * is everything around it.
+   */
+  test('a staple source repeats freely outside the plated meals', () => {
+    // Six different breakfasts, all built on dairy or egg — labneh, cheese,
+    // boiled eggs, an omelette. Her week does exactly this and the old rule called
+    // three of them violations.
+    const meals = [
+      meal(0, 'breakfast', 'egg-a'),
+      meal(1, 'breakfast', 'egg-b'),
+      meal(2, 'breakfast', 'egg-c'),
+      meal(3, 'breakfast', 'egg-d'),
+      meal(4, 'breakfast', 'egg-e'),
+      meal(5, 'breakfast', 'egg-f'),
+    ];
+
+    const report = repairVariety({ meals, catalog: BREAKFAST_CATALOG, allergens: [] });
+
+    expect(report.repaired).toBe(0);
+    expect(meals.map((entry) => entry.dishId)).toEqual([
+      'egg-a',
+      'egg-b',
+      'egg-c',
+      'egg-d',
+      'egg-e',
+      'egg-f',
+    ]);
+  });
+
+  test('the plated meals still refuse the same source twice in one day', () => {
+    const meals = [meal(0, 'lunch', 'egg-a'), meal(0, 'dinner', 'egg-a')];
+
+    const report = repairVariety({ meals, catalog: CATALOG, allergens: [] });
+
+    expect(report.repaired).toBe(1);
+    expect(meals[1]!.dishId).not.toBe('egg-a');
+  });
+
+  test('a repair never introduces a protein the week does not already use', () => {
+    // A vegetarian week: the constraint lives in prose the repair cannot read, so
+    // the envelope is what keeps meat out. Fifteen meals is the point at which an
+    // absence counts as a decision.
+    const meals = Array.from({ length: 16 }, (_, index) =>
+      meal(index % 7, index % 2 ? 'lunch' : 'dinner', index % 2 ? 'lentil-a' : 'egg-a'),
+    );
+
+    repairVariety({ meals, catalog: CATALOG, allergens: [] });
+
+    for (const entry of meals) {
+      const dish = CATALOG.find((one) => one.id === entry.dishId)!;
+      expect(['legume', 'egg', 'dairy']).toContain(proteinSource(dish.recipe));
+    }
+  });
+
+  test('a repair never introduces a festive dish into an everyday week', () => {
+    const meals = Array.from({ length: 16 }, (_, index) =>
+      meal(index % 7, index % 2 ? 'lunch' : 'dinner', index % 2 ? 'chicken-a' : 'chicken-b'),
+    );
+
+    repairVariety({ meals, catalog: [...CATALOG, FESTIVE_DISH], allergens: [] });
+
+    expect(meals.some((entry) => entry.dishId === 'festive-a')).toBe(false);
   });
 
   test('a varied week is left alone', () => {

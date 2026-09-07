@@ -24,7 +24,6 @@ import {
   type GenerationScope,
 } from './schema';
 import { repairVariety, type VarietyReport } from './variety';
-import { DAY_TOLERANCE, driftState } from './drift';
 import type { DishIngredientDetail } from './nutrition';
 import { chooseServings, nextServings, portionedKcal } from './portioning';
 import { bestServings, isSimilar, snapServings } from './similar';
@@ -111,6 +110,7 @@ export function reconcile({
   catalog,
   sides = [],
   allergens,
+  proteinTargetGrams = null,
 }: {
   plan: GeneratedPlan;
   days: readonly number[];
@@ -119,9 +119,12 @@ export function reconcile({
   /** What may stand beside a main. Empty means sides are simply never attached. */
   sides?: readonly CatalogDish[];
   allergens: readonly string[];
+  /** The daily protein target, so the variety repair can weigh what a swap costs. */
+  proteinTargetGrams?: number | null;
 }): ReconcileResult {
   const bySlug = new Map(catalog.map((dish) => [dish.slug, dish]));
   const sideBySlug = new Map(sides.map((dish) => [dish.slug, dish]));
+  const sideById = new Map(sides.map((dish) => [dish.id, dish]));
   const blocked = new Set(allergens);
   const warnings: ReconcileWarning[] = [];
 
@@ -259,7 +262,17 @@ export function reconcile({
       };
 
       meals.push(meal);
-      filled.push({ meal, recipe: dish.recipe, wholeOnly: isFixedPortion(dish.source) });
+      filled.push({
+        meal,
+        recipe: dish.recipe,
+        wholeOnly: isFixedPortion(dish.source),
+        // One serving each, never scaled — the same rule `mealIngredientLines`
+        // applies when it renders them.
+        sideKcal: meal.sideDishIds.reduce(
+          (sum, id) => sum + portionedKcal(sideById.get(id)?.recipe ?? [], 1),
+          0,
+        ),
+      });
     }
 
     balanceDay(filled);
@@ -267,7 +280,7 @@ export function reconcile({
 
   // Variety last: it swaps dishes, and a swapped dish is portioned by the same
   // chooser, so it must run after every meal has one to swap away from.
-  const variety = repairVariety({ meals, catalog, allergens });
+  const variety = repairVariety({ meals, catalog, allergens, proteinTargetGrams });
 
   return {
     meals,
@@ -404,6 +417,18 @@ type BalanceEntry = {
   recipe: readonly DishIngredientDetail[];
   /** True for a dish sold whole, which may only move a serving at a time. */
   wholeOnly: boolean;
+  /**
+   * Energy of the dishes standing beside the main, which the multiplier does not
+   * move.
+   *
+   * Carried because the balancer used to sum main recipes only, while the board
+   * the dietitian reads sums main plus sides. The gap is not small: a side
+   * averages 119 kcal and reaches 282, and roughly half of lunches and dinners
+   * carry one, so a day arrived about 8% above a target the balancer believed it
+   * had hit. Ninety-six of a hundred and twelve audited days finished over target
+   * and only ten under, which is not a rounding error but a missing term.
+   */
+  sideKcal: number;
 };
 
 /** How many single-step adjustments one day is allowed. */
@@ -437,15 +462,28 @@ function balanceDay(entries: readonly BalanceEntry[]): void {
   const target = entries.reduce((sum, entry) => sum + entry.meal.budgetKcal, 0);
   if (!(target > 0)) return;
 
-  const kcalOf = (entry: BalanceEntry) => portionedKcal(entry.recipe, entry.meal.servings);
+  const kcalOf = (entry: BalanceEntry) =>
+    portionedKcal(entry.recipe, entry.meal.servings) + entry.sideKcal;
   const dayKcal = () => entries.reduce((sum, entry) => sum + kcalOf(entry), 0);
 
   for (let pass = 0; pass < BALANCE_PASSES; pass += 1) {
     const total = dayKcal();
-    const drift = driftState(total, target, DAY_TOLERANCE);
-    if (!drift) return;
 
-    const direction = drift === 'under' ? 1 : -1;
+    /*
+      Aim at the target, not at the edge of the tolerance.
+
+      This used to exit the moment `driftState` reported no drift, which meant a
+      day sitting at +9% was declared finished — the balancer was a rescue for
+      days that had gone badly rather than something that made ordinary days
+      right. Since a move is only kept when it brings the day closer, walking all
+      the way in costs nothing and stops well before the pass limit.
+
+      `DAY_TOLERANCE` keeps its real job, which is deciding when the board tells
+      the dietitian a day is off.
+    */
+    if (Math.abs(total - target) < 1) return;
+
+    const direction = total < target ? 1 : -1;
 
     let chosen: { entry: BalanceEntry; servings: number } | null = null;
     let mostRoom = -Infinity;
