@@ -16,6 +16,11 @@ import { RecordPaymentDialog } from '@/features/billing/components/record-paymen
 import { STATUS_VARIANTS, SUBSCRIPTION_VARIANTS } from '@/features/billing/components/bills-status';
 import { SubscriptionFreezeControls } from '@/features/billing/components/subscription-freeze';
 import { formatAmountCompact, paymentStatus, subscriberTotals } from '@/features/billing/money';
+/* `formatDayMonthYear` and not `formatMediumDate`: this pair sits in a `dir="ltr"`
+   box, and `Intl`'s Arabic output carries direction marks that fight the
+   declaration and reorder the halves — `07/09/2026 — 06/11/2026` comes out as
+   `072026/11/06 — 2026/09/`. It is also the formatter the ledger rows under this
+   line already use, so the dates on one card now match each other. */
 import { methodTone } from '@/features/billing/payment-methods';
 import type { ClientFreeze } from '@/features/billing/queries';
 import {
@@ -24,9 +29,8 @@ import {
   serviceTone,
   type ClinicServiceView,
 } from '@/features/billing/services';
-import { formatMediumDate } from '@/features/booking/format';
-import type { IsoDate } from '@/features/booking/date';
 import type { Locale } from '@/i18n/routing';
+import { formatDayMonthYear } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 /**
@@ -429,7 +433,7 @@ export async function ClientExpensesPanel({
                 countdown belongs.
               */}
               <p dir="ltr" className="text-caption text-muted-foreground tabular-nums">
-                {`${formatMediumDate(locale, subscription.startedOn as IsoDate)} — ${formatMediumDate(locale, subscription.endsOn as IsoDate)}`}
+                {`${formatDayMonthYear(locale, subscription.startedOn)} — ${formatDayMonthYear(locale, subscription.endsOn)}`}
               </p>
 
               {/*

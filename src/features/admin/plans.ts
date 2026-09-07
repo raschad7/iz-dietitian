@@ -3,10 +3,17 @@
  *
  * ## This is a price list in code, not a table
  *
- * The same decision `BILLING_SERVICES` makes one layer down, for the same
- * reason: adding a tier is a line here plus a pair of strings in the message
- * catalogue, and it should never be a migration. `clinics.plan` stores the key
- * as text and this list is what validates it.
+ * Adding a tier is a line here plus a pair of strings in the message catalogue,
+ * and it should never be a migration. `clinics.plan` stores the key as text and
+ * this list is what validates it.
+ *
+ * ⚠ **A clinic's own service list took the opposite decision, deliberately.**
+ * `BILLING_SERVICES` used to be exactly this shape one layer down, and it broke
+ * the day a practice wanted to sell a two-month subscription — see
+ * `clinic_services`. The difference is who owns the list: what a *clinic*
+ * charges its patients is the clinic's to change, and what the *platform*
+ * charges its clinics is decided by whoever runs the deployment, who is also
+ * the person who ships a release.
  *
  * ## A clinic's price is not necessarily its tier's price
  *

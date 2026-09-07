@@ -19,8 +19,8 @@ import type { PaymentMethod } from './schema';
  * read the same list. A payment recorded from the amber card option used to
  * arrive on the record's Expenses tab as a green row, because the row knew only
  * that money had come in and not how — the same fact drawn two ways on two
- * screens a dietitian moves between. `BILLING_SERVICES` is split out for
- * exactly the same reason; see `serviceTone`.
+ * screens a dietitian moves between. `serviceTone` is split out for exactly the
+ * same reason, one field over.
  */
 export const PAYMENT_METHODS: { value: PaymentMethod; icon: IconName; className: string }[] = [
   {

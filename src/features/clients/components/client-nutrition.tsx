@@ -140,6 +140,10 @@ export function ClientNutrition({
     sex: intake.sex,
     activityLevel: intake.activityLevel,
     goal: intake.goal,
+    /* A pregnancy or a lactation raises the requirement — see `LIFE_STAGE_KCAL`.
+       The suggestion the card prints has to be the one generation will use, or
+       the two screens disagree about what this client needs. */
+    clinicalTags: intake.clinicalTags,
     measuredBmrKcal,
   });
 

@@ -197,6 +197,13 @@ export function IntakeForm({
     sex: intake.sex,
     activityLevel: activityLevel || null,
     goal: goal || null,
+    /*
+      From what is *stored*, not from the chips being ticked in this dialog: the
+      readout is a preview of the profile, and recomputing it as somebody ticks
+      a trimester would move a calorie target under the pointer before anything
+      had been saved. It catches up when the form does.
+    */
+    clinicalTags: intake.clinicalTags,
   });
 
   const suggestedProtein = suggestProteinGrams(toNumberOrNull(weightKg));

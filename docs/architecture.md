@@ -144,9 +144,10 @@ driver into the browser bundle.
 the *platform*. This is not the billing ledger — that one records what a clinic
 charges its own patients, and the two are never added together.
 
-The tiers live in `src/features/admin/plans.ts` as code, following
-`BILLING_SERVICES`: adding one is a line and a pair of strings, never a
-migration. A clinic's price is `plan_price_minor` when set and the tier's list
+The tiers live in `src/features/admin/plans.ts` as code: adding one is a line
+and a pair of strings, never a migration. A *clinic's* own service list is a
+table for the opposite reason — see `clinic_services`, and the ⚠ in `plans.ts`
+for which of the two owns which list. A clinic's price is `plan_price_minor` when set and the tier's list
 price otherwise, so a negotiated deal survives a change to the list — the same
 reasoning `client_charges` uses for storing its own amount. Zero is a price, not
 an absence.
@@ -415,6 +416,23 @@ lint rule. See [Design system](design-system.md) for the complete UI contract.
 - `billing`: the subscriber ledger — `client_charges` and `client_payments`,
   the shekel arithmetic over them, and the Bills screen. Amounts are integer
   minor units everywhere; see `src/features/billing/money.ts`
+
+  What a clinic sells is **its own list**, not the app's: `clinic_services`
+  holds one row per service per clinic, with its names, its term in months, its
+  price and its free-first rule. `DEFAULT_SERVICES` in `services.ts` is only the
+  list a new clinic is seeded with. Three rules hold the ledger together:
+
+  - **A charge stores the service's `key`, never its id**, and copies its own
+    description and amount. Renaming a service or repricing it cannot rewrite
+    what a subscriber was told they owed last March, and a retired service's
+    charges stay readable.
+  - **A term is derived, never stored.** `subscriptionEnd` is arithmetic over
+    the charge's day, the service's months, and the days a freeze gave back —
+    so a correction fixes every reading of it at once.
+  - **A freeze is a range of days** (`client_subscription_freezes`), not a
+    property of a charge. It lands on whichever term covers it, survives a
+    back-dated correction, and one left open runs to today — which is what a
+    pause means before anybody knows how long it will last.
 - `booking`: the calendar, appointments, and the constraints a booking is
   checked against — the clinic's hours, repeats, and clashes. The hours
   themselves are set in `clinic-profile`, and a client-raised request is
@@ -469,7 +487,14 @@ lint rule. See [Design system](design-system.md) for the complete UI contract.
   panels
 - `user-guide`: the guided in-app tour, its anchors, and its step definitions
 - `weekly-plans`: dish-based generation, review, publish, and the shared
-  nutrition arithmetic over the `catalog_foods` reference table
+  nutrition arithmetic over the `catalog_foods` reference table.
+
+  `clinical.ts` is where a client's ticked conditions become planning rules: one
+  constraint sentence per condition (the type system refuses a condition
+  without one), the DRI energy increments for pregnancy and lactation, the
+  catalogue narrowing a prescribed pattern applies — and `plannerCaveats`, which
+  is the honest half: what this catalogue *cannot* do for this client, said
+  before the week is generated rather than after it is read.
 - `whatsapp`: gateway configuration, messages, reminders, and inbound replies
 - `app-pwa` / `pwa`: service-worker registration and install-prompt capture for
   the staff application

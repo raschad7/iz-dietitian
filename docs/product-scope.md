@@ -16,15 +16,39 @@ The current repository includes:
   catalog and an editable dish catalog, downloadable from the plan board as a
   client handout in PDF or Word, carrying each meal's portions and its
   alternatives
+- **Clinical conditions the plan is built around** — pregnancy by trimester,
+  breastfeeding, kidney disease, dialysis, epilepsy, diabetes and a dozen more —
+  as a closed list the dietitian ticks rather than prose nothing can act on.
+  They raise the suggested calorie target where the requirement genuinely rises,
+  and reach the generator as stated constraints. A prescribed eating pattern
+  (low carbohydrate, ketogenic, renal, low sodium…) sits beside them and governs
+  the whole week. Where the dish catalogue cannot do what was asked — a
+  therapeutic ketogenic ratio is weighed to the gram and Palestinian home
+  cooking does not reach it — the generate card says so before the week is
+  produced rather than presenting an approximation as the real thing
+- **A note the dietitian writes to the client** with each week, shown in the
+  portal and printed on the handout. Distinct from what she tells the model
+  before generating and from what the model reports back to her afterwards:
+  three pieces of prose, three readers, and only this one is ever shown to a
+  patient
 - A manual subscriber ledger: what each subscriber was billed, what they paid,
   and the balance between the two
-- A per-clinic price list for the services on offer, set by the dietitian in
-  settings. It prices a new charge and is never a key the ledger reads back: a
-  recorded charge keeps the words and the amount it was entered with, so
-  changing a price cannot rewrite an existing bill
-- A free first consultation for every subscriber. The first one is recorded at
-  zero and every one after it at the price above; the zero row is what makes
-  the second chargeable, so a free visit is written down rather than skipped
+- A per-clinic **list of services**, written by the dietitian in settings: its
+  own names in both languages, its own terms in months, its own prices, and its
+  own "first one free" rule. A clinic that starts selling a two-month
+  subscription or a year adds a row; nothing about the list is in code but the
+  three every clinic starts with. A price is never a key the ledger reads back:
+  a recorded charge keeps the words and the amount it was entered with, so
+  renaming a service or changing its price cannot rewrite an existing bill
+- A **subscription freeze**. A subscriber travels or is ill, the clinic agrees
+  not to count those days, and the term end moves out by exactly that many. The
+  days are recorded as a range rather than as a new end date, so the register
+  can say why a renewal moved; a freeze with no agreed length stays open and is
+  closed when the subscriber comes back
+- A free first of any service marked as such — the consultation, by default. The
+  first one is recorded at zero and every one after it at the price above; the
+  zero row is what makes the second chargeable, so a free visit is written down
+  rather than skipped
 - A client portal for appointments, profile details, and published plans,
   installable as a PWA
 - Clinic onboarding, clinic and account settings, and in-app notifications
@@ -33,7 +57,9 @@ The current repository includes:
   from a body composition analyser's PDF report, compared against the previous
   visit and against the first, and optionally shown to the client in their own
   portal
-- Optional WhatsApp reminders, confirmations, replies, and portal credentials
+- Optional WhatsApp reminders, confirmations, replies, and portal credentials —
+  reminders both on their own the night before and on a button the dietitian
+  presses when she decides the moment is right
 - Arabic and English interfaces with RTL support
 - A platform area for whoever runs the deployment, above every clinic: a
   registry with a health verdict per practice and the reasons behind it, the

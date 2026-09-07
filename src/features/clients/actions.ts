@@ -108,6 +108,10 @@ function readIntakeForm(formData: FormData) {
     allergenTags: formData.getAll('allergenTags'),
     customAllergens: formData.getAll('customAllergens'),
     allergies: formData.get('allergies'),
+    /* `getAll`, like the allergen ticks above: a fieldset of checkboxes sharing
+       one name posts one entry per ticked box, and `get` would keep the first. */
+    clinicalTags: formData.getAll('clinicalTags'),
+    dietPattern: formData.get('dietPattern'),
     conditions: formData.get('conditions'),
     medications: formData.get('medications'),
     medicalNotes: formData.get('medicalNotes'),
