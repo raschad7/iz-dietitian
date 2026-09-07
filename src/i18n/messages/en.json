@@ -1149,7 +1149,7 @@
       "empty": "No services yet. Add the first one and it appears on the charge card."
     },
     "services": {
-      "term": "{months, plural, one {One month subscription} other {# month subscription}}",
+      "term": "{months, plural, one {1 month} other {# months}}",
       "visit": "Single visit",
       "firstFree": "First one free",
       "retired": "Not offered",

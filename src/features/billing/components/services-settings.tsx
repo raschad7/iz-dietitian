@@ -93,11 +93,18 @@ export function ServicesSettings({
             key={service.id}
             label={serviceName(service, locale)}
             /*
-              What kind of thing this is, under its name: a term and how long it
-              runs, or a visit. Plus the two facts that change what the charge
-              card does with it — the free first, and whether it is still
-              offered — because both are invisible otherwise and both are the
-              sort of thing somebody sets once and later wonders about.
+              How long it runs, under its name — or that it is a visit and runs
+              for no days at all. Plus the two facts that change what the charge
+              card does with it: the free first, and whether it is still offered.
+              Both are invisible otherwise, and both are the sort of thing
+              somebody sets once and later wonders about.
+
+              **The length alone, not "a three-month subscription".** A clinic
+              names its services after what they are, so a row saying
+              `Three month subscription` over `Three month subscription` said
+              one thing twice and left the reader looking for the difference.
+              The name is the clinic's words; this line is the arithmetic behind
+              them.
             */
             description={describe(service, t)}
             value={
