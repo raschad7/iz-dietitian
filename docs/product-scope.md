@@ -43,8 +43,11 @@ The current repository includes:
 - A **subscription freeze**. A subscriber travels or is ill, the clinic agrees
   not to count those days, and the term end moves out by exactly that many. The
   days are recorded as a range rather than as a new end date, so the register
-  can say why a renewal moved; a freeze with no agreed length stays open and is
-  closed when the subscriber comes back
+  can say why a renewal moved. A freeze with no agreed length stays open, which
+  is the honest answer on the day somebody leaves; **Resume** closes any running
+  freeze on the day the subscriber walks back in, whether or not a length was
+  agreed in advance — coming back on the fourth of nine days is the ordinary
+  case, not a correction
 - A free first of any service marked as such — the consultation, by default. The
   first one is recorded at zero and every one after it at the price above; the
   zero row is what makes the second chargeable, so a free visit is written down

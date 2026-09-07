@@ -51,6 +51,14 @@ export type BillingFormState =
         | 'invalidFreezeDays'
         /** A freeze was recorded over days another one already covers. */
         | 'freezeOverlap'
+        /**
+         * Resume or Remove named a freeze that is no longer there — closed or
+         * deleted somewhere else while this screen was open. Said out loud
+         * rather than reported as a success, because the alternative is a
+         * dietitian believing a subscriber is running again on the strength of
+         * a write that matched nothing.
+         */
+        | 'freezeGone'
         | 'reasonTooLong'
         /**
          * A subscription was charged over one that is still running — see

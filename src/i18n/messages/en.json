@@ -1244,6 +1244,7 @@
       "serviceInUse": "A service with charges against it cannot be deleted. Stop offering it instead.",
       "invalidFreezeDays": "A freeze runs for between 1 and 365 days.",
       "freezeOverlap": "Another freeze already covers these days.",
+      "freezeGone": "That freeze is no longer there. Refresh the page.",
       "reasonTooLong": "That reason is too long."
     },
     "print": {

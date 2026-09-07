@@ -432,7 +432,10 @@ lint rule. See [Design system](design-system.md) for the complete UI contract.
   - **A freeze is a range of days** (`client_subscription_freezes`), not a
     property of a charge. It lands on whichever term covers it, survives a
     back-dated correction, and one left open runs to today — which is what a
-    pause means before anybody knows how long it will last.
+    pause means before anybody knows how long it will last. Resume closes it on
+    the day *before* the press, so the day the subscriber came back counts
+    again; a pause recorded and ended on one day gave nothing back and its row
+    is removed rather than left covering a day nobody was away for.
 - `booking`: the calendar, appointments, and the constraints a booking is
   checked against — the clinic's hours, repeats, and clashes. The hours
   themselves are set in `clinic-profile`, and a client-raised request is

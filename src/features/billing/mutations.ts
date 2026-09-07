@@ -1,6 +1,7 @@
-import { and, desc, eq, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 
 import { db } from '@/db';
+import { addDays, type IsoDate } from '@/features/booking/date';
 import {
   clientCharges,
   clientPayments,
@@ -474,45 +475,86 @@ export async function recordFreeze(
 }
 
 /**
- * Ends an open freeze on `endsOn` — the Resume button.
+ * Ends a running freeze because the subscriber is back — the Resume button.
  *
- * Only an open one. A freeze that already has an end has already been resumed,
- * and moving that end is an edit rather than a resume: it would silently move a
- * renewal date somebody has been told. Deleting and re-recording says the same
- * thing where it can be seen.
+ * ## It ends yesterday, so that today counts again
  *
- * `endsOn` is clamped up to the start, because a freeze cannot end before it
- * began — the column has a check saying so, and hitting a constraint violation
- * is a worse way to learn it than the row simply covering its one day.
+ * "Resume" is pressed on the day somebody walks back in, and what the dietitian
+ * means by it is *this person is running again, now*. A freeze ending **today**
+ * would still cover today, so the record would go on saying frozen, the chip
+ * would go on reading مجمّد, and the button would sit there looking as though
+ * pressing it had done nothing — which is exactly how it read before this. The
+ * last frozen day is therefore the day before, and the freeze is closed at it.
+ *
+ * A pause recorded and ended on the same day gave back no days at all, so there
+ * is nothing to record and the row is removed. Clamping it to a single frozen
+ * day instead would leave the subscriber reading as frozen for the rest of the
+ * day they came back on, which is the failure this function exists to avoid.
+ *
+ * ## Any running freeze, not only an open one
+ *
+ * This used to touch open freezes alone — a freeze with an agreed end had
+ * "already been resumed", and moving that end was held to be an edit rather
+ * than a resume. That reasoning does not survive contact with the clinic. An
+ * agreed nine days is agreed *in advance*, and somebody who comes back on the
+ * fourth day is the ordinary case, not a correction. Worse, the screen offered
+ * Resume on those freezes anyway: the update matched no rows, the action
+ * reported success, and the dietitian pressed a button that silently did
+ * nothing.
+ *
+ * Returns whether a freeze was actually found. `false` means the row is gone —
+ * removed in another tab — and the caller says so rather than reporting a
+ * resume that never happened.
  */
 export async function resumeFreeze(
   clinicId: string,
   freezeId: string,
-  endsOn: string,
-): Promise<void> {
+  today: string,
+): Promise<boolean> {
+  const scope = and(
+    eq(clientSubscriptionFreezes.clinicId, clinicId),
+    eq(clientSubscriptionFreezes.id, freezeId),
+  );
+
+  const [freeze] = await db
+    .select({ startsOn: clientSubscriptionFreezes.startsOn })
+    .from(clientSubscriptionFreezes)
+    .where(scope)
+    .limit(1);
+
+  if (!freeze) return false;
+
+  // Nothing was ever frozen: see the note above.
+  if (freeze.startsOn >= today) {
+    await db.delete(clientSubscriptionFreezes).where(scope);
+    return true;
+  }
+
   await db
     .update(clientSubscriptionFreezes)
-    .set({
-      endsOn: sql`greatest(${endsOn}::date, ${clientSubscriptionFreezes.startsOn})`,
-      updatedAt: new Date(),
-    })
-    .where(
-      and(
-        eq(clientSubscriptionFreezes.clinicId, clinicId),
-        eq(clientSubscriptionFreezes.id, freezeId),
-        isNull(clientSubscriptionFreezes.endsOn),
-      ),
-    );
+    .set({ endsOn: addDays(today as IsoDate, -1), updatedAt: new Date() })
+    .where(scope);
+
+  return true;
 }
 
-/** Removes a freeze entirely — a pause recorded by mistake. */
-export async function deleteFreeze(clinicId: string, freezeId: string): Promise<void> {
-  await db
+/**
+ * Removes a freeze entirely — a pause recorded by mistake.
+ *
+ * Returns whether a row was there to remove, for the same reason
+ * {@link resumeFreeze} does: a button that reports success for a write that
+ * matched nothing is worse than one that reports the failure.
+ */
+export async function deleteFreeze(clinicId: string, freezeId: string): Promise<boolean> {
+  const removed = await db
     .delete(clientSubscriptionFreezes)
     .where(
       and(
         eq(clientSubscriptionFreezes.clinicId, clinicId),
         eq(clientSubscriptionFreezes.id, freezeId),
       ),
-    );
+    )
+    .returning({ id: clientSubscriptionFreezes.id });
+
+  return removed.length > 0;
 }

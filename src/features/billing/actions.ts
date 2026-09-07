@@ -386,27 +386,42 @@ export async function freezeSubscriptionAction(
   return { status: 'success' };
 }
 
-/** Ends an open freeze today — the Resume button beside a frozen subscriber. */
+/**
+ * Ends a running freeze because the subscriber came back — the Resume button.
+ *
+ * `today` is the clinic's own day, passed down from the screen rather than read
+ * off the server clock, so the freeze closes on the day the dietitian is
+ * looking at. `resumeFreeze` decides what "ends today" means; see its note.
+ *
+ * A write that matched no row reads as an error. It means the freeze is gone —
+ * removed in another tab, or on another device — and reporting success for it
+ * would leave the dietitian believing a subscriber is running again on the
+ * strength of a write that never happened.
+ */
 export async function resumeFreezeAction(
   locale: string,
   clientId: string,
   freezeId: string,
-  endsOn: string,
+  today: string,
 ): Promise<BillingFormState> {
   const parsedLocale = localeSchema.parse(locale);
   const { clinicId } = await requireStaffClinic(parsedLocale);
 
   const parsed = z
-    .object({ clientId: z.uuid(), freezeId: z.uuid(), endsOn: isoDateSchema })
-    .safeParse({ clientId, freezeId, endsOn });
+    .object({ clientId: z.uuid(), freezeId: z.uuid(), today: isoDateSchema })
+    .safeParse({ clientId, freezeId, today });
 
   if (!parsed.success) return { status: 'error', messageKey: messageKeyFor(parsed.error) };
 
+  let resumed: boolean;
+
   try {
-    await resumeFreeze(clinicId, parsed.data.freezeId, parsed.data.endsOn);
+    resumed = await resumeFreeze(clinicId, parsed.data.freezeId, parsed.data.today);
   } catch (error) {
     return failure(error, 'resuming a subscription');
   }
+
+  if (!resumed) return { status: 'error', messageKey: 'freezeGone' };
 
   revalidateLedger(parsedLocale, parsed.data.clientId);
   return { status: 'success' };
@@ -425,11 +440,17 @@ export async function deleteFreezeAction(
 
   if (!parsed.success) return { status: 'error', messageKey: 'invalidClient' };
 
+  let removed: boolean;
+
   try {
-    await deleteFreeze(clinicId, parsed.data.freezeId);
+    removed = await deleteFreeze(clinicId, parsed.data.freezeId);
   } catch (error) {
     return failure(error, 'removing a freeze');
   }
+
+  // Nothing was there to remove — see `resumeFreezeAction` for why that is an
+  // error rather than a quiet success.
+  if (!removed) return { status: 'error', messageKey: 'freezeGone' };
 
   revalidateLedger(parsedLocale, parsed.data.clientId);
   return { status: 'success' };
