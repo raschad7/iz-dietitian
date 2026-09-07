@@ -117,6 +117,30 @@ export const weeklyPlans = pgTable(
      */
     summaryAr: text('summary_ar'),
 
+    /**
+     * What the dietitian wants to say to the **client** about this week.
+     *
+     * "اشربي ٨ أكواب ماء يومياً"، "المشي نصف ساعة بعد العشاء"، "لو تأخرتِ عن
+     * وجبة قدّميها ولا تُلغيها". She writes these under every plan she sends,
+     * and before this column she was writing them into WhatsApp by hand after
+     * sending the plan — so the note travelled separately from the week it was
+     * about, and a client scrolling back to the plan did not have it.
+     *
+     * **Deliberately not `summary_ar`, and deliberately not
+     * `week_instructions`.** All three are prose about one week and each has a
+     * different reader: `week_instructions` is what the dietitian tells the
+     * *model* before generating, `summary_ar` is what the model tells the
+     * *dietitian* afterwards, and this is what the dietitian tells the *client*.
+     * Only this one is ever shown in the portal or printed on the plan, which is
+     * why merging any two of them would leak one audience's text to another.
+     *
+     * Not snapshotted on publish and editable afterwards, unlike the nutrition a
+     * published plan freezes: a note is advice, not a prescribed amount, and a
+     * dietitian correcting a sentence for a client who is reading it this week
+     * should not have to republish the plan to do it.
+     */
+    clientNote: text('client_note'),
+
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

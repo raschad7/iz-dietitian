@@ -1,4 +1,4 @@
-import { check, date, index, integer, pgTable, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { boolean, check, date, index, integer, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
 import { user } from './auth';
@@ -186,58 +186,193 @@ export type ClientPayment = typeof clientPayments.$inferSelect;
 export type NewClientPayment = typeof clientPayments.$inferInsert;
 
 /**
- * What a clinic charges for each of the services it offers.
+ * The services a clinic sells — its own list, its own names, its own prices.
  *
- * ## Why this is not a column on `clinics`
+ * ## Why this is a table and not a constant any more
  *
- * Three prices could have been three columns, and the fourth service would then
- * be a migration — for a list that already lives in code and is meant to be
- * edited there. Keyed rows make adding a service the pair of strings and the
- * line in `BILLING_SERVICES` it already needs, and nothing else.
+ * It was `BILLING_SERVICES` in code: three entries, a pair of translated
+ * strings each, and a `clinic_service_prices` row per clinic to price them.
+ * That held for exactly as long as every clinic sold the same three things.
+ * The first practice to ask for a two-month subscription made the cost visible
+ * — a line in a shared file, two strings in two message catalogues, and a
+ * deploy, so that **one** clinic could sell a term it had already started
+ * selling. A clinic that wants a year, a ten-session package or a second kind
+ * of follow-up should not be waiting on a release.
  *
- * ## Why a charge does not point at one of these
+ * So a service is a row, and the code keeps only the list a *new* clinic starts
+ * with — `DEFAULT_SERVICES` in `src/features/billing/services.ts`, seeded on
+ * sign-up and editable from Settings the moment it exists.
  *
- * A charge stores its own `description` and its own amount, copied from here at
- * the moment it is recorded. That is the same reasoning as `client_charges`'
- * own comment: raising the price of a follow-up next year must not rewrite what
- * a subscriber was told they owed last March. This table is the *current* price
- * list — what to fill a new charge in with — and never a foreign key the ledger
- * reads back through.
+ * ## What a charge stores
  *
- * A service with no row here has no price set yet. That is a real state, not a
- * zero: a clinic that has not decided is not a clinic that charges nothing, and
- * the settings screen says so in as many words.
+ * `client_charges.service` holds this row's **`key`**, not its id, and the
+ * charge still copies its own `description` and `amount_minor` at the moment it
+ * is recorded. Three consequences, all of them wanted:
+ *
+ *  - Renaming "استشارة" or raising its price cannot rewrite what a subscriber
+ *    was told they owed last March.
+ *  - Deleting a service cannot orphan a ledger row, so there is no foreign key
+ *    here and deliberately none: the key on an old charge is a historical fact
+ *    about what was sold, and it stays readable after the service is retired.
+ *  - Every row written before this table existed — `monthly`, `quarterly`,
+ *    `consultation` — is still valid, because those are exactly the keys the
+ *    migration gave every clinic's seeded services.
+ *
+ * A retired service is `active = false` rather than deleted, for the same
+ * reason: the ledger keeps referring to it.
+ *
+ * ## Why the term is months
+ *
+ * `duration_months` is null for a visit and a whole number of months for a
+ * subscription, because that is the unit a term is *sold* in — a month, two
+ * months, a quarter, a year — and it is what `addMonths` needs to say when the
+ * term runs out. A freeze is counted in days on top of it (see
+ * `client_subscription_freezes`), which is the unit a pause is actually
+ * measured in; the two do not need to be the same unit and never were.
  */
-export const clinicServicePrices = pgTable(
-  'clinic_service_prices',
+export const clinicServices = pgTable(
+  'clinic_services',
   {
-    /** The tenant boundary, and half the key: one price list per clinic. */
+    id: uuid('id').primaryKey().defaultRandom(),
+
+    /** The tenant boundary: one list per clinic, and no shared rows. */
     clinicId: uuid('clinic_id')
       .notNull()
       .references(() => clinics.id, { onDelete: 'cascade' }),
 
     /**
-     * Which service — `monthly`, `quarterly`, `consultation`.
+     * The stable handle a charge records — `monthly`, `consultation`, or a slug
+     * generated from the name a clinic typed.
      *
-     * `text` validated in the feature rather than a `pgEnum`, following
-     * `client_payments.method`: the list of services a clinic offers is exactly
-     * the thing that grows, and growing it should not be a migration.
+     * Never shown and never edited. A clinic renaming its "شهري" to "الاشتراك
+     * الشهري" must not detach every charge that names it, which is what would
+     * happen if the ledger keyed on the words.
      */
-    service: text('service').notNull(),
+    key: text('key').notNull(),
 
-    /** Minor units, like every amount in this file. Zero is a free service. */
-    amountMinor: integer('amount_minor').notNull(),
+    nameAr: text('name_ar').notNull(),
+    nameEn: text('name_en').notNull(),
+
+    /**
+     * `subscription` — a term with a start and an end — or `visit`, a single
+     * appointment that covers no days at all.
+     *
+     * The distinction is not cosmetic: it decides whether the "one subscription
+     * at a time" rule applies, whether the row can be frozen, and whether the
+     * Bills column has a countdown to draw.
+     */
+    kind: text('kind').notNull(),
+
+    /** Whole months. Null on a visit, and required on a subscription. */
+    durationMonths: integer('duration_months'),
+
+    /**
+     * Minor units — agorot, like every amount in this file. Null means the
+     * clinic has not set a price yet, which is not the same as free: zero is a
+     * price, and the two are shown differently.
+     */
+    priceMinor: integer('price_minor'),
+
+    /**
+     * Whether a subscriber's **first** one of these is free.
+     *
+     * The consultation's rule, made a property of the service rather than a
+     * constant naming one key. It was `CONSULTATION` in three places; a clinic
+     * offering a free first assessment under another name had no way to say so,
+     * and a clinic that charges for its first consultation had no way to stop.
+     */
+    firstFree: boolean('first_free').notNull().default(false),
+
+    /** A retired service: off the card, still readable on old charges. */
+    active: boolean('active').notNull().default(true),
+
+    /** Where it sits on the card and in Settings. Ties break on `key`. */
+    sortOrder: integer('sort_order').notNull().default(0),
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    primaryKey({ columns: [table.clinicId, table.service] }),
-    /* A price is what is asked for, and nothing is asked for below zero — a
-       credit is a payment, on the other table. */
-    check('clinic_service_prices_amount_non_negative', sql`${table.amountMinor} >= 0`),
+    /* One key per clinic — this is what `client_charges.service` resolves against. */
+    uniqueIndex('clinic_services_clinic_id_key_idx').on(table.clinicId, table.key),
+    /* A price is what is asked for, and nothing is asked for below zero. */
+    check('clinic_services_price_non_negative', sql`${table.priceMinor} >= 0`),
+    /*
+      A subscription has a term and a visit has none. Both halves are stated,
+      because a visit carrying "3 months" would silently become a term in every
+      piece of arithmetic that reads this column.
+    */
+    check(
+      'clinic_services_term_matches_kind',
+      sql`(${table.kind} = 'subscription' AND ${table.durationMonths} >= 1) OR (${table.kind} = 'visit' AND ${table.durationMonths} IS NULL)`,
+    ),
   ],
 );
 
-export type ClinicServicePrice = typeof clinicServicePrices.$inferSelect;
-export type NewClinicServicePrice = typeof clinicServicePrices.$inferInsert;
+/**
+ * Days a subscription was paused — the clinic's freeze.
+ *
+ * A subscriber travels, is ill, or is told to stop for a fortnight, and the
+ * practice does not count those days against the term they paid for. The clinic
+ * was doing this on paper: the register was quietly wrong for the whole of every
+ * freeze, and a renewal date had to be worked out by hand.
+ *
+ * **The term end is still derived, never stored.** A charge says what was sold
+ * and when; these rows say which days did not count; `subscriptionEnd` adds them
+ * up. A stored `ends_on` would be a second copy of that answer, and a freeze
+ * corrected after the fact would leave the two disagreeing — the same argument
+ * the file header makes for storing no totals.
+ *
+ * **An open freeze is a real state.** `ends_on` is null while a subscriber is
+ * still paused, because "frozen until they come back" is what the clinic
+ * actually knows on the day it starts. Arithmetic treats an open freeze as
+ * running to today, so the term end moves out by one day for every day it stays
+ * open — which is what a pause means — and settles the moment it is resumed.
+ *
+ * No `charge_id`. A freeze is a range of days, not a property of a row: it lands
+ * on whichever term covers it, it survives a back-dated correction to the
+ * charge, and a freeze recorded between two terms is simply days on which
+ * nothing was running — which costs the subscriber nothing and needs no special
+ * case.
+ */
+export const clientSubscriptionFreezes = pgTable(
+  'client_subscription_freezes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+
+    clinicId: uuid('clinic_id')
+      .notNull()
+      .references(() => clinics.id, { onDelete: 'cascade' }),
+
+    clientId: uuid('client_id')
+      .notNull()
+      .references(() => clients.id, { onDelete: 'cascade' }),
+
+    /** First day not counted, inclusive. A `date`, as every day in this file is. */
+    startsOn: date('starts_on', { mode: 'string' }).notNull(),
+
+    /** Last day not counted, inclusive. Null while the freeze is still running. */
+    endsOn: date('ends_on', { mode: 'string' }),
+
+    /** Why — "سفر", "مرض". Free text, shown back on the row. */
+    reason: text('reason'),
+
+    recordedBy: text('recorded_by').references(() => user.id, { onDelete: 'set null' }),
+
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('client_subscription_freezes_clinic_id_client_id_idx').on(table.clinicId, table.clientId),
+    /* A freeze that ends before it starts is a typo, and it would shorten a term. */
+    check(
+      'client_subscription_freezes_range_ordered',
+      sql`${table.endsOn} IS NULL OR ${table.endsOn} >= ${table.startsOn}`,
+    ),
+  ],
+);
+
+export type ClinicService = typeof clinicServices.$inferSelect;
+export type NewClinicService = typeof clinicServices.$inferInsert;
+export type ClientSubscriptionFreeze = typeof clientSubscriptionFreezes.$inferSelect;
+export type NewClientSubscriptionFreeze = typeof clientSubscriptionFreezes.$inferInsert;

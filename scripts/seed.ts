@@ -10,6 +10,7 @@ import { and, eq, inArray, isNotNull } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { account, appointments, clients, clinics, clinicWorkingHours, practitioners, user } from '@/db/schema';
+import { seedDefaultServices } from '@/features/billing/mutations';
 import { addDays, toIsoDate } from '@/features/booking/date';
 import { ensurePractitioner } from '@/features/booking/mutations';
 import { createClient, saveIntake } from '@/features/clients/mutations';
@@ -128,6 +129,7 @@ async function seed(): Promise<void> {
     // `getClinicProfile` returns null unless it finds exactly seven, which makes
     // the onboarding page throw, and every `/app` route redirects there.
     await db.insert(clinicWorkingHours).values(defaultClinicScheduleRows(clinicId));
+    await seedDefaultServices(clinicId);
 
     await db.insert(user).values({
       id: userId,

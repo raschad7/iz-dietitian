@@ -1087,7 +1087,13 @@
     },
     "subscription": {
       "remaining": "{days, plural, one {# day} other {# days}}",
-      "finished": "{days, plural, one {Ended # day} other {Ended # days}}"
+      "finished": "{days, plural, one {Ended # day} other {Ended # days}}",
+      "frozen": "Frozen",
+      "state": {
+        "active": "Running",
+        "frozen": "Frozen",
+        "expired": "Ended"
+      }
     },
     "status": {
       "none": "No charges",
@@ -1104,12 +1110,32 @@
       "edit": "Change",
       "save": "Save changes",
       "saving": "Saving…",
-      "saved": "Prices saved"
+      "saved": "Prices saved",
+      "empty": "No services yet. Add the first one and it appears on the charge card."
     },
     "services": {
-      "monthly": "One month subscription",
-      "quarterly": "Three month subscription",
-      "consultation": "Consultation"
+      "term": "{months, plural, one {One month subscription} other {# month subscription}}",
+      "visit": "Single visit",
+      "firstFree": "First one free",
+      "retired": "Not offered",
+      "add": "Add a service",
+      "addTitle": "New service",
+      "editTitle": "Edit service",
+      "editFor": "Edit {name}",
+      "nameAr": "Arabic name",
+      "nameEn": "English name",
+      "kind": "Type",
+      "kindSubscription": "Subscription",
+      "kindVisit": "Single visit",
+      "durationMonths": "Months",
+      "termAffectsExisting": "Changing the term recalculates the end date of every subscription recorded under this service, including the ones still running.",
+      "price": "Price",
+      "priceBlank": "Leave the price empty if it has not been decided. Zero means the clinic gives this away.",
+      "firstFreeLabel": "First one free",
+      "firstFreeHint": "Each client's first is recorded at zero; every one after it is charged at the price above.",
+      "offered": "Offered",
+      "offeredHint": "Turning this off hides it from the charge card and changes nothing already recorded.",
+      "delete": "Delete service"
     },
     "methods": {
       "cash": "Cash",
@@ -1176,7 +1202,14 @@
       "paymentRemindersOff": "Payment reminders are switched off for this clinic. Turn them on under Settings › WhatsApp.",
       "whatsappNotConnected": "WhatsApp is not connected. Nothing was sent — connect the clinic number in Settings → WhatsApp.",
       "clientHasNoPhone": "This subscriber has no phone number on their record, so there is nowhere to send.",
-      "clientNotOnWhatsapp": "That number is not on WhatsApp. Nothing was sent — check the number on their record."
+      "clientNotOnWhatsapp": "That number is not on WhatsApp. Nothing was sent — check the number on their record.",
+      "nameRequired": "Give the service a name.",
+      "nameTooLong": "That name is too long.",
+      "invalidTerm": "A subscription runs for a whole number of months, between 1 and 24.",
+      "serviceInUse": "A service with charges against it cannot be deleted. Stop offering it instead.",
+      "invalidFreezeDays": "A freeze runs for between 1 and 365 days.",
+      "freezeOverlap": "Another freeze already covers these days.",
+      "reasonTooLong": "That reason is too long."
     },
     "print": {
       "statement": "Print all bills",
@@ -1289,6 +1322,17 @@
         "from": "From",
         "to": "To"
       }
+    },
+    "freeze": {
+      "title": "Freeze subscription",
+      "open": "Freeze",
+      "startsOn": "Paused from",
+      "days": "Days",
+      "daysHint": "Leave empty if the length is not agreed yet, then press Resume when they come back.",
+      "reason": "Reason",
+      "resume": "Resume",
+      "remove": "Remove freeze",
+      "extendedBy": "{days, plural, one {+1 frozen day} other {+# frozen days}}"
     }
   },
   "portal": {

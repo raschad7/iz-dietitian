@@ -4,6 +4,7 @@ import { eq, sql } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { catalogFoodAliases, catalogFoodPortions, catalogFoods, clients, clinics, clinicWorkingHours, practitioners, pushSubscriptions, whatsappSettings, type WhatsappSettings } from '@/db/schema';
+import { seedDefaultServices } from '@/features/billing/mutations';
 import { normalizeArabic } from '@/features/weekly-plans/arabic-normalize';
 import { defaultClinicScheduleRows } from '@/features/clinic-profile/default-schedule';
 import { normalizeForSearch } from '@/features/clients/search';
@@ -22,6 +23,13 @@ export async function createTestClinic(name = 'Test Clinic'): Promise<string> {
   if (!clinic) throw new Error('insert into clinics returned no row');
 
   await db.insert(clinicWorkingHours).values(defaultClinicScheduleRows(clinic.id));
+  /*
+    And the services a real sign-up is given — see the `user.create.before` hook
+    in `src/lib/auth.ts`. A clinic with no service list can record no charge that
+    names one, so without this every billing test would be exercising the
+    freehand path while claiming to test subscriptions.
+  */
+  await seedDefaultServices(clinic.id);
 
   return clinic.id;
 }

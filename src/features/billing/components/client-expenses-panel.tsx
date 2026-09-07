@@ -13,10 +13,19 @@ import { MENU_ITEM_CLASS, PANEL_ACTION_CLASS } from '@/features/billing/componen
 import { RecordChargeDialog } from '@/features/billing/components/record-charge-dialog';
 import { subscriptionStanding } from '@/features/billing/subscription';
 import { RecordPaymentDialog } from '@/features/billing/components/record-payment-dialog';
-import { STATUS_VARIANTS } from '@/features/billing/components/bills-status';
+import { STATUS_VARIANTS, SUBSCRIPTION_VARIANTS } from '@/features/billing/components/bills-status';
+import { SubscriptionFreezeControls } from '@/features/billing/components/subscription-freeze';
 import { formatAmountCompact, paymentStatus, subscriberTotals } from '@/features/billing/money';
 import { methodTone } from '@/features/billing/payment-methods';
-import { serviceTone, type ServicePrices } from '@/features/billing/services';
+import type { ClientFreeze } from '@/features/billing/queries';
+import {
+  serviceByKey,
+  serviceName,
+  serviceTone,
+  type ClinicServiceView,
+} from '@/features/billing/services';
+import { formatMediumDate } from '@/features/booking/format';
+import type { IsoDate } from '@/features/booking/date';
 import type { Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
@@ -73,8 +82,9 @@ export async function ClientExpensesPanel({
   phone,
   today,
   entries,
-  prices,
-  consulted,
+  services,
+  firstFreeUsed,
+  freezes,
 }: {
   locale: Locale;
   clientId: string;
@@ -90,10 +100,12 @@ export async function ClientExpensesPanel({
   today: string;
   /** Every charge and payment on this account, newest first. */
   entries: BillEntry[];
-  /** What the clinic charges, from Settings. */
-  prices: ServicePrices;
-  /** Whether this subscriber's ledger already holds a consultation. */
-  consulted: boolean;
+  /** The clinic's own services, with their prices — see `clinicServices`. */
+  services: readonly ClinicServiceView[];
+  /** Which first-free services this subscriber has already had one of. */
+  firstFreeUsed: ReadonlySet<string>;
+  /** This subscriber's paused days, newest last — see `freezesByClient`. */
+  freezes: readonly ClientFreeze[];
 }) {
   const t = await getTranslations('billing');
 
@@ -112,6 +124,20 @@ export async function ClientExpensesPanel({
   const totals = subscriberTotals(charged, paid);
   const status = paymentStatus(totals);
   const batches = batchNumbers(entries);
+
+  /*
+    Where the subscription stands, read once for the card: the line under the
+    debt draws it, and the charge card greys its subscription options out on the
+    same answer. Two reads of the same bills could not disagree, but they could
+    drift apart in what they mean.
+  */
+  const subscription = subscriptionStanding(entries, services, today, freezes);
+
+  /* A charge is tinted by what was sold — see the note where it is drawn. */
+  const chargeTone = (key: string | null) => {
+    const service = serviceByKey(services, key);
+    return service ? serviceTone(service.kind) : null;
+  };
 
   return (
     /*
@@ -305,11 +331,11 @@ export async function ClientExpensesPanel({
               clientId={clientId}
               clientName={clientName}
               today={today}
-              prices={prices}
-              consulted={consulted}
+              services={services}
+              firstFreeUsed={firstFreeUsed}
               /* The same rule the register enforces, read from the entries this
                  panel is already drawing. */
-              subscription={subscriptionStanding(entries, today)}
+              subscription={subscription}
               trigger="button"
               triggerClassName={PANEL_ACTION_CLASS}
             />
@@ -371,6 +397,62 @@ export async function ClientExpensesPanel({
             </ExpensesActionsMenu>
           </div>
         </div>
+
+        {/*
+          Where the subscription stands, and the one control that changes it.
+
+          **Only for a subscriber who has ever been on one.** A clinic that sells
+          consultations would otherwise carry an empty "no subscription" line on
+          every record — a row that says nothing and can do nothing, on the card
+          where the account is read.
+
+          It sits under the working line rather than in it: the debt and the two
+          money controls are one question, and a term is a different one. Same
+          reading edge, so the two lines start together.
+        */}
+        {subscription.state === 'none' ? null : (
+          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-t border-border pt-4">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+              <Badge variant={SUBSCRIPTION_VARIANTS[subscription.state]}>
+                {t(`subscription.state.${subscription.state}`)}
+              </Badge>
+
+              <p className="min-w-0 text-body-sm">
+                {serviceName(subscription.service, locale)}
+              </p>
+
+              {/*
+                The days the term actually covers, which is the thing a
+                subscriber asks about and the thing a freeze moves. Written out
+                rather than counted down: this is the record, where a date is
+                what somebody needs, and the register next door is where the
+                countdown belongs.
+              */}
+              <p dir="ltr" className="text-caption text-muted-foreground tabular-nums">
+                {`${formatMediumDate(locale, subscription.startedOn as IsoDate)} — ${formatMediumDate(locale, subscription.endsOn as IsoDate)}`}
+              </p>
+
+              {/*
+                What the freezes added, stated as the days rather than left for
+                the reader to find by comparing an end date against a term they
+                would have to work out. Absent when nothing was frozen, which is
+                most subscribers.
+              */}
+              {subscription.frozenDays > 0 ? (
+                <p className="text-caption text-muted-foreground">
+                  {t('freeze.extendedBy', { days: subscription.frozenDays })}
+                </p>
+              ) : null}
+            </div>
+
+            <SubscriptionFreezeControls
+              locale={locale}
+              clientId={clientId}
+              today={today}
+              freezes={freezes}
+            />
+          </div>
+        )}
       </CardHeader>
 
       {/*
@@ -462,7 +544,7 @@ export async function ClientExpensesPanel({
                         side of the ledger.
                       */
                       charge
-                        ? (serviceTone(entry.service) ??
+                        ? (chargeTone(entry.service) ??
                             'bg-status-medical-bg text-status-medical-fg')
                         : (methodTone(entry.method) ??
                             'bg-status-on-track-bg text-status-on-track-fg'),

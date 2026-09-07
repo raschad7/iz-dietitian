@@ -8,9 +8,9 @@ import { BillRowMenu } from '@/features/billing/components/bill-row-menu';
 import { SendBillButton } from '@/features/billing/components/send-bill-button';
 import { RecordChargeDialog } from '@/features/billing/components/record-charge-dialog';
 import { RecordPaymentDialog } from '@/features/billing/components/record-payment-dialog';
-import type { ServicePrices } from '@/features/billing/services';
+import type { ClinicServiceView } from '@/features/billing/services';
 import { formatAmountCompact, paymentStatus, type SubscriberTotals } from '@/features/billing/money';
-import { subscriptionStanding } from '@/features/billing/subscription';
+import { subscriptionStanding, type FreezeRange } from '@/features/billing/subscription';
 import type { ClientListItem } from '@/features/clients/queries';
 import type { Locale } from '@/i18n/routing';
 
@@ -49,8 +49,9 @@ export function BillsRow({
   entries,
   locale,
   today,
-  prices,
-  consulted,
+  services,
+  firstFreeUsed,
+  freezes,
 }: {
   client: ClientListItem;
   money: SubscriberTotals;
@@ -59,8 +60,12 @@ export function BillsRow({
   locale: Locale;
   /** Today in the clinic's zone — what the two dialogs offer as the date. */
   today: string;
-  prices: ServicePrices;
-  consulted: boolean;
+  /** The clinic's own list — names, terms and prices. See `clinicServices`. */
+  services: readonly ClinicServiceView[];
+  /** Which first-free services this subscriber has already had one of. */
+  firstFreeUsed: ReadonlySet<string>;
+  /** Days that did not count against this subscriber's term. */
+  freezes: readonly FreezeRange[];
 }) {
   const t = useTranslations('billing');
   const { columns } = useBillsColumns();
@@ -70,7 +75,7 @@ export function BillsRow({
     greys its subscription options out on the same answer. Two reads of the same
     bills could not disagree, but they could drift apart in what they mean.
   */
-  const subscription = subscriptionStanding(entries, today);
+  const subscription = subscriptionStanding(entries, services, today, freezes);
 
   return (
     /*
@@ -129,8 +134,8 @@ export function BillsRow({
               clientId={client.id}
               clientName={client.fullName}
               today={today}
-              prices={prices}
-              consulted={consulted}
+              services={services}
+              firstFreeUsed={firstFreeUsed}
               /* Greys out a second subscription while this one runs. The rule
                  itself is in `recordCharge`. */
               subscription={subscription}

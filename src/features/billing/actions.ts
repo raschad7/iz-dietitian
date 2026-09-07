@@ -9,7 +9,7 @@ import { getClient } from '@/features/clients/queries';
 import { clinicMessageBody } from '@/features/forms/queries';
 import { getSettings } from '@/features/whatsapp/queries';
 import { formatAmount } from '@/features/billing/money';
-import { subscriberTotalsByClient } from '@/features/billing/queries';
+import { clinicServices, subscriberTotalsByClient } from '@/features/billing/queries';
 import { renderBill } from '@/features/billing/pdf/render';
 import { manualDedupeKey, sendWhatsappMessage } from '@/features/whatsapp/send';
 import type { SendResult } from '@/features/whatsapp/types';
@@ -19,14 +19,26 @@ import { billingClinicHeader } from '@/features/billing/pdf/clinic';
 import { type BillingErrorKey, type BillingFormState } from './form-state';
 import {
   ClientNotInClinicError,
+  createService,
+  deleteFreeze,
+  deleteService,
+  FreezeOverlapError,
   PaymentExceedsBalanceError,
   recordCharge,
+  recordFreeze,
   recordPayment,
-  setServicePrices,
+  resumeFreeze,
+  ServiceInUseError,
   SubscriptionActiveError,
+  updateService,
 } from './mutations';
-import { recordChargeSchema, recordPaymentSchema, servicePriceSchema } from './schema';
-import { BILLING_SERVICES } from './services';
+import {
+  freezeSubscriptionSchema,
+  isoDateSchema,
+  recordChargeSchema,
+  recordPaymentSchema,
+  serviceSchema,
+} from './schema';
 
 /**
  * Server actions for the billing feature.
@@ -87,6 +99,20 @@ export async function recordChargeAction(
   });
 
   if (!parsed.success) return { status: 'error', messageKey: messageKeyFor(parsed.error) };
+
+  /*
+    The key has to be one of *this clinic's* services, and only a caller holding
+    the clinic id can say so — see the note on `service` in `recordChargeSchema`.
+    Refused rather than nulled: a charge silently losing its service is a
+    subscription that never expires and a free consultation given twice.
+  */
+  if (parsed.data.service) {
+    const services = await clinicServices(clinicId);
+
+    if (!services.some((service) => service.key === parsed.data.service)) {
+      return { status: 'error', messageKey: 'invalidService' };
+    }
+  }
 
   try {
     await recordCharge(clinicId, parsed.data, session.user.id);
@@ -184,6 +210,15 @@ function failure(error: unknown, what: string): BillingFormState {
     return { status: 'error', messageKey: 'paymentExceedsBalance' };
   }
 
+  /* Deleting is the narrow path and retiring is the answer — see `deleteService`. */
+  if (error instanceof ServiceInUseError) {
+    return { status: 'error', messageKey: 'serviceInUse' };
+  }
+
+  if (error instanceof FreezeOverlapError) {
+    return { status: 'error', messageKey: 'freezeOverlap' };
+  }
+
   console.error(`[billing] ${what} failed`, error);
   return { status: 'error', messageKey: 'genericError' };
 }
@@ -209,6 +244,11 @@ const KNOWN_KEYS = [
   'descriptionTooLong',
   'invalidClient',
   'invalidService',
+  'nameRequired',
+  'nameTooLong',
+  'invalidTerm',
+  'invalidFreezeDays',
+  'reasonTooLong',
 ] as const satisfies readonly BillingErrorKey[];
 
 function messageKeyFor(error: z.ZodError): BillingErrorKey {
@@ -217,52 +257,181 @@ function messageKeyFor(error: z.ZodError): BillingErrorKey {
 }
 
 /**
- * Writes every service price the settings section is showing.
+ * Adds a service to the clinic's own list.
  *
- * One submission for the whole list, because that is what the section's one
- * button means: the reader edited what they came to edit and pressed Save
- * changes once. Prices that did not move are re-sent and re-written to the same
- * value, which costs a statement and buys the guarantee that what is stored is
- * exactly what was on screen.
- *
- * **A blank field is "no price", not zero.** Clearing one removes the row — the
- * state the section draws as unpriced. Zero stays a real answer: a service the
- * clinic gives away.
- *
- * The first field that does not parse stops the write, and nothing is stored.
- * Saving the two that were valid and refusing the third would leave the screen
- * disagreeing with itself about which prices took.
+ * This is the whole of what "the clinic decides what it sells" comes to at the
+ * action layer: a name, a kind, a term if it is a subscription, and a price. No
+ * deploy, no migration, no line in a shared constant — which is what the two
+ * month subscription needed and could not have.
  */
-export async function saveServicePricesAction(
+export async function createServiceAction(
   _previous: BillingFormState,
   formData: FormData,
 ): Promise<BillingFormState> {
   const locale = localeSchema.parse(formData.get('locale'));
   const { clinicId } = await requireStaffClinic(locale);
 
-  const writes: { service: string; amountMinor: number | null }[] = [];
+  const parsed = serviceSchema.safeParse(serviceFields(formData));
 
-  for (const service of BILLING_SERVICES) {
-    const raw = String(formData.get(`price-${service.value}`) ?? '').trim();
-
-    if (!raw) {
-      writes.push({ service: service.value, amountMinor: null });
-      continue;
-    }
-
-    const parsed = servicePriceSchema.safeParse({ service: service.value, amountMinor: raw });
-    if (!parsed.success) return { status: 'error', messageKey: messageKeyFor(parsed.error) };
-
-    writes.push({ service: service.value, amountMinor: parsed.data.amountMinor });
-  }
+  if (!parsed.success) return { status: 'error', messageKey: messageKeyFor(parsed.error) };
 
   try {
-    await setServicePrices(clinicId, writes);
+    await createService(clinicId, parsed.data);
   } catch (error) {
-    return failure(error, 'setting service prices');
+    return failure(error, 'adding a service');
   }
 
   revalidatePath(`/${locale}/app/settings`);
+  return { status: 'success' };
+}
+
+/**
+ * Edits one service — its names, its term, its price, its free-first rule.
+ *
+ * The key is not among them and cannot be: it is what the ledger recorded, and
+ * changing it would detach every charge that names this service. See
+ * `updateService`.
+ */
+export async function updateServiceAction(
+  _previous: BillingFormState,
+  formData: FormData,
+): Promise<BillingFormState> {
+  const locale = localeSchema.parse(formData.get('locale'));
+  const { clinicId } = await requireStaffClinic(locale);
+
+  const serviceId = z.uuid().safeParse(formData.get('serviceId'));
+
+  if (!serviceId.success) return { status: 'error', messageKey: 'invalidService' };
+
+  const parsed = serviceSchema.safeParse(serviceFields(formData));
+
+  if (!parsed.success) return { status: 'error', messageKey: messageKeyFor(parsed.error) };
+
+  try {
+    await updateService(clinicId, serviceId.data, parsed.data);
+  } catch (error) {
+    return failure(error, 'editing a service');
+  }
+
+  revalidatePath(`/${locale}/app/settings`);
+  return { status: 'success' };
+}
+
+/** Removes a service nothing has ever been charged under. */
+export async function deleteServiceAction(
+  locale: string,
+  serviceId: string,
+): Promise<BillingFormState> {
+  const parsedLocale = localeSchema.parse(locale);
+  const { clinicId } = await requireStaffClinic(parsedLocale);
+
+  const id = z.uuid().safeParse(serviceId);
+
+  if (!id.success) return { status: 'error', messageKey: 'invalidService' };
+
+  try {
+    await deleteService(clinicId, id.data);
+  } catch (error) {
+    return failure(error, 'deleting a service');
+  }
+
+  revalidatePath(`/${parsedLocale}/app/settings`);
+  return { status: 'success' };
+}
+
+/** The service form's fields, read once so the two actions cannot read them differently. */
+function serviceFields(formData: FormData): Record<string, unknown> {
+  return {
+    nameAr: formData.get('nameAr') ?? '',
+    nameEn: formData.get('nameEn') ?? '',
+    kind: formData.get('kind'),
+    durationMonths: formData.get('durationMonths') ?? undefined,
+    priceMinor: formData.get('price') ?? undefined,
+    firstFree: formData.get('firstFree') ?? undefined,
+    active: formData.get('active') ?? undefined,
+  };
+}
+
+/**
+ * Pauses a subscriber's subscription.
+ *
+ * The clinic's own practice, which it was keeping on paper: a subscriber travels
+ * for nine days and those days do not come off the term they paid for. Recorded
+ * as a range rather than as a new end date, so the register can say *why* a
+ * renewal moved — see `client_subscription_freezes`.
+ */
+export async function freezeSubscriptionAction(
+  _previous: BillingFormState,
+  formData: FormData,
+): Promise<BillingFormState> {
+  const locale = localeSchema.parse(formData.get('locale'));
+  const { clinicId, session } = await requireStaffClinic(locale);
+
+  const parsed = freezeSubscriptionSchema.safeParse({
+    clientId: formData.get('clientId'),
+    startsOn: formData.get('startsOn'),
+    days: formData.get('days') ?? undefined,
+    reason: formData.get('reason') ?? undefined,
+  });
+
+  if (!parsed.success) return { status: 'error', messageKey: messageKeyFor(parsed.error) };
+
+  try {
+    await recordFreeze(clinicId, parsed.data, session.user.id);
+  } catch (error) {
+    return failure(error, 'freezing a subscription');
+  }
+
+  revalidateLedger(locale, parsed.data.clientId);
+  return { status: 'success' };
+}
+
+/** Ends an open freeze today — the Resume button beside a frozen subscriber. */
+export async function resumeFreezeAction(
+  locale: string,
+  clientId: string,
+  freezeId: string,
+  endsOn: string,
+): Promise<BillingFormState> {
+  const parsedLocale = localeSchema.parse(locale);
+  const { clinicId } = await requireStaffClinic(parsedLocale);
+
+  const parsed = z
+    .object({ clientId: z.uuid(), freezeId: z.uuid(), endsOn: isoDateSchema })
+    .safeParse({ clientId, freezeId, endsOn });
+
+  if (!parsed.success) return { status: 'error', messageKey: messageKeyFor(parsed.error) };
+
+  try {
+    await resumeFreeze(clinicId, parsed.data.freezeId, parsed.data.endsOn);
+  } catch (error) {
+    return failure(error, 'resuming a subscription');
+  }
+
+  revalidateLedger(parsedLocale, parsed.data.clientId);
+  return { status: 'success' };
+}
+
+/** Removes a freeze recorded by mistake, and with it the days it gave back. */
+export async function deleteFreezeAction(
+  locale: string,
+  clientId: string,
+  freezeId: string,
+): Promise<BillingFormState> {
+  const parsedLocale = localeSchema.parse(locale);
+  const { clinicId } = await requireStaffClinic(parsedLocale);
+
+  const parsed = z.object({ clientId: z.uuid(), freezeId: z.uuid() }).safeParse({ clientId, freezeId });
+
+  if (!parsed.success) return { status: 'error', messageKey: 'invalidClient' };
+
+  try {
+    await deleteFreeze(clinicId, parsed.data.freezeId);
+  } catch (error) {
+    return failure(error, 'removing a freeze');
+  }
+
+  revalidateLedger(parsedLocale, parsed.data.clientId);
   return { status: 'success' };
 }
 

@@ -17,8 +17,15 @@
  * `options` there, where the value and the label are deliberately the same
  * string for a service. So a charge recorded through the card carries the
  * service's own name, in the language the dietitian was working in, as its
- * description. This matches that description against the catalogue's labels in
- * both locales and writes back the key they belong to.
+ * description. This matches that description against **that clinic's own**
+ * service names, in both languages, and writes back the key they belong to.
+ *
+ * ⚠ It reads `clinic_services`, which is where the list lives now — one per
+ * clinic, named by the clinic. It used to read the message catalogue, back when
+ * every clinic sold the same three things under the same two translations. A
+ * clinic that has since renamed a service will not match charges recorded under
+ * the old name, and that is the honest outcome: this script infers a fact from
+ * words, and words that are no longer anywhere are not evidence.
  *
  * It is exact, trimmed, case-insensitive matching. Nothing is inferred from a
  * substring: a description reading "Consultation and diet plan" is a charge
@@ -40,42 +47,48 @@
 import { and, eq, isNull } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { clientCharges } from '@/db/schema';
-import arMessages from '@/i18n/messages/ar.json';
-import enMessages from '@/i18n/messages/en.json';
-import { BILLING_SERVICES, type BillingService } from '@/features/billing/services';
+import { clientCharges, clinicServices } from '@/db/schema';
 
 const apply = process.argv.includes('--apply');
 
 /**
- * Every label a service has ever been shown under, lowercased, pointing at its
- * key.
+ * Every name each clinic's services go by, lowercased, pointing at their key.
  *
- * Built from the message catalogues rather than written out here, so a service
- * renamed in one of them cannot leave this script matching a string the app
- * stopped using. Both locales, because the description is in whichever language
- * the dietitian had the app in when they recorded the charge.
+ * Keyed by clinic and then by label, because two clinics may well call two
+ * different things "متابعة" — matching across the whole deployment would file
+ * one clinic's charge under another clinic's service key. Both languages, since
+ * the description is in whichever one the dietitian had the app in.
  */
-function labelIndex(): Map<string, BillingService> {
-  const index = new Map<string, BillingService>();
+async function labelIndex(): Promise<Map<string, Map<string, string>>> {
+  const rows = await db
+    .select({
+      clinicId: clinicServices.clinicId,
+      key: clinicServices.key,
+      nameAr: clinicServices.nameAr,
+      nameEn: clinicServices.nameEn,
+    })
+    .from(clinicServices);
 
-  for (const messages of [arMessages, enMessages]) {
-    const services = messages.billing.services as Record<string, string>;
+  const byClinic = new Map<string, Map<string, string>>();
 
-    for (const { value } of BILLING_SERVICES) {
-      const label = services[value];
-      if (label) index.set(label.trim().toLowerCase(), value);
+  for (const row of rows) {
+    const labels = byClinic.get(row.clinicId) ?? new Map<string, string>();
+
+    for (const name of [row.nameAr, row.nameEn]) {
+      const label = name.trim().toLowerCase();
+      if (label) labels.set(label, row.key);
     }
+
+    byClinic.set(row.clinicId, labels);
   }
 
-  return index;
+  return byClinic;
 }
 
 async function main() {
-  const index = labelIndex();
+  const index = await labelIndex();
 
-  console.info(`labels known: ${index.size}`);
-  for (const [label, value] of index) console.info(`  ${JSON.stringify(label)} -> ${value}`);
+  console.info(`clinics with a service list: ${index.size}`);
 
   const rows = await db
     .select({
@@ -88,11 +101,11 @@ async function main() {
     .from(clientCharges)
     .where(isNull(clientCharges.service));
 
-  const matched = new Map<BillingService, typeof rows>();
+  const matched = new Map<string, typeof rows>();
   const unmatched: typeof rows = [];
 
   for (const row of rows) {
-    const key = index.get((row.description ?? '').trim().toLowerCase());
+    const key = index.get(row.clinicId)?.get((row.description ?? '').trim().toLowerCase());
 
     if (!key) {
       unmatched.push(row);
@@ -107,8 +120,8 @@ async function main() {
   const total = [...matched.values()].reduce((sum, bucket) => sum + bucket.length, 0);
 
   console.info(`\ncharges with no service:  ${rows.length}`);
-  for (const { value } of BILLING_SERVICES) {
-    console.info(`  ${value.padEnd(22)}${matched.get(value)?.length ?? 0}`);
+  for (const [key, bucket] of matched) {
+    console.info(`  ${key.padEnd(22)}${bucket.length}`);
   }
   console.info(`  unmatched (freehand): ${unmatched.length}`);
 

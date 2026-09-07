@@ -4,7 +4,8 @@ import { buttonVariants } from '@/components/ui/button';
 import { Table, TableBody, TableEmpty, TableHeader, TableRoot } from '@/components/ui/table';
 import type { BillEntry } from '@/features/billing/bill';
 import { BillsRow } from '@/features/billing/components/bills-row';
-import type { ServicePrices } from '@/features/billing/services';
+import type { ClinicServiceView } from '@/features/billing/services';
+import type { FreezeRange } from '@/features/billing/subscription';
 import type { SubscriberTotals } from '@/features/billing/money';
 import { emptyTotals } from '@/features/billing/queries';
 import type { ClientListResult } from '@/features/clients/queries';
@@ -53,6 +54,16 @@ import { BillsHeaderRow } from './bills-header-row';
 
 
 
+/*
+  The two "this subscriber has none" answers, as one shared value each rather
+  than a fresh literal per row. A register is a page of rows and most of them are
+  in exactly this state; a new empty array for each is a new prop identity for
+  each, which is the sort of thing that quietly costs a re-render of the whole
+  table.
+*/
+const EMPTY_KEYS: ReadonlySet<string> = new Set();
+const EMPTY_FREEZES: readonly FreezeRange[] = [];
+
 export function BillsTable({
   result,
   totals,
@@ -60,8 +71,9 @@ export function BillsTable({
   filtered,
   locale,
   today,
-  prices,
-  consulted,
+  services,
+  firstFreeUsed,
+  freezes,
 }: {
   result: ClientListResult;
   /** Keyed by client id — see `subscriberTotalsByClient`. */
@@ -86,9 +98,16 @@ export function BillsTable({
    * offered yesterday, and every row would have to derive it separately.
    */
   today: string;
-  prices: ServicePrices;
-  /** The subscribers whose ledger already holds a consultation. */
-  consulted: Set<string>;
+  /** The clinic's own list of services — see `clinicServices`. */
+  services: readonly ClinicServiceView[];
+  /**
+   * Which first-free services each subscriber has already had one of, keyed by
+   * client id. A subscriber absent from the map has had none, which is the
+   * ordinary state of most of a register.
+   */
+  firstFreeUsed: Map<string, Set<string>>;
+  /** Each subscriber's paused days, keyed by client id — see `freezesByClient`. */
+  freezes: Map<string, FreezeRange[]>;
 }) {
   const t = useTranslations('billing');
 
@@ -187,8 +206,9 @@ export function BillsTable({
             entries={ledgers.get(client.id) ?? []}
             locale={locale}
             today={today}
-            prices={prices}
-            consulted={consulted.has(client.id)}
+            services={services}
+            firstFreeUsed={firstFreeUsed.get(client.id) ?? EMPTY_KEYS}
+            freezes={freezes.get(client.id) ?? EMPTY_FREEZES}
           />
         ))}
       </Table>

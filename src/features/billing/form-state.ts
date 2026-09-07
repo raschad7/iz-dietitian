@@ -34,8 +34,24 @@ export type BillingFormState =
         | 'descriptionTooLong'
         /** The subscriber is not this clinic's — see `ClientNotInClinicError`. */
         | 'invalidClient'
-        /** A price was submitted for a service the app does not offer. */
+        /** A charge, a price or an edit named a service this clinic does not have. */
         | 'invalidService'
+        /** A service was added with no name in either language. */
+        | 'nameRequired'
+        | 'nameTooLong'
+        /** A subscription's term is missing, not a whole number, or absurd. */
+        | 'invalidTerm'
+        /**
+         * A service with charges behind it was asked to be deleted. Retiring is
+         * what the clinic wants and what the screen offers — see
+         * `deleteService`.
+         */
+        | 'serviceInUse'
+        /** A freeze of no days, a fraction of a day, or longer than a year. */
+        | 'invalidFreezeDays'
+        /** A freeze was recorded over days another one already covers. */
+        | 'freezeOverlap'
+        | 'reasonTooLong'
         /**
          * A subscription was charged over one that is still running — see
          * `SubscriptionActiveError`.

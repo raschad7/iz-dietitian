@@ -5,7 +5,7 @@ import { cookies } from 'next/headers';
 import { PageHeader } from '@/components/layout/page-header';
 import { FitRows } from '@/components/ui/fit-rows';
 import { BillsTable } from '@/features/billing/components/bills-table';
-import { clinicServicePrices, consultedClients } from '@/features/billing/queries';
+import { clinicServices, firstFreeUsed, freezesByClient } from '@/features/billing/queries';
 import { ledgerByClient, subscriberTotalsByClient } from '@/features/billing/queries';
 import { wallClockIn } from '@/features/booking/completed';
 import { DISPLAY_TIME_ZONE } from '@/lib/format';
@@ -85,7 +85,14 @@ export default async function BillsPage({ params, searchParams }: BillsPageProps
   */
   const clientIds = result.items.map((client) => client.id);
 
-  const [totals, ledgers, prices, consulted] = await Promise.all([
+  /*
+    The clinic's own list of services, read before the rest: the free-first
+    question is asked *per service*, so it needs to know which services carry
+    that rule before it can ask about anybody.
+  */
+  const services = await clinicServices(clinicId);
+
+  const [totals, ledgers, used, freezes] = await Promise.all([
     subscriberTotalsByClient(clinicId, clientIds),
     /*
       The rows behind the sums — what each row's print menu lists, and what the
@@ -94,17 +101,18 @@ export default async function BillsPage({ params, searchParams }: BillsPageProps
     */
     ledgerByClient(clinicId, clientIds),
     /*
-      The clinic's price list, which is what a charge is recorded at. One read
-      for the page rather than one per row: it is three rows keyed by the clinic
-      and every dialog on the screen wants the same answer.
+      Who has already had one of each free-first service, for the rule on the
+      charge card. A set of keys per subscriber rather than a count: the
+      question is whether there has been one at all.
     */
-    clinicServicePrices(clinicId),
+    firstFreeUsed(clinicId, clientIds, services),
     /*
-      Who has already had a consultation, for the free-first rule on the charge
-      card. A set of ids rather than a count per subscriber: the question is
-      whether there has been one at all.
+      The days that did not count against each subscriber's term. The
+      Subscription column reads them — a frozen fortnight moves a renewal date —
+      and the charge card reads the same answer when it decides whether a term
+      is still running.
     */
-    consultedClients(clinicId, clientIds),
+    freezesByClient(clinicId, clientIds),
   ]);
 
   return (
@@ -131,8 +139,9 @@ export default async function BillsPage({ params, searchParams }: BillsPageProps
           locale={locale}
           /* The clinic's own today, not the browser's — see the prop's comment. */
           today={wallClockIn(DISPLAY_TIME_ZONE).date}
-          prices={prices}
-          consulted={consulted}
+          services={services}
+          firstFreeUsed={used}
+          freezes={freezes}
         />
 
         <div data-fit-footer className="mt-auto pt-6">

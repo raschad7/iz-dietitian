@@ -6,9 +6,11 @@ import { username } from 'better-auth/plugins';
 
 import { db } from '@/db';
 import { account, passkey as passkeyTable, session, user, verification } from '@/db/schema/auth';
+import { clinicServices } from '@/db/schema/billing';
 import { clinics } from '@/db/schema/clinics';
 import { clinicWorkingHours } from '@/db/schema/clinic-working-hours';
 import { CLIENT_MIN_PASSWORD_LENGTH } from '@/features/auth/password-policy';
+import { DEFAULT_SERVICES } from '@/features/billing/services';
 import { defaultClinicScheduleRows } from '@/features/clinic-profile/default-schedule';
 import { defaultLocale, locales, type Locale } from '@/i18n/routing';
 import { sendMail } from '@/lib/mail';
@@ -384,6 +386,16 @@ export const auth = betterAuth({
             }
 
             await tx.insert(clinicWorkingHours).values(defaultClinicScheduleRows(clinic.id));
+            /*
+              And the services it starts out selling — a month, three months, a
+              consultation. Written here rather than conjured on first read, so
+              a clinic that deliberately retires all three does not find them
+              back the next time somebody opens Settings. See
+              `seedDefaultServices`.
+            */
+            await tx
+              .insert(clinicServices)
+              .values(DEFAULT_SERVICES.map((service) => ({ ...service, clinicId: clinic.id })));
             return clinic.id;
           });
 

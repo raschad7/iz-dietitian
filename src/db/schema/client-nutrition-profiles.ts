@@ -155,6 +155,44 @@ export const clientNutritionProfiles = pgTable(
      */
     customAllergens: text('custom_allergens').array().notNull().default([]),
 
+    /**
+     * Structured clinical conditions — `pregnancy_second_trimester`,
+     * `breastfeeding`, `kidney_disease`, `epilepsy`, `diabetes_type_2`, and the
+     * rest of `CLINICAL_CONDITIONS`.
+     *
+     * **The same argument `allergen_tags` makes, one field over.** `conditions`
+     * on `clients` is free text a dietitian writes however she likes, and it is
+     * still sent to the model as context because prose carries detail a closed
+     * list cannot ("stage 3 CKD, phosphate binders since March"). But prose
+     * cannot be *acted on*: nothing can raise a pregnant client's energy target,
+     * exclude high-potassium dishes for a kidney patient, or refuse to generate
+     * a ketogenic week from a catalogue that has no ketogenic dishes in it,
+     * while the only record of the condition is a sentence.
+     *
+     * A closed vocabulary is what makes each of those a rule rather than a hope.
+     * A condition the list does not carry stays in the free text, where it reads
+     * as what it is — something a person has written down — instead of looking
+     * like something the app is checking.
+     *
+     * These are read by `lifeStageKcal` (energy), by the catalog filter, and by
+     * the generation prompt, which states each one as a constraint in the words
+     * a clinician would use.
+     */
+    clinicalTags: text('clinical_tags').array().notNull().default([]),
+
+    /**
+     * A prescribed eating pattern the whole week must follow — `keto`,
+     * `low_carb`, `low_sodium`, `renal`, `high_protein`. Null is the ordinary
+     * case: a balanced plan, which is what every plan was before this column.
+     *
+     * **Separate from `clinical_tags`, because a condition is not a
+     * prescription.** Epilepsy is a fact about the client; a ketogenic diet is a
+     * decision somebody made about it, and plenty of people with epilepsy are
+     * not on one. Folding the two together would have the app choosing a therapy
+     * from a diagnosis, which is the dietitian's job and not a lookup table's.
+     */
+    dietPattern: text('diet_pattern'),
+
     /** Free text, sent to the model as the dietitian wrote it. */
     preferences: text('preferences'),
     dislikes: text('dislikes'),

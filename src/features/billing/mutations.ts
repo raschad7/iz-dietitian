@@ -1,11 +1,23 @@
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { clientCharges, clientPayments, clients, clinicServicePrices } from '@/db/schema';
+import {
+  clientCharges,
+  clientPayments,
+  clientSubscriptionFreezes,
+  clients,
+  clinicServices,
+} from '@/db/schema';
 
-import { subscriberTotalsByClient } from './queries';
-import type { RecordChargeInput, RecordPaymentInput } from './schema';
-import { isSubscriptionService, subscriptionCovering, type SubscriptionTerm } from './subscription';
+import { clinicServices as readClinicServices, subscriberTotalsByClient } from './queries';
+import type {
+  FreezeSubscriptionInput,
+  RecordChargeInput,
+  RecordPaymentInput,
+  ServiceInput,
+} from './schema';
+import { DEFAULT_SERVICES, serviceKeyFrom } from './services';
+import { subscriptionCovering, subscriptionService, type SubscriptionTerm } from './subscription';
 
 /**
  * Writes for the billing feature.
@@ -125,7 +137,7 @@ export async function recordPayment(
  */
 export class SubscriptionActiveError extends Error {
   constructor(readonly term: SubscriptionTerm) {
-    super(`a ${term.service} subscription already covers ${term.startedOn} to ${term.endsOn}`);
+    super(`a ${term.service.key} subscription already covers ${term.startedOn} to ${term.endsOn}`);
     this.name = 'SubscriptionActiveError';
   }
 }
@@ -170,18 +182,38 @@ export async function recordCharge(
 ): Promise<{ id: string }> {
   await assertClientInClinic(clinicId, input.clientId);
 
-  if (isSubscriptionService(input.service)) {
+  const services = await readClinicServices(clinicId);
+
+  if (subscriptionService(services, input.service)) {
     /*
       Two columns for the rows that could collide, not the whole ledger: the
       question is which days are already covered, and a description or an amount
-      answers none of it.
+      answers none of it. The freezes come with them, because a paused term ends
+      later than its dates say and selling the next one over those days would be
+      the very overlap this rule exists to refuse.
     */
-    const sold = await db
-      .select({ service: clientCharges.service, occurredOn: clientCharges.chargedOn })
-      .from(clientCharges)
-      .where(and(eq(clientCharges.clinicId, clinicId), eq(clientCharges.clientId, input.clientId)));
+    const [sold, freezes] = await Promise.all([
+      db
+        .select({ service: clientCharges.service, occurredOn: clientCharges.chargedOn })
+        .from(clientCharges)
+        .where(
+          and(eq(clientCharges.clinicId, clinicId), eq(clientCharges.clientId, input.clientId)),
+        ),
+      db
+        .select({
+          startsOn: clientSubscriptionFreezes.startsOn,
+          endsOn: clientSubscriptionFreezes.endsOn,
+        })
+        .from(clientSubscriptionFreezes)
+        .where(
+          and(
+            eq(clientSubscriptionFreezes.clinicId, clinicId),
+            eq(clientSubscriptionFreezes.clientId, input.clientId),
+          ),
+        ),
+    ]);
 
-    const covering = subscriptionCovering(sold, input.chargedOn);
+    const covering = subscriptionCovering(sold, services, input.chargedOn, freezes, input.chargedOn);
 
     if (covering) throw new SubscriptionActiveError(covering);
   }
@@ -223,35 +255,264 @@ async function assertClientInClinic(clinicId: string, clientId: string): Promise
 }
 
 /**
- * Writes a clinic's price list — every service in one go.
+ * Gives a new clinic the services it starts with.
  *
- * One transaction, because the list is read as a whole and a half-applied one
- * is a screen that disagrees with itself. A `null` amount deletes the row: a
- * price can be taken back off a service, which is not the same as pricing it at
- * zero — see `clinic_service_prices`.
+ * Called once, when the clinic row is created. `onConflictDoNothing` on the
+ * (clinic, key) index makes it safe to call twice — a clinic that has already
+ * been seeded and has since renamed "استشارة" must not have its own words
+ * written back over.
+ *
+ * A clinic is deliberately *not* seeded lazily on first read. A list that
+ * appears when somebody happens to open Settings is a list that reappears after
+ * a clinic empties it, and "I deleted these and they came back" is a worse bug
+ * than an empty screen.
  */
-export async function setServicePrices(
-  clinicId: string,
-  prices: readonly { service: string; amountMinor: number | null }[],
-): Promise<void> {
-  await db.transaction(async (tx) => {
-    for (const { service, amountMinor } of prices) {
-      if (amountMinor === null) {
-        await tx
-          .delete(clinicServicePrices)
-          .where(
-            and(eq(clinicServicePrices.clinicId, clinicId), eq(clinicServicePrices.service, service)),
-          );
-        continue;
-      }
+export async function seedDefaultServices(clinicId: string): Promise<void> {
+  await db
+    .insert(clinicServices)
+    .values(DEFAULT_SERVICES.map((service) => ({ ...service, clinicId })))
+    .onConflictDoNothing({ target: [clinicServices.clinicId, clinicServices.key] });
+}
 
-      await tx
-        .insert(clinicServicePrices)
-        .values({ clinicId, service, amountMinor })
-        .onConflictDoUpdate({
-          target: [clinicServicePrices.clinicId, clinicServicePrices.service],
-          set: { amountMinor, updatedAt: new Date() },
-        });
-    }
-  });
+/**
+ * Adds a service to a clinic's list.
+ *
+ * The key is generated here rather than typed: it is the handle the ledger
+ * records, it must be unique within the clinic and stable for the life of the
+ * service, and none of that is something to ask a dietitian about. See
+ * {@link serviceKeyFrom}.
+ *
+ * A name given in only one language is copied into the other. A clinic working
+ * in Arabic should not have to write English to add a service, and a bill with a
+ * blank line on it is worse than one with an untranslated name.
+ */
+export async function createService(
+  clinicId: string,
+  input: ServiceInput,
+): Promise<{ id: string }> {
+  const existing = await db
+    .select({ key: clinicServices.key, sortOrder: clinicServices.sortOrder })
+    .from(clinicServices)
+    .where(eq(clinicServices.clinicId, clinicId))
+    .orderBy(desc(clinicServices.sortOrder));
+
+  const names = bothNames(input);
+  const key = serviceKeyFrom(names, existing.map((row) => row.key));
+
+  const [row] = await db
+    .insert(clinicServices)
+    .values({
+      clinicId,
+      key,
+      ...names,
+      kind: input.kind,
+      durationMonths: input.kind === 'subscription' ? input.durationMonths : null,
+      priceMinor: input.priceMinor,
+      firstFree: input.firstFree,
+      active: input.active,
+      sortOrder: (existing[0]?.sortOrder ?? -1) + 1,
+    })
+    .returning({ id: clinicServices.id });
+
+  if (!row) throw new Error('service insert returned no row');
+
+  return row;
+}
+
+/**
+ * Edits one service.
+ *
+ * **The key never changes**, so every charge that already names this service
+ * keeps naming it. Renaming is exactly what the two name columns are for; the
+ * ledger is keyed on something a clinic cannot type.
+ *
+ * Changing a subscription's term does move the renewal date of every term ever
+ * sold under it, because a term end is derived rather than stored — see
+ * `subscriptionEnd`. That is the same property that lets a correction fix every
+ * row at once, and it is why the settings screen says so beside the field rather
+ * than hiding it.
+ */
+export async function updateService(
+  clinicId: string,
+  serviceId: string,
+  input: ServiceInput,
+): Promise<void> {
+  await db
+    .update(clinicServices)
+    .set({
+      ...bothNames(input),
+      kind: input.kind,
+      durationMonths: input.kind === 'subscription' ? input.durationMonths : null,
+      priceMinor: input.priceMinor,
+      firstFree: input.firstFree,
+      active: input.active,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(clinicServices.clinicId, clinicId), eq(clinicServices.id, serviceId)));
+}
+
+/** Thrown when a service that a charge already names is asked to be deleted. */
+export class ServiceInUseError extends Error {
+  constructor(readonly serviceId: string) {
+    super(`service ${serviceId} is named by at least one charge`);
+    this.name = 'ServiceInUseError';
+  }
+}
+
+/**
+ * Deletes a service — only one nothing has ever been charged under.
+ *
+ * **Retiring is the ordinary answer** and this is the narrow one: a service a
+ * clinic added by mistake, five minutes ago, with no ledger behind it. Once a
+ * charge names the key, deleting the row would leave that charge naming nothing
+ * — the term could not be dated, the ledger row could not be tinted, and the
+ * Bills column would quietly report the subscriber as never having been on a
+ * subscription. `active = false` says "stop offering this" without any of that.
+ */
+export async function deleteService(clinicId: string, serviceId: string): Promise<void> {
+  const [service] = await db
+    .select({ key: clinicServices.key })
+    .from(clinicServices)
+    .where(and(eq(clinicServices.clinicId, clinicId), eq(clinicServices.id, serviceId)))
+    .limit(1);
+
+  if (!service) return;
+
+  const [used] = await db
+    .select({ id: clientCharges.id })
+    .from(clientCharges)
+    .where(and(eq(clientCharges.clinicId, clinicId), eq(clientCharges.service, service.key)))
+    .limit(1);
+
+  if (used) throw new ServiceInUseError(serviceId);
+
+  await db
+    .delete(clinicServices)
+    .where(and(eq(clinicServices.clinicId, clinicId), eq(clinicServices.id, serviceId)));
+}
+
+/** Both names, with an empty one filled from the other. See {@link createService}. */
+function bothNames(input: ServiceInput): { nameAr: string; nameEn: string } {
+  return {
+    nameAr: input.nameAr || input.nameEn,
+    nameEn: input.nameEn || input.nameAr,
+  };
+}
+
+/** Thrown when a freeze would overlap one the subscriber already has. */
+export class FreezeOverlapError extends Error {
+  constructor(readonly startsOn: string) {
+    super(`a freeze already covers ${startsOn}`);
+    this.name = 'FreezeOverlapError';
+  }
+}
+
+/**
+ * Pauses a subscriber's subscription from `startsOn`.
+ *
+ * `endsOn` is optional and null is a real answer — "frozen until they come
+ * back", which is what the clinic usually knows on the day. `resumeFreeze`
+ * closes it later; until then the term end moves out a day at a time.
+ *
+ * **Overlaps are refused.** Two freezes over the same fortnight would give the
+ * days back twice if the arithmetic ever counted them separately, and reading
+ * two rows for one pause is nobody's idea of a record. `frozenDaysWithin` also
+ * merges overlapping ranges, so the two agree even if a row is edited into place
+ * some other way — a rule worth having in both places, since the arithmetic must
+ * not depend on a check made in a different module.
+ *
+ * Nothing here requires an active subscription. A freeze recorded over days no
+ * term covers simply adds nothing to anything, which is the honest outcome: the
+ * clinic wrote down that somebody paused, and there was nothing running to
+ * pause.
+ */
+export async function recordFreeze(
+  clinicId: string,
+  input: FreezeSubscriptionInput,
+  recordedBy: string | null = null,
+): Promise<{ id: string }> {
+  await assertClientInClinic(clinicId, input.clientId);
+
+  const existing = await db
+    .select({
+      startsOn: clientSubscriptionFreezes.startsOn,
+      endsOn: clientSubscriptionFreezes.endsOn,
+    })
+    .from(clientSubscriptionFreezes)
+    .where(
+      and(
+        eq(clientSubscriptionFreezes.clinicId, clinicId),
+        eq(clientSubscriptionFreezes.clientId, input.clientId),
+      ),
+    );
+
+  const end = input.endsOn;
+
+  for (const freeze of existing) {
+    const overlaps =
+      (end === null || freeze.startsOn <= end) &&
+      (freeze.endsOn === null || input.startsOn <= freeze.endsOn);
+
+    if (overlaps) throw new FreezeOverlapError(freeze.startsOn);
+  }
+
+  const [row] = await db
+    .insert(clientSubscriptionFreezes)
+    .values({
+      clinicId,
+      clientId: input.clientId,
+      startsOn: input.startsOn,
+      endsOn: end,
+      reason: input.reason,
+      recordedBy,
+    })
+    .returning({ id: clientSubscriptionFreezes.id });
+
+  if (!row) throw new Error('freeze insert returned no row');
+
+  return row;
+}
+
+/**
+ * Ends an open freeze on `endsOn` — the Resume button.
+ *
+ * Only an open one. A freeze that already has an end has already been resumed,
+ * and moving that end is an edit rather than a resume: it would silently move a
+ * renewal date somebody has been told. Deleting and re-recording says the same
+ * thing where it can be seen.
+ *
+ * `endsOn` is clamped up to the start, because a freeze cannot end before it
+ * began — the column has a check saying so, and hitting a constraint violation
+ * is a worse way to learn it than the row simply covering its one day.
+ */
+export async function resumeFreeze(
+  clinicId: string,
+  freezeId: string,
+  endsOn: string,
+): Promise<void> {
+  await db
+    .update(clientSubscriptionFreezes)
+    .set({
+      endsOn: sql`greatest(${endsOn}::date, ${clientSubscriptionFreezes.startsOn})`,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(clientSubscriptionFreezes.clinicId, clinicId),
+        eq(clientSubscriptionFreezes.id, freezeId),
+        isNull(clientSubscriptionFreezes.endsOn),
+      ),
+    );
+}
+
+/** Removes a freeze entirely — a pause recorded by mistake. */
+export async function deleteFreeze(clinicId: string, freezeId: string): Promise<void> {
+  await db
+    .delete(clientSubscriptionFreezes)
+    .where(
+      and(
+        eq(clientSubscriptionFreezes.clinicId, clinicId),
+        eq(clientSubscriptionFreezes.id, freezeId),
+      ),
+    );
 }

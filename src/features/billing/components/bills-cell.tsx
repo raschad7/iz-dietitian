@@ -138,12 +138,25 @@ export function BillsCell({
         );
       }
 
-      const countdown = subscriptionCountdown(subscription, today);
+      /*
+        A frozen term says so instead of counting down. Its end date is still
+        moving — every further paused day pushes it out by one — so a number
+        here would be a countdown to a day that is not yet decided, which is
+        worse than no number at all. The days it has left are on the record,
+        beside the freeze that is holding them.
+      */
+      const label =
+        subscription.state === 'frozen'
+          ? t('subscription.frozen')
+          : (() => {
+              const countdown = subscriptionCountdown(subscription, today);
+              return t(`subscription.${countdown.kind}`, { days: countdown.days });
+            })();
 
       return (
         <TableCell className="text-center">
           <Badge variant={SUBSCRIPTION_VARIANTS[subscription.state]} className="whitespace-nowrap">
-            {t(`subscription.${countdown.kind}`, { days: countdown.days })}
+            {label}
           </Badge>
         </TableCell>
       );
