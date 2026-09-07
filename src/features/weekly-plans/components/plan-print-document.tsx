@@ -77,6 +77,9 @@ export function PlanPrintDocument({
 }) {
   const t = useTranslations('weeklyPlans');
   const tPrint = useTranslations('weeklyPlans.print');
+  /* The same heading the portal draws over the same note — one string, so the
+     paper and the screen cannot end up calling it two different things. */
+  const tNote = useTranslations('weeklyPlans.clientNote');
   const format = useFormatter();
 
   /*
@@ -137,6 +140,23 @@ export function PlanPrintDocument({
       {plan.days.map((day) => (
         <PrintDaySection key={day.dayOfWeek} day={day} locale={locale} />
       ))}
+
+      {/*
+        The note, last — after the week it is about, which is where a reader
+        arrives having already seen what they are eating. It is the one block on
+        this sheet that is prose rather than food, and it is the reason a client
+        with no smartphone still gets everything the portal shows.
+
+        `plan-print-note` is styled beside the rest of the sheet in
+        `globals.css`; the Word export copies this element whole, so the note
+        travels into the `.doc` without a second implementation.
+      */}
+      {plan.clientNote?.trim() ? (
+        <section className="plan-print-note">
+          <p className="plan-print-note-heading">{tNote('heading')}</p>
+          <p className="plan-print-note-body">{plan.clientNote}</p>
+        </section>
+      ) : null}
     </div>,
     document.body,
   );

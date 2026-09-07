@@ -10,7 +10,12 @@ import { getClientWeekMeals, getClientWeekProgress } from '@/features/clients/pr
 import { getClient, getClientIntake } from '@/features/clients/queries';
 import { measurementSharing } from '@/features/measurements/portal';
 import { listMeasurements, measurementsWithFiles } from '@/features/measurements/queries';
-import { clinicServicePrices, consultedClients, ledgerByClient } from '@/features/billing/queries';
+import {
+  clinicServices,
+  firstFreeUsed,
+  freezesByClient,
+  ledgerByClient,
+} from '@/features/billing/queries';
 import { currentSunday } from '@/features/weekly-plans/week';
 import { listPlans } from '@/features/weekly-plans/queries';
 import { getSettings } from '@/features/whatsapp/queries';
@@ -64,6 +69,13 @@ export default async function ClientInfoPage({ params, searchParams }: ClientInf
 
   const today = toIsoDate(new Date());
 
+  /*
+    The clinic's services, ahead of the batch below: the free-first read needs
+    to know which of them carry that rule before it can ask about this
+    subscriber.
+  */
+  const services = await clinicServices(clinicId);
+
   const [
     visitEntries,
     plans,
@@ -72,8 +84,8 @@ export default async function ClientInfoPage({ params, searchParams }: ClientInf
     portalUsername,
     suggestedUsername,
     ledgers,
-    prices,
-    consulted,
+    used,
+    freezes,
     measurementRows,
     measurementReportIds,
     measurementSharingState,
@@ -92,15 +104,15 @@ export default async function ClientInfoPage({ params, searchParams }: ClientInf
       // so a client who already signs in costs no query for it.
       client.hasPortalAccess ? Promise.resolve('') : suggestPortalUsername(client),
       /*
-        The Expenses view: this subscriber's ledger, what the clinic charges,
-        and whether a consultation is already on the account — the free-first
-        rule the charge card applies. Read here with everything else rather
-        than inside the panel, so a record opens with one round of reads
-        however many views it has.
+        The Expenses view: this subscriber's ledger, which free-first services
+        are already on the account, and the days that did not count against
+        their term. Read here with everything else rather than inside the
+        panel, so a record opens with one round of reads however many views it
+        has.
       */
       ledgerByClient(clinicId, [client.id]),
-      clinicServicePrices(clinicId),
-      consultedClients(clinicId, [client.id]),
+      firstFreeUsed(clinicId, [client.id], services),
+      freezesByClient(clinicId, [client.id]),
       /*
         The Measurements view. Newest first, which is the order
         `summariseProgress` documents that it expects — nothing downstream
@@ -201,8 +213,9 @@ export default async function ClientInfoPage({ params, searchParams }: ClientInf
       mealsByDay={mealsByDay}
       billing={{
         entries: ledgers.get(client.id) ?? [],
-        prices,
-        consulted: consulted.has(client.id),
+        services,
+        firstFreeUsed: used.get(client.id) ?? new Set(),
+        freezes: freezes.get(client.id) ?? [],
       }}
       portal={{
         username: portalUsername,

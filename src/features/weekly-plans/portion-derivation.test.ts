@@ -46,8 +46,41 @@ const MANGO = [
   { grams: 336, label: '1 fruit without refuse' },
 ];
 
-function labels(portions: readonly { grams: number; label: string }[], category = 'fruits') {
-  return derivePortions({ category, portions }).map((row) => [row.labelEn, row.grams] as const);
+/** As USDA publishes them, including the ounce that used to become a حبة. */
+const ALMONDS = [
+  { grams: 143, label: '1 cup, whole' },
+  { grams: 92, label: '1 cup, sliced' },
+  { grams: 28.4, label: '1 oz (23 whole kernels)' },
+  { grams: 1.2, label: '1 almond' },
+];
+
+const HAZELNUTS = [
+  { grams: 115, label: '1 cup, chopped' },
+  { grams: 28.4, label: '1 oz (21 whole kernels)' },
+  { grams: 14, label: '10 nuts' },
+];
+
+const PINE_NUTS = [
+  { grams: 135, label: '1 cup' },
+  { grams: 28.4, label: '1 oz (167 kernels)' },
+  { grams: 1.7, label: '10 nuts' },
+];
+
+const GRAPES = [
+  { grams: 151, label: '1 cup' },
+  { grams: 49, label: '10 grapes' },
+];
+
+const OLIVES = [{ grams: 2.7, label: '1 olive' }];
+
+function labels(
+  portions: readonly { grams: number; label: string }[],
+  category = 'fruits',
+  nameEn = '',
+) {
+  return derivePortions({ category, nameEn, portions }).map(
+    (row) => [row.labelEn, row.grams] as const,
+  );
 }
 
 /**
@@ -136,5 +169,64 @@ describe('parsing a measured label', () => {
   test('a label with no leading count yields nothing', () => {
     expect(parsePortionLabel('cup')).toBeNull();
     expect(parsePortionLabel('')).toBeNull();
+  });
+});
+
+/**
+ * The second bug of the same family, and the one the clinic reported.
+ *
+ * A plan said **لوز ١ حبة** and meant 28.4 grams — twenty-three almonds — because
+ * USDA writes the ounce as `1 oz (23 whole kernels)` and the word scan found
+ * `whole` in it. The number was right for an ounce and the word was wrong, which
+ * is the watermelon failure exactly, arrived at from the other direction: there
+ * the unit was too big for the word, here the word was too small for the unit.
+ *
+ * The dietitian's own sentence for it: nuts are counted, not weighed.
+ */
+describe('nuts are counted, and an ounce is not one of them', () => {
+  test('an ounce described as kernels is an ounce, not a piece', () => {
+    const rows = labels(ALMONDS, 'nuts_seeds', 'Almonds');
+
+    expect(rows).not.toContainEqual(['Piece', 28.4]);
+  });
+
+  test('one almond is the piece, and the food starts in it', () => {
+    const rows = labels(ALMONDS, 'nuts_seeds', 'Almonds');
+
+    expect(rows[0]).toEqual(['Piece', 1.2]);
+    expect(rows).toContainEqual(['Cup', 143]);
+  });
+
+  /* USDA gives no single hazelnut, only the handful — which is still a count. */
+  test('ten nuts is ten of one thing, so the thing is 1.4 g', () => {
+    expect(labels(HAZELNUTS, 'nuts_seeds', 'Hazelnuts')[0]).toEqual(['Piece', 1.4]);
+  });
+
+  /*
+   * A pine nut is 0.17 g. `30 حبة صنوبر` is an instruction to count out thirty
+   * pine nuts for five grams of food, which is not how anybody serves them.
+   */
+  test('a piece too light to count is refused, and the cup is kept', () => {
+    const rows = labels(PINE_NUTS, 'nuts_seeds', 'Pine nuts');
+
+    expect(rows.map(([label]) => label)).not.toContain('Piece');
+    expect(rows[0]).toEqual(['Cup', 135]);
+  });
+
+  test('one olive is a piece — the same rule, on a food nobody weighs', () => {
+    expect(labels(OLIVES, 'prepared', 'Olives, pickled')[0]).toEqual(['Piece', 2.7]);
+  });
+
+  /*
+   * The restriction that keeps the name rule honest. `10 grapes = 49 g` is a
+   * weight for a handful — the ten is there because one grape is too small to
+   * publish — and reading it as a unit would put حبة عنب on a plan next to حبة
+   * بطيخ meaning a melon ball.
+   */
+  test('a label counting ten of the food is a handful, not a unit', () => {
+    const rows = labels(GRAPES, 'fruits', 'Grapes');
+
+    expect(rows.map(([label]) => label)).not.toContain('Piece');
+    expect(rows[0]).toEqual(['Cup', 151]);
   });
 });

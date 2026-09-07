@@ -99,6 +99,41 @@ const CONTAINER_WORDS = new Set(['can', 'container', 'jar', 'package', 'packet',
 const LEAF_WORDS = new Set(['leaf']);
 
 /**
+ * Unit words that name a **weight or a volume** — never a countable item.
+ *
+ * These are refused outright rather than left to fall through to the word scan
+ * in {@link classifyPortion}, and that scan is exactly why they have to be:
+ * USDA writes almonds as `1 oz (23 whole kernels)`, the scan finds `whole` in
+ * `PIECE_WORDS`, and an ounce becomes **one حبة لوز of 28.4 g**. That is the
+ * catalogue telling a client to eat twenty-three almonds where the dietitian
+ * wrote one, and it shipped: the same class of error as the watermelon wedge
+ * that became a whole melon, arrived by the opposite route.
+ *
+ * A weight is a weight however the label describes what is in it. The count in
+ * the brackets describes *the ounce*; it is not a unit of its own — and USDA
+ * publishes the real one separately, `1 almond = 1.2 g`, which is the row the
+ * scan below is now free to find.
+ */
+const MEASURE_WORDS = new Set([
+  'oz', 'ounce', 'ounces', 'lb', 'lbs', 'pound', 'pounds',
+  'g', 'gram', 'grams', 'kg', 'kilogram', 'mg',
+  'ml', 'milliliter', 'millilitre', 'l', 'liter', 'litre',
+  'quart', 'quarts', 'pint', 'pints', 'gallon', 'gallons',
+  'fl', 'floz',
+]);
+
+/**
+ * Unit words for one nut, seed or kernel out of a handful.
+ *
+ * The clinic counts nuts and does not weigh them — "١٠ حبات لوز" is what a plan
+ * says — and USDA does publish the figures for it: `1 almond` at 1.2 g, `1
+ * kernel` of pistachio at 0.7 g, `10 nuts` of hazelnut at 14 g. None of those
+ * words was countable to `classifyPortion`, so every nut in the catalogue was
+ * offered by the cup, and almonds were offered by an ounce wearing the word حبة.
+ */
+const KERNEL_WORDS = new Set(['nut', 'nuts', 'kernel', 'kernels']);
+
+/**
  * The amount and unit word a USDA portion label leads with.
  *
  * The dataset builder guarantees the label starts with its own count — "1 large",
@@ -291,6 +326,20 @@ const MAX_SERVABLE_GRAMS = 1000;
 const MAX_PIECE_GRAMS = 350;
 
 /**
+ * The lightest thing that may be called **one حبة**.
+ *
+ * A piece is something a person picks up and counts, and below about half a gram
+ * nobody does: a pine nut is 0.17 g, so `30 حبة صنوبر` would be an instruction to
+ * count out thirty pine nuts for five grams of food. Those go by the spoon and
+ * the cup, which is how they are actually served, and the food falls back to
+ * them.
+ *
+ * Half a gram, because the lightest thing this catalogue genuinely counts is a
+ * pistachio kernel at 0.7 g — "٢٠ حبة فستق" is a real line in a real plan.
+ */
+const MIN_PIECE_GRAMS = 0.5;
+
+/**
  * Unit words naming the *whole plant* — what you carry home from the market.
  *
  * USDA writes cauliflower "1 head small (4" dia.), 265 g" and cantaloupe
@@ -338,16 +387,65 @@ function isServable(label: string, unit: string, family: Family, grams: number):
  * Falls back to scanning the label's words when the leading unit is unrecognised,
  * which is what `1 Potato medium (2-1/4 to 3-1/4 dia)` needs: the unit word is the
  * food's own name, and `medium` is the part that says it is a countable item.
+ *
+ * **The fallback never runs for a weight or a volume.** See `MEASURE_WORDS`: an
+ * ounce described as "23 whole kernels" is an ounce, and reading the description
+ * as the unit is how one almond came to weigh 28.4 g.
+ *
+ * `nameEn` answers the case the scan cannot: `1 almond` for *Nuts, almonds*,
+ * `1 olive`, `1 apricot`. There is no adjective to find and no generic unit
+ * word — the label counts the food itself, which is the plainest statement of a
+ * countable item there is. It is the `medium` fallback reached from the other
+ * side.
+ *
+ * **That case requires the label to count exactly one**, and the restriction is
+ * load-bearing. USDA writes `10 grapes = 49 g`, `10 beans (4" long) = 55 g` and
+ * `10 watermelon balls = 122 g`: the ten is there *because* one is too small to
+ * publish, which is the same fact as "nobody counts these one at a time". Read
+ * as a unit, they make حبة بطيخ a 12 g melon ball — the watermelon error again,
+ * from a third direction. A label that counts one is a statement about the
+ * thing; a label that counts ten is a weight for a handful.
+ *
+ * `KERNEL_WORDS` is the deliberate exception and takes any count, because a
+ * handful is exactly how nuts are served and `10 nuts = 14 g` is the only figure
+ * USDA gives for a hazelnut. The floor on how light a حبة may be
+ * (`MIN_PIECE_GRAMS`) is what keeps that from reaching a pine nut.
  */
-export function classifyPortion(label: string, unit: string): Family {
+export function classifyPortion(label: string, unit: string, nameEn = '', amount = 1): Family {
   const direct = classifyUnit(unit);
   if (direct !== 'none') return direct;
+
+  // A weight is a weight, whatever the label says is in it.
+  if (MEASURE_WORDS.has(unit)) return 'none';
 
   const words = label.toLowerCase().split(/[\s,()]+/);
   if (words.some((word) => SIZE_WORDS.includes(word))) return 'piece';
   if (words.some((word) => PIECE_WORDS.has(word))) return 'piece';
+  if (KERNEL_WORDS.has(unit)) return 'piece';
+  if (amount === 1 && namesTheFood(unit, nameEn)) return 'piece';
 
   return 'none';
+}
+
+/**
+ * Whether the unit word is the food's own name — `almond` against
+ * *Nuts, almonds*.
+ *
+ * Crudely singular: the name is matched word by word, with a trailing `s`
+ * allowed on either side. A stemmer would be a dependency for a rule that has to
+ * hold over one committed dataset of 145 foods, and it would still get `leaves`
+ * wrong.
+ */
+function namesTheFood(unit: string, nameEn: string): boolean {
+  if (!unit) return false;
+
+  const singular = (word: string) => (word.endsWith('s') ? word.slice(0, -1) : word);
+  const target = singular(unit);
+
+  return nameEn
+    .toLowerCase()
+    .split(/[^a-z]+/)
+    .some((word) => word.length > 2 && singular(word) === target);
 }
 
 /**
@@ -380,6 +478,8 @@ function candidateRank(label: string, category: string): number {
  */
 export function derivePortions(source: {
   category: string;
+  /** The food's English name, for the `1 almond` case — see `classifyPortion`. */
+  nameEn?: string;
   portions: readonly MeasuredPortion[] | null | undefined;
 }): PortionSeed[] {
   if (GRAMS_ONLY_CATEGORIES.has(source.category)) return [];
@@ -394,14 +494,18 @@ export function derivePortions(source: {
     const parsed = parsePortionLabel(portion.label);
     if (!parsed) continue;
 
-    const family = classifyPortion(portion.label, parsed.unit);
+    const family = classifyPortion(portion.label, parsed.unit, source.nameEn ?? '', parsed.amount);
     if (family === 'none') continue;
     // After the family, because two of the three rules depend on it — see there.
     if (!isServable(portion.label, parsed.unit, family, portion.grams)) continue;
     // Checked on the *base* rather than on the measured weight: "2 pieces" of
     // something is a claim about one piece, and it is the one piece that has to
-    // be a thing a person eats.
-    if (family === 'piece' && portion.grams / parsed.amount > MAX_PIECE_GRAMS) continue;
+    // be a thing a person eats. Both ends: too heavy is a watermelon, too light
+    // is a pine nut.
+    if (family === 'piece') {
+      const one = portion.grams / parsed.amount;
+      if (one > MAX_PIECE_GRAMS || one < MIN_PIECE_GRAMS) continue;
+    }
     if (SPOON_ONLY_CATEGORIES.has(source.category) && !SPOON_FAMILIES.has(family)) continue;
 
     // "0.5 cup, diced = 75 g" means a whole cup is 150 g. The label's own count is

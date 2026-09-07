@@ -57,6 +57,15 @@ export type AppointmentDialogProps = {
     reason?: string;
   }) => void;
   onDelete: (id: string) => void;
+  /**
+   * Send this patient their appointment reminder on WhatsApp, now.
+   *
+   * Handed up rather than done here, exactly as `onDelete` is and for the same
+   * reason: the confirmation is a modal `<dialog>`, and opening one inside
+   * another makes focus and the backdrop fiddly. The calendar owns every
+   * confirmation on this screen.
+   */
+  onSendReminder: (appointment: CalendarAppointment) => void;
   onClose: () => void;
 };
 
@@ -111,6 +120,7 @@ export function AppointmentDialog({
   completed,
   onSave,
   onDelete,
+  onSendReminder,
   onClose,
 }: AppointmentDialogProps) {
   const t = useTranslations('booking');
@@ -377,7 +387,62 @@ export function AppointmentDialog({
           />
         </div>
 
-        {/* 5. Reason — optional, and empty unless someone types something. */}
+        {/*
+          5. Remind this patient on WhatsApp, now.
+
+          The clinic asked for a button: reminders already went out on their own
+          the night before, and the dietitian wanted to choose the moment — at
+          the end of a consultation, or while going through tomorrow's diary. It
+          sends the same message the automation sends.
+
+          ## Why it is here and not in the footer
+
+          It was in the footer, beside Cancel, and that was the wrong family. A
+          footer holds the decisions about *the form*: Save commits it, Cancel
+          abandons it, Delete destroys what it is editing — all three end the
+          dialog. Sending a reminder ends nothing, commits nothing and can be
+          done to an appointment nobody is editing, so it sat there as a fourth
+          control that behaved unlike its three neighbours. It also made the row
+          four buttons wide, which wrapped: Delete fell onto a line of its own
+          and the other three onto another, and the footer stopped reading as
+          "one destructive thing here, two ways out there".
+
+          Under the client field, because the client is who receives it — the
+          two links above name the same person's record, and this is the third
+          thing you can do about them from here.
+
+          **Not on a finished appointment.** There is nothing to remind anybody
+          of once the hour has gone, and the send refuses it server-side too
+          (`isPast` in `notify.ts`); this is only the half the reader can see.
+
+          The confirmation is the calendar's, not this dialog's: a modal
+          `<dialog>` opened inside another one stacks in the top layer but makes
+          focus and the backdrop fiddly, and the calendar is where every other
+          write already lives. This closes and hands the decision up.
+        */}
+        {!completed && (
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-lg border border-border bg-muted/40 px-3 py-2">
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <Icon name="whatsapp" className="shrink-0 text-muted-foreground" />
+              <p className="min-w-0 text-body-sm text-muted-foreground">{t('reminder.hint')}</p>
+            </div>
+
+            <Button
+              type="button"
+              variant="neutral"
+              size="sm"
+              className="shrink-0"
+              onClick={() => {
+                onSendReminder(appointment);
+                onClose();
+              }}
+            >
+              {t('actions.sendReminder')}
+            </Button>
+          </div>
+        )}
+
+        {/* 6. Reason — optional, and empty unless someone types something. */}
         <div className="space-y-1">
           <Label htmlFor="appointment-reason">
             {t('fields.reason')} <span className="text-muted-foreground">{t('fields.optional')}</span>
@@ -427,6 +492,7 @@ export function AppointmentDialog({
             {t('actions.delete')}
           </Button>
 
+          {/* The two ways out, kept together and apart from the one that destroys. */}
           <div className="flex items-center gap-2">
             <Button type="button" variant="ghost" size="sm" onClick={onClose}>
               {completed ? t('actions.close') : t('actions.cancel')}

@@ -177,6 +177,8 @@ export async function saveIntake(
       proteinTargetGrams: input.proteinTargetGrams ?? null,
       allergenTags: input.allergenTags,
       customAllergens: input.customAllergens,
+      clinicalTags: input.clinicalTags ?? [],
+      dietPattern: input.dietPattern ?? null,
       preferences: input.preferences ?? null,
       dislikes: input.dislikes ?? null,
       permanentInstructions: input.permanentInstructions ?? null,

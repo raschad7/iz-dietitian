@@ -214,3 +214,66 @@ describe('a fraction of an already-fractional portion', () => {
     ).toEqual({ kind: 'portion', text: 'نصف كوب' });
   });
 });
+
+/**
+ * The ten-count ceiling, and the food that overrules it.
+ *
+ * `فراولة 24 حبة` is a weight written as a count and nobody serves it that way,
+ * so a derived piece portion stops being written above ten. A nut is the other
+ * case entirely: the clinic prescribes almonds by the piece — "٧ حبات لوز" — and
+ * an almond weighs 1.2 g, so *every* real amount of them is a two-digit count.
+ * The catalogue says which foods those are in `counted_as`.
+ */
+describe('a count too large to be written', () => {
+  const strawberry = { labelAr: 'حبة', labelEn: 'Piece', grams: 12 };
+
+  test('falls back to grams for a portion that merely happens to be a piece', () => {
+    expect(
+      ingredientAmount({ quantityGrams: 288, portion: strawberry, portionQuantity: 24 }, 'ar'),
+    ).toEqual({ kind: 'grams', grams: 288 });
+  });
+
+  test('is still written at ten', () => {
+    expect(
+      ingredientAmount({ quantityGrams: 120, portion: strawberry, portionQuantity: 10 }, 'ar'),
+    ).toEqual({ kind: 'portion', text: '10 حبة' });
+  });
+
+  /*
+    The bug the dietitian reported: she asked for nuts to be counted, the
+    catalogue counted them, and the plan went on printing grams because every
+    honest count of an almond is above ten.
+  */
+  test('does not apply to a food that declares it is always counted', () => {
+    expect(
+      ingredientAmount(
+        {
+          quantityGrams: 20.4,
+          portion: { labelAr: 'حبة', labelEn: 'Piece', grams: 1.2 },
+          portionQuantity: 17,
+          food: { countedAs: 'Piece' },
+        },
+        'ar',
+      ),
+    ).toEqual({ kind: 'portion', text: '17 حبة' });
+  });
+
+  /*
+    The declaration names one unit, and only that unit escapes. A recipe writing
+    almonds in quarter-cups is writing a weight, and a fractional count of one is
+    the unreadable case the fallback exists for.
+  */
+  test('a declared food is not exempted in some other unit', () => {
+    expect(
+      ingredientAmount(
+        {
+          quantityGrams: 44,
+          portion: { labelAr: 'ربع كوب', labelEn: 'Quarter cup', grams: 35.8 },
+          portionQuantity: 1.25,
+          food: { countedAs: 'Piece' },
+        },
+        'ar',
+      ),
+    ).toEqual({ kind: 'grams', grams: 44 });
+  });
+});

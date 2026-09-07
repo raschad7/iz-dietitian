@@ -216,7 +216,7 @@ The unit has to be a *thing*, not only a weight. A plan once said **بطيخ 1 �
 watermelon. The number was right and the word was wrong, which is the worse of
 the two failures, because it survives anyone checking the arithmetic.
 
-Three rules in `portion-derivation.ts` keep that class of error out:
+Six rules in `portion-derivation.ts` keep that class of error out:
 
 - **`wedge` is a slice, not a piece.** شريحة is the word, and it was already in
   the table.
@@ -226,6 +226,44 @@ Three rules in `portion-derivation.ts` keep that class of error out:
 - **A whole plant is a purchase, not a portion.** A label whose unit word is
   `head`, `melon`, `bunch`, `bulb` or `stalk` is skipped, and the food falls back
   to the cup or the wedge — which is how it is actually served.
+- **A weight is never a piece** (`MEASURE_WORDS`). USDA writes almonds as
+  `1 oz (23 whole kernels)`; the word scan found `whole` and the catalogue
+  offered **one حبة لوز of 28.4 g** — twenty-three almonds under the word for
+  one. It is the watermelon error arrived at from the other side: there the unit
+  was too big for the word, here the word was too small for the unit. An ounce
+  is an ounce however the label describes what is in it.
+- **A piece has a floor as well as a ceiling** (`MIN_PIECE_GRAMS`, 0.5 g). A pine
+  nut is 0.17 g, and `30 حبة صنوبر` is an instruction to count out thirty pine
+  nuts for five grams of food. Those go by the spoon. The floor is half a gram
+  because the lightest thing this catalogue genuinely counts is a pistachio
+  kernel at 0.7 g.
+- **A label may name the food itself, but only one of it.** `1 almond`,
+  `1 olive`, `1 apricot` are countable items and the derivation reads them as
+  such. `10 grapes`, `10 beans`, `10 watermelon balls` are not: the ten is there
+  *because* one is too small to publish, which is the same fact as "nobody counts
+  these one at a time". `KERNEL_WORDS` — `nut`, `nuts`, `kernel`, `kernels` — is
+  the deliberate exception, because a handful is how nuts are served and
+  `10 nuts = 14 g` is the only figure USDA gives for a hazelnut.
+
+**Nuts are counted, not weighed**, and that is now written into the data rather
+than left to whoever types a recipe: لوز، بندق، جوز، كاجو، فستق and زيتون
+all declare `countedAs: "Piece"`, so every recipe line for them states a count
+and `db:seed:dishes` refuses one written in grams. A plan says `١٧ حبة لوز`,
+which is what the dietitian writes on paper.
+
+A declaration does two more things, both because it is the strongest statement
+this file can make about a food's unit:
+
+- **It is the portion a fresh line starts in.** `promoteCountedUnit` in
+  `build-catalog-dataset.ts` moves `isDefault` onto it after the derivation has
+  run, so the picker never opens on a unit the seed would refuse. Cooked rice
+  starts in the clinic's spoon and walnuts in the piece, though the derivation
+  found a cup for both.
+- **It defeats the ten-count ceiling.** `meal-quantity.ts` normally stops writing
+  a derived piece above ten — `فراولة 24 حبة` is a weight pretending to be a
+  count — but an almond weighs 1.2 g, so *every* honest amount of one is a
+  two-digit count. A declared unit is a decision somebody made, and no count is
+  large enough to overrule it.
 
 A measure that only *yields* the food is refused too, but only for a countable
 unit: "1 wedge yields 5.9 g" is the juice out of a lemon wedge and is not a

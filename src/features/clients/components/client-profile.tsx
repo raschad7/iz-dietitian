@@ -15,7 +15,8 @@ import { type ClientIntakeValues } from '@/features/clients/types';
 import { ClientPlansCard } from '@/features/weekly-plans/components/client-plans-card';
 import type { BillEntry } from '@/features/billing/bill';
 import { ClientExpensesPanel } from '@/features/billing/components/client-expenses-panel';
-import type { ServicePrices } from '@/features/billing/services';
+import type { ClientFreeze } from '@/features/billing/queries';
+import type { ClinicServiceView } from '@/features/billing/services';
 import { type MeasurementSubject } from '@/features/measurements/compare';
 import { MeasurementsPanel } from '@/features/measurements/components/measurements-panel';
 import { type MeasurementRow } from '@/features/measurements/queries';
@@ -128,15 +129,17 @@ export type ClientProfileProps = {
   mealsByDay: Map<number, ClientDayMeal[]>;
   /**
    * The money, for the Expenses view: this subscriber's ledger, the clinic's
-   * current price list, and whether a consultation is already on the account.
+   * own services, which free-first ones are already on the account, and the
+   * days that did not count against their term.
    *
    * Read on the page beside everything else rather than inside the panel, so a
    * record opens with one round of reads however many views it has.
    */
   billing: {
     entries: BillEntry[];
-    prices: ServicePrices;
-    consulted: boolean;
+    services: readonly ClinicServiceView[];
+    firstFreeUsed: ReadonlySet<string>;
+    freezes: readonly ClientFreeze[];
   };
   portal: {
     /** What they already sign in with, or null when there is no account. */
@@ -311,8 +314,9 @@ export async function ClientProfile({
               phone={client.phone}
               today={today}
               entries={billing.entries}
-              prices={billing.prices}
-              consulted={billing.consulted}
+              services={billing.services}
+              firstFreeUsed={billing.firstFreeUsed}
+              freezes={billing.freezes}
             />
           ),
         }}

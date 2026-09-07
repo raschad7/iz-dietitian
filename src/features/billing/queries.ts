@@ -1,16 +1,22 @@
-import { and, eq, inArray, sum } from 'drizzle-orm';
+import { and, asc, eq, inArray, sum } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { clientCharges, clientPayments, clients, clinicServicePrices as servicePrices } from '@/db/schema';
+import {
+  clientCharges,
+  clientPayments,
+  clientSubscriptionFreezes,
+  clients,
+  clinicServices as clinicServicesTable,
+} from '@/db/schema';
 
 import { compareEntries, type BillEntry } from './bill';
 import { paymentStatus, subscriberTotals, type PaymentStatus, type SubscriberTotals } from './money';
 import {
-  SUBSCRIPTION_TERMS,
   subscriptionStanding,
+  type FreezeRange,
   type SubscriptionState,
 } from './subscription';
-import { BILLING_SERVICES, CONSULTATION, isBillingService, type ServicePrices } from './services';
+import { isServiceKind, type ClinicServiceView } from './services';
 
 /**
  * Reads for the bills screen.
@@ -219,38 +225,53 @@ export async function clientBillingRecord(
 }
 
 /**
- * A clinic's current price list, as one object with an entry per service.
+ * A clinic's own list of services, in the order it put them in.
  *
- * Every service the app knows about is present, priced or not, so the settings
- * screen renders three rows whether the table holds three, one or none. A row
- * for a service the code no longer offers is ignored rather than dropped: a key
- * that has been retired is still what old rows say, and deleting it is a
- * decision for whoever retires the service, not for a read.
+ * Every service, retired ones included. A retired service is still what old
+ * charges say they were, so the ledger row and the printed bill need it to
+ * resolve — `sellableServices` is what drops it from the card a new charge is
+ * recorded on. Filtering here would make a retired service's charges
+ * unreadable, which is the one thing retiring must not do.
+ *
+ * A clinic with no rows at all gets an empty list rather than the defaults.
+ * `DEFAULT_SERVICES` is seeded when the clinic is created and by the migration
+ * that made this a table; substituting them on read would mean a clinic that
+ * deliberately retired everything sees its services reappear.
  */
-export async function clinicServicePrices(clinicId: string): Promise<ServicePrices> {
+export async function clinicServices(clinicId: string): Promise<ClinicServiceView[]> {
   const rows = await db
-    .select({ service: servicePrices.service, amountMinor: servicePrices.amountMinor })
-    .from(servicePrices)
-    .where(eq(servicePrices.clinicId, clinicId));
+    .select({
+      id: clinicServicesTable.id,
+      key: clinicServicesTable.key,
+      nameAr: clinicServicesTable.nameAr,
+      nameEn: clinicServicesTable.nameEn,
+      kind: clinicServicesTable.kind,
+      durationMonths: clinicServicesTable.durationMonths,
+      priceMinor: clinicServicesTable.priceMinor,
+      firstFree: clinicServicesTable.firstFree,
+      active: clinicServicesTable.active,
+      sortOrder: clinicServicesTable.sortOrder,
+    })
+    .from(clinicServicesTable)
+    .where(eq(clinicServicesTable.clinicId, clinicId))
+    .orderBy(asc(clinicServicesTable.sortOrder), asc(clinicServicesTable.key));
 
-  const prices = Object.fromEntries(
-    BILLING_SERVICES.map((service) => [service.value, null]),
-  ) as ServicePrices;
-
-  for (const row of rows) {
-    if (isBillingService(row.service)) prices[row.service] = row.amountMinor;
-  }
-
-  return prices;
+  /*
+    `kind` is `text` in the database — the same reasoning as every other open
+    vocabulary in the schema — so a row is dropped rather than cast if it holds
+    something this code cannot reason about. That is unreachable through the
+    settings screen and would otherwise be a service with no term rules at all.
+  */
+  return rows.filter((row): row is ClinicServiceView => isServiceKind(row.kind));
 }
 
 /**
- * Which of these subscribers have already been charged for a consultation.
+ * Which of these subscribers have already been charged for a first-free service.
  *
- * The first consultation is free and every one after it is not, so the card has
- * to know — per subscriber — whether one is already on the ledger. A count is
- * not needed and is not taken: the question is "has there been one", and the
- * answer is a set.
+ * A clinic may mark any service "first one free" — the consultation is the one
+ * that always was — so the card has to know, per subscriber and per service,
+ * whether one is already on the ledger. A count is not needed and is not taken:
+ * the question is "has there been one", and the answer is a set.
  *
  * Read from `client_charges.service` rather than from the description. A row
  * says "Consultation" or "استشارة" depending on the language it was entered in,
@@ -263,24 +284,125 @@ export async function clinicServicePrices(clinicId: string): Promise<ServicePric
  * subscriber, and is the only direction an unknowable past can be resolved in
  * without inventing history.
  */
-export async function consultedClients(
+export async function firstFreeUsed(
   clinicId: string,
   clientIds: readonly string[],
-): Promise<Set<string>> {
-  if (clientIds.length === 0) return new Set();
+  services: readonly ClinicServiceView[],
+): Promise<Map<string, Set<string>>> {
+  const keys = services.filter((service) => service.firstFree).map((service) => service.key);
+
+  if (clientIds.length === 0 || keys.length === 0) return new Map();
 
   const rows = await db
-    .selectDistinct({ clientId: clientCharges.clientId })
+    .selectDistinct({ clientId: clientCharges.clientId, service: clientCharges.service })
     .from(clientCharges)
     .where(
       and(
         eq(clientCharges.clinicId, clinicId),
         inArray(clientCharges.clientId, [...clientIds]),
-        eq(clientCharges.service, CONSULTATION),
+        inArray(clientCharges.service, keys),
       ),
     );
 
-  return new Set(rows.map((row) => row.clientId));
+  const used = new Map<string, Set<string>>();
+
+  for (const row of rows) {
+    if (!row.service) continue;
+
+    const held = used.get(row.clientId) ?? new Set<string>();
+    held.add(row.service);
+    used.set(row.clientId, held);
+  }
+
+  return used;
+}
+
+/**
+ * Every freeze these subscribers have had, newest first.
+ *
+ * Read for the page rather than per row, like the ledger beside it: the Bills
+ * screen needs a freeze list for each subscriber it draws — the term arithmetic
+ * consumes it, and the row's own menu acts on the open one — and a query per
+ * subscriber would be a round trip to find rows most of them do not have.
+ *
+ * A subscriber who has never been frozen is absent from the map, which the
+ * caller reads as the empty list. That is the ordinary case and it costs
+ * nothing.
+ */
+export async function freezesByClient(
+  clinicId: string,
+  clientIds: readonly string[],
+): Promise<Map<string, ClientFreeze[]>> {
+  const freezes = new Map<string, ClientFreeze[]>();
+
+  if (clientIds.length === 0) return freezes;
+
+  const rows = await db
+    .select({
+      id: clientSubscriptionFreezes.id,
+      clientId: clientSubscriptionFreezes.clientId,
+      startsOn: clientSubscriptionFreezes.startsOn,
+      endsOn: clientSubscriptionFreezes.endsOn,
+      reason: clientSubscriptionFreezes.reason,
+    })
+    .from(clientSubscriptionFreezes)
+    .where(
+      and(
+        eq(clientSubscriptionFreezes.clinicId, clinicId),
+        inArray(clientSubscriptionFreezes.clientId, [...clientIds]),
+      ),
+    )
+    .orderBy(asc(clientSubscriptionFreezes.startsOn));
+
+  for (const row of rows) {
+    const held = freezes.get(row.clientId) ?? [];
+    held.push(row);
+    freezes.set(row.clientId, held);
+  }
+
+  return freezes;
+}
+
+/** One freeze, as a screen reads it: the range, why, and the id to resume by. */
+export type ClientFreeze = FreezeRange & {
+  id: string;
+  clientId: string;
+  reason: string | null;
+};
+
+/**
+ * Every freeze in the clinic, grouped by subscriber.
+ *
+ * The filter's counterpart to {@link freezesByClient}, without an id list, for
+ * the same reason `paymentStatusByClient` has no id list: a filter decides which
+ * subscribers are on the page, so it cannot be computed from the page it is
+ * choosing.
+ *
+ * The whole history rather than only the open ones, because a term's end depends
+ * on every day that did not count — a subscriber who was paused for a fortnight
+ * in March is on a different renewal date today, and a query that read only
+ * running freezes would report them as expired a fortnight early.
+ */
+export async function clinicFreezesByClient(clinicId: string): Promise<Map<string, FreezeRange[]>> {
+  const rows = await db
+    .select({
+      clientId: clientSubscriptionFreezes.clientId,
+      startsOn: clientSubscriptionFreezes.startsOn,
+      endsOn: clientSubscriptionFreezes.endsOn,
+    })
+    .from(clientSubscriptionFreezes)
+    .where(eq(clientSubscriptionFreezes.clinicId, clinicId))
+    .orderBy(asc(clientSubscriptionFreezes.startsOn));
+
+  const freezes = new Map<string, FreezeRange[]>();
+
+  for (const row of rows) {
+    const held = freezes.get(row.clientId) ?? [];
+    held.push({ startsOn: row.startsOn, endsOn: row.endsOn });
+    freezes.set(row.clientId, held);
+  }
+
+  return freezes;
 }
 
 /**
@@ -332,9 +454,9 @@ export async function paymentStatusByClient(clinicId: string): Promise<Map<strin
  * Where every subscriber in the clinic stands on their newest term.
  *
  * The Bills filter's `subscription` column. Only the subscription charges are
- * read — two of the clinic's three services — and only the four fields the
- * standing is decided from, so this is a narrow read over the one table even on
- * a clinic with years of ledger behind it.
+ * read — whichever of the clinic's services run for a term — and only the four
+ * fields the standing is decided from, so this is a narrow read over the one
+ * table even on a clinic with years of ledger behind it.
  *
  * The verdict itself is {@link subscriptionStanding}'s, given the same shape of
  * entry the Bills row hands it, so a filter can never disagree with the chip it
@@ -345,20 +467,24 @@ export async function subscriptionStateByClient(
   clinicId: string,
   today: string,
 ): Promise<Map<string, Exclude<SubscriptionState, 'none'>>> {
-  const rows = await db
-    .select({
-      clientId: clientCharges.clientId,
-      service: clientCharges.service,
-      occurredOn: clientCharges.chargedOn,
-      createdAt: clientCharges.createdAt,
-    })
-    .from(clientCharges)
-    .where(
-      and(
-        eq(clientCharges.clinicId, clinicId),
-        inArray(clientCharges.service, Object.keys(SUBSCRIPTION_TERMS)),
-      ),
-    );
+  const services = await clinicServices(clinicId);
+  const terms = services.filter((service) => service.kind === 'subscription').map((s) => s.key);
+
+  /* A clinic selling nothing that runs for a term has nobody on one. */
+  if (terms.length === 0) return new Map();
+
+  const [rows, freezes] = await Promise.all([
+    db
+      .select({
+        clientId: clientCharges.clientId,
+        service: clientCharges.service,
+        occurredOn: clientCharges.chargedOn,
+        createdAt: clientCharges.createdAt,
+      })
+      .from(clientCharges)
+      .where(and(eq(clientCharges.clinicId, clinicId), inArray(clientCharges.service, terms))),
+    clinicFreezesByClient(clinicId),
+  ]);
 
   const byClient = new Map<string, BillEntry[]>();
 
@@ -389,7 +515,7 @@ export async function subscriptionStateByClient(
   const states = new Map<string, Exclude<SubscriptionState, 'none'>>();
 
   for (const [clientId, entries] of byClient) {
-    const standing = subscriptionStanding(entries, today);
+    const standing = subscriptionStanding(entries, services, today, freezes.get(clientId) ?? []);
     if (standing.state !== 'none') states.set(clientId, standing.state);
   }
 

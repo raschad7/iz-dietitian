@@ -93,6 +93,14 @@ export type PrintPlan = {
   days: PrintDay[];
   /** Empty slots across the week — the one caveat the sheet has to carry. */
   unfilled: number;
+  /**
+   * The dietitian's note to this client, printed under the week.
+   *
+   * On the sheet as well as in the portal, because the sheet is what a client
+   * without a smartphone goes home with — and the note is the half of the plan
+   * that is not a list of food.
+   */
+  clientNote: string | null;
 };
 
 /**
@@ -156,6 +164,7 @@ export function printPlan(
     published: board.status === 'published',
     days,
     unfilled: board.unfilled,
+    clientNote: board.clientNote,
   };
 }
 

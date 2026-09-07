@@ -318,11 +318,15 @@
     "dialog": {
       "title": "Appointment details"
     },
+    "reminder": {
+      "hint": "Sent now, to the number on their record."
+    },
     "actions": {
       "save": "Save",
       "cancel": "Cancel",
       "close": "Close",
-      "delete": "Delete appointment"
+      "delete": "Delete appointment",
+      "sendReminder": "Send a reminder"
     },
     "confirmMove": {
       "title": "Change this appointment?",
@@ -743,7 +747,8 @@
       "redMeatFrequency": "Red meat (weekly)",
       "chickenFrequency": "Chicken (weekly)",
       "fishFrequency": "Fish (weekly)",
-      "sweetsFrequency": "Sweets and sugar (weekly)"
+      "sweetsFrequency": "Sweets and sugar (weekly)",
+      "dietPattern": "Diet pattern"
     },
     "status": {
       "active": "Active",
@@ -943,7 +948,11 @@
       "backgroundHint": "General details, recorded once at the first visit.",
       "habitsHint": "Daily and weekly habits — pick the closest answer; detail goes in the notes.",
       "frequencyLegend": "How often",
-      "assessmentEmpty": "The nutrition assessment has not been recorded yet."
+      "assessmentEmpty": "The nutrition assessment has not been recorded yet.",
+      "conditionLegend": "Clinical conditions",
+      "conditionHint": "These are what the app plans around: they raise the calorie target for pregnancy and breastfeeding, and reach the plan generator as stated constraints. Anything else goes in the box below.",
+      "dietPatternNone": "Balanced plan",
+      "dietPatternHint": "A pattern the whole week follows. A diagnosis is not a prescription — choose one only where it has actually been prescribed."
     },
     "allergens": {
       "nuts": "Nuts",
@@ -1003,6 +1012,35 @@
         "upcoming": "Upcoming",
         "past": "Previous"
       }
+    },
+    "conditions": {
+      "pregnancy_first_trimester": "Pregnant — first trimester",
+      "pregnancy_second_trimester": "Pregnant — second trimester",
+      "pregnancy_third_trimester": "Pregnant — third trimester",
+      "breastfeeding": "Breastfeeding",
+      "kidney_disease": "Kidney disease",
+      "dialysis": "On dialysis",
+      "epilepsy": "Epilepsy",
+      "diabetes_type_1": "Type 1 diabetes",
+      "diabetes_type_2": "Type 2 diabetes",
+      "gestational_diabetes": "Gestational diabetes",
+      "hypertension": "High blood pressure",
+      "high_cholesterol": "High cholesterol",
+      "fatty_liver": "Fatty liver",
+      "hypothyroidism": "Hypothyroidism",
+      "pcos": "PCOS",
+      "celiac": "Coeliac disease",
+      "ibs": "Irritable bowel syndrome",
+      "anemia": "Anaemia",
+      "gout": "Gout"
+    },
+    "dietPatterns": {
+      "low_carb": "Low carbohydrate",
+      "keto": "Ketogenic",
+      "high_protein": "High protein",
+      "low_sodium": "Low sodium",
+      "renal": "Renal",
+      "low_fat": "Low fat"
     }
   },
   "forms": {
@@ -1087,7 +1125,13 @@
     },
     "subscription": {
       "remaining": "{days, plural, one {# day} other {# days}}",
-      "finished": "{days, plural, one {Ended # day} other {Ended # days}}"
+      "finished": "{days, plural, one {Ended # day} other {Ended # days}}",
+      "frozen": "Frozen",
+      "state": {
+        "active": "Running",
+        "frozen": "Frozen",
+        "expired": "Ended"
+      }
     },
     "status": {
       "none": "No charges",
@@ -1104,12 +1148,32 @@
       "edit": "Change",
       "save": "Save changes",
       "saving": "Saving…",
-      "saved": "Prices saved"
+      "saved": "Prices saved",
+      "empty": "No services yet. Add the first one and it appears on the charge card."
     },
     "services": {
-      "monthly": "One month subscription",
-      "quarterly": "Three month subscription",
-      "consultation": "Consultation"
+      "term": "{months, plural, one {1 month} other {# months}}",
+      "visit": "Single visit",
+      "firstFree": "First one free",
+      "retired": "Not offered",
+      "add": "Add a service",
+      "addTitle": "New service",
+      "editTitle": "Edit service",
+      "editFor": "Edit {name}",
+      "nameAr": "Arabic name",
+      "nameEn": "English name",
+      "kind": "Type",
+      "kindSubscription": "Subscription",
+      "kindVisit": "Single visit",
+      "durationMonths": "Months",
+      "termAffectsExisting": "Changing the term recalculates the end date of every subscription recorded under this service, including the ones still running.",
+      "price": "Price",
+      "priceBlank": "Leave the price empty if it has not been decided. Zero means the clinic gives this away.",
+      "firstFreeLabel": "First one free",
+      "firstFreeHint": "Each client's first is recorded at zero; every one after it is charged at the price above.",
+      "offered": "Offered",
+      "offeredHint": "Turning this off hides it from the charge card and changes nothing already recorded.",
+      "delete": "Delete service"
     },
     "methods": {
       "cash": "Cash",
@@ -1176,7 +1240,15 @@
       "paymentRemindersOff": "Payment reminders are switched off for this clinic. Turn them on under Settings › WhatsApp.",
       "whatsappNotConnected": "WhatsApp is not connected. Nothing was sent — connect the clinic number in Settings → WhatsApp.",
       "clientHasNoPhone": "This subscriber has no phone number on their record, so there is nowhere to send.",
-      "clientNotOnWhatsapp": "That number is not on WhatsApp. Nothing was sent — check the number on their record."
+      "clientNotOnWhatsapp": "That number is not on WhatsApp. Nothing was sent — check the number on their record.",
+      "nameRequired": "Give the service a name.",
+      "nameTooLong": "That name is too long.",
+      "invalidTerm": "A subscription runs for a whole number of months, between 1 and 24.",
+      "serviceInUse": "A service with charges against it cannot be deleted. Stop offering it instead.",
+      "invalidFreezeDays": "A freeze runs for between 1 and 365 days.",
+      "freezeOverlap": "Another freeze already covers these days.",
+      "freezeGone": "That freeze is no longer there. Refresh the page.",
+      "reasonTooLong": "That reason is too long."
     },
     "print": {
       "statement": "Print all bills",
@@ -1289,6 +1361,17 @@
         "from": "From",
         "to": "To"
       }
+    },
+    "freeze": {
+      "title": "Freeze subscription",
+      "open": "Freeze",
+      "startsOn": "Paused from",
+      "days": "Days",
+      "daysHint": "Leave empty if the length is not agreed yet, then press Resume when they come back.",
+      "reason": "Reason",
+      "resume": "Resume",
+      "remove": "Remove freeze",
+      "extendedBy": "{days, plural, one {+1 frozen day} other {+# frozen days}}"
     }
   },
   "portal": {
@@ -2345,7 +2428,23 @@
     "fillSlotHint": "Dishes are ordered by how close they are to this slot’s target",
     "mealEnergy": "Meal energy",
     "slotBudget": "Slot budget",
-    "filterMealType": "Meal type"
+    "filterMealType": "Meal type",
+    "caveats": {
+      "ketoNotTherapeutic": "A therapeutic ketogenic diet is a fat ratio weighed to the gram, and this dish catalogue cannot reach it. The week will be the lowest-carbohydrate one available, not a ketogenic diet — read it before you send it.",
+      "renalNutrientsUnknown": "The app does not compute potassium or phosphorus per dish, so the restriction rests on instructions to the model rather than on figures anything checks. Read the dishes before you send them.",
+      "conflictingLifeStage": "The record carries more than one pregnancy or breastfeeding condition at once. Only the largest increase was applied — one of them is probably out of date."
+    },
+    "clientNote": {
+      "title": "Note for the client",
+      "hint": "Shown with the plan in the client portal and on the printed sheet. It can be changed after publishing.",
+      "placeholder": "Eight glasses of water a day, and a half-hour walk after dinner…",
+      "empty": "No note for the client",
+      "save": "Save",
+      "saving": "Saving…",
+      "cancel": "Cancel",
+      "failed": "The note could not be saved.",
+      "heading": "A note from your dietitian"
+    }
   },
   "dishes": {
     "title": "Dish catalog",
@@ -2671,7 +2770,8 @@
       "noPhone": "This client has no usable phone number.",
       "notOnWhatsapp": "WhatsApp does not recognize this client's phone number.",
       "notConnected": "WhatsApp is not connected right now.",
-      "notConfigured": "WhatsApp is not linked yet."
+      "notConfigured": "WhatsApp is not linked yet.",
+      "inThePast": "That appointment has already started — there is nothing to remind them of."
     },
     "errors": {
       "disabled": "WhatsApp is not enabled on this installation.",
@@ -2681,6 +2781,11 @@
       "notLinked": "Connect WhatsApp first, then set the automations up.",
       "sendFailed": "The message could not be sent. Check the message log.",
       "unexpected": "Something went wrong. Try again."
+    },
+    "reminder": {
+      "send": "Send a reminder",
+      "confirmTitle": "Send an appointment reminder?",
+      "confirmBody": "{name} will get a WhatsApp reminder about {when}. A sent message cannot be taken back."
     }
   },
   "clinicProfile": {

@@ -31,19 +31,28 @@ export const STATUS_VARIANTS = {
 /**
  * The chip a subscription state wears.
  *
- * Two states and no third colour: `active` takes the green this file gives
- * `paid`, because a term that is running is the same kind of news as a bill
- * that is settled, and `expired` takes amber for the reason `unpaid` does —
- * it is waiting on somebody, not wrong. A subscriber who has never had a
- * subscription gets no chip at all; the cell draws the register's em-dash
- * instead, because `none` here is an absence rather than a state worth a
- * badge on every row of a clinic that sells consultations.
+ * `active` takes the green this file gives `paid`, because a term that is
+ * running is the same kind of news as a bill that is settled, and `expired`
+ * takes amber for the reason `unpaid` does — it is waiting on somebody, not
+ * wrong. A subscriber who has never had a subscription gets no chip at all; the
+ * cell draws the register's em-dash instead, because `none` here is an absence
+ * rather than a state worth a badge on every row of a clinic that sells
+ * consultations.
+ *
+ * `frozen` is the plain secondary chip, which is the same answer this file gives
+ * `credit`: a paused subscription is unusual and is not a problem. It must not
+ * be the green — a frozen term is not running — and it must not be the amber
+ * either, because amber on this screen means "go and ask about a renewal" and a
+ * frozen subscriber has already been spoken to. That it is *paused* is the whole
+ * message, and the chip says it in a word rather than counting down to a date
+ * that is still moving.
  *
  * Red stays out of this column too. A lapsed subscription is a renewal to ask
  * for, not a failure.
  */
 export const SUBSCRIPTION_VARIANTS = {
   active: 'onTrack',
+  frozen: 'default',
   expired: 'attention',
 } as const satisfies Record<
   Exclude<SubscriptionState, 'none'>,

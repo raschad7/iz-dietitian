@@ -4,11 +4,14 @@ import { useTranslations } from 'next-intl';
 
 import { recordChargeAction } from '@/features/billing/actions';
 import { BillingKeypadDialog } from '@/features/billing/components/billing-keypad-dialog';
-import { BILLING_SERVICES, CONSULTATION, type ServicePrices } from '@/features/billing/services';
 import {
-  isSubscriptionService,
-  type Subscription,
-} from '@/features/billing/subscription';
+  sellableServices,
+  serviceIcon,
+  serviceName,
+  serviceTone,
+  type ClinicServiceView,
+} from '@/features/billing/services';
+import { type Subscription } from '@/features/billing/subscription';
 import type { Locale } from '@/i18n/routing';
 
 /**
@@ -24,26 +27,34 @@ import type { Locale } from '@/i18n/routing';
  * among four; a clinic recording a visit and the payment for it in the same
  * minute met two different cards for one event.
  *
- * ## The price is the clinic's own
+ * ## The list and the price are both the clinic's own
  *
- * The card asks which service; the amount follows from it. Prices are set once
- * in Settings and read here, so a charge cannot be recorded at a figure nobody
- * decided, and the rate does not have to be remembered — or typed — at the
- * counter. A service with no price yet cannot be charged at all: the card says
- * where to set one and the button will not commit until it is there. Recording
- * a visit at ₪0 because the list was blank is the failure this prevents.
+ * The card asks which service; the amount follows from it. Both the services and
+ * their prices are the clinic's, set in Settings and read here, so a charge
+ * cannot be recorded at a figure nobody decided and the rate does not have to be
+ * remembered — or typed — at the counter. A service with no price yet cannot be
+ * charged at all: the card says where to set one and the button will not commit
+ * until it is there. Recording a visit at ₪0 because the list was blank is the
+ * failure this prevents.
+ *
+ * **The list used to be three entries in code.** A clinic selling a two-month
+ * term could not, and every clinic sold the same three things under the same
+ * three names. Now the options are rows — see `clinic_services` — and this card
+ * draws whatever the clinic put in them, in the order it put them.
  *
  * What is stored is still the *figure and the words*, copied onto the row, not
- * a key into the price list. Raising the monthly rate next year cannot rewrite
- * what somebody was told they owed last March — see `clinic_service_prices`.
+ * a pointer at the service. Raising the monthly rate next year, or renaming the
+ * service, cannot rewrite what somebody was told they owed last March — see
+ * `clinic_services`.
  *
- * ## The first consultation is free
+ * ## The first one of a free-first service is free
  *
- * Every subscriber's first consultation is recorded at zero; every one after it
- * is charged at the rate in Settings. The card decides which it is looking at —
- * `consulted` is true when the ledger already holds a consultation — and says
- * so on the card, because a charge of ₪0 that does not explain itself reads as
- * a price somebody forgot to set.
+ * A clinic may mark any service "first one free" — the consultation is the one
+ * that always was. That subscriber's first is recorded at zero; every one after
+ * it is charged at the rate in Settings. The card decides which it is looking at
+ * — `firstFreeUsed` holds the keys this subscriber has already had one of — and
+ * says so on the row, because a charge of ₪0 that does not explain itself reads
+ * as a price somebody forgot to set.
  *
  * **The entry is still made.** A free first visit is written down at zero
  * rather than skipped: "it happened and was not billed" is a fact the ledger
@@ -68,13 +79,13 @@ import type { Locale } from '@/i18n/routing';
  * server will accept it — the options are the common answer, the write path is
  * the correct one.
  *
- * ## The first consultation
+ * ## Where the free-first rule is applied
  *
- * The rule is applied here rather than in the action, and that is a real
- * limitation worth naming: two dietitians recording a first consultation for
- * the same subscriber at the same moment would both see a free one. The ledger
- * stays correct — two zero charges, not one — and the fix, if it ever matters,
- * is the same check inside `recordCharge`.
+ * Here rather than in the action, and that is a real limitation worth naming:
+ * two dietitians recording a first consultation for the same subscriber at the
+ * same moment would both see a free one. The ledger stays correct — two zero
+ * charges, not one — and the fix, if it ever matters, is the same check inside
+ * `recordCharge`.
  */
 
 export function RecordChargeDialog({
@@ -86,10 +97,10 @@ export function RecordChargeDialog({
   /** `button` for a panel with room for words; `icon` for a register row. */
   trigger,
   triggerClassName,
-  /** What the clinic charges, from Settings. `null` for a service with no price. */
-  prices,
-  /** Whether this subscriber's ledger already holds a consultation. */
-  consulted,
+  /** The clinic's own services, with their prices. See `clinicServices`. */
+  services,
+  /** Which first-free services this subscriber has already had one of. */
+  firstFreeUsed,
   /** Where their subscription stands today — see `subscriptionStanding`. */
   subscription,
 }: {
@@ -99,20 +110,22 @@ export function RecordChargeDialog({
   today: string;
   trigger?: 'icon' | 'button';
   triggerClassName?: string;
-  prices: ServicePrices;
-  consulted: boolean;
+  services: readonly ClinicServiceView[];
+  firstFreeUsed: ReadonlySet<string>;
   subscription: Subscription;
 }) {
   const t = useTranslations('billing');
 
   /*
     Whether a term already covers today — the whole of what the card needs to
-    know. It used to read the countdown too, to say **91 days remaining** under
+    know. A frozen term counts: it is paused, not finished, and its days are
+    still the subscriber's. Selling the next one over them is the overlap
+    `recordCharge` refuses. It used to read the countdown too, to say **91 days remaining** under
     a greyed row; the row is greyed, which is the same fact in the form the eye
     already has. A sentence under it spends a line explaining a state the
     control is in, on a card that is open for one decision.
   */
-  const covered = subscription.state === 'active';
+  const covered = subscription.state === 'active' || subscription.state === 'frozen';
 
   return (
     <BillingKeypadDialog
@@ -130,8 +143,13 @@ export function RecordChargeDialog({
         what the printed bill reads back, and a row saying `followUp` on paper
         would be the catalogue leaking onto a document a subscriber keeps.
       */
-      options={BILLING_SERVICES.map((service) => {
-        const label = t(`services.${service.value}`);
+      options={sellableServices(services).map((service) => {
+        /*
+          The clinic's own words, in the reader's language — not a key looked up
+          in the message catalogue. A service the clinic invented has no entry
+          there and never will, which is the whole reason the names are stored.
+        */
+        const label = serviceName(service, locale);
 
         /*
           `value` is what the form posts and `label` is what the card shows; for
@@ -140,22 +158,23 @@ export function RecordChargeDialog({
           `cash` — which is why the two are separate fields at all.
         */
         /*
-          The first consultation is free, whatever the price list says — and it
-          is free even when the list says nothing, which is why this is a zero
-          rather than a fall-through to `prices`.
+          A free first is free whatever the price list says — and it is free even
+          when the list says nothing, which is why this is a zero rather than a
+          fall-through to the service's own price.
         */
-        const free = service.value === CONSULTATION && !consulted;
+        const free = service.firstFree && !firstFreeUsed.has(service.key);
 
         /* A term already covers today, and this row is another one. */
-        const blocked = covered && isSubscriptionService(service.value);
+        const blocked = covered && service.kind === 'subscription';
 
         return {
-          ...service,
+          icon: serviceIcon(service.kind),
+          className: serviceTone(service.kind),
           value: label,
           label,
-          amountMinor: free ? 0 : prices[service.value],
+          amountMinor: free ? 0 : service.priceMinor,
           /* The key beside the words: what the rule above will read next time. */
-          posts: { service: service.value },
+          posts: { service: service.key },
           disabled: blocked,
           /*
             The one line a row can carry, and it is only ever the free

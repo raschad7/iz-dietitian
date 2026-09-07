@@ -104,6 +104,7 @@ function board(overrides: Partial<Board> = {}): Board {
     status: 'draft',
     publishedAt: null,
     weekInstructions: null,
+    clientNote: null,
     kcalTargetSnapshot: 1800,
     proteinTargetSnapshot: null,
     goalSnapshot: null,
@@ -129,6 +130,18 @@ describe('printPlan', () => {
     );
 
     expect(plan.days.map((entry) => entry.dayOfWeek)).toEqual([3, 5, 0]);
+  });
+
+  /*
+    The note travels onto the sheet, because the sheet is what a client without
+    a smartphone goes home with — and the note is the half of the plan that is
+    not a list of food.
+  */
+  test("the dietitian's note to the client is carried onto the sheet", () => {
+    const note = 'اشربي ٨ أكواب ماء يومياً.';
+
+    expect(printPlan(board({ clientNote: note, days: [day(0, [])] }), 'ar').clientNote).toBe(note);
+    expect(printPlan(board({ days: [day(0, [])] }), 'ar').clientNote).toBeNull();
   });
 
   test('each day carries its own calendar date', () => {

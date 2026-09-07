@@ -33,6 +33,15 @@ export type QuantifiableIngredient = {
   portion?: { labelAr: string; labelEn: string; grams: number } | null;
   /** How many of that portion this amount is, in this meal. */
   portionQuantity?: number | null;
+  /**
+   * Only `countedAs` is read here — the unit this food is *always* counted in.
+   *
+   * Optional, because a caller that has a line without a food attached (the dish
+   * editor's live preview, the unit tests below) still gets a correct amount: a
+   * missing declaration only means the ten-count ceiling applies, which is the
+   * behaviour every line had before the column was consulted.
+   */
+  food?: { countedAs?: string | null } | null;
 };
 
 /**
@@ -143,6 +152,21 @@ const FRACTIONAL_LABEL = /^(half|quarter|third) /i;
  * Deliberately not applied to spoons, cups or loaves: `12 ملعقة أرز` is exactly
  * how a dietitian writes rice, and rewriting it into grams would be replacing
  * her unit with ours.
+ *
+ * ## And never applied to a food that declares it is counted
+ *
+ * `catalog_foods.counted_as` names the unit a food is **always** written in, and
+ * the clinic's answer for nuts is the piece: "٧ حبات لوز" is a snack she
+ * prescribes, and twenty is an ordinary handful. An almond weighs 1.2 g and a
+ * pistachio kernel 0.7, so every real amount of them is a two-digit count — and
+ * the ceiling turned all of them back into grams. The dietitian read her own
+ * catalogue and reported that almonds and فستق حلبي were still weighed.
+ *
+ * The distinction the ceiling is actually drawing is between a portion that
+ * merely *happens* to be a piece — a strawberry, whose "piece" is derived from a
+ * USDA label — and one the catalogue has declared. A declared unit is a decision
+ * somebody made about how this food is prescribed, and no count is large enough
+ * to overrule it.
  */
 const MAX_WRITTEN_COUNT = 10;
 const COUNTED_LABELS = new Set(['Piece', 'Slice']);
@@ -187,8 +211,11 @@ export function ingredientAmount(
     portionQuantity > 0 &&
     portion.grams > 0
   ) {
+    // The food's own declaration wins over the ceiling — see `MAX_WRITTEN_COUNT`.
+    const alwaysCounted = ingredient.food?.countedAs === portion.labelEn;
+
     const tooManyToCount =
-      COUNTED_LABELS.has(portion.labelEn) && portionQuantity > MAX_WRITTEN_COUNT;
+      !alwaysCounted && COUNTED_LABELS.has(portion.labelEn) && portionQuantity > MAX_WRITTEN_COUNT;
 
     // "ثلاثة أرباع نصف كوب" is not a quantity anyone acts on. A whole number of
     // half-cups still is, so only the fractional case falls back.

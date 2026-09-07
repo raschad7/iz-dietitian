@@ -65,6 +65,12 @@ type CuratedFood = {
   nameEn: string;
   state: string;
   category: string;
+  /**
+   * The `labelEn` of the one portion this food is always written in, if it has
+   * one — the piece for an almond, the loaf for a pita. Curated, read here only
+   * to make that portion the default; see {@link promoteCountedUnit}.
+   */
+  countedAs?: string;
   sourceType: string;
   sourceRef: string;
   /** Where a non-USDA number came from. Required when `sourceType` is not USDA. */
@@ -149,6 +155,32 @@ export function withExtras(
   return rows;
 }
 
+/**
+ * Makes the declared unit the one a food starts in.
+ *
+ * `countedAs` says this food is **always** written in one unit — `seed-dishes.ts`
+ * refuses a recipe line that uses any other — so a picker offering something else
+ * first is offering a unit the catalogue will reject. It happened: walnuts
+ * declare the piece and derived a cup, so a fresh line started in cups and a
+ * dietitian's first choice was the one the seed would not take.
+ *
+ * The derivation still owns the default everywhere else, which is what
+ * {@link withExtras} means by leaving it alone: this only moves it where a person
+ * has already written down what the unit is. A declaration naming a portion the
+ * food does not have leaves the rows untouched, and `build` reports it as a
+ * problem of its own.
+ */
+export function promoteCountedUnit(
+  portions: readonly PortionSeed[],
+  countedAs: string | undefined,
+): PortionSeed[] {
+  if (!countedAs || !portions.some((portion) => portion.labelEn === countedAs)) {
+    return [...portions];
+  }
+
+  return portions.map((portion) => ({ ...portion, isDefault: portion.labelEn === countedAs }));
+}
+
 function build(): void {
   const file = JSON.parse(readFileSync(CATALOG_PATH, 'utf8')) as {
     $comment?: string;
@@ -209,9 +241,16 @@ function build(): void {
       // different food is caught before any nutrition is trusted.
       note: source.description,
       nutrition,
-      portions: withExtras(
-        derivePortions({ category: curated.category, portions: source.portions ?? [] }),
-        curated.extraPortions,
+      portions: promoteCountedUnit(
+        withExtras(
+          derivePortions({
+            category: curated.category,
+            nameEn: curated.nameEn,
+            portions: source.portions ?? [],
+          }),
+          curated.extraPortions,
+        ),
+        curated.countedAs,
       ),
     };
   });

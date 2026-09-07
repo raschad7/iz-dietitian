@@ -640,3 +640,20 @@ export function parseGeneratedPlan(raw: unknown, slotKeys: readonly string[]): G
     })),
   };
 }
+
+/**
+ * The note a client reads with their week.
+ *
+ * 2000 characters — the same ceiling `permanentInstructions` carries, and for
+ * the same reason: this is a paragraph of advice, not a document. An empty box
+ * becomes `null` rather than `''`, because "no note" is one state and not two.
+ */
+export const planClientNoteSchema = z.object({
+  planId: z.uuid(),
+  note: z
+    .string()
+    .trim()
+    .max(2000)
+    .optional()
+    .transform((value) => (value ? value : null)),
+});

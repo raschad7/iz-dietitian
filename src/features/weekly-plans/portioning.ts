@@ -130,6 +130,14 @@ const GRAM_CEILINGS: Record<string, number> = {
   dairy: 400,
   eggs: 400,
   dairy_eggs: 400,
+  /*
+    Forty grams of nuts is a generous handful and about 230 kilocalories. It
+    became worth stating the day nuts started being counted rather than weighed:
+    a حبة of almond is 1.2 g, so a line with no ceiling at all could be pushed to
+    fifty of them to fill a snack budget — an amount that is arithmetically
+    correct and that no dietitian would write.
+  */
+  nuts_seeds: 40,
 };
 
 const CONTAINER_CEILING = 2;

@@ -1,7 +1,9 @@
 import { z } from 'zod';
 
+import { addDays } from '@/features/booking/date';
+
 import { MAX_AMOUNT_MINOR, parseAmount } from './money';
-import { isBillingService } from './services';
+import { MAX_TERM_MONTHS, SERVICE_KINDS } from './services';
 
 /**
  * Input validation for the billing feature.
@@ -28,7 +30,7 @@ export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 export const paymentMethodSchema = z.enum(PAYMENT_METHODS);
 
 /** `YYYY-MM-DD`, and a real day — `2026-02-31` is rejected, not shifted. */
-const isoDateSchema = z
+export const isoDateSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'invalidDate')
   .refine((value) => {
@@ -119,15 +121,24 @@ export const recordChargeSchema = z.object({
   clientId: z.uuid('invalidClient'),
 
   /**
-   * Which service, for the rules that need to know — the free first
-   * consultation, and any counting done later. Optional, because the column is
-   * nullable and a charge that is not one of the listed services is a real
-   * charge: what a subscriber is billed for is `description`, and always was.
+   * Which service, for the rules that need to know — the free first one, the
+   * term a subscription runs for, and any counting done later. Optional, because
+   * the column is nullable and a charge that names no service is a real charge:
+   * what a subscriber is billed for is `description`, and always was.
+   *
+   * **Shape only.** It used to be checked against the code's own list, which
+   * stopped existing the day the list became the clinic's — see
+   * `clinic_services`. Whether this key is one of *this clinic's* services is a
+   * question only a caller holding the clinic id can ask, so `recordChargeAction`
+   * asks it against the rows it has already loaded, and an unknown key is
+   * refused there rather than stored.
    */
   service: z
     .string()
+    .trim()
+    .max(60, 'invalidService')
     .optional()
-    .transform((value) => (value && isBillingService(value) ? value : null)),
+    .transform((value) => (value ? value : null)),
 
   description: z
     .string()
@@ -173,45 +184,149 @@ export const recordChargeSchema = z.object({
 export type RecordChargeInput = z.infer<typeof recordChargeSchema>;
 
 /**
- * A price being set for one of the clinic's services.
+ * A price, as a form posts one: a decimal string, or nothing at all.
  *
- * The same amount parsing every other figure in this feature goes through, with
- * the charge's bounds: no negative — a price below zero is a credit, and a
- * credit is a payment — and zero allowed, because a service a clinic gives away
- * is a decision worth recording rather than a blank.
- *
- * `service` is checked against the code's own list rather than accepted as any
- * string. The column is deliberately `text` so a new service needs no
- * migration, and this is the gate that keeps that from meaning a price can be
- * filed under a key nothing will ever read back.
+ * Shared by every service field that takes money, and `null` is a real answer
+ * rather than a parse failure — an empty box means the clinic has not decided
+ * what to charge, which is not the same as charging nothing. Zero stays a price,
+ * for a service a clinic gives away.
  */
-export const servicePriceSchema = z.object({
-  service: z.string().refine(isBillingService, 'invalidService'),
+const priceSchema = z
+  .string()
+  .trim()
+  .optional()
+  .transform((value, ctx) => {
+    if (!value) return null;
 
-  amountMinor: z
-    .string()
-    .trim()
-    .min(1, 'amountRequired')
-    .transform((value, ctx) => {
-      const minor = parseAmount(value);
+    const minor = parseAmount(value);
 
-      if (minor === null) {
-        ctx.addIssue({ code: 'custom', message: 'invalidAmount' });
-        return z.NEVER;
-      }
+    if (minor === null) {
+      ctx.addIssue({ code: 'custom', message: 'invalidAmount' });
+      return z.NEVER;
+    }
 
-      if (minor < 0) {
-        ctx.addIssue({ code: 'custom', message: 'amountNegative' });
-        return z.NEVER;
-      }
+    if (minor < 0) {
+      ctx.addIssue({ code: 'custom', message: 'amountNegative' });
+      return z.NEVER;
+    }
 
-      if (minor > MAX_AMOUNT_MINOR) {
-        ctx.addIssue({ code: 'custom', message: 'amountTooLarge' });
-        return z.NEVER;
-      }
+    if (minor > MAX_AMOUNT_MINOR) {
+      ctx.addIssue({ code: 'custom', message: 'amountTooLarge' });
+      return z.NEVER;
+    }
 
-      return minor;
-    }),
-});
+    return minor;
+  });
 
-export type ServicePriceInput = z.infer<typeof servicePriceSchema>;
+/** A settings switch, as its hidden input posts it. See the note at its use. */
+const switchSchema = z
+  .string()
+  .optional()
+  .transform((value) => value === 'on' || value === 'true');
+
+/**
+ * A service the clinic is adding or editing.
+ *
+ * **A name in one language is enough.** The clinic works in Arabic; asking for
+ * an English name before a service can exist would be asking a dietitian to
+ * translate her own price list to use the app. `createService` copies whichever
+ * one was given into the empty side, so a bill always has words on it.
+ *
+ * The term is required on a subscription and refused on a visit, which is the
+ * database's own check (`clinic_services_term_matches_kind`) said in the place
+ * that can produce a message about it. A visit posting a term is not corrected
+ * silently — a form that sends one is a form whose "kind" and "months" disagree,
+ * and quietly picking one of them is how a two-month visit becomes a two-month
+ * subscription.
+ */
+export const serviceSchema = z
+  .object({
+    nameAr: z.string().trim().max(80, 'nameTooLong'),
+    nameEn: z.string().trim().max(80, 'nameTooLong'),
+    kind: z.enum(SERVICE_KINDS),
+    durationMonths: z
+      .string()
+      .trim()
+      .optional()
+      .transform((value) => (value ? Number(value) : null)),
+    priceMinor: priceSchema,
+    /*
+      A switch posts the string its hidden input carries — `on` or `off`, the
+      pattern the clinic's working-week table already uses. Absent means off,
+      which is what an unchecked native checkbox would have sent.
+    */
+    firstFree: switchSchema,
+    active: switchSchema,
+  })
+  .superRefine((input, ctx) => {
+    if (!input.nameAr && !input.nameEn) {
+      ctx.addIssue({ code: 'custom', path: ['nameAr'], message: 'nameRequired' });
+    }
+
+    if (input.kind !== 'subscription') return;
+
+    const months = input.durationMonths;
+
+    if (months === null || !Number.isInteger(months) || months < 1 || months > MAX_TERM_MONTHS) {
+      ctx.addIssue({ code: 'custom', path: ['durationMonths'], message: 'invalidTerm' });
+    }
+  });
+
+export type ServiceInput = z.infer<typeof serviceSchema>;
+
+/**
+ * A subscription being paused.
+ *
+ * `days` rather than an end date, because "تجميد ٩ أيام" is what the clinic
+ * agrees with the subscriber and an end date is the arithmetic on it — done here
+ * once, rather than by a dietitian counting on a calendar. Nine days from the
+ * 10th ends on the 18th: the first day is one of the nine, so the last is
+ * `start + days − 1`.
+ *
+ * Leaving `days` empty opens the freeze instead. That is not a missing value —
+ * it is the honest one for the common case where nobody yet knows how long
+ * somebody will be away, and it is closed with the Resume button when they come
+ * back.
+ */
+export const freezeSubscriptionSchema = z
+  .object({
+    clientId: z.uuid('invalidClient'),
+    startsOn: isoDateSchema,
+    days: z
+      .string()
+      .trim()
+      .optional()
+      .transform((value) => (value ? Number(value) : null)),
+    reason: z
+      .string()
+      .trim()
+      .max(200, 'reasonTooLong')
+      .optional()
+      .transform((value) => (value ? value : null)),
+  })
+  .superRefine((input, ctx) => {
+    const days = input.days;
+
+    if (days === null) return;
+
+    if (!Number.isInteger(days) || days < 1 || days > MAX_FREEZE_DAYS) {
+      ctx.addIssue({ code: 'custom', path: ['days'], message: 'invalidFreezeDays' });
+    }
+  })
+  .transform((input) => ({
+    clientId: input.clientId,
+    startsOn: input.startsOn,
+    /* The last day covered, inclusive — see the note above. Null keeps it open. */
+    endsOn: input.days === null ? null : addDays(input.startsOn, input.days - 1),
+    reason: input.reason,
+  }));
+
+export type FreezeSubscriptionInput = z.infer<typeof freezeSubscriptionSchema>;
+
+/**
+ * The longest single pause a form will take, in days.
+ *
+ * A year. Past that the subscriber has stopped rather than paused, and the term
+ * they are holding is worth selling again rather than extending into 2028.
+ */
+export const MAX_FREEZE_DAYS = 365;

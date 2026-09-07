@@ -26,6 +26,74 @@ export const ALLERGENS = ['nuts', 'lactose', 'gluten', 'egg', 'fish', 'sesame'] 
 
 export type Allergen = (typeof ALLERGENS)[number];
 
+/**
+ * The clinical conditions a plan has to be built around.
+ *
+ * **Closed, for the same reason `ALLERGENS` is closed.** `clients.conditions` is
+ * free text and stays free text — it carries the detail a list cannot ("stage 3
+ * CKD, phosphate binders since March") and it is what a dietitian reads back.
+ * But prose cannot be *acted on*: nothing can raise a pregnant client's energy
+ * target, tell the model to keep potassium down, or warn that a ketogenic week
+ * is not something this catalogue can build, while the only record of the
+ * condition is a sentence somebody typed.
+ *
+ * A condition the list does not carry stays in the prose, where it reads as what
+ * it is — something a person wrote down — instead of looking like something the
+ * app is checking. Adding one here means giving it a rule in
+ * `src/features/weekly-plans/clinical.ts`; the type makes that a compile error
+ * rather than a silent no-op, which is the whole point of the pairing.
+ *
+ * Pregnancy is three values rather than one plus a trimester field. The energy
+ * requirement differs by trimester and by nothing else the app knows, so a
+ * separate column would be a second thing to keep in step for no second use.
+ */
+export const CLINICAL_CONDITIONS = [
+  'pregnancy_first_trimester',
+  'pregnancy_second_trimester',
+  'pregnancy_third_trimester',
+  'breastfeeding',
+  'kidney_disease',
+  'dialysis',
+  'epilepsy',
+  'diabetes_type_1',
+  'diabetes_type_2',
+  'gestational_diabetes',
+  'hypertension',
+  'high_cholesterol',
+  'fatty_liver',
+  'hypothyroidism',
+  'pcos',
+  'celiac',
+  'ibs',
+  'anemia',
+  'gout',
+] as const;
+
+export type ClinicalCondition = (typeof CLINICAL_CONDITIONS)[number];
+
+/**
+ * A prescribed eating pattern the whole week follows.
+ *
+ * **Separate from a condition, because a diagnosis is not a prescription.**
+ * Epilepsy is a fact about the client; a ketogenic diet is a decision somebody
+ * made about it, and plenty of people with epilepsy are not on one. Folding the
+ * two together would have the app choosing a therapy from a diagnosis, which is
+ * the dietitian's job and not a lookup table's.
+ *
+ * Null — no pattern — is the ordinary case and is what every plan was before
+ * this existed.
+ */
+export const DIET_PATTERNS = [
+  'low_carb',
+  'keto',
+  'high_protein',
+  'low_sodium',
+  'renal',
+  'low_fat',
+] as const;
+
+export type DietPattern = (typeof DIET_PATTERNS)[number];
+
 /** `HH:MM`, the value an `<input type="time">` submits. */
 export const timeOfDaySchema = z
   .string()

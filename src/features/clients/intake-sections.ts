@@ -43,7 +43,7 @@ export const FIELDS_BY_SECTION: Record<IntakeSectionId, readonly string[]> = {
    * looking for what a client reacts to should find every answer in one panel.
    */
   allergies: ['allergenTags', 'allergies', 'drugAllergies'],
-  clinical: ['conditions', 'medications', 'medicalNotes'],
+  clinical: ['clinicalTags', 'dietPattern', 'conditions', 'medications', 'medicalNotes'],
   habits: [
     'activityNotes',
     'activityBarriers',

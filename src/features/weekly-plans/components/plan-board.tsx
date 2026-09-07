@@ -45,6 +45,7 @@ import { DishCatalogDrawer } from './dish-catalog-drawer';
 import type { GhostMeal } from './meal-card';
 import { MealInspector } from './meal-inspector';
 import { NewWeekDialog, type NewWeekProps } from './new-week-dialog';
+import { PlanClientNoteDialog } from './client-note-dialog';
 import { PublishButton } from './publish-button';
 import { WeekPager } from './week-pager';
 import { TagColorKey } from './tag-color-key';
@@ -442,6 +443,22 @@ function BoardBody({
               </div>
 
               <div className="shrink-0">
+                {/*
+                  The note the client reads with the week, first in the panel.
+
+                  It is the one row here that changes what somebody *outside*
+                  the clinic sees, which is why it leads: the compare toggle
+                  changes the screen and the delete row destroys the week, and
+                  neither is something the dietitian does with every plan. She
+                  writes a note with almost every one.
+                */}
+                <PlanClientNoteDialog
+                  planId={board.id}
+                  locale={locale as Locale}
+                  note={board.clientNote}
+                  className={previous ? 'border-b border-border' : undefined}
+                />
+
                 {previous && (
                   <Button
                     type="button"

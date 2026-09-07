@@ -64,6 +64,10 @@ export type ClientIntakeValues = {
   customAllergens: string[];
   allergies: string | null;
 
+  /** The closed list the planner acts on — see `CLINICAL_CONDITIONS`. */
+  clinicalTags: string[];
+  /** A prescribed pattern for the whole week, or null for an ordinary one. */
+  dietPattern: string | null;
   conditions: string | null;
   medications: string | null;
   medicalNotes: string | null;

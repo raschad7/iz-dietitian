@@ -36,7 +36,13 @@ export type SendMessageActionState =
     }
   | {
       status: 'skipped';
-      messageKey: 'send.noPhone' | 'send.notOnWhatsapp' | 'send.notConnected' | 'send.notConfigured';
+      messageKey:
+        | 'send.noPhone'
+        | 'send.notOnWhatsapp'
+        | 'send.notConnected'
+        | 'send.notConfigured'
+        /* An appointment that has already started. Nothing to remind anybody of. */
+        | 'send.inThePast';
     }
   | { status: 'success'; messageKey: 'send.sent' };
 

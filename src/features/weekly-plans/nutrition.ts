@@ -219,12 +219,21 @@ export type DishIngredientDetail = {
    */
   quantityGrams: number;
   /**
-   * `category` is optional because a caller that only needs nutrition — the dish
-   * editor's live preview — has no use for it. Every reader that portions a meal
-   * gets it from `foodColumns`, which has always selected it; portioning falls
-   * back to the unremarkable grid without it.
+   * `category` and `countedAs` are optional because a caller that only needs
+   * nutrition — the dish editor's live preview — has no use for either. Every
+   * reader that portions a meal gets them from `foodColumns`, which selects
+   * both; portioning falls back to the unremarkable grid without `category`,
+   * and `meal-quantity.ts` falls back to the ten-count ceiling without
+   * `countedAs`.
    */
-  food: { id: string; nameAr: string; nameEn: string; category?: string | null } & FoodNutrients;
+  food: {
+    id: string;
+    nameAr: string;
+    nameEn: string;
+    category?: string | null;
+    /** The unit this food is *always* counted in — see `catalog_foods.counted_as`. */
+    countedAs?: string | null;
+  } & FoodNutrients;
   /**
    * How the dietitian typed the amount — "2 حبة" rather than "100 غرام".
    *

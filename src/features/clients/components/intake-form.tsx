@@ -31,6 +31,8 @@ import {
   ALLERGENS,
   BLOOD_TYPES,
   CLIENT_MARITAL_STATUSES,
+  CLINICAL_CONDITIONS,
+  DIET_PATTERNS,
   INTAKE_FREQUENCIES,
   SMOKING_HABITS,
 } from '@/features/clients/nutrition';
@@ -195,6 +197,13 @@ export function IntakeForm({
     sex: intake.sex,
     activityLevel: activityLevel || null,
     goal: goal || null,
+    /*
+      From what is *stored*, not from the chips being ticked in this dialog: the
+      readout is a preview of the profile, and recomputing it as somebody ticks
+      a trimester would move a calorie target under the pointer before anything
+      had been saved. It catches up when the form does.
+    */
+    clinicalTags: intake.clinicalTags,
   });
 
   const suggestedProtein = suggestProteinGrams(toNumberOrNull(weightKg));
@@ -669,6 +678,24 @@ export function IntakeForm({
             </Panel>
 
             <Panel id="clinical" current={section}>
+              {/*
+                The ticks first, the prose under them — and the order is the
+                argument. These are the conditions the app can act on: they
+                raise a pregnant client's calorie target, they reach the plan
+                generator as stated constraints, and they are what makes a
+                ketogenic week say out loud that this catalogue cannot build
+                one. The boxes below carry everything else, in the dietitian's
+                own words, and are still read by the model as context.
+
+                Drawn like the allergen chips, because they are the same kind of
+                control doing the same kind of work — a closed list where
+                ticking one changes what the app does.
+              */}
+              <ConditionField
+                defaultTags={intake.clinicalTags}
+                defaultPattern={intake.dietPattern ?? ''}
+              />
+
               <div className="grid gap-4 sm:grid-cols-2">
                 <TextField
                   name="conditions"
@@ -986,6 +1013,90 @@ function Divider({ label }: { label: string }) {
  * walk back, and an answer picked by mistake has to be un-pickable without
  * reloading the page.
  */
+/**
+ * The clinical conditions, and the pattern the week has to follow.
+ *
+ * Two controls in one fieldset because they are one decision read together: the
+ * conditions are what is true about the client, the pattern is what has been
+ * prescribed about it, and a dietitian setting one almost always looks at the
+ * other. See `CLINICAL_CONDITIONS` and `DIET_PATTERNS` for why they are separate
+ * columns rather than one list.
+ *
+ * The chips are `AllergenField`'s, to the class: a closed list where ticking one
+ * changes what the app does is the same control, and drawing it differently
+ * would suggest a difference that is not there.
+ */
+function ConditionField({
+  defaultTags,
+  defaultPattern,
+}: {
+  defaultTags: readonly string[];
+  defaultPattern: string;
+}) {
+  const t = useTranslations('clients');
+  const uid = useId();
+
+  return (
+    <fieldset className="flex flex-col gap-3">
+      <legend className="text-body-sm font-medium">{t('intake.conditionLegend')}</legend>
+
+      <div className="flex flex-wrap gap-2">
+        {CLINICAL_CONDITIONS.map((condition) => {
+          const inputId = `${uid}-${condition}`;
+
+          return (
+            <label
+              key={condition}
+              htmlFor={inputId}
+              className={cn(
+                'flex h-10 cursor-pointer items-center rounded-full border border-input px-4',
+                'text-body-sm font-medium text-foreground transition-colors duration-180 ease-out',
+                'not-has-checked:hover:border-(--input-hover) not-has-checked:hover:bg-secondary',
+                'has-checked:border-transparent has-checked:bg-status-medical-bg has-checked:font-semibold has-checked:text-status-medical-fg',
+              )}
+            >
+              <input
+                id={inputId}
+                type="checkbox"
+                name="clinicalTags"
+                value={condition}
+                defaultChecked={defaultTags.includes(condition)}
+                className="sr-only"
+              />
+              {t(`conditions.${condition}`)}
+            </label>
+          );
+        })}
+      </div>
+
+      <p className="text-caption text-muted-foreground">{t('intake.conditionHint')}</p>
+
+      {/*
+        The pattern, under its own rule: a diagnosis is not a prescription — see
+        the note on `DIET_PATTERNS` — and putting the two side by side would
+        invite reading one off the other.
+      */}
+      <div className="flex flex-col gap-2 border-t border-border pt-4">
+        <Label htmlFor="dietPattern">{t('fields.dietPattern')}</Label>
+        <SelectField
+          id="dietPattern"
+          name="dietPattern"
+          defaultValue={defaultPattern}
+          placeholder={t('intake.dietPatternNone')}
+          options={[
+            { value: '', label: t('intake.dietPatternNone') },
+            ...DIET_PATTERNS.map((pattern) => ({
+              value: pattern,
+              label: t(`dietPatterns.${pattern}`),
+            })),
+          ]}
+        />
+        <p className="text-caption text-muted-foreground">{t('intake.dietPatternHint')}</p>
+      </div>
+    </fieldset>
+  );
+}
+
 function ChoiceField({
   name,
   label,

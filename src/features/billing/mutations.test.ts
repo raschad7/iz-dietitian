@@ -1,19 +1,26 @@
+import { randomUUID } from 'node:crypto';
+
 import { beforeEach, describe, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { clientCharges, clientPayments } from '@/db/schema';
+import { clientCharges, clientPayments, clientSubscriptionFreezes } from '@/db/schema';
 
 import { createTestClient, createTestClinic, resetDatabase } from '../../../tests/helpers';
 import {
   ClientNotInClinicError,
+  deleteFreeze,
+  FreezeOverlapError,
   PaymentExceedsBalanceError,
   recordCharge,
+  recordFreeze,
   recordPayment,
+  resumeFreeze,
   SubscriptionActiveError,
 } from './mutations';
-import { subscriberTotalsByClient } from './queries';
-import { recordChargeSchema, recordPaymentSchema } from './schema';
+import { freezesByClient, subscriberTotalsByClient } from './queries';
+import { freezeSubscriptionSchema, recordChargeSchema, recordPaymentSchema } from './schema';
+import { isFrozenOn } from './subscription';
 
 let clinicId: string;
 let clientId: string;
@@ -40,6 +47,18 @@ async function billed(amountMinor: number, client = clientId, clinic = clinicId)
     description: 'اشتراك شهري',
     amountMinor,
     chargedOn: '2026-08-01',
+  });
+}
+
+/** A freeze as the action hands it over: days in, an inclusive end date out. */
+function freeze(
+  overrides: Partial<{ clientId: string; startsOn: string; days: string; reason: string }> = {},
+) {
+  return freezeSubscriptionSchema.parse({
+    clientId: overrides.clientId ?? clientId,
+    startsOn: overrides.startsOn ?? '2026-09-01',
+    days: overrides.days,
+    reason: overrides.reason,
   });
 }
 
@@ -395,5 +414,133 @@ describe('a charge and a payment together', () => {
       balanceMinor: 35000,
       remainingMinor: 35000,
     });
+  });
+});
+
+/**
+ * Freezing a subscription, and letting it run again.
+ *
+ * These went untested when the feature was written, and the bug that got
+ * through is the reason they exist now: `resumeFreeze` only ever closed a
+ * freeze with no agreed end, while the screen offered Resume on every running
+ * one. The update matched nothing, the action reported success, and the
+ * dietitian pressed a button that did nothing at all.
+ */
+describe('recordFreeze', () => {
+  test('stores the range, with the end worked out from the days agreed', async () => {
+    await recordFreeze(clinicId, freeze({ startsOn: '2026-09-01', days: '9' }));
+
+    expect(await db.select().from(clientSubscriptionFreezes)).toMatchObject([
+      { startsOn: '2026-09-01', endsOn: '2026-09-09' },
+    ]);
+  });
+
+  test('leaves the end open when nobody yet knows how long', async () => {
+    await recordFreeze(clinicId, freeze({ startsOn: '2026-09-01' }));
+
+    const [row] = await db.select().from(clientSubscriptionFreezes);
+
+    expect(row?.endsOn).toBeNull();
+  });
+
+  test('refuses a second freeze over days the first already covers', async () => {
+    await recordFreeze(clinicId, freeze({ startsOn: '2026-09-01', days: '9' }));
+
+    const overlapping = freeze({ startsOn: '2026-09-05', days: '2' });
+
+    expect(await expectRejected(() => recordFreeze(clinicId, overlapping))).toBeInstanceOf(
+      FreezeOverlapError,
+    );
+    expect(await db.select().from(clientSubscriptionFreezes)).toHaveLength(1);
+  });
+
+  test('refuses a subscriber belonging to another clinic', async () => {
+    const otherClinicId = await createTestClinic('Other Clinic');
+    const outsiderId = await createTestClient(otherClinicId, 'Someone Else');
+
+    const input = freeze({ clientId: outsiderId, startsOn: '2026-09-01' });
+
+    expect(await expectRejected(() => recordFreeze(clinicId, input))).toBeInstanceOf(
+      ClientNotInClinicError,
+    );
+  });
+});
+
+describe('resumeFreeze', () => {
+  /*
+    The bug this suite exists for. An agreed nine days is agreed in advance, and
+    a subscriber who comes back on the fourth day is the ordinary case — not a
+    correction to be made by deleting the row and writing another.
+  */
+  test('closes a freeze that already had an agreed end', async () => {
+    const { id } = await recordFreeze(clinicId, freeze({ startsOn: '2026-09-01', days: '9' }));
+
+    expect(await resumeFreeze(clinicId, id, '2026-09-04')).toBe(true);
+
+    const [row] = await db.select().from(clientSubscriptionFreezes);
+
+    expect(row?.endsOn).toBe('2026-09-03');
+  });
+
+  /*
+    Ending it *today* would leave today frozen, so the chip would go on reading
+    مجمّد and the button would look as though it had done nothing — which is
+    what the dietitian reported.
+  */
+  test('ends the freeze yesterday, so the day of the press counts again', async () => {
+    const { id } = await recordFreeze(clinicId, freeze({ startsOn: '2026-09-01' }));
+
+    await resumeFreeze(clinicId, id, '2026-09-07');
+
+    const freezes = await freezesByClient(clinicId, [clientId]);
+
+    expect(isFrozenOn(freezes.get(clientId) ?? [], '2026-09-07')).toBe(false);
+    expect(isFrozenOn(freezes.get(clientId) ?? [], '2026-09-06')).toBe(true);
+  });
+
+  /* A pause recorded and ended on one day gave back no days, so there is nothing
+     to record — and a single frozen day would leave the subscriber reading as
+     paused for the rest of the day they came back on. */
+  test('removes a freeze recorded and resumed on the same day', async () => {
+    const { id } = await recordFreeze(clinicId, freeze({ startsOn: '2026-09-07' }));
+
+    expect(await resumeFreeze(clinicId, id, '2026-09-07')).toBe(true);
+    expect(await db.select().from(clientSubscriptionFreezes)).toHaveLength(0);
+  });
+
+  test('says so when the freeze is no longer there', async () => {
+    expect(await resumeFreeze(clinicId, randomUUID(), '2026-09-07')).toBe(false);
+  });
+
+  test("leaves another clinic's freeze alone", async () => {
+    const { id } = await recordFreeze(clinicId, freeze({ startsOn: '2026-09-01' }));
+    const otherClinicId = await createTestClinic('Other Clinic');
+
+    expect(await resumeFreeze(otherClinicId, id, '2026-09-07')).toBe(false);
+
+    const [row] = await db.select().from(clientSubscriptionFreezes);
+
+    expect(row?.endsOn).toBeNull();
+  });
+});
+
+describe('deleteFreeze', () => {
+  test('removes the row, and with it the days it gave back', async () => {
+    const { id } = await recordFreeze(clinicId, freeze({ startsOn: '2026-09-01', days: '9' }));
+
+    expect(await deleteFreeze(clinicId, id)).toBe(true);
+    expect(await db.select().from(clientSubscriptionFreezes)).toHaveLength(0);
+  });
+
+  test('says so when there was nothing to remove', async () => {
+    expect(await deleteFreeze(clinicId, randomUUID())).toBe(false);
+  });
+
+  test("refuses another clinic's freeze", async () => {
+    const { id } = await recordFreeze(clinicId, freeze({ startsOn: '2026-09-01' }));
+    const otherClinicId = await createTestClinic('Other Clinic');
+
+    expect(await deleteFreeze(otherClinicId, id)).toBe(false);
+    expect(await db.select().from(clientSubscriptionFreezes)).toHaveLength(1);
   });
 });
