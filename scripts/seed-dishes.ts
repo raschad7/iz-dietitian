@@ -198,6 +198,70 @@ export function validateDishRecords(records: DishRecord[]): string[] {
  *
  * Takes the food dataset rather than reading the database, so it runs in a test.
  */
+/**
+ * Foods whose own identity implies an allergen, matched on the food's slug.
+ *
+ * Deliberately narrow. It matches wheat and barley by name and does not try to be
+ * clever: a rule that guesses wrongly gets switched off, and a rule that catches
+ * the obvious cases stays on. Oats are absent on purpose — they are gluten-free
+ * grains that are usually cross-contaminated, and whether a clinic treats them as
+ * safe is a decision for the dietitian rather than for a seed script.
+ */
+const ALLERGEN_BY_FOOD_SLUG: readonly { allergen: string; pattern: RegExp }[] = [
+  {
+    allergen: 'gluten',
+    pattern: /pita|bread|toast|bulgur|freekeh|barley|couscous|pasta|macaroni|spaghetti|noodle|semolina|flour|cracker|kaak|manaqish|wheat/i,
+  },
+  { allergen: 'sesame', pattern: /sesame|tahini|halva/i },
+  { allergen: 'egg', pattern: /^egg(s|-|$)/i },
+  { allergen: 'fish', pattern: /^(fish|tuna|sardine|salmon|shrimp|anchovy|mackerel)/i },
+];
+
+/**
+ * Dishes whose ingredients imply an allergen the dish does not declare.
+ *
+ * ## Why this exists
+ *
+ * `loubia-bzeit` carried sixty-four grams of whole-wheat pita and no `gluten`
+ * tag. It is also one of the dishes the planner reaches for most, so it landed in
+ * a coeliac client's week as «خبز عربي أسمر ٢ رغيف» — two loaves of wheat bread
+ * on a plan built to exclude wheat.
+ *
+ * One missing tag on one row of two hundred and ninety-four, and the whole
+ * allergen architecture — filter before the prompt, check again at reconciliation
+ * — was defeated by it, because every layer trusts the tag. So the tag is checked
+ * against the food itself, here, before anything reaches the database.
+ */
+export function validateAllergenTags(
+  records: readonly DishRecord[],
+  foods: readonly { sourceRef: string; slug: string }[],
+): string[] {
+  const problems: string[] = [];
+  const byRef = new Map(foods.map((food) => [food.sourceRef, food]));
+
+  for (const dish of records) {
+    const declared = new Set(dish.allergenTags);
+
+    for (const ingredient of dish.ingredients) {
+      const food = byRef.get(String(ingredient.fdcId));
+      if (!food) continue;
+
+      for (const { allergen, pattern } of ALLERGEN_BY_FOOD_SLUG) {
+        if (declared.has(allergen)) continue;
+        if (!pattern.test(food.slug)) continue;
+
+        problems.push(
+          `${dish.slug}: contains ${food.slug} (${ingredient.grams} g) but does not declare "${allergen}"`,
+        );
+        // One report per dish and allergen; the fix is the same tag either way.
+        declared.add(allergen);
+      }
+    }
+  }
+
+  return problems;
+}
+
 export function validateCountingUnits(
   records: readonly DishRecord[],
   foods: readonly { sourceRef: string; slug: string; countedAs?: string }[],
@@ -224,9 +288,11 @@ export function validateCountingUnits(
 }
 
 function validate(records: DishRecord[]): void {
+  const foods = readCatalogDataset();
   const problems = [
     ...validateDishRecords(records),
-    ...validateCountingUnits(records, readCatalogDataset()),
+    ...validateCountingUnits(records, foods),
+    ...validateAllergenTags(records, foods),
   ];
 
   if (problems.length) {

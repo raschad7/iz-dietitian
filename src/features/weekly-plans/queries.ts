@@ -598,6 +598,8 @@ function toCatalogDish(dish: DishDetail): CatalogDish {
     allergenTags: dish.allergenTags,
     baseKcal: baseServingKcal(dish.ingredients),
     baseProtein: dishTotals(dish.ingredients, 1).protein.value,
+    baseCarbs: dishTotals(dish.ingredients, 1).carbs.value,
+    baseSodium: dishTotals(dish.ingredients, 1).sodium?.value ?? 0,
     // Carried for `chooseServings`, which has to portion a recipe to know what a
     // multiplier produces. Never reaches the model: `describeCatalog` writes the
     // columns it wants by name.
@@ -1446,7 +1448,15 @@ export async function getClientContext(clinicId: string, clientId: string): Prom
       : null,
     targets,
     effectiveKcal,
-    effectiveProteinGrams: row.proteinTargetGrams ?? suggestProteinGrams(weightKg),
+    /* Conditions narrow the rate and the calorie target caps it — a renal client
+       must not be handed 1.6 g/kg, and no client should be measured against a
+       figure their day has no room for. See `suggestProteinGrams`. */
+    effectiveProteinGrams:
+      row.proteinTargetGrams ??
+      suggestProteinGrams(weightKg, {
+        clinicalTags: row.clinicalTags ?? [],
+        dailyKcalTarget: effectiveKcal,
+      }),
     budgets: effectiveKcal === null ? [] : slotBudgets(effectiveKcal, schedule),
   };
 }

@@ -42,6 +42,7 @@ import { localizedName } from './food-display';
 import { getReviewTransport, type LlmResult } from './llm';
 import { formatQuantity, ingredientAmount } from './meal-quantity';
 import { printPlan } from './plan-print';
+import { exceedsCountLimit } from './portion-limits';
 import type { PromptPayload } from './prompt';
 import type { Board } from './queries';
 
@@ -150,7 +151,6 @@ export function renderPlanForReview(board: Board): string {
 
 /** Units a meal is counted in, where too many of them stops being a portion. */
 const COUNTABLE_LABELS = new Set(['Piece', 'Slice']);
-const MAX_PIECES = 3;
 
 /**
  * Every finding that is a question about numbers rather than about judgement.
@@ -222,7 +222,16 @@ export function arithmeticFindings(board: Board): string[] {
           );
         }
 
-        if (COUNTABLE_LABELS.has(line.portion.labelEn) && count > MAX_PIECES) {
+        /*
+          Per food, not a flat three. The old rule called «١٢ حبة عنب» a mistake —
+          an amount a dietitian writes by hand — while saying nothing at all about
+          fifty-seven pistachios, because neither had a limit it could reach. Both
+          halves now read the same table.
+        */
+        if (
+          COUNTABLE_LABELS.has(line.portion.labelEn) &&
+          exceedsCountLimit(line.food.id, count, line.portion.labelEn)
+        ) {
           found.push(
             `${dayName} · ${meal.label}: ${name} ${formatQuantity(count, 'ar')} ${line.portion.labelAr} — أكثر مما يؤكل في جلسة واحدة.`,
           );

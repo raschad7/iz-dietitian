@@ -33,6 +33,22 @@ export type PromptDish = {
   baseKcal: number;
   baseProtein: number;
   /**
+   * Carbohydrate and sodium for one base serving.
+   *
+   * These exist because of a contradiction the audit found: the prompt tells a
+   * type 2 diabetic's plan to "keep each meal's carbohydrate moderate and steady"
+   * and told a hypertensive's to "avoid salty, processed, canned and pickled
+   * food" — while the catalogue on the wire carried neither number. The model was
+   * being asked to control quantities it could not see, with only the coarse
+   * `nutritionCategory` label to go on.
+   *
+   * They also give `narrowToPattern` something real to filter a ketogenic week on:
+   * a fattoush swimming in olive oil is `high_fat` by energy share and forty grams
+   * of carbohydrate by weight, and only the second number is the one that matters.
+   */
+  baseCarbs: number;
+  baseSodium: number;
+  /**
    * The **computed** nutrition label (`high_protein` | `high_carb` | `high_fat` |
    * `balanced`), derived server-side from the recipe. Given to the model so it
    * never has to guess whether a dish is high-protein — kept as its own field,
@@ -244,6 +260,8 @@ function describeCatalog(catalog: readonly PromptDish[]): string {
       dish.mealTypes.join('|'),
       `${Math.round(dish.baseKcal)}kcal`,
       `${Math.round(dish.baseProtein)}g`,
+      `${Math.round(dish.baseCarbs)}g`,
+      `${Math.round(dish.baseSodium)}mg`,
       dish.nutritionCategory,
       dish.proteinSource,
       dish.carbBase,
@@ -261,6 +279,8 @@ function describeCatalog(catalog: readonly PromptDish[]): string {
       'meal_types',
       'base_kcal',
       'base_protein',
+      'base_carbs',
+      'base_sodium',
       'nutrition',
       'protein_source',
       'carb_base',

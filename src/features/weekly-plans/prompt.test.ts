@@ -19,6 +19,8 @@ const CATALOG: PromptDish[] = [
     occasion: 'everyday',
     baseKcal: 618.4,
     baseProtein: 21.7,
+    baseCarbs: 30,
+    baseSodium: 200,
     nutritionCategory: 'balanced',
     proteinSource: 'legume',
     carbBase: 'rice',
@@ -35,6 +37,8 @@ const CATALOG: PromptDish[] = [
     occasion: 'everyday',
     baseKcal: 381.2,
     baseProtein: 18.4,
+    baseCarbs: 30,
+    baseSodium: 200,
     nutritionCategory: 'high_protein',
     proteinSource: 'dairy',
     carbBase: 'bread',
@@ -167,7 +171,7 @@ describe('buildPrompt — content', () => {
     const { user } = buildPrompt(input());
 
     expect(user).toContain(
-      'mujaddara-salad\tمجدرة مع سلطة خضراء\tlunch|dinner\t618kcal\t22g\tbalanced',
+      'mujaddara-salad\tمجدرة مع سلطة خضراء\tlunch|dinner\t618kcal\t22g\t30g\t200mg\tbalanced',
     );
   });
 
@@ -180,13 +184,13 @@ describe('buildPrompt — content', () => {
     const { user } = buildPrompt(input());
 
     expect(user).toContain(
-      'slug\tname\tmeal_types\tbase_kcal\tbase_protein\tnutrition\tprotein_source\tcarb_base\tsource\teffort\tcost\toccasion',
+      'slug\tname\tmeal_types\tbase_kcal\tbase_protein\tbase_carbs\tbase_sodium\tnutrition\tprotein_source\tcarb_base\tsource\teffort\tcost\toccasion',
     );
 
     // labaneh is computed high_protein, and that appears only in the nutrition
     // column — there is nowhere on the wire for a hand-written one to live.
     expect(user).toContain(
-      'labaneh-zeit-pita\tلبنة بزيت الزيتون مع خبز\tbreakfast\t381kcal\t18g\thigh_protein\tdairy\tbread\thome\tmedium\tnormal\teveryday',
+      'labaneh-zeit-pita\tلبنة بزيت الزيتون مع خبز\tbreakfast\t381kcal\t18g\t30g\t200mg\thigh_protein\tdairy\tbread\thome\tmedium\tnormal\teveryday',
     );
   });
 
@@ -320,6 +324,8 @@ describe('buildPrompt — sides', () => {
     occasion: 'everyday',
     baseKcal: 85,
     baseProtein: 2,
+    baseCarbs: 30,
+    baseSodium: 200,
     nutritionCategory: 'balanced',
     proteinSource: 'none',
     carbBase: 'none',

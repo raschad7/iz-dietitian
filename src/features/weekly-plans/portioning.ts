@@ -47,6 +47,7 @@
  */
 
 import { GRAMS_STEP } from './ingredient-units';
+import { countLimit } from './portion-limits';
 import type { FoodNutrients } from './nutrition';
 import { MAX_SERVINGS, MIN_SERVINGS, SERVING_STEP } from './similar';
 
@@ -54,7 +55,13 @@ import { MAX_SERVINGS, MIN_SERVINGS, SERVING_STEP } from './similar';
 export type PortionableLine = {
   /** Grams for ONE base serving. */
   quantityGrams: number;
-  food: { category?: string | null } & Pick<FoodNutrients, 'kcal'>;
+  /**
+   * `id` is the catalog food's slug wherever the line came from the shipped
+   * dataset, and is what `portion-limits.ts` keys a per-food ceiling on. A
+   * clinic's own food has a uuid there and simply has no per-food limit, which is
+   * the correct answer until somebody sets one.
+   */
+  food: { id?: string | null; category?: string | null } & Pick<FoodNutrients, 'kcal'>;
   portion?: { labelEn: string; grams: number } | null;
   /** How many of that portion one base serving is. */
   portionQuantity?: number | null;
@@ -193,6 +200,14 @@ export function lineCeiling(line: PortionableLine): number | null {
   if (!line.portion) return grams ?? null;
 
   const counted: number[] = [];
+
+  /*
+    The per-food limit first, because it is the one somebody decided. A category
+    cannot tell a grape from an almond, and the weight ceiling alone let a
+    forty-gram allowance become fifty-seven pistachios.
+  */
+  const perFood = countLimit(line.food.id, line.portion.labelEn);
+  if (perFood !== null) counted.push(perFood);
 
   if (line.portion.labelEn === 'Piece' && PIECE_CEILINGS[category] !== undefined) {
     counted.push(PIECE_CEILINGS[category]!);

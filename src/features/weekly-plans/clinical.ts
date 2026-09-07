@@ -120,6 +120,33 @@ export const PATTERN_EXCLUDES_NUTRITION: Partial<Record<DietPattern, readonly st
 };
 
 /**
+ * The most carbohydrate a dish may carry, in grams per serving, for a pattern
+ * that is about carbohydrate.
+ *
+ * ## Why grams and not the label
+ *
+ * The filter above asks `nutritionCategory`, which calls a dish `high_carb` only
+ * when carbohydrate exceeds 55% of its *energy*. That is a question about
+ * proportion, and keto is a question about amount.
+ *
+ * A fattoush is bread salad under a great deal of olive oil, so fat wins the
+ * energy share and the dish is labelled `high_fat` — and sailed through a
+ * ketogenic filter carrying forty grams of carbohydrate. So did a cheese manaqish,
+ * and so did ice cream. The audited ketogenic week for a client with epilepsy
+ * finished at 284 g of carbohydrate on the Thursday, which is not a therapeutic
+ * diet and is not even a low-carbohydrate one.
+ *
+ * Ten grams a meal is the working figure for a ketogenic slot and twenty-five for
+ * a low-carbohydrate one. Neither reaches a 4:1 therapeutic ratio — nothing in
+ * this catalogue does, and `ketoNotTherapeutic` says so — but both keep bread and
+ * ice cream out of a week that claims to be low in carbohydrate.
+ */
+export const PATTERN_MAX_CARBS_GRAMS: Partial<Record<DietPattern, number>> = {
+  keto: 10,
+  low_carb: 25,
+};
+
+/**
  * Extra daily energy a pregnancy or a lactation adds, in kilocalories.
  *
  * The DRI increments, and they are increments on the client's *own* estimated
@@ -280,16 +307,24 @@ const MIN_DISHES_PER_MEAL_TYPE = 3;
  * `MIN_DISHES_PER_MEAL_TYPE`. Breakfast is the one this actually saves — a
  * Palestinian breakfast is bread, and a ketogenic filter takes nearly all of it.
  */
-export function narrowToPattern<T extends { mealTypes: readonly string[]; nutritionCategory: string }>(
-  catalog: readonly T[],
-  pattern: string | null,
-): T[] {
+export function narrowToPattern<
+  T extends { mealTypes: readonly string[]; nutritionCategory: string; baseCarbs: number },
+>(catalog: readonly T[], pattern: string | null): T[] {
   const excluded = isDietPattern(pattern) ? PATTERN_EXCLUDES_NUTRITION[pattern] : undefined;
+  const maxCarbs = isDietPattern(pattern) ? PATTERN_MAX_CARBS_GRAMS[pattern] : undefined;
 
-  if (!excluded?.length) return [...catalog];
+  if (!excluded?.length && maxCarbs === undefined) return [...catalog];
 
-  const banned = new Set(excluded);
-  const kept = catalog.filter((dish) => !banned.has(dish.nutritionCategory));
+  const banned = new Set(excluded ?? []);
+
+  /* The label and the gram count both have to pass — see PATTERN_MAX_CARBS_GRAMS
+     for the fattoush that passed the first and should never have passed the
+     second. */
+  const kept = catalog.filter(
+    (dish) =>
+      !banned.has(dish.nutritionCategory) &&
+      (maxCarbs === undefined || dish.baseCarbs <= maxCarbs),
+  );
 
   /* Which meal types the filter has cut too far, judged on what survived. */
   const thin = new Set<string>();
@@ -309,6 +344,8 @@ export function narrowToPattern<T extends { mealTypes: readonly string[]; nutrit
   */
   return catalog.filter(
     (dish) =>
-      !banned.has(dish.nutritionCategory) || dish.mealTypes.every((mealType) => thin.has(mealType)),
+      (!banned.has(dish.nutritionCategory) &&
+        (maxCarbs === undefined || dish.baseCarbs <= maxCarbs)) ||
+      dish.mealTypes.every((mealType) => thin.has(mealType)),
   );
 }

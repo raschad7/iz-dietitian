@@ -118,9 +118,17 @@ describe('plannerCaveats', () => {
 });
 
 describe('narrowToPattern', () => {
+  /** `baseCarbs` defaults low, so a test that says nothing about it is not filtered on it. */
   const dish = (nutritionCategory: string, ...mealTypes: string[]) => ({
     nutritionCategory,
     mealTypes,
+    baseCarbs: 5,
+  });
+
+  const carby = (grams: number, ...mealTypes: string[]) => ({
+    nutritionCategory: 'high_fat',
+    mealTypes,
+    baseCarbs: grams,
   });
 
   const CATALOG = [
@@ -158,5 +166,42 @@ describe('narrowToPattern', () => {
     const kept = narrowToPattern(CATALOG, 'keto');
 
     expect(kept.filter((entry) => entry.mealTypes.includes('breakfast'))).toHaveLength(2);
+  });
+
+  /*
+    A fattoush is bread salad under a lot of olive oil, so fat wins its energy
+    share and the label says `high_fat` — and forty grams of carbohydrate walked
+    into a ketogenic week behind that label. So did a manaqish, and so did ice
+    cream. The gram count is the question keto is actually asking.
+  */
+  test('keto drops a high-fat dish that is nonetheless full of carbohydrate', () => {
+    const catalog = [
+      carby(40, 'lunch', 'dinner'),
+      carby(6, 'lunch', 'dinner'),
+      carby(4, 'lunch', 'dinner'),
+      carby(3, 'lunch', 'dinner'),
+    ];
+
+    const kept = narrowToPattern(catalog, 'keto');
+
+    expect(kept).toHaveLength(3);
+    expect(kept.every((entry) => entry.baseCarbs <= 10)).toBe(true);
+  });
+
+  test('low carbohydrate keeps more than keto does', () => {
+    // Wide enough that MIN_DISHES_PER_MEAL_TYPE never fires and the two
+    // thresholds are what the counts are actually measuring.
+    const catalog = [
+      carby(40, 'lunch', 'dinner'),
+      carby(30, 'lunch', 'dinner'),
+      carby(20, 'lunch', 'dinner'),
+      carby(8, 'lunch', 'dinner'),
+      carby(6, 'lunch', 'dinner'),
+      carby(4, 'lunch', 'dinner'),
+      carby(3, 'lunch', 'dinner'),
+    ];
+
+    expect(narrowToPattern(catalog, 'keto')).toHaveLength(4);
+    expect(narrowToPattern(catalog, 'low_carb')).toHaveLength(5);
   });
 });

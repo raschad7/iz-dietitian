@@ -60,6 +60,8 @@ function dish(id: string, category: string, nameEn: string, kcal = 300): Catalog
     allergenTags: [],
     baseKcal: kcal,
     baseProtein: 22,
+    baseCarbs: 30,
+    baseSodium: 200,
     nutritionCategory: 'balanced',
     proteinSource: proteinSource(recipe),
     carbBase: carbBase(recipe),

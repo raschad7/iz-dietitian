@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import {
   MAX_PRIMARY_INGREDIENTS,
   readDishDataset,
+  validateAllergenTags,
   validateCountingUnits,
   validateDishRecords,
   type DishRecord,
@@ -253,5 +254,45 @@ describe('validateCountingUnits', () => {
 
   test('the shipped catalog obeys its own declarations', () => {
     expect(validateCountingUnits(readDishDataset(), readCatalogDataset())).toEqual([]);
+  });
+});
+
+/**
+ * The check that would have caught `loubia-bzeit`, which held sixty-four grams of
+ * whole-wheat pita, declared no allergen, and reached a coeliac client's plan.
+ */
+describe('validateAllergenTags', () => {
+  const FOODS = [
+    { sourceRef: '1', slug: 'pita-wholewheat' },
+    { sourceRef: '2', slug: 'green-beans-fresh' },
+    { sourceRef: '3', slug: 'tahini-sesame-paste' },
+  ];
+
+  const dishWith = (allergenTags: string[], refs: number[]): DishRecord => ({
+    ...base,
+    slug: 'loubia-bzeit',
+    allergenTags: allergenTags as DishRecord['allergenTags'],
+    ingredients: refs.map((fdcId) => ({ fdcId, grams: 64, note: 'x' })),
+  });
+
+  test('a dish holding wheat bread must declare gluten', () => {
+    const problems = validateAllergenTags([dishWith([], [1, 2])], FOODS);
+
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain('does not declare "gluten"');
+  });
+
+  test('declaring the allergen clears it', () => {
+    expect(validateAllergenTags([dishWith(['gluten'], [1, 2])], FOODS)).toHaveLength(0);
+  });
+
+  test('tahini implies sesame', () => {
+    const problems = validateAllergenTags([dishWith([], [3])], FOODS);
+
+    expect(problems[0]).toContain('does not declare "sesame"');
+  });
+
+  test('the shipped dataset declares every allergen its recipes imply', () => {
+    expect(validateAllergenTags(readDishDataset(), readCatalogDataset())).toEqual([]);
   });
 });

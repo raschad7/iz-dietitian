@@ -165,6 +165,27 @@ describe('suggestTargets', () => {
 });
 
 describe('suggestProteinGrams', () => {
+  test('chronic kidney disease lowers the rate, dialysis raises it back', () => {
+    // 1.6 g/kg is roughly double what a non-dialysis CKD client should eat, and
+    // the plan that exposed this was marked short of protein on all seven days
+    // while delivering a clinically correct amount.
+    expect(suggestProteinGrams(80, { clinicalTags: ['kidney_disease'] })).toBe(56);
+    expect(suggestProteinGrams(80, { clinicalTags: ['dialysis'] })).toBe(96);
+    expect(suggestProteinGrams(80)).toBe(128);
+  });
+
+  test('a record carrying both kidney conditions takes the lower rate', () => {
+    expect(suggestProteinGrams(80, { clinicalTags: ['kidney_disease', 'dialysis'] })).toBe(56);
+  });
+
+  test('the calorie target caps a figure the day has no room for', () => {
+    // 88 kg at 1.6 is 141 g, which is 37% of a 1,522 kcal day — a number no
+    // ordinary week reaches, so every day was reported short of it.
+    expect(suggestProteinGrams(88, { dailyKcalTarget: 1522 })).toBe(127);
+    // Where the day is roomy the cap does not bind.
+    expect(suggestProteinGrams(88, { dailyKcalTarget: 2600 })).toBe(141);
+  });
+
   test('is 1.6 g per kilogram, rounded', () => {
     expect(suggestProteinGrams(70)).toBe(112);
     expect(suggestProteinGrams(84)).toBe(134);

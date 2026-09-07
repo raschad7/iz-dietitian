@@ -7088,7 +7088,9 @@
       "cost": "cheap",
       "occasion": "everyday",
       "isSide": false,
-      "allergenTags": [],
+      "allergenTags": [
+        "gluten"
+      ],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
         {

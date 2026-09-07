@@ -288,9 +288,78 @@ export function suggestTargets({
  * minimum to avoid deficiency and not a target for anyone actively changing their
  * body composition — which is every client this software has.
  */
-export function suggestProteinGrams(weightKg: number | null): number | null {
+const DEFAULT_PROTEIN_PER_KG = 1.6;
+
+/**
+ * Grams of protein per kilogram, where a condition changes the answer.
+ *
+ * ## Why a flat rate was unsafe
+ *
+ * 1.6 g/kg was applied to everybody, and for a client with chronic kidney disease
+ * that is roughly double what they should eat: non-dialysis CKD guidance is
+ * 0.6–0.8 g/kg. An audited plan for an 80 kg renal client was given a 128 g target,
+ * delivered a clinically correct 57–85 g, and the board then reported every day of
+ * the week as a protein failure. The plan was right and the target was wrong.
+ *
+ * Worse, the same prompt carried both "Daily protein target: 128 g" and "Chronic
+ * kidney disease. Keep animal protein to one modest portion a day" — two
+ * instructions pulling against each other in one payload.
+ *
+ * Dialysis is the mirror image and the reason the two cannot share a rule: dialysis
+ * *raises* the requirement, because the treatment itself removes amino acids.
+ *
+ * The lowest applicable figure wins. A record carrying both `kidney_disease` and
+ * `dialysis` is mid-correction, and erring downward is the safe direction for a
+ * kidney.
+ */
+const PROTEIN_PER_KG: Partial<Record<ClinicalCondition, number>> = {
+  kidney_disease: 0.7,
+  dialysis: 1.2,
+};
+
+/**
+ * The most of a day's energy that may be asked of protein.
+ *
+ * Not a clinical limit but a reachability one. 141 g of protein against a
+ * 1,522 kcal target is 37% of the day's energy, which no ordinary week of
+ * Palestinian home cooking reaches — so the plan is marked short every day for
+ * missing a number it was never going to hit, and the real signal is buried.
+ *
+ * A third is generous: high-protein practice sits at 25–30%, and the cap only
+ * binds where an aggressive deficit meets a heavy client.
+ */
+const MAX_PROTEIN_ENERGY_SHARE = 1 / 3;
+const KCAL_PER_GRAM_PROTEIN = 4;
+
+/**
+ * Protein suggestion in grams.
+ *
+ * `clinicalTags` narrow the rate — see {@link PROTEIN_PER_KG}. `dailyKcalTarget`
+ * caps the result at a share of the day's energy that food can actually deliver;
+ * omit it and no cap is applied, which is what the intake form wants while the
+ * calorie target is still being decided.
+ */
+export function suggestProteinGrams(
+  weightKg: number | null,
+  {
+    clinicalTags = [],
+    dailyKcalTarget = null,
+  }: { clinicalTags?: readonly string[]; dailyKcalTarget?: number | null } = {},
+): number | null {
   if (weightKg === null || !(weightKg > 0)) return null;
-  return Math.round(weightKg * 1.6);
+
+  const perKg = clinicalTags.reduce(
+    (lowest, tag) => Math.min(lowest, PROTEIN_PER_KG[tag as ClinicalCondition] ?? lowest),
+    DEFAULT_PROTEIN_PER_KG,
+  );
+
+  const grams = weightKg * perKg;
+
+  if (dailyKcalTarget === null || !(dailyKcalTarget > 0)) return Math.round(grams);
+
+  const ceiling = (dailyKcalTarget * MAX_PROTEIN_ENERGY_SHARE) / KCAL_PER_GRAM_PROTEIN;
+
+  return Math.round(Math.min(grams, ceiling));
 }
 
 export type SlotBudget = {
