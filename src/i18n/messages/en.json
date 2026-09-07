@@ -318,6 +318,9 @@
     "dialog": {
       "title": "Appointment details"
     },
+    "reminder": {
+      "hint": "Sent now, to the number on their record."
+    },
     "actions": {
       "save": "Save",
       "cancel": "Cancel",
