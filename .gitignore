@@ -53,3 +53,6 @@ yarn.lock
 /test-results/
 /playwright-report/
 /e2e/.seed.json
+
+# Plan lab output — generated weeks for review, not source
+.plan-lab/
