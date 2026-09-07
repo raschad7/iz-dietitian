@@ -329,6 +329,20 @@ const PROTEIN_PER_KG: Partial<Record<ClinicalCondition, number>> = {
  * binds where an aggressive deficit meets a heavy client.
  */
 const MAX_PROTEIN_ENERGY_SHARE = 1 / 3;
+
+/**
+ * Whether a condition makes the protein target a ceiling rather than a goal.
+ *
+ * The number reads the same either way, and the difference is the whole clinical
+ * point: 56 g for a renal client is the most they should eat, and 56 g for anybody
+ * else is the least. Anything judging a plan against the figure — the board, the
+ * second pass — has to know which it is looking at.
+ */
+export function proteinIsRestricted(clinicalTags: readonly string[]): boolean {
+  return clinicalTags.some(
+    (tag) => (PROTEIN_PER_KG[tag as ClinicalCondition] ?? DEFAULT_PROTEIN_PER_KG) < DEFAULT_PROTEIN_PER_KG,
+  );
+}
 const KCAL_PER_GRAM_PROTEIN = 4;
 
 /**

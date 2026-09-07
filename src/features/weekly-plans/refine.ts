@@ -60,6 +60,7 @@ export function draftFromMeals({
   days,
   kcalTarget,
   proteinTargetGrams,
+  proteinIsRestriction = false,
 }: {
   meals: readonly ReconciledMeal[];
   budgets: readonly SlotBudget[];
@@ -68,6 +69,12 @@ export function draftFromMeals({
   days: readonly number[];
   kcalTarget: number;
   proteinTargetGrams: number | null;
+  /**
+   * True where a condition *lowered* the protein target — chronic kidney disease
+   * and its relatives. The number is then a ceiling to stay under rather than a
+   * figure to reach, and the two read identically without this.
+   */
+  proteinIsRestriction?: boolean;
 }): PromptDraft {
   const byId = new Map([...catalog, ...sides].map((dish) => [dish.id, dish]));
 
@@ -124,7 +131,10 @@ export function draftFromMeals({
     };
   });
 
-  return { days: draftDays, findings: findingsFor(draftDays, kcalTarget, proteinTargetGrams) };
+  return {
+    days: draftDays,
+    findings: findingsFor(draftDays, kcalTarget, proteinTargetGrams, proteinIsRestriction),
+  };
 }
 
 /**
@@ -140,10 +150,13 @@ export function draftFromBoard({
   board,
   kcalTarget,
   proteinTargetGrams,
+  proteinIsRestriction = false,
 }: {
   board: Board;
   kcalTarget: number;
   proteinTargetGrams: number | null;
+  /** See `draftFromMeals` — a lowered target is a ceiling, not a goal. */
+  proteinIsRestriction?: boolean;
 }): PromptDraft {
   const days = board.days.map((day) => ({
     dayOfWeek: day.dayOfWeek,
@@ -159,7 +172,10 @@ export function draftFromBoard({
     })),
   }));
 
-  return { days, findings: findingsFor(days, kcalTarget, proteinTargetGrams) };
+  return {
+    days,
+    findings: findingsFor(days, kcalTarget, proteinTargetGrams, proteinIsRestriction),
+  };
 }
 
 /**
@@ -170,6 +186,7 @@ function findingsFor(
   draftDays: PromptDraft['days'],
   kcalTarget: number,
   proteinTargetGrams: number | null,
+  proteinIsRestriction: boolean,
 ): string[] {
   const findings: string[] = [];
 
@@ -181,6 +198,19 @@ function findingsFor(
     if (proteinTargetGrams && day.protein < proteinTargetGrams * 0.85) {
       findings.push(
         `Day ${day.dayOfWeek}: ${day.protein} g protein against a ${proteinTargetGrams} g target — short.`,
+      );
+    }
+
+    /*
+      Over the target is normally fine and often good — protein protects lean mass
+      in a deficit, and a week that overshoots is not a week to correct. It is only
+      a problem when the target is a *restriction*, and then it is the whole point:
+      a renal client's 56 g is a ceiling, and the first version of this pass pushed
+      a kidney week from 127% to 128% of it because nothing said so.
+    */
+    if (proteinIsRestriction && proteinTargetGrams && day.protein > proteinTargetGrams * 1.15) {
+      findings.push(
+        `Day ${day.dayOfWeek}: ${day.protein} g protein against a RESTRICTED ${proteinTargetGrams} g target — too much. This target is a ceiling, not a goal.`,
       );
     }
 

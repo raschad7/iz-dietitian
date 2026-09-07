@@ -50,7 +50,7 @@ import {
   swapMealSchema,
   type GenerationScope,
 } from './schema';
-import { slotBudgets } from './targets';
+import { proteinIsRestricted, slotBudgets } from './targets';
 import type { GenerateState, PlanActionState, ReviewState } from './form-state';
 import { runReview, type ReviewOutcome } from './review';
 
@@ -499,6 +499,7 @@ export async function refinePlanAction(
           board,
           kcalTarget: ready.kcalTarget,
           proteinTargetGrams: ready.proteinTargetGrams,
+          proteinIsRestriction: proteinIsRestricted(ready.profile.clinicalTags),
         }),
       },
       toPromptCatalog(ready.catalog, ready.profile.dietPattern),

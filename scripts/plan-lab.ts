@@ -38,7 +38,12 @@ import { draftFromMeals } from '@/features/weekly-plans/refine';
 import { toPromptCatalog, toPromptSides, type Board } from '@/features/weekly-plans/queries';
 import { arithmeticFindings, renderPlanForReview } from '@/features/weekly-plans/review';
 import { DAYS_OF_WEEK, isFixedPortion, parseGeneratedPlan } from '@/features/weekly-plans/schema';
-import { slotBudgets, suggestProteinGrams, suggestTargets } from '@/features/weekly-plans/targets';
+import {
+  proteinIsRestricted,
+  slotBudgets,
+  suggestProteinGrams,
+  suggestTargets,
+} from '@/features/weekly-plans/targets';
 import { DEFAULT_MEAL_SCHEDULE } from '@/features/clients/nutrition';
 
 /**
@@ -520,6 +525,7 @@ async function planFor(profile: Profile, options: { replay?: string; refine?: bo
       days: [...DAYS_OF_WEEK],
       kcalTarget,
       proteinTargetGrams: proteinTarget,
+      proteinIsRestriction: proteinIsRestricted(profile.clinicalTags ?? []),
     });
 
     const refinePayload = buildPrompt({ ...promptInput, draft });
