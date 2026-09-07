@@ -8107,6 +8107,40 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
     color: var(--n-700);
   }
 
+  /*
+    The dietitian's note to the client, under the week.
+
+    Ruled above rather than boxed: a border on all four sides prints as a grey
+    rectangle on an office laser and reads as a form field. One rule says "a
+    different kind of thing starts here", which is all this needs.
+
+    `break-inside: avoid` because a two-line note split across a page break is
+    the one block on this sheet where the second half means nothing without the
+    first.
+  */
+  .plan-print-note {
+    border-block-start: 0.3mm solid var(--n-400);
+    padding-block-start: 3mm;
+    margin-block-start: 6mm;
+    break-inside: avoid;
+  }
+
+  .plan-print-note-heading {
+    font-size: 10pt;
+    font-weight: 600;
+    margin-block-end: 1.5mm;
+  }
+
+  .plan-print-note-body {
+    font-size: 10pt;
+    line-height: 1.5;
+    color: var(--n-700);
+    /* The dietitian's own line breaks. She writes a list of three things, one
+       to a line, and a paragraph that ran them together would be her words
+       reflowed into something she did not write. */
+    white-space: pre-line;
+  }
+
   /* ── One day ── */
 
   .plan-print-day {

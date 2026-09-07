@@ -1,5 +1,6 @@
 import { useTranslations } from 'next-intl';
 
+import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 
 import { PortalMealCard } from './portal-meal-card';
@@ -78,6 +79,9 @@ export function PortalPlan({
   // — see `home-today.tsx` — so it reads here instead, beside the heading
   // that already names this block, rather than on its own restated row.
   const tToday = useTranslations('portal.progress.today');
+  /* The dietitian's own words, from the planner's namespace — the same string
+     the board's editor is labelled with, so the two cannot drift apart. */
+  const tNote = useTranslations('weeklyPlans.clientNote');
 
   const day = board.days.find((candidate) => candidate.dayOfWeek === selectedDay);
 
@@ -160,6 +164,30 @@ export function PortalPlan({
           ))}
         </ul>
       )}
+
+      {/*
+        What the dietitian wrote to this client about this week — the note she
+        used to send in a separate WhatsApp message after the plan, which meant
+        a client scrolling back to the plan did not have it.
+
+        **Under the meals, not above them.** The client opens this screen to
+        find out what to eat today; the note is advice about the week, and a
+        paragraph standing between the heading and the food would be read once
+        and scrolled past every day after that. It belongs where somebody
+        arrives after reading the day.
+
+        It is about the *week*, so it shows on every day of it rather than
+        moving with the picker — the same note under Monday and under Thursday,
+        because that is what she wrote.
+      */}
+      {board.clientNote?.trim() ? (
+        <Card className="gap-2 p-4">
+          <p className="text-sm font-medium text-foreground">{tNote('heading')}</p>
+          <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+            {board.clientNote}
+          </p>
+        </Card>
+      ) : null}
     </section>
   );
 }

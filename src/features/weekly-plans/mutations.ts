@@ -693,3 +693,34 @@ export async function getMealForRegeneration(
 
   return meal ?? null;
 }
+
+/**
+ * Sets the note the client reads with this week's plan.
+ *
+ * ## Why it is not part of publishing
+ *
+ * A published plan freezes its nutrition — see `nutrition-snapshot.ts` — because
+ * what somebody was *prescribed* must not change under them. A note is not a
+ * prescribed amount; it is the dietitian talking to her patient, and correcting
+ * a sentence for somebody who is reading it this week should not mean
+ * republishing the week. So it stays editable in every state the plan can be in,
+ * draft and published alike, and the portal simply shows whatever it currently
+ * says.
+ *
+ * Scoped to the clinic in the `WHERE` rather than checked first, like every
+ * other write here: the statement that authorises is the statement that writes,
+ * so there is no window between the two.
+ */
+export async function setPlanClientNote(
+  clinicId: string,
+  planId: string,
+  note: string | null,
+): Promise<boolean> {
+  const rows = await db
+    .update(weeklyPlans)
+    .set({ clientNote: note, updatedAt: new Date() })
+    .where(and(eq(weeklyPlans.id, planId), eq(weeklyPlans.clinicId, clinicId)))
+    .returning({ id: weeklyPlans.id });
+
+  return rows.length > 0;
+}

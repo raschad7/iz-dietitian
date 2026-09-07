@@ -16,6 +16,7 @@
  *     for the allergy to be respected.
  */
 
+import { clinicalRules } from './clinical';
 import type { SlotBudget } from './targets';
 import { MAX_RATIONALE_LENGTH, mealTypeForSlot, type GenerationScope } from './schema';
 import { MAX_SERVINGS, MIN_SERVINGS, SERVING_STEP } from './similar';
@@ -78,6 +79,21 @@ export type PromptClient = {
   preferences: string | null;
   dislikes: string | null;
   permanentInstructions: string | null;
+  /**
+   * The ticked clinical conditions and the prescribed pattern, as keys — see
+   * `CLINICAL_CONDITIONS` and `DIET_PATTERNS`.
+   *
+   * Keys and not sentences, so the sentence the model is given lives in one
+   * place (`clinical.ts`) rather than being composed by whichever query built
+   * this. The prompt test asserts on the sentences, which is what makes a
+   * changed rule visible in review.
+   *
+   * A condition is not identifying: "pregnant, third trimester" describes a
+   * clinical situation the plan depends on, exactly as an allergy does, and the
+   * payload still carries no name, no date of birth and no id.
+   */
+  clinicalTags: readonly string[];
+  dietPattern: string | null;
 };
 
 export type PromptInput = {
@@ -193,6 +209,17 @@ function describeClient(client: PromptClient): string {
   }
 
   if (client.allergies) lines.push(`- Allergies (already excluded from catalog): ${client.allergies}`);
+
+  /*
+    The clinical block, before the preferences and the dislikes — those are
+    about what the client enjoys, and these are about what the week has to do.
+    A model reading top to bottom meets the constraint before the taste.
+  */
+  const clinical = clinicalRules(client.clinicalTags, client.dietPattern);
+
+  if (clinical.pattern) lines.push(`- PRESCRIBED PATTERN — this governs the whole week: ${clinical.pattern}`);
+  for (const condition of clinical.conditions) lines.push(`- Clinical: ${condition}`);
+
   if (client.preferences) lines.push(`- Preferences: ${client.preferences}`);
   if (client.dislikes) lines.push(`- Dislikes, avoid these: ${client.dislikes}`);
   if (client.permanentInstructions) {

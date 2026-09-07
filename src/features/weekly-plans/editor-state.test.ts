@@ -112,6 +112,7 @@ function board(meals: BoardMeal[]): Board {
     status: 'draft',
     publishedAt: null,
     weekInstructions: null,
+    clientNote: null,
     kcalTargetSnapshot: 1800,
     proteinTargetSnapshot: null,
     goalSnapshot: null,

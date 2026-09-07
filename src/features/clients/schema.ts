@@ -17,6 +17,8 @@ import {
 import { joinName } from './name';
 import {
   ALLERGENS,
+  CLINICAL_CONDITIONS,
+  DIET_PATTERNS,
   BLOOD_TYPES,
   CLIENT_MARITAL_STATUSES,
   INTAKE_FREQUENCIES,
@@ -359,6 +361,23 @@ export const intakeSchema = z.object({
 
   /** The detail behind the ticks — "mild reaction to walnuts, not almonds". */
   allergies: optionalText(1000),
+
+  // ── Clinical conditions: the ticks act, the prose describes ──────────────
+  /**
+   * The structured conditions — what the planner can actually act on.
+   *
+   * Same shape and same coercion as `allergenTags`, and the same relationship
+   * to the prose beside it: `conditions` carries what a dietitian writes in her
+   * own words, and this carries what the app is allowed to reason about. See
+   * `CLINICAL_CONDITIONS`.
+   */
+  clinicalTags: z.preprocess(
+    (value) =>
+      value === undefined || value === null ? [] : Array.isArray(value) ? value : [value],
+    z.array(z.enum(CLINICAL_CONDITIONS)),
+  ),
+  /** A prescribed pattern for the whole week, or nothing — the ordinary case. */
+  dietPattern: optionalEnum(DIET_PATTERNS),
 
   // ── Clinical record, from `clients`. The first two are portal-visible ────
   conditions: optionalText(1000),

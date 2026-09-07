@@ -17,6 +17,7 @@ import {
   createPlanFromGeneration,
   getMealForRegeneration,
   publishPlan,
+  setPlanClientNote,
   recordGeneration,
   replaceMeals,
   saveReview,
@@ -40,6 +41,7 @@ import {
   DAYS_OF_WEEK,
   generateWeekSchema,
   planIdSchema,
+  planClientNoteSchema,
   publishPlanSchema,
   regenerateDaySchema,
   regenerateMealSchema,
@@ -196,10 +198,14 @@ function promptInput({
       preferences: profile.preferences,
       dislikes: profile.dislikes,
       permanentInstructions: profile.permanentInstructions,
+      clinicalTags: profile.clinicalTags,
+      dietPattern: profile.dietPattern,
     },
     budgets,
-    catalog: toPromptCatalog(catalog),
-    sides: toPromptSides(catalog),
+    /* Narrowed by the prescribed pattern before the model ever sees it — the
+       same discipline as the allergen filter. See `narrowToPattern`. */
+    catalog: toPromptCatalog(catalog, profile.dietPattern),
+    sides: toPromptSides(catalog, profile.dietPattern),
     instruction,
     previousSlugs: previous,
     days,
@@ -274,9 +280,9 @@ export async function generateWeekAction(
         scope: 'week',
         budgets: ready.budgets,
       }),
-      toPromptCatalog(ready.catalog),
+      toPromptCatalog(ready.catalog, ready.profile.dietPattern),
       ready.allergens,
-      toPromptSides(ready.catalog),
+      toPromptSides(ready.catalog, ready.profile.dietPattern),
     );
   } catch (error) {
     // The audit row is written for failures too — those are the interesting ones.
@@ -389,9 +395,9 @@ async function regenerate({
         scope,
         budgets,
       }),
-      toPromptCatalog(ready.catalog),
+      toPromptCatalog(ready.catalog, ready.profile.dietPattern),
       ready.allergens,
-      toPromptSides(ready.catalog),
+      toPromptSides(ready.catalog, ready.profile.dietPattern),
     );
   } catch (error) {
     await recordGeneration({
@@ -734,3 +740,51 @@ export async function deletePlanAction(formData: FormData): Promise<void> {
   redirect(typeof clientId === 'string' ? `/${locale}/app/weekly-plans/${clientId}` : `/${locale}/app/weekly-plans`);
 }
 
+
+/**
+ * Saves the note the client reads with this week's plan.
+ *
+ * The dietitian writes one under almost every plan she sends — "اشربي ٨ أكواب
+ * ماء يومياً"، "المشي نصف ساعة بعد العشاء" — and before this she was typing it
+ * into WhatsApp after sending the plan, so the note travelled separately from
+ * the week it was about and a client scrolling back to the plan did not have it.
+ *
+ * Allowed on a published plan as well as a draft, unlike every other edit to a
+ * live week: a note is advice rather than a prescribed amount, and correcting a
+ * sentence for somebody who is reading it this week should not mean
+ * republishing. See `setPlanClientNote`.
+ */
+export async function savePlanClientNoteAction(
+  _previousState: PlanActionState,
+  formData: FormData,
+): Promise<PlanActionState> {
+  const locale = readLocale(formData);
+  const { clinicId } = await requireStaffClinic(locale);
+
+  const parsed = planClientNoteSchema.safeParse({
+    planId: formData.get('planId'),
+    note: formData.get('note') ?? undefined,
+  });
+
+  if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
+
+  try {
+    const saved = await setPlanClientNote(clinicId, parsed.data.planId, parsed.data.note);
+
+    if (!saved) return { status: 'error', messageKey: 'errors.planNotFound' };
+  } catch (error) {
+    console.error('[weekly-plans] saving the client note failed', error);
+    return { status: 'error', messageKey: 'errors.unexpected' };
+  }
+
+  revalidateBoard(locale);
+
+  /*
+    And the portal, where the client reads it. A published plan's note is live
+    the moment it is saved — that is the point of it being editable after
+    publishing — so the page holding it has to be rebuilt too.
+  */
+  revalidatePath(`/${locale}/portal/plan`, 'page');
+
+  return { status: 'done' };
+}

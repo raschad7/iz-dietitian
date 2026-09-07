@@ -5,10 +5,12 @@ import { useFormStatus } from 'react-dom';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
+import { Callout } from '@/components/ui/callout';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
 import { generateWeekAction } from '../actions';
+import { plannerCaveats } from '../clinical';
 import { initialGenerateState, type GenerateState } from '../form-state';
 import { type NewWeekMode } from '../new-week';
 import type { ClientContext } from '../queries';
@@ -58,6 +60,11 @@ export function GenerateForm({
 }) {
   const t = useTranslations('weeklyPlans');
   const [state, formAction] = useActionState(generateWeekAction, initialGenerateState);
+  /* Read from the profile the panel is already holding — no query of its own. */
+  const caveats = plannerCaveats(
+    context.profile?.clinicalTags ?? [],
+    context.profile?.dietPattern ?? null,
+  );
 
   return (
     /*
@@ -101,6 +108,27 @@ export function GenerateForm({
 
       <div className="no-scrollbar flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
         <WeekTargets context={context} />
+
+        {/*
+          What this catalogue cannot do for this client, said before she presses
+          the button rather than after she reads the week.
+
+          The clinic asked how a ketogenic week would work for a client with
+          epilepsy, and the honest answer is that a therapeutic 3:1 ratio is not
+          something a catalogue of Palestinian home cooking can reach. A planner
+          that took `keto`, produced grilled chicken and salad and said nothing
+          would be claiming to have produced a therapeutic diet — which is the
+          one thing it must not do. See `plannerCaveats`.
+
+          `attention` and not `destructive`: nothing is wrong and nothing is
+          blocked. The week will generate, and she is the one who decides
+          whether what it produces is close enough.
+        */}
+        {caveats.map((caveat) => (
+          <Callout key={caveat} tone="attention">
+            {t(`caveats.${caveat}`)}
+          </Callout>
+        ))}
 
         <Block label={t('weekInstructions')} hint={t('weekInstructionsHint')}>
           {/*

@@ -81,6 +81,7 @@ import {
   type DishAxisFilters,
   type MealScheduleInput,
 } from './schema';
+import { narrowToPattern } from './clinical';
 import { slotBudgets, suggestProteinGrams, suggestTargets, type SlotBudget, type SuggestedTargets } from './targets';
 import { weekDates } from './week';
 
@@ -554,8 +555,12 @@ export async function loadDishesByIds(
  * alternative. They reach a plan through `weekly_plan_meal_sides` instead, which
  * is a different question asked at a different point.
  */
-export function toPromptCatalog(catalog: readonly DishDetail[]): CatalogDish[] {
-  return catalog.filter((dish) => !dish.isSide).map(toCatalogDish);
+export function toPromptCatalog(
+  catalog: readonly DishDetail[],
+  /** A prescribed pattern narrows what may be chosen — see `narrowToPattern`. */
+  dietPattern: string | null = null,
+): CatalogDish[] {
+  return narrowToPattern(catalog.filter((dish) => !dish.isSide).map(toCatalogDish), dietPattern);
 }
 
 /**
@@ -565,8 +570,11 @@ export function toPromptCatalog(catalog: readonly DishDetail[]): CatalogDish[] {
  * the caller has to remember to check, because every place that reads the catalog
  * is choosing a meal, and the one place that is not should have to say so.
  */
-export function toPromptSides(catalog: readonly DishDetail[]): CatalogDish[] {
-  return catalog.filter((dish) => dish.isSide).map(toCatalogDish);
+export function toPromptSides(
+  catalog: readonly DishDetail[],
+  dietPattern: string | null = null,
+): CatalogDish[] {
+  return narrowToPattern(catalog.filter((dish) => dish.isSide).map(toCatalogDish), dietPattern);
 }
 
 function toCatalogDish(dish: DishDetail): CatalogDish {
@@ -1320,6 +1328,9 @@ export type ClientContext = {
     dailyKcalTarget: number | null;
     proteinTargetGrams: number | null;
     allergenTags: string[];
+    /** Ticked conditions and the prescribed pattern — see `clinical.ts`. */
+    clinicalTags: string[];
+    dietPattern: string | null;
     preferences: string | null;
     dislikes: string | null;
     permanentInstructions: string | null;
@@ -1368,6 +1379,8 @@ export async function getClientContext(clinicId: string, clientId: string): Prom
       dailyKcalTarget: clientNutritionProfiles.dailyKcalTarget,
       proteinTargetGrams: clientNutritionProfiles.proteinTargetGrams,
       allergenTags: clientNutritionProfiles.allergenTags,
+      clinicalTags: clientNutritionProfiles.clinicalTags,
+      dietPattern: clientNutritionProfiles.dietPattern,
       preferences: clientNutritionProfiles.preferences,
       dislikes: clientNutritionProfiles.dislikes,
       permanentInstructions: clientNutritionProfiles.permanentInstructions,
@@ -1390,6 +1403,10 @@ export async function getClientContext(clinicId: string, clientId: string): Prom
     sex: row.sex,
     activityLevel: row.activityLevel,
     goal: row.goal,
+    /* A pregnancy or a lactation raises the suggested target — see
+       `LIFE_STAGE_KCAL`. The override, where the dietitian has set one, still
+       wins below. */
+    clinicalTags: row.clinicalTags ?? [],
   });
 
   const effectiveKcal = row.dailyKcalTarget ?? targets.suggestedKcal;
@@ -1411,6 +1428,8 @@ export async function getClientContext(clinicId: string, clientId: string): Prom
           dailyKcalTarget: row.dailyKcalTarget,
           proteinTargetGrams: row.proteinTargetGrams,
           allergenTags: row.allergenTags ?? [],
+          clinicalTags: row.clinicalTags ?? [],
+          dietPattern: row.dietPattern,
           preferences: row.preferences,
           dislikes: row.dislikes,
           permanentInstructions: row.permanentInstructions,
@@ -1501,6 +1520,15 @@ export type Board = {
   status: string;
   publishedAt: Date | null;
   weekInstructions: string | null;
+  /**
+   * What the dietitian wants to say to the **client** about this week.
+   *
+   * Not `weekInstructions`, which is what she told the model, and not the
+   * model's `summaryAr`, which is what it told her. This is the only one of the
+   * three a patient ever sees. See the column comment on
+   * `weekly_plans.client_note`.
+   */
+  clientNote: string | null;
   kcalTargetSnapshot: number;
   /** Null when the week used the client's own figures. */
   proteinTargetSnapshot: number | null;
@@ -1718,6 +1746,7 @@ export async function getBoard(clinicId: string, planId: string): Promise<Board 
       status: weeklyPlans.status,
       publishedAt: weeklyPlans.publishedAt,
       weekInstructions: weeklyPlans.weekInstructions,
+      clientNote: weeklyPlans.clientNote,
       kcalTargetSnapshot: weeklyPlans.kcalTargetSnapshot,
       proteinTargetSnapshot: weeklyPlans.proteinTargetSnapshot,
       goalSnapshot: weeklyPlans.goalSnapshot,
@@ -1795,6 +1824,7 @@ export async function getPublishedBoard(clientId: string, today: string): Promis
       status: weeklyPlans.status,
       publishedAt: weeklyPlans.publishedAt,
       weekInstructions: weeklyPlans.weekInstructions,
+      clientNote: weeklyPlans.clientNote,
       kcalTargetSnapshot: weeklyPlans.kcalTargetSnapshot,
       proteinTargetSnapshot: weeklyPlans.proteinTargetSnapshot,
       goalSnapshot: weeklyPlans.goalSnapshot,

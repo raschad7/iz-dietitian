@@ -13,6 +13,9 @@
 
 import type { ClientActivityLevel, ClientGoal } from '@/features/clients/schema';
 
+import { lifeStageKcal } from './clinical';
+import type { ClinicalCondition } from '@/features/clients/nutrition';
+
 /**
  * BMI categories, as the WHO defines them for adults.
  *
@@ -128,10 +131,20 @@ const GOAL_ADJUSTMENTS = {
  */
 export const MIN_SUGGESTED_KCAL = 1200;
 
-/** The suggested daily target: TDEE, adjusted for the goal, floored. */
-export function goalKcal(tdeeValue: number, goal: string | null): number {
+/**
+ * The suggested daily target: TDEE, adjusted for the goal and the life stage,
+ * floored.
+ *
+ * `lifeStage` is the extra energy a pregnancy or a lactation needs — see
+ * `LIFE_STAGE_KCAL`. It is added *after* the goal adjustment and before the
+ * floor, deliberately: a pregnant woman with a weight-loss goal on the record is
+ * a record that needs looking at, and the arithmetic should show her the two
+ * pulling against each other rather than resolve it quietly. The floor still
+ * binds, because it is a floor on what an ordinary diet can supply.
+ */
+export function goalKcal(tdeeValue: number, goal: string | null, lifeStage = 0): number {
   const adjustment = GOAL_ADJUSTMENTS[goal as ClientGoal] ?? 0;
-  return Math.max(MIN_SUGGESTED_KCAL, Math.round(tdeeValue + adjustment));
+  return Math.max(MIN_SUGGESTED_KCAL, Math.round(tdeeValue + adjustment + lifeStage));
 }
 
 export type SuggestedTargets = {
@@ -153,6 +166,16 @@ export type SuggestedTargets = {
   tdee: number | null;
   /** Null when the profile is too incomplete to compute one. */
   suggestedKcal: number | null;
+  /**
+   * The extra daily energy a pregnancy or a lactation added, and which
+   * condition added it. Zero and null for everybody else.
+   *
+   * Reported rather than folded silently into `suggestedKcal`, following this
+   * module's own rule about the analyser's BMR: a number that moved has to be
+   * able to say why. The Nutrition tab prints it under the suggestion.
+   */
+  lifeStageKcal: number;
+  lifeStageFrom: ClinicalCondition | null;
   /** Which inputs are missing, so the UI can name them instead of saying "incomplete". */
   missing: readonly ('weightKg' | 'heightCm' | 'dateOfBirth' | 'sex')[];
 };
@@ -170,6 +193,7 @@ export function suggestTargets({
   sex,
   activityLevel,
   goal,
+  clinicalTags = [],
   measuredBmrKcal = null,
 }: {
   weightKg: number | null;
@@ -178,6 +202,12 @@ export function suggestTargets({
   sex: string | null;
   activityLevel: string | null;
   goal: string | null;
+  /**
+   * The client's ticked conditions. Only the life-stage ones are read here —
+   * a pregnancy and a lactation are the two that change how much energy a
+   * person needs, and they are the reason this argument exists.
+   */
+  clinicalTags?: readonly string[];
   /**
    * The BMR printed on a body composition report, when there is one.
    *
@@ -227,6 +257,7 @@ export function suggestTargets({
   */
   const device = measuredBmrKcal !== null && measuredBmrKcal > 0 ? measuredBmrKcal : null;
   const tdeeValue = estimated === null ? null : tdee(estimated, activityLevel);
+  const lifeStage = lifeStageKcal(clinicalTags);
 
   return {
     bmi: bmiValue,
@@ -243,7 +274,9 @@ export function suggestTargets({
     */
     bmrGap: device === null || estimated === null ? null : (device - estimated) / estimated,
     tdee: tdeeValue,
-    suggestedKcal: tdeeValue === null ? null : goalKcal(tdeeValue, goal),
+    suggestedKcal: tdeeValue === null ? null : goalKcal(tdeeValue, goal, lifeStage.kcal),
+    lifeStageKcal: lifeStage.kcal,
+    lifeStageFrom: lifeStage.from,
     missing,
   };
 }

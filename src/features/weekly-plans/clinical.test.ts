@@ -1,0 +1,162 @@
+import { describe, expect, test } from 'bun:test';
+
+import { CLINICAL_CONDITIONS, DIET_PATTERNS } from '@/features/clients/nutrition';
+
+import {
+  clinicalRules,
+  CONDITION_RULES,
+  lifeStageKcal,
+  narrowToPattern,
+  PATTERN_RULES,
+  plannerCaveats,
+} from './clinical';
+
+/**
+ * The clinical rules, tested as what they are: a closed vocabulary with a
+ * decision attached to every value.
+ *
+ * No model and no database. The interesting properties are that every condition
+ * has a rule, that the energy arithmetic does the conservative thing when a
+ * record contradicts itself, and that narrowing the catalogue never leaves a
+ * meal type with nothing in it.
+ */
+
+describe('every value has a rule', () => {
+  /*
+    `satisfies` already makes this a compile error, and the test is here because
+    a compile error is invisible to anyone reading the suite for what the
+    feature promises: tick a condition, and something acts on it.
+  */
+  test('each condition tells the model something', () => {
+    for (const condition of CLINICAL_CONDITIONS) {
+      expect(CONDITION_RULES[condition].length).toBeGreaterThan(20);
+    }
+  });
+
+  test('each pattern tells the model something', () => {
+    for (const pattern of DIET_PATTERNS) {
+      expect(PATTERN_RULES[pattern].length).toBeGreaterThan(20);
+    }
+  });
+});
+
+describe('lifeStageKcal', () => {
+  test('a first trimester adds nothing — the requirement has not risen yet', () => {
+    expect(lifeStageKcal(['pregnancy_first_trimester'])).toEqual({
+      kcal: 0,
+      from: null,
+    });
+  });
+
+  test('a second trimester adds the DRI increment and says which one', () => {
+    expect(lifeStageKcal(['pregnancy_second_trimester'])).toEqual({
+      kcal: 340,
+      from: 'pregnancy_second_trimester',
+    });
+  });
+
+  test('an ordinary client adds nothing', () => {
+    expect(lifeStageKcal(['diabetes_type_2', 'hypertension']).kcal).toBe(0);
+  });
+
+  /*
+    A record carrying both is a record mid-correction, not a woman who needs 850
+    extra kilocalories. Taking the largest turns a data-entry slip into a target
+    that is merely generous rather than one nobody would notice was wrong.
+  */
+  test('two life stages at once take the larger, never the sum', () => {
+    expect(lifeStageKcal(['pregnancy_third_trimester', 'breastfeeding'])).toEqual({
+      kcal: 450,
+      from: 'pregnancy_third_trimester',
+    });
+  });
+});
+
+describe('clinicalRules', () => {
+  test('the pattern governs and the conditions follow', () => {
+    const rules = clinicalRules(['kidney_disease'], 'renal');
+
+    expect(rules.pattern).toBe(PATTERN_RULES.renal);
+    expect(rules.conditions).toEqual([CONDITION_RULES.kidney_disease]);
+  });
+
+  /*
+    A row hand-edited into holding a word this app does not know would otherwise
+    put an unconstrained string into a list the model reads as instructions.
+  */
+  test('a tag the app has no rule for is dropped, not passed through', () => {
+    expect(clinicalRules(['سكري', 'gout'], 'atkins')).toEqual({
+      pattern: null,
+      conditions: [CONDITION_RULES.gout],
+    });
+  });
+});
+
+describe('plannerCaveats', () => {
+  /*
+    The clinic asked how a ketogenic week would work for a client with epilepsy.
+    The honest answer is that a therapeutic ratio is not something a catalogue of
+    Palestinian home cooking can reach, and saying so is the feature.
+  */
+  test('a ketogenic week says it is not a therapeutic one', () => {
+    expect(plannerCaveats(['epilepsy'], 'keto')).toContain('ketoNotTherapeutic');
+  });
+
+  test('a renal client is told the restriction rests on words, not figures', () => {
+    expect(plannerCaveats(['kidney_disease'], null)).toContain('renalNutrientsUnknown');
+  });
+
+  test('an ordinary client is told nothing', () => {
+    expect(plannerCaveats(['hypertension'], 'low_sodium')).toEqual([]);
+  });
+
+  test('two life stages at once are flagged as a record to look at', () => {
+    expect(plannerCaveats(['breastfeeding', 'pregnancy_second_trimester'], null)).toContain(
+      'conflictingLifeStage',
+    );
+  });
+});
+
+describe('narrowToPattern', () => {
+  const dish = (nutritionCategory: string, ...mealTypes: string[]) => ({
+    nutritionCategory,
+    mealTypes,
+  });
+
+  const CATALOG = [
+    dish('high_carb', 'breakfast'),
+    dish('high_carb', 'breakfast'),
+    dish('high_protein', 'lunch'),
+    dish('high_fat', 'lunch'),
+    dish('balanced', 'lunch'),
+    dish('high_carb', 'lunch'),
+    dish('balanced', 'lunch', 'dinner'),
+  ];
+
+  test('no pattern narrows nothing', () => {
+    expect(narrowToPattern(CATALOG, null)).toHaveLength(CATALOG.length);
+  });
+
+  test('a pattern with no macro rule narrows nothing — the prompt does that work', () => {
+    expect(narrowToPattern(CATALOG, 'low_sodium')).toHaveLength(CATALOG.length);
+  });
+
+  test('keto drops the high-carbohydrate dishes from a meal type that can spare them', () => {
+    const kept = narrowToPattern(CATALOG, 'keto');
+    const lunches = kept.filter((entry) => entry.mealTypes.includes('lunch'));
+
+    expect(lunches.every((entry) => entry.nutritionCategory !== 'high_carb')).toBe(true);
+  });
+
+  /*
+    A Palestinian breakfast is bread. Filtering it to nothing would raise
+    `EmptySlotCatalogError` and tell the dietitian the catalogue is broken, which
+    is both untrue and unactionable — so a meal type the filter would empty keeps
+    what it has, and the prompt's own words do the work there.
+  */
+  test('a meal type the filter would empty keeps its dishes', () => {
+    const kept = narrowToPattern(CATALOG, 'keto');
+
+    expect(kept.filter((entry) => entry.mealTypes.includes('breakfast'))).toHaveLength(2);
+  });
+});

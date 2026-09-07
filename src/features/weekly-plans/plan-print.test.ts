@@ -104,6 +104,7 @@ function board(overrides: Partial<Board> = {}): Board {
     status: 'draft',
     publishedAt: null,
     weekInstructions: null,
+    clientNote: null,
     kcalTargetSnapshot: 1800,
     proteinTargetSnapshot: null,
     goalSnapshot: null,
