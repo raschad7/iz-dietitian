@@ -8,6 +8,7 @@ import {
   confirmationDedupeKey,
   credentialsDedupeKey,
   manualDedupeKey,
+  manualReminderDedupeKey,
   rescheduleDedupeKey,
   seriesDedupeKey,
   sendWhatsappMessage,
@@ -121,6 +122,68 @@ export async function notifyAppointmentBooked(
       dedupeKey: confirmationDedupeKey(target.appointmentId, target.date, target.startMinute),
     },
     { ...deps, settings },
+  );
+}
+
+/**
+ * Sends one appointment reminder now, because somebody pressed a button.
+ *
+ * The clinic asked for this: the nightly run reminds everybody a day ahead, and
+ * the dietitian wants to be the one who decides when a patient is reminded —
+ * after the last visit of the day, say, or when she has just spoken to them.
+ *
+ * Three things separate it from {@link sendDueAppointmentReminders}, and each is
+ * deliberate:
+ *
+ *  - **It is not gated on `remindersEnabled`.** That switch governs the
+ *    *automation*. A clinic that turned the nightly run off did so to take the
+ *    decision back, not to lose the ability to remind anybody — and a button
+ *    that silently did nothing because of a setting on another screen is the
+ *    worst version of this control.
+ *  - **The dedupe key is random**, so pressing it twice sends twice. See
+ *    {@link manualReminderDedupeKey}: repeating a reminder on purpose is a
+ *    legitimate thing to want, and it must not consume the automation's own key
+ *    for tomorrow either.
+ *  - **It still refuses the past**, through the same `isPast` every other
+ *    message here goes through. Reminding somebody about an appointment that has
+ *    started is not a reminder.
+ *
+ * Everything else is the reminder the cron sends, word for word — the same
+ * template, the same funnel, the same Arabic. A patient cannot tell which of the
+ * two arrived, and there is nothing here that would let them.
+ */
+export async function sendAppointmentReminderNow(
+  clinicId: string,
+  appointmentId: string,
+  deps: Pick<SendDeps, 'gateway'> = {},
+): Promise<SendResult> {
+  const target = await getAppointmentTarget(clinicId, appointmentId);
+
+  /* No appointment in this clinic, or a client with no number. Both ordinary. */
+  if (!target) return { status: 'skipped', reason: 'no_phone' };
+
+  if (isPast(target)) return { status: 'skipped', reason: 'in_the_past' };
+
+  return sendWhatsappTemplate(
+    {
+      kind: 'appointmentReminder',
+      locale: PATIENT_MESSAGE_LOCALE,
+      variables: {
+        clientName: target.clientName,
+        clinicName: target.clinicName,
+        date: formatLongDate(PATIENT_MESSAGE_LOCALE, target.date),
+        time: formatMinute(PATIENT_MESSAGE_LOCALE, target.date, target.startMinute),
+      },
+    },
+    {
+      clinicId,
+      clientId: target.clientId,
+      appointmentId: target.appointmentId,
+      kind: 'appointment_reminder',
+      phone: target.phone,
+      dedupeKey: manualReminderDedupeKey(target.appointmentId),
+    },
+    deps,
   );
 }
 

@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
 
 import { type Locale } from '@/i18n/routing';
 import { requireStaffClinic } from '@/lib/session';
@@ -14,7 +15,7 @@ import {
 } from './form-state';
 import { GatewayError } from './gateway';
 import { updateAutomationSettings } from './mutations';
-import { sendManualMessage } from './notify';
+import { sendAppointmentReminderNow, sendManualMessage } from './notify';
 import { automationSettingsSchema, localeSchema, sendMessageSchema } from './schema';
 import { type ConnectionView } from './types';
 
@@ -210,6 +211,59 @@ export async function sendWhatsappMessageAction(
     }
 
     console.error('[whatsapp] manual send failed', error);
+    return { status: 'error', messageKey: 'errors.unexpected' };
+  }
+}
+
+/**
+ * Sends one patient their appointment reminder, now, from the appointment card.
+ *
+ * The clinic asked for a button rather than only an overnight run — see
+ * {@link sendAppointmentReminderNow}, which is where the three ways it differs
+ * from the automation are written down.
+ *
+ * It takes an appointment id rather than a form, because the card that presses
+ * it is the calendar's dialog and has no form of its own to hang fields on. The
+ * guard is the same as everywhere else here: a server action is a public
+ * endpoint, and `requireStaffClinic` is what stops this being a way to remind
+ * another clinic's patient.
+ *
+ * `in_the_past` gets its own answer. "This appointment has already started" is
+ * something the dietitian can see for themselves once told, and it is a
+ * different thing from a connection that is down — collapsing the two would send
+ * somebody to check the WhatsApp settings over an appointment that simply went
+ * by.
+ */
+export async function sendAppointmentReminderAction(
+  rawLocale: string,
+  appointmentId: string,
+): Promise<SendMessageActionState> {
+  const locale = localeSchema.parse(rawLocale);
+  const { clinicId } = await requireStaffClinic(locale);
+
+  const id = z.uuid().safeParse(appointmentId);
+
+  if (!id.success) return { status: 'error', messageKey: 'errors.invalid' };
+
+  try {
+    const result = await sendAppointmentReminderNow(clinicId, id.data);
+
+    if (result.status === 'sent') return { status: 'success', messageKey: 'send.sent' };
+    if (result.status === 'failed') return { status: 'error', messageKey: 'errors.sendFailed' };
+
+    if (result.reason === 'no_phone') return { status: 'skipped', messageKey: 'send.noPhone' };
+    if (result.reason === 'in_the_past') return { status: 'skipped', messageKey: 'send.inThePast' };
+    if (result.reason === 'not_on_whatsapp') return { status: 'skipped', messageKey: 'send.notOnWhatsapp' };
+    if (result.reason === 'not_connected') return { status: 'skipped', messageKey: 'send.notConnected' };
+
+    return { status: 'skipped', messageKey: 'send.notConfigured' };
+  } catch (error) {
+    if (error instanceof WhatsappConfigError) {
+      console.error(`[whatsapp] manual reminder failed: ${error.message}`);
+      return { status: 'error', messageKey: 'errors.misconfigured' };
+    }
+
+    console.error('[whatsapp] manual reminder failed', error);
     return { status: 'error', messageKey: 'errors.unexpected' };
   }
 }

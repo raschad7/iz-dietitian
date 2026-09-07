@@ -6,6 +6,8 @@ import { useCallback, useEffect, useMemo, useOptimistic, useRef, useState, useTr
 
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useDialogPresenceValue } from '@/components/ui/dialog-motion';
+import { toast } from '@/components/ui/toast';
+import { sendAppointmentReminderAction } from '@/features/whatsapp/actions';
 import { useRouter } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
 import { normalizeForSearch } from '@/features/clients/search';
@@ -308,6 +310,13 @@ export function Calendar({
   frozen = false,
 }: CalendarProps) {
   const t = useTranslations('booking');
+  /*
+    The reminder is WhatsApp's own vocabulary — the question it asks, and every
+    way a send can come back — so it is read from that namespace rather than
+    copied into this one. The calendar owns the confirmation because it owns
+    every modal on this screen; it does not own the words.
+  */
+  const tWhatsapp = useTranslations('whatsapp');
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -496,6 +505,16 @@ export function Calendar({
   /** The two writes that ask first: rescheduling by drag, and deleting. */
   const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
   const [pendingDelete, setPendingDelete] = useState<CalendarAppointment | null>(null);
+  /**
+   * The appointment whose patient is about to be sent a reminder.
+   *
+   * Held here rather than in the dialog for the reason `pendingDelete` is: the
+   * confirmation is a modal `<dialog>`, and this screen opens all of them from
+   * one place. **WhatsApp has no unsend**, and the thing that is easy to be
+   * wrong about on a grid of near-identical blocks is which block you are on —
+   * so the question names the patient and the hour.
+   */
+  const [pendingReminder, setPendingReminder] = useState<CalendarAppointment | null>(null);
 
   /**
    * The clinic's single practitioner, taken from whatever is already booked.
@@ -1277,6 +1296,30 @@ export function Calendar({
     });
   }
 
+  /**
+   * Sends one patient their appointment reminder, after the question is
+   * answered.
+   *
+   * A toast rather than the calendar's own error line: every outcome is worth
+   * saying, including the ones that are not errors — no number on the record, a
+   * number nobody uses for WhatsApp, a gateway nobody has paired. A send that
+   * quietly did nothing is the worst state this can be in, because the
+   * dietitian saw a press, saw nothing, and moves on believing a patient was
+   * told something they were never told.
+   *
+   * Nothing on the grid changes, so nothing is revalidated and no optimistic
+   * update is applied. The message log on the client's record is where the send
+   * is recorded.
+   */
+  function sendReminder(appointmentId: string): void {
+    startTransition(async () => {
+      const result = await sendAppointmentReminderAction(locale, appointmentId);
+
+      if (result.status === 'success') toast.success(tWhatsapp(result.messageKey));
+      else if (result.status !== 'idle') toast.error(tWhatsapp(result.messageKey));
+    });
+  }
+
   /** "Wednesday 5 August · 10:00", for naming an appointment in a question. */
   function whenLabel(at: { date: string; startMinute: number }): string {
     return `${formatLongDate(locale, at.date)} · ${formatMinute(locale, at.date, at.startMinute)}`;
@@ -1941,6 +1984,11 @@ export function Calendar({
             setPendingDelete(presentedEditing);
             setEditing(null);
           }}
+          /* Same hand-off as Delete, and for the same reason. */
+          onSendReminder={(appointment) => {
+            setPendingReminder(appointment);
+            setEditing(null);
+          }}
           onClose={() => setEditing(null)}
         />
       )}
@@ -1987,6 +2035,25 @@ export function Calendar({
         the one moment the calendar had just changed. The span is a field on the
         create surfaces now; see `RepeatField`.
       */}
+
+      {pendingReminder && (
+        <ConfirmDialog
+          locale={locale}
+          title={tWhatsapp('reminder.confirmTitle')}
+          description={tWhatsapp('reminder.confirmBody', {
+            name: pendingReminder.clientName,
+            when: whenLabel(pendingReminder),
+          })}
+          confirmLabel={tWhatsapp('reminder.send')}
+          cancelLabel={t('actions.cancel')}
+          onConfirm={() => {
+            const { id } = pendingReminder;
+            setPendingReminder(null);
+            sendReminder(id);
+          }}
+          onCancel={() => setPendingReminder(null)}
+        />
+      )}
 
       {pendingDelete && (
         <ConfirmDialog

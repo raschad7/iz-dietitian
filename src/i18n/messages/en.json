@@ -322,7 +322,8 @@
       "save": "Save",
       "cancel": "Cancel",
       "close": "Close",
-      "delete": "Delete appointment"
+      "delete": "Delete appointment",
+      "sendReminder": "Send a reminder"
     },
     "confirmMove": {
       "title": "Change this appointment?",
@@ -2715,7 +2716,8 @@
       "noPhone": "This client has no usable phone number.",
       "notOnWhatsapp": "WhatsApp does not recognize this client's phone number.",
       "notConnected": "WhatsApp is not connected right now.",
-      "notConfigured": "WhatsApp is not linked yet."
+      "notConfigured": "WhatsApp is not linked yet.",
+      "inThePast": "That appointment has already started — there is nothing to remind them of."
     },
     "errors": {
       "disabled": "WhatsApp is not enabled on this installation.",
@@ -2725,6 +2727,11 @@
       "notLinked": "Connect WhatsApp first, then set the automations up.",
       "sendFailed": "The message could not be sent. Check the message log.",
       "unexpected": "Something went wrong. Try again."
+    },
+    "reminder": {
+      "send": "Send a reminder",
+      "confirmTitle": "Send an appointment reminder?",
+      "confirmBody": "{name} will get a WhatsApp reminder about {when}. A sent message cannot be taken back."
     }
   },
   "clinicProfile": {

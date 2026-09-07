@@ -57,6 +57,15 @@ export type AppointmentDialogProps = {
     reason?: string;
   }) => void;
   onDelete: (id: string) => void;
+  /**
+   * Send this patient their appointment reminder on WhatsApp, now.
+   *
+   * Handed up rather than done here, exactly as `onDelete` is and for the same
+   * reason: the confirmation is a modal `<dialog>`, and opening one inside
+   * another makes focus and the backdrop fiddly. The calendar owns every
+   * confirmation on this screen.
+   */
+  onSendReminder: (appointment: CalendarAppointment) => void;
   onClose: () => void;
 };
 
@@ -111,6 +120,7 @@ export function AppointmentDialog({
   completed,
   onSave,
   onDelete,
+  onSendReminder,
   onClose,
 }: AppointmentDialogProps) {
   const t = useTranslations('booking');
@@ -428,6 +438,38 @@ export function AppointmentDialog({
           </Button>
 
           <div className="flex items-center gap-2">
+            {/*
+              Remind this patient on WhatsApp, now.
+
+              The clinic asked for a button: reminders already went out on their
+              own the night before, and the dietitian wanted to choose the
+              moment — at the end of a consultation, or while going through
+              tomorrow's diary. It sends the same message the automation sends.
+
+              **Not on a finished appointment.** There is nothing to remind
+              anybody of once the hour has gone, and the send refuses it
+              server-side too (`isPast` in `notify.ts`); this is only the half
+              the reader can see.
+
+              Beside Cancel rather than beside Delete: it is a thing done *to
+              this appointment*, like saving, and Delete's end of the footer is
+              where the one destructive control lives on its own.
+            */}
+            {!completed && (
+              <Button
+                type="button"
+                variant="neutral"
+                size="sm"
+                onClick={() => {
+                  onSendReminder(appointment);
+                  onClose();
+                }}
+              >
+                <Icon name="whatsapp" data-icon="inline-start" />
+                {t('actions.sendReminder')}
+              </Button>
+            )}
+
             <Button type="button" variant="ghost" size="sm" onClick={onClose}>
               {completed ? t('actions.close') : t('actions.cancel')}
             </Button>

@@ -258,6 +258,23 @@ export function reminderDedupeKey(appointmentId: string, date: string): string {
 }
 
 /**
+ * A reminder the dietitian sent by pressing a button.
+ *
+ * Random, and deliberately **not** {@link reminderDedupeKey}. That one exists so
+ * a cron tick that overlaps the last one cannot send twice; this one is a person
+ * choosing to send, and choosing to send again — because the first went out
+ * before the patient had their phone, or because the appointment was talked
+ * about and is worth restating — is a legitimate thing to want. Deduping it
+ * would leave the dietitian looking at a button that did nothing.
+ *
+ * It also means a hand-pressed reminder never consumes the automation's key: a
+ * clinic with reminders switched on still gets its own reminder tomorrow.
+ */
+export function manualReminderDedupeKey(appointmentId: string): string {
+  return `reminder:manual:${appointmentId}:${randomUUID()}`;
+}
+
+/**
  * The confirmation for a newly booked appointment.
  *
  * Includes the date and start minute, so **rescheduling sends a fresh
