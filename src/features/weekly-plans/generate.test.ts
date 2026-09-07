@@ -440,8 +440,18 @@ describe('parseGeneratedPlan', () => {
     expect(() => parseGeneratedPlan({ days: [] }, ['lunch'])).toThrow();
   });
 
-  test('rejects servings outside the legal range', () => {
-    expect(() => parseGeneratedPlan({ days: [day(0, meal({ servings: 9 }))] }, ['lunch'])).toThrow();
+  /**
+   * Clamped rather than rejected, because the number is a hint nothing reads.
+   *
+   * A refinement answered `servings: 3.5` on one meal of thirty-five and the whole
+   * week was thrown away — thirty-five good dish choices lost to a figure
+   * `chooseServings` was about to discard. The dish reference is the valuable part
+   * of the response; the multiplier is not.
+   */
+  test('clamps servings outside the legal range instead of losing the week', () => {
+    const parsed = parseGeneratedPlan({ days: [day(0, meal({ servings: 9 }))] }, ['lunch']);
+
+    expect(parsed.days[0]!.meals[0]!.servings).toBe(3);
   });
 
   test('reads the week summary beside the days', () => {

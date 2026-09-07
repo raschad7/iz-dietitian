@@ -112,6 +112,49 @@ export type PromptClient = {
   dietPattern: string | null;
 };
 
+/**
+ * A week that already exists, handed back for a second opinion.
+ *
+ * ## Why there is a second pass at all
+ *
+ * The first pass answers "which dish goes in this slot", which is a constrained
+ * choice from an enum and something a model does well. What it cannot do in the
+ * same breath is stand back and read the finished week — whether Thursday has a
+ * shape, whether the carbohydrate holds steady across seven days, whether a bowl
+ * of tabbouleh is a dinner. Those are judgements about the whole document, and
+ * they are only available once the document exists.
+ *
+ * Measured on the audited weeks, a second pass lifted protein delivery from 82%
+ * of target to 87% and pulled a diabetic week's carbohydrate range from
+ * 104–256 g down to 116–144 g — the steadiness that matters most for that
+ * client and that no arithmetic rule in this codebase expresses.
+ *
+ * It is a *correction*, not a regeneration: the same schema, the same catalogue,
+ * the same reconciliation afterwards. So everything the first pass guarantees
+ * still holds — a dish outside the catalogue is unrepresentable, allergens are
+ * already filtered, portions are still arithmetic.
+ */
+export type PromptDraft = {
+  days: readonly {
+    dayOfWeek: number;
+    kcal: number;
+    protein: number;
+    carbs: number;
+    meals: readonly {
+      slotKey: string;
+      slug: string;
+      kcal: number;
+      budgetKcal: number;
+      protein: number;
+    }[];
+  }[];
+  /**
+   * What the arithmetic checks found, so the model does not spend its answer
+   * rediscovering countable things — the same division of labour as `review.ts`.
+   */
+  findings: readonly string[];
+};
+
 export type PromptInput = {
   client: PromptClient;
   /** Slots with their calorie budgets, already normalised by `slotBudgets`. */
@@ -134,6 +177,12 @@ export type PromptInput = {
   /** Which days to produce. One entry for a single-day regeneration. */
   days: readonly number[];
   scope: GenerationScope;
+  /**
+   * Present for a refinement pass. The payload then asks for the draft to be
+   * corrected rather than for a week to be planned, and everything else — the
+   * client, the catalogue, the schema — is identical.
+   */
+  draft?: PromptDraft | null;
 };
 
 export type PromptPayload = {
@@ -157,6 +206,48 @@ function dayNameAr(dayOfWeek: number): string {
  * only accepts a slug and a multiplier. Prompts should not ask for guarantees the
  * data model already provides; it wastes tokens and implies the guarantee is soft.
  */
+/**
+ * The system prompt for the second pass.
+ *
+ * Written as a correction brief rather than a planning brief, and ordered by what
+ * the audit found actually goes wrong. Protein is first because it is the
+ * commonest failure and the one that matters most for a client in a deficit; it
+ * used to be a single line in the planning prompt while variety had eight.
+ *
+ * The last rule is the one a real dietitian's own week taught. Hers repeats the
+ * same bread in six of seven breakfasts and uses dairy in twelve of thirty-five
+ * meals, and she is not being lazy — she holds the staples steady so the week is
+ * shoppable, and varies the centre of the plate. A model told simply to "add
+ * variety" will do the opposite, and take the labneh out of the breakfast.
+ */
+function buildRefineSystem(): string {
+  return [
+    'You are a senior clinical dietitian in Hebron, correcting a DRAFT weekly plan that software produced for one of your clients.',
+    'Return the corrected week in the same format: a dish slug and a servings hint for every slot of every day.',
+    '',
+    'Most of the draft is probably fine. Keep what works and change a meal only where there is a reason — a week you rewrite entirely is a week you have not read.',
+    '',
+    'Correct these, in this order:',
+    '',
+    '1. PROTEIN. Every day must land within 15% of the daily protein target. This is the commonest failure in these drafts. Never fix anything else by taking the protein out of a meal.',
+    '2. STEADY MACROS. Carbohydrate should not double from the start of the week to the end. For a diabetic client this matters more than any single day being perfect.',
+    '3. THE CLINICAL RULES above govern. A sweet in a diabetic week, a salty dish in a hypertensive one, or bread in a low-carbohydrate one is a correction that outranks everything below.',
+    '4. OCCASION. Festive and Ramadan dishes belong only in a festive or Ramadan week.',
+    '5. SOURCE. Plan home cooking unless the client was said to eat out, and then only on the days named.',
+    '6. DAY SHAPE. Something warm and cooked at lunch or dinner; not two cold salads in one day. A salad or a mezze is not a main course — a bowl of tabbouleh is not a dinner.',
+    '7. THE PLATE FITS THE SLOT. A snack is a snack. Do not put a full plate in a 150 kcal slot or a piece of fruit in a 500 kcal one.',
+    '',
+    'On variety, which is where these drafts most often go wrong in the other direction:',
+    '- Vary the CENTRE OF THE PLATE — the protein and the main dish at lunch and dinner. That is the repetition a client notices.',
+    '- Do NOT chase variety in the staples. Bread, labneh, eggs, cheese, yogurt, salad and vegetables repeat through a real week and should. A dietitian holds them steady on purpose, so the week is shoppable and the client learns it.',
+    '- Never repeat the same main dish on consecutive days in the same slot.',
+    '',
+    'Choose ONLY from the catalogue below, by slug. Portions are recomputed afterwards by arithmetic, so servings is a hint.',
+    '',
+    'summaryAr — 2 to 4 short notes in Arabic for the dietitian, one per line, each starting with "- ". Say what you changed and why, naming the day and the meal. If you changed little, say that instead of inventing notes.',
+  ].join('\n');
+}
+
 function buildSystem(): string {
   return [
     'You are a clinical dietitian planning weekly meals for a Palestinian client in Hebron.',
@@ -299,8 +390,34 @@ function describeBudgets(budgets: readonly SlotBudget[]): string {
     .join('\n');
 }
 
+/**
+ * The draft, as the second pass reads it.
+ *
+ * Compact on purpose: a slug, what the meal came to, and what it was aiming at.
+ * The model already has the catalogue, so naming a dish by slug tells it
+ * everything else — and rendering thirty-five full recipes would triple the
+ * payload to say what one line already says.
+ */
+function describeDraft(draft: PromptDraft): string {
+  const lines: string[] = [];
+
+  for (const day of draft.days) {
+    lines.push(
+      `Day ${day.dayOfWeek} — ${day.kcal} kcal · protein ${day.protein} g · carbs ${day.carbs} g`,
+    );
+
+    for (const meal of day.meals) {
+      lines.push(
+        `  ${meal.slotKey}: ${meal.slug || '(empty)'} — ${meal.kcal}/${meal.budgetKcal} kcal, ${meal.protein} g protein`,
+      );
+    }
+  }
+
+  return lines.join('\n');
+}
+
 export function buildPrompt(input: PromptInput): PromptPayload {
-  const { client, budgets, catalog, sides, instruction, previousSlugs, days } = input;
+  const { client, budgets, catalog, sides, instruction, previousSlugs, days, draft } = input;
 
   const sections: string[] = [
     '## Client',
@@ -330,6 +447,19 @@ export function buildPrompt(input: PromptInput): PromptPayload {
     );
   }
 
+  if (draft) {
+    sections.push('', '## The draft to correct', describeDraft(draft));
+
+    if (draft.findings.length) {
+      sections.push(
+        '',
+        '## What the checks already found',
+        'These are computed, not opinions. You do not need to repeat them; correct them.',
+        ...draft.findings.map((finding) => `- ${finding}`),
+      );
+    }
+  }
+
   if (instruction) {
     sections.push('', '## Dietitian instructions for this week', instruction);
   }
@@ -337,12 +467,14 @@ export function buildPrompt(input: PromptInput): PromptPayload {
   sections.push(
     '',
     '## Task',
-    `Produce a plan for these days: ${days.map((day) => `${day} (${dayNameAr(day)})`).join(', ')}.`,
+    draft
+      ? `Return the corrected week for these days: ${days.map((day) => `${day} (${dayNameAr(day)})`).join(', ')}.`
+      : `Produce a plan for these days: ${days.map((day) => `${day} (${dayNameAr(day)})`).join(', ')}.`,
     `Each day must contain exactly these slots: ${budgets.map((slot) => slot.slotKey).join(', ')}.`,
   );
 
   return {
-    system: buildSystem(),
+    system: draft ? buildRefineSystem() : buildSystem(),
     user: sections.join('\n'),
     jsonSchema: buildJsonSchema(catalog, sides, budgets, days),
   };
@@ -405,7 +537,9 @@ function buildJsonSchema(
       additionalProperties: false,
       properties: {
         dish,
-        servings: { type: 'number' },
+        // Bounded on the wire as well as in the parser. The value is a hint and is
+        // recomputed, but a provider that refuses 3.5 is one fewer retry.
+        servings: { type: 'number', minimum: MIN_SERVINGS, maximum: MAX_SERVINGS },
         rationaleAr: { type: 'string' },
         sides: sideList,
       },

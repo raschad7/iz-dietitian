@@ -33,7 +33,8 @@ import { getLlmTransport } from '@/features/weekly-plans/llm';
 import { mealIngredientLines, mealTotals } from '@/features/weekly-plans/meal-ingredients';
 import { combineTotals, emptyTotals } from '@/features/weekly-plans/nutrition';
 import { chooseServings, portionLine } from '@/features/weekly-plans/portioning';
-import { buildPrompt } from '@/features/weekly-plans/prompt';
+import { buildPrompt, type PromptInput } from '@/features/weekly-plans/prompt';
+import { draftFromMeals } from '@/features/weekly-plans/refine';
 import { toPromptCatalog, toPromptSides, type Board } from '@/features/weekly-plans/queries';
 import { arithmeticFindings, renderPlanForReview } from '@/features/weekly-plans/review';
 import { DAYS_OF_WEEK, isFixedPortion, parseGeneratedPlan } from '@/features/weekly-plans/schema';
@@ -422,7 +423,7 @@ function boardFrom(
  * Everything else is the production path exactly: the same `buildPrompt`, the same
  * transport, the same `reconcile`.
  */
-async function planFor(profile: Profile, options: { replay?: string } = {}) {
+async function planFor(profile: Profile, options: { replay?: string; refine?: boolean } = {}) {
   const schedule = profile.schedule ?? DEFAULT_MEAL_SCHEDULE;
   const allergens = profile.allergens ?? [];
 
@@ -437,14 +438,19 @@ async function planFor(profile: Profile, options: { replay?: string } = {}) {
   });
 
   const kcalTarget = targets.suggestedKcal!;
-  const proteinTarget = suggestProteinGrams(profile.weightKg);
+  /* The same inputs production uses: a renal client must not be measured against
+     1.6 g/kg, and no client against a figure their day has no room for. */
+  const proteinTarget = suggestProteinGrams(profile.weightKg, {
+    clinicalTags: profile.clinicalTags ?? [],
+    dailyKcalTarget: kcalTarget,
+  });
   const budgets = slotBudgets(kcalTarget, schedule);
 
   const dishes = catalogFor(allergens);
   const catalog = toPromptCatalog(dishes, profile.dietPattern ?? null);
   const sides = toPromptSides(dishes, profile.dietPattern ?? null);
 
-  const payload = buildPrompt({
+  const promptInput = {
     client: {
         age: profile.age,
         sex: profile.sex,
@@ -470,8 +476,9 @@ async function planFor(profile: Profile, options: { replay?: string } = {}) {
     previousSlugs: [],
     days: [...DAYS_OF_WEEK],
     scope: 'week',
-  });
+  } satisfies PromptInput;
 
+  const payload = buildPrompt(promptInput);
   const startedAt = Date.now();
 
   const raw = options.replay
@@ -497,9 +504,69 @@ async function planFor(profile: Profile, options: { replay?: string } = {}) {
     durationMs: Date.now() - startedAt,
   };
 
-  const board = boardFrom(profile, kcalTarget, proteinTarget, outcome.meals, catalog, sides);
+  let refined: typeof outcome | null = null;
 
-  return { board, outcome, targets, budgets, catalog, sides, kcalTarget, proteinTarget, raw };
+  if (options.refine) {
+    /*
+      The second pass, run exactly as production would: the same payload builder
+      with a draft attached, the same transport, the same reconciliation. The only
+      thing the lab adds is keeping both outcomes so the two can be compared.
+    */
+    const draft = draftFromMeals({
+      meals: outcome.meals,
+      budgets,
+      catalog,
+      sides,
+      days: [...DAYS_OF_WEEK],
+      kcalTarget,
+      proteinTargetGrams: proteinTarget,
+    });
+
+    const refinePayload = buildPrompt({ ...promptInput, draft });
+    const refineStart = Date.now();
+    const refineRaw = await getLlmTransport().complete(refinePayload);
+
+    refined = {
+      ...reconcile({
+        plan: parseGeneratedPlan(
+          JSON.parse(refineRaw.content),
+          budgets.map((slot) => slot.slotKey),
+        ),
+        days: [...DAYS_OF_WEEK],
+        budgets,
+        catalog,
+        sides,
+        allergens,
+        proteinTargetGrams: proteinTarget,
+      }),
+      model: refineRaw.model,
+      usage: refineRaw.usage,
+      durationMs: Date.now() - refineStart,
+    };
+  }
+
+  const board = boardFrom(
+    profile,
+    kcalTarget,
+    proteinTarget,
+    (refined ?? outcome).meals,
+    catalog,
+    sides,
+  );
+
+  return {
+    board,
+    outcome: refined ?? outcome,
+    firstPass: outcome,
+    refined,
+    targets,
+    budgets,
+    catalog,
+    sides,
+    kcalTarget,
+    proteinTarget,
+    raw,
+  };
 }
 
 /**
@@ -660,6 +727,7 @@ if (import.meta.main) {
   const outDir = args.includes('--out') ? args[args.indexOf('--out') + 1]! : '.plan-lab';
   const concurrency = Number(args[args.indexOf('--concurrency') + 1]) || 3;
   const fromDisk = args.includes('--replay');
+  const refine = args.includes('--refine');
 
   const chosen = only ? PROFILES.filter((p) => p.key === only) : PROFILES;
   if (!chosen.length) {
@@ -695,7 +763,7 @@ if (import.meta.main) {
           continue;
         }
 
-        const run = await planFor(profile, { replay: replay ?? undefined });
+        const run = await planFor(profile, { replay: replay ?? undefined, refine });
 
         if (!fromDisk) {
           await writeFile(join(outDir, `${profile.key}.response.json`), run.raw.content, 'utf8');
@@ -706,10 +774,34 @@ if (import.meta.main) {
         const drift = Math.round(((perDay - run.kcalTarget) / run.kcalTarget) * 100);
         const findings = arithmeticFindings(run.board).length;
 
+        /** Protein delivered as a share of target, averaged over the week. */
+        const proteinPct = (outcome: typeof run.outcome) => {
+          if (!run.proteinTarget) return null;
+          const draft = draftFromMeals({
+            meals: outcome.meals,
+            budgets: run.budgets,
+            catalog: run.catalog,
+            sides: run.sides,
+            days: [...DAYS_OF_WEEK],
+            kcalTarget: run.kcalTarget,
+            proteinTargetGrams: run.proteinTarget,
+          });
+          const mean =
+            draft.days.reduce((sum, day) => sum + day.protein, 0) / draft.days.length;
+          return Math.round((mean / run.proteinTarget) * 100);
+        };
+
+        const before = proteinPct(run.firstPass);
+        const after = run.refined ? proteinPct(run.refined) : null;
+
         console.info(
           `${profile.key.padEnd(26)} ${String(perDay).padStart(5)} kcal/day (${drift > 0 ? '+' : ''}${drift}%) ` +
-            `· ${String(findings).padStart(2)} finding(s) · ${run.outcome.unfilled} unfilled · ` +
-            `${Math.round((Date.now() - started) / 1000)}s`,
+            `· P ${before}%${after === null ? '' : ` → ${after}%`}` +
+            ` · ${String(findings).padStart(2)} finding(s) · ${run.outcome.unfilled} unfilled · ` +
+            `${Math.round((Date.now() - started) / 1000)}s` +
+            (run.refined
+              ? ` (refine ${Math.round(run.refined.durationMs / 1000)}s, ${run.refined.usage.promptTokens} in / ${run.refined.usage.completionTokens} out)`
+              : ''),
         );
       } catch (error) {
         failures.push(profile.key);
