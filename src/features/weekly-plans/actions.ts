@@ -11,6 +11,7 @@ import { type Locale } from '@/i18n/routing';
 import { requireStaffClinic } from '@/lib/session';
 
 import { GenerationFailedError, runGeneration, type GenerationOutcome } from './generate';
+import { draftFromBoard } from './refine';
 import { EmptySlotCatalogError, type PromptInput } from './prompt';
 import { LlmNotConfiguredError } from './llm';
 import {
@@ -43,6 +44,7 @@ import {
   planIdSchema,
   planClientNoteSchema,
   publishPlanSchema,
+  refinePlanSchema,
   regenerateDaySchema,
   regenerateMealSchema,
   swapMealSchema,
@@ -430,6 +432,110 @@ async function regenerate({
     });
   } catch (error) {
     console.error(`[weekly-plans] replacing ${scope} failed`, error);
+    return { status: 'error', messageKey: 'errors.unexpected' };
+  }
+
+  revalidateBoard(locale, board.clientId);
+  return toDoneState(outcome);
+}
+
+/**
+ * A second opinion on a week that already exists.
+ *
+ * The same generation path with the draft attached, so the answer reconciles
+ * exactly as a first pass does and every guarantee still holds. It replaces the
+ * whole week rather than a day, which is deliberate: the failures it exists to
+ * catch — carbohydrate climbing across seven days, the same protein carrying
+ * Thursday and Friday, a week with no shape — are properties of the week and
+ * cannot be corrected a day at a time.
+ *
+ * It is its own button rather than part of generation because the two calls
+ * together sit on the route's ceiling. See `refine.ts`.
+ */
+export async function refinePlanAction(
+  _previousState: GenerateState,
+  formData: FormData,
+): Promise<GenerateState> {
+  const locale = readLocale(formData);
+  const { clinicId } = await requireStaffClinic(locale);
+
+  const parsed = refinePlanSchema.safeParse({
+    planId: formData.get('planId'),
+    instruction: formData.get('instruction'),
+  });
+
+  if (!parsed.success) return { status: 'error', messageKey: 'errors.unexpected' };
+
+  const board = await getBoard(clinicId, parsed.data.planId);
+  if (!board) return { status: 'error', messageKey: 'errors.planNotFound' };
+
+  // The plan's own figures, for the same reason a day regeneration uses them: a
+  // week budgeted at 1,700 must not be corrected against a profile that has since
+  // moved to 1,850.
+  const prepared = await prepare(clinicId, board.clientId, {
+    kcalTarget: board.kcalTargetSnapshot,
+    proteinTarget: board.proteinTargetSnapshot,
+    goal: board.goalSnapshot,
+  });
+  if (!prepared.ok) return prepared.state;
+
+  const { ready } = prepared;
+  const instruction = parsed.data.instruction ?? board.weekInstructions ?? null;
+
+  let outcome: GenerationOutcome;
+
+  try {
+    outcome = await runGeneration(
+      {
+        ...promptInput({
+          ready,
+          instruction,
+          previous: [],
+          days: [...DAYS_OF_WEEK],
+          scope: 'week',
+          budgets: ready.budgets,
+        }),
+        draft: draftFromBoard({
+          board,
+          kcalTarget: ready.kcalTarget,
+          proteinTargetGrams: ready.proteinTargetGrams,
+        }),
+      },
+      toPromptCatalog(ready.catalog, ready.profile.dietPattern),
+      ready.allergens,
+      toPromptSides(ready.catalog, ready.profile.dietPattern),
+    );
+  } catch (error) {
+    await recordGeneration({
+      clinicId,
+      planId: parsed.data.planId,
+      scope: 'week',
+      instruction,
+      model: process.env.OPENAI_MODEL ?? 'unknown',
+      status: 'failed',
+      error: error instanceof Error ? error.message.slice(0, 1000) : String(error),
+    }).catch(() => {});
+
+    return toErrorState(error, 'week');
+  }
+
+  try {
+    const replaced = await replaceMeals(clinicId, parsed.data.planId, outcome.meals, outcome.model);
+    if (!replaced) return { status: 'error', messageKey: 'errors.planNotFound' };
+
+    await recordGeneration({
+      clinicId,
+      planId: parsed.data.planId,
+      scope: 'week',
+      instruction,
+      model: outcome.model,
+      promptTokens: outcome.usage.promptTokens,
+      completionTokens: outcome.usage.completionTokens,
+      durationMs: outcome.durationMs,
+      status: 'ok',
+    });
+  } catch (error) {
+    console.error('[weekly-plans] refining the plan failed', error);
     return { status: 'error', messageKey: 'errors.unexpected' };
   }
 
