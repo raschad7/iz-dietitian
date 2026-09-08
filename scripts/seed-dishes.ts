@@ -37,6 +37,7 @@ import {
   DISH_SOURCES,
   MEAL_TYPES,
 } from '@/features/weekly-plans/schema';
+import { countLimit } from '@/features/weekly-plans/portion-limits';
 import { isMember } from '@/lib/enum';
 
 import { readCatalogDataset } from './seed-catalog-foods';
@@ -287,12 +288,98 @@ export function validateCountingUnits(
   return problems;
 }
 
+/**
+ * A recipe that is already past what a person eats at one sitting.
+ *
+ * `portion-limits.ts` is a **ceiling on growth** — it stops a multiplier pushing a
+ * line further, and it deliberately never rewrites what an author wrote, because
+ * a dietitian's own dish is hers. That contract leaves one hole, and the shipped
+ * catalog fell into it: a recipe whose own count is already over the ceiling is
+ * never touched by anything, so «فستق حلبي ٤٣ حبة» went out as written.
+ *
+ * The hole closes here rather than in the portioner, because these numbers are
+ * ours and a build is the right place to be told about them.
+ */
+export function validateRecipeCounts(
+  records: readonly DishRecord[],
+  foods: readonly { sourceRef: string; slug: string }[],
+): string[] {
+  const problems: string[] = [];
+  const byRef = new Map(foods.map((food) => [food.sourceRef, food]));
+
+  for (const dish of records) {
+    for (const ingredient of dish.ingredients) {
+      const food = byRef.get(String(ingredient.fdcId));
+      if (!food || ingredient.count === undefined) continue;
+
+      const limit = countLimit(food.slug, ingredient.unit);
+      if (limit !== null && ingredient.count > limit) {
+        problems.push(
+          `${dish.slug}: ${ingredient.count} × ${food.slug} is past the ${limit} a meal may hold`,
+        );
+      }
+    }
+  }
+
+  return problems;
+}
+
+/**
+ * The least protein a plate may carry and still be the day's main meal.
+ *
+ * Twelve grams is not a target — it is the line below which a 535 kcal lunch has
+ * stopped being a meal and become a plate of starch. Hajer's Thursday is the
+ * case: eggs at breakfast, walnuts at ten, **لوبيا بالزيت at lunch**, melon at
+ * five and كوسا باللبن at eight — five plates, 1,484 kcal, and 53 g of protein
+ * against a 96 g target. Nothing in that day was wrong on its own; the lunch was
+ * simply not carrying a lunch's share.
+ *
+ * Only lunch, deliberately. A light dinner beside a proper lunch is how people
+ * actually eat, and لوبيا بالزيت *is* a Palestinian dinner — it is being the
+ * largest plate of the day that it cannot do.
+ */
+const MIN_LUNCH_PROTEIN_GRAMS = 12;
+
+/**
+ * A main that cannot carry the meal it is offered for.
+ *
+ * Sides are exempt by definition: a صحن سلطة is not pretending to be the meal.
+ * That exemption is the other half of this rule — فتوش and تبولة were `isSide:
+ * false` and reachable as dinners, so the planner served a bowl of salad as an
+ * evening meal and broke no rule saying so.
+ */
+export function validateMainProtein(
+  records: readonly DishRecord[],
+  foods: readonly { sourceRef: string; slug: string; nutrition: Record<string, number | null> }[],
+): string[] {
+  const byRef = new Map(foods.map((food) => [food.sourceRef, food]));
+
+  return records.flatMap((dish) => {
+    if (dish.isSide || !dish.mealTypes.includes('lunch')) return [];
+
+    const protein = dish.ingredients.reduce((total, ingredient) => {
+      const food = byRef.get(String(ingredient.fdcId));
+      const per100 = food?.nutrition.protein ?? 0;
+      return total + (per100 * ingredient.grams) / 100;
+    }, 0);
+
+    if (protein >= MIN_LUNCH_PROTEIN_GRAMS) return [];
+
+    return [
+      `${dish.slug}: ${protein.toFixed(1)} g of protein is too little for a lunch — ` +
+        `give it a protein food, mark it isSide, or offer it at dinner only`,
+    ];
+  });
+}
+
 function validate(records: DishRecord[]): void {
   const foods = readCatalogDataset();
   const problems = [
     ...validateDishRecords(records),
     ...validateCountingUnits(records, foods),
     ...validateAllergenTags(records, foods),
+    ...validateRecipeCounts(records, foods),
+    ...validateMainProtein(records, foods),
   ];
 
   if (problems.length) {
