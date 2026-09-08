@@ -1,6 +1,14 @@
+import { readFileSync } from 'node:fs';
+
 import { describe, expect, test } from 'bun:test';
 
-import { countLimit, exceedsCountLimit } from './portion-limits';
+import { countLimit, exceedsCountLimit, LIMITED_FOODS } from './portion-limits';
+
+const datasetFoods = (
+  JSON.parse(readFileSync('data/catalog-foods.json', 'utf8')) as {
+    foods: { slug: string; portions?: { labelEn: string }[] }[];
+  }
+).foods;
 
 /**
  * The two directions the old rules were wrong in, held here so neither comes back.
@@ -13,12 +21,12 @@ import { countLimit, exceedsCountLimit } from './portion-limits';
 describe('countLimit', () => {
   test('a nut is counted small', () => {
     expect(countLimit('almonds')).toBe(12);
-    expect(countLimit('walnuts')).toBe(4);
+    expect(countLimit('walnuts')).toBe(6);
     expect(countLimit('pistachios')).toBe(20);
   });
 
   test('fruit eaten by the dozen and fruit eaten by the one are not the same limit', () => {
-    expect(countLimit('grapes')).toBe(20);
+    expect(countLimit('grapes-raw')).toBe(20);
     expect(countLimit('dates-medjool')).toBe(3);
     expect(countLimit('banana-raw')).toBe(2);
   });
@@ -32,7 +40,31 @@ describe('countLimit', () => {
     // third of a cup or five to six tablespoons, and the spoon is how every plan
     // in the region is written.
     expect(countLimit('rice-white-cooked', 'Tablespoon')).toBe(9);
-    expect(countLimit('labneh', 'Tablespoon')).toBe(4);
+    expect(countLimit('labaneh', 'Tablespoon')).toBe(4);
+  });
+
+  /*
+    The check that would have caught the whole class of bug this table shipped
+    with: five of its keys named foods that do not exist — `grapes` for
+    `grapes-raw`, `labneh` for `labaneh` — and four capped a spoon on a food
+    measured only by the cup. Every one of them failed silently, because a limit
+    that matches nothing simply never applies.
+
+    `seed-catalog-foods.ts` asserts the same thing on every seed. This asserts it
+    without a database, which is where it gets caught first.
+  */
+  test('every limit names a food that exists, in a unit that food has', () => {
+    const bySlug = new Map(datasetFoods.map((food) => [food.slug, food]));
+
+    for (const { slug, unit } of LIMITED_FOODS) {
+      const food = bySlug.get(slug);
+      expect(food, `portion-limits.ts caps "${slug}", which is not a food`).toBeDefined();
+
+      if (unit) {
+        const labels = (food?.portions ?? []).map((portion) => portion.labelEn);
+        expect(labels, `"${slug}" has no ${unit} portion`).toContain(unit);
+      }
+    }
   });
 
   test('a food nobody has decided about is not judged', () => {

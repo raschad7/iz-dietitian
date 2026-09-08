@@ -228,6 +228,15 @@ export type DishIngredientDetail = {
    */
   food: {
     id: string;
+    /**
+     * The catalog food's natural key, and what a per-food portion ceiling is
+     * written against — see `portion-limits.ts`. Optional for the same reason
+     * `category` is: the dish editor's live preview only needs nutrition.
+     *
+     * ⚠ Never key a ceiling on `id`. It is a uuid on anything read from the
+     * database and a slug only in the offline dataset.
+     */
+    slug?: string | null;
     nameAr: string;
     nameEn: string;
     category?: string | null;

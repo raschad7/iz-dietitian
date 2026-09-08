@@ -44,13 +44,16 @@ const COUNT_LIMITS: Record<string, number> = {
      depending on the nut, and forty grams is where the weight ceiling already
      sits. */
   almonds: 12,
-  walnuts: 4,
+  /* Halves, which is how a walnut is sold and eaten. Six is what the shipped
+     recipes use inside a composed dish — قطايف, شوفان بالمكسرات — and the one
+     she writes beside a yoghurt is well under it. */
+  walnuts: 6,
   cashews: 12,
   pistachios: 20,
   hazelnuts: 12,
 
   /* Fruit. Eaten by the dozen or by the one, and the difference is the food. */
-  grapes: 20,
+  'grapes-raw': 20,
   'strawberry-raw': 15,
   'dates-medjool': 3,
   'figs-raw': 4,
@@ -81,23 +84,65 @@ const COUNT_LIMITS: Record<string, number> = {
 const UNIT_LIMITS: Record<string, Record<string, number>> = {
   Tablespoon: {
     'rice-white-cooked': 9,
-    'rice-brown-cooked': 9,
     'bulgur-cooked': 9,
-    freekeh: 9,
-    'oats-dry': 6,
-    labneh: 4,
-    hummus: 4,
-    'tahini-sesame-paste': 2,
+    labaneh: 4,
+    tahini: 2,
     'olive-oil': 2,
   },
+  /*
+    The starches a person eats by the cup rather than by the spoon.
+
+    Set against the rice ceiling above, which is the one read off her own plans:
+    nine tablespoons is 225 g of cooked rice, so a cup ceiling is whatever comes
+    to about that much of the same food. Freekeh and oats are weighed **dry** and
+    a cup of either is most of a day, which is why theirs are the small numbers.
+  */
+  Cup: {
+    'rice-brown-cooked': 1.25,
+    'bulgur-cooked': 1.5,
+    'couscous-cooked': 1.75,
+    'pasta-cooked': 2,
+    'lentils-cooked': 1.25,
+    'chickpeas-cooked': 1.5,
+    'freekeh-dry': 0.75,
+    'oats-dry': 1,
+    'grapes-raw': 1.5,
+    'milk-lowfat': 2,
+    'milk-whole': 2,
+    'yogurt-whole': 1.5,
+  },
   Loaf: { 'pita-white': 2, 'pita-wholewheat': 2 },
+  Slice: { 'bread-toast-wholewheat': 3, 'bread-toast-white': 3 },
+  Container: { 'chickpeas-canned': 1 },
+  Piece: { 'kiwi-raw': 3, 'pomegranate-raw': 1, 'potato-raw': 2, 'potato-boiled': 2 },
 };
+
+/**
+ * Every limit written above, as a pair of the food it caps and the unit it caps
+ * it in — `unit` null for a limit that applies whatever the food is counted in.
+ *
+ * Exported for one reason: `seed-catalog-foods.ts` asserts that each pair names
+ * a food that exists **and** a portion that food actually has. Neither mistake
+ * fails on its own; the limit just silently stops applying. That is how a snack
+ * reached a client asking for forty-three pistachios while a table said twenty,
+ * and how four spoon limits sat against foods measured only by the cup.
+ */
+export const LIMITED_FOODS: readonly { slug: string; unit: string | null }[] = [
+  ...Object.keys(COUNT_LIMITS).map((slug) => ({ slug, unit: null })),
+  ...Object.entries(UNIT_LIMITS).flatMap(([unit, byFood]) =>
+    Object.keys(byFood).map((slug) => ({ slug, unit })),
+  ),
+];
 
 /**
  * The limit for one line, or null where the food has none.
  *
  * `foodSlug` is the catalog food's own slug — the stable natural key the seed
  * upserts on — so a limit follows the food rather than whichever dish holds it.
+ *
+ * ⚠ Every key below must be a slug that exists in `data/catalog-foods.json`.
+ * `seed-catalog-foods.ts` checks that on every seed, because a typo here is
+ * silent: the limit simply never applies and the plan keeps the amount.
  */
 export function countLimit(foodSlug: string | null | undefined, unitLabelEn?: string | null): number | null {
   if (!foodSlug) return null;

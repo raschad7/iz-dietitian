@@ -230,7 +230,7 @@ export function arithmeticFindings(board: Board): string[] {
         */
         if (
           COUNTABLE_LABELS.has(line.portion.labelEn) &&
-          exceedsCountLimit(line.food.id, count, line.portion.labelEn)
+          exceedsCountLimit(line.food.slug, count, line.portion.labelEn)
         ) {
           found.push(
             `${dayName} · ${meal.label}: ${name} ${formatQuantity(count, 'ar')} ${line.portion.labelAr} — أكثر مما يؤكل في جلسة واحدة.`,

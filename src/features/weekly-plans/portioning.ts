@@ -56,12 +56,20 @@ export type PortionableLine = {
   /** Grams for ONE base serving. */
   quantityGrams: number;
   /**
-   * `id` is the catalog food's slug wherever the line came from the shipped
-   * dataset, and is what `portion-limits.ts` keys a per-food ceiling on. A
-   * clinic's own food has a uuid there and simply has no per-food limit, which is
-   * the correct answer until somebody sets one.
+   * `slug` is the catalog food's natural key, and is what `portion-limits.ts`
+   * keys a per-food ceiling on.
+   *
+   * ⚠ Not `id`. `id` is a **uuid** on every line that came out of the database
+   * and a **slug** only in the offline dataset, so a table keyed on it matched
+   * in the lab and matched nothing in the app — which is how a plan reached a
+   * client asking for forty-three pistachios while the tests were green. A
+   * clinic's own food has a slug too; it simply has no limit written for it,
+   * which is the right answer until somebody writes one.
    */
-  food: { id?: string | null; category?: string | null } & Pick<FoodNutrients, 'kcal'>;
+  food: { slug?: string | null; id?: string | null; category?: string | null } & Pick<
+    FoodNutrients,
+    'kcal'
+  >;
   portion?: { labelEn: string; grams: number } | null;
   /** How many of that portion one base serving is. */
   portionQuantity?: number | null;
@@ -206,7 +214,7 @@ export function lineCeiling(line: PortionableLine): number | null {
     cannot tell a grape from an almond, and the weight ceiling alone let a
     forty-gram allowance become fifty-seven pistachios.
   */
-  const perFood = countLimit(line.food.id, line.portion.labelEn);
+  const perFood = countLimit(line.food.slug, line.portion.labelEn);
   if (perFood !== null) counted.push(perFood);
 
   if (line.portion.labelEn === 'Piece' && PIECE_CEILINGS[category] !== undefined) {

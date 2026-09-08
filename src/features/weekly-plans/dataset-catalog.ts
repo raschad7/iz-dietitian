@@ -31,6 +31,7 @@ function lineFor(
     food: {
       ...(food.nutrition as unknown as DishIngredientDetail['food']),
       id: food.slug,
+      slug: food.slug,
       nameAr: food.nameAr,
       nameEn: food.nameEn,
       category: food.category,

@@ -43,6 +43,7 @@ function portion(id: string, labelAr: string, labelEn: string, grams: number): F
 
 function food(overrides: Partial<FoodSearchResult> & { id: string }): FoodSearchResult {
   return {
+    slug: overrides.id,
     nameAr: 'طعام',
     nameEn: 'Test food',
     clinicId: null,
