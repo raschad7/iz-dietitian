@@ -155,6 +155,8 @@ export function ClientNutrition({
     suggestProteinGrams(intake.weightKg, {
       clinicalTags: intake.clinicalTags,
       dailyKcalTarget: effectiveKcal,
+      heightCm: intake.heightCm,
+      sex: intake.sex,
     });
   const allergenTags = membersOf(ALLERGENS, intake.allergenTags);
 

@@ -353,12 +353,52 @@ const KCAL_PER_GRAM_PROTEIN = 4;
  * omit it and no cap is applied, which is what the intake form wants while the
  * calorie target is still being decided.
  */
+/**
+ * The weight a gram-per-kilo rate should be read against.
+ *
+ * Protein is dosed to the tissue that uses it, and fat mass does not. Charging
+ * 1.6 g/kg against the scale gives a client carrying thirty kilos of fat a target
+ * built on thirty kilos that will never ask for any — 125 g a day for a 78 kg
+ * woman on 1,529 kcal, which is a third of her energy and more than her lean mass
+ * could use at 2.6 g per kilo of it.
+ *
+ * So above a healthy weight the standard correction applies: ideal body weight
+ * plus a quarter of the excess, which is the adjusted weight dietetics has used
+ * for decades and the figure most clinical references dose against. At or below
+ * a healthy weight nothing happens and the scale is the answer.
+ *
+ * Devine for the ideal, because it is the one the references are written in.
+ * Nothing here is a diagnosis — it is which number a rate multiplies.
+ */
+export function dosingWeightKg(
+  weightKg: number,
+  heightCm: number | null,
+  sex: string | null,
+): number {
+  if (heightCm === null || !(heightCm > 0)) return weightKg;
+
+  const inchesOverFiveFeet = Math.max(0, heightCm / 2.54 - 60);
+  const ideal = (sex === 'female' ? 45.5 : 50) + 2.3 * inchesOverFiveFeet;
+
+  if (weightKg <= ideal) return weightKg;
+
+  return ideal + 0.25 * (weightKg - ideal);
+}
+
 export function suggestProteinGrams(
   weightKg: number | null,
   {
     clinicalTags = [],
     dailyKcalTarget = null,
-  }: { clinicalTags?: readonly string[]; dailyKcalTarget?: number | null } = {},
+    heightCm = null,
+    sex = null,
+  }: {
+    clinicalTags?: readonly string[];
+    dailyKcalTarget?: number | null;
+    /** Both needed for the adjusted weight; without them the scale is used unchanged. */
+    heightCm?: number | null;
+    sex?: string | null;
+  } = {},
 ): number | null {
   if (weightKg === null || !(weightKg > 0)) return null;
 
@@ -367,7 +407,7 @@ export function suggestProteinGrams(
     DEFAULT_PROTEIN_PER_KG,
   );
 
-  const grams = weightKg * perKg;
+  const grams = dosingWeightKg(weightKg, heightCm, sex) * perKg;
 
   if (dailyKcalTarget === null || !(dailyKcalTarget > 0)) return Math.round(grams);
 

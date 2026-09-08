@@ -206,7 +206,12 @@ export function IntakeForm({
     clinicalTags: intake.clinicalTags,
   });
 
-  const suggestedProtein = suggestProteinGrams(toNumberOrNull(weightKg));
+  /* Height and sex from the record, like the calorie preview above — the same
+     reason: an adjusted weight must not move while somebody is typing. */
+  const suggestedProtein = suggestProteinGrams(toNumberOrNull(weightKg), {
+    heightCm: intake.heightCm,
+    sex: intake.sex,
+  });
   const panelId = useId();
 
   /*
