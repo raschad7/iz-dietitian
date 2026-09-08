@@ -23,6 +23,7 @@ import {
   type GeneratedPlan,
   type GenerationScope,
 } from './schema';
+import { draftFromMeals } from './refine';
 import { repairVariety, type VarietyReport } from './variety';
 import type { DishIngredientDetail } from './nutrition';
 import { chooseServings, nextServings, portionedKcal } from './portioning';
@@ -564,6 +565,8 @@ export async function runGeneration(
   allergens: readonly string[],
   /** What may stand beside a main. Last, and optional, so every existing caller reads unchanged. */
   sides: readonly CatalogDish[] = [],
+  /** Cuts this call short of the transport's own timeout — see {@link runReviewedGeneration}. */
+  signal?: AbortSignal,
 ): Promise<GenerationOutcome> {
   const transport = getLlmTransport();
   const payload = buildPrompt(input);
@@ -583,7 +586,7 @@ export async function runGeneration(
     let result: LlmResult;
 
     try {
-      result = await transport.complete(attemptPayload);
+      result = await transport.complete(attemptPayload, signal);
     } catch (cause) {
       // Surface transport failures immediately, with nothing written.
       throw new GenerationFailedError(
@@ -632,3 +635,109 @@ function describeError(error: unknown): string {
 
 /** Re-exported so callers need one import for the scope union. */
 export type { GenerationScope };
+
+/**
+ * How long the second pass gets.
+ *
+ * The first pass may take its full {@link LLM_TIMEOUT_MS}; this one runs after it
+ * and the route has a ceiling for both. Sixty seconds is comfortably over the
+ * measured forty-five and leaves the sum inside {@link maxDuration} even when the
+ * first pass ran long.
+ *
+ * Running out of it is not a failure. The draft is already reconciled and already
+ * good; the second reading is an improvement on it, so a slow one is dropped and
+ * the week goes out as the first pass wrote it.
+ */
+const REVIEW_TIMEOUT_MS = 60_000;
+
+/**
+ * A week, generated and then read back by the same model before anyone sees it.
+ *
+ * ## Why this is not a button
+ *
+ * It was one, briefly, and the argument was time: two calls against a route
+ * ceiling. But a second opinion the dietitian has to ask for is a second opinion
+ * most plans never get, and the pass is not a garnish — it is what takes a week
+ * from 74% of its protein target to 92%, and what pulls a diabetic week's
+ * carbohydrate range from 104–256 g down to 116–144 g. A plan that needs it and
+ * did not get it is the plan that reaches a client.
+ *
+ * So it runs every time, and the cost of that is the *only* thing the button was
+ * really buying: about forty-five seconds and nine tenths of a cent.
+ *
+ * ## Why it cannot lose a plan
+ *
+ * The second pass answers in the same schema and goes through the same
+ * `reconcile`, so it can choose worse dishes but cannot break an invariant. And
+ * every way it can fail — a timeout, a transport error, a response that will not
+ * parse — is caught here and answered with the first pass's outcome, which is a
+ * complete, reconciled, publishable week. The failure mode of the second opinion
+ * is not having had one.
+ */
+export async function runReviewedGeneration({
+  input,
+  catalog,
+  allergens,
+  sides = [],
+  kcalTarget,
+  proteinTargetGrams,
+  proteinIsRestriction = false,
+}: {
+  input: PromptInput;
+  catalog: readonly CatalogDish[];
+  allergens: readonly string[];
+  sides?: readonly CatalogDish[];
+  kcalTarget: number;
+  proteinTargetGrams: number | null;
+  proteinIsRestriction?: boolean;
+}): Promise<GenerationOutcome> {
+  const first = await runGeneration(input, catalog, allergens, sides);
+
+  // A first pass that could not fill the week is not worth a second reading — the
+  // gaps are what the dietitian needs to see, and a refinement would hide the fact
+  // that they were there.
+  if (first.unfilled > 0) return first;
+
+  try {
+    const second = await runGeneration(
+      {
+        ...input,
+        draft: draftFromMeals({
+          meals: first.meals,
+          budgets: input.budgets,
+          catalog,
+          sides,
+          days: input.days,
+          kcalTarget,
+          proteinTargetGrams,
+          proteinIsRestriction,
+        }),
+      },
+      catalog,
+      allergens,
+      sides,
+      AbortSignal.timeout(REVIEW_TIMEOUT_MS),
+    );
+
+    if (second.unfilled > 0) return first;
+
+    return {
+      ...second,
+      // The dietitian is shown what the whole generation cost, not half of it.
+      usage: {
+        promptTokens: addTokens(first.usage.promptTokens, second.usage.promptTokens),
+        completionTokens: addTokens(first.usage.completionTokens, second.usage.completionTokens),
+      },
+      durationMs: first.durationMs + second.durationMs,
+    };
+  } catch (error) {
+    console.warn('[weekly-plans] the second pass did not land; keeping the draft', error);
+    return first;
+  }
+}
+
+/** Two counts, either of which the provider may not have reported. */
+function addTokens(a: number | null, b: number | null): number | null {
+  if (a === null && b === null) return null;
+  return (a ?? 0) + (b ?? 0);
+}

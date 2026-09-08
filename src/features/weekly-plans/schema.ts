@@ -340,18 +340,6 @@ export const swapMealSchema = z.object({
 export const publishPlanSchema = z.object({ planId: planIdSchema });
 
 /**
- * The second opinion. One field, because the week already says everything else.
- *
- * `instruction` is the one thing a dietitian may want to add on the way in —
- * "more protein at breakfast", "she is travelling Thursday" — and it rides the
- * same path this week's note already takes.
- */
-export const refinePlanSchema = z.object({
-  planId: planIdSchema,
-  instruction: instructionSchema,
-});
-
-/**
  * Starting a week without generating one.
  *
  * Two schemas rather than one with an optional source: a copy that lost its

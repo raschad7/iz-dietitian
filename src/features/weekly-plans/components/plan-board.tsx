@@ -47,7 +47,6 @@ import { MealInspector } from './meal-inspector';
 import { NewWeekDialog, type NewWeekProps } from './new-week-dialog';
 import { PlanClientNoteDialog } from './client-note-dialog';
 import { PublishButton } from './publish-button';
-import { RefineButton } from './refine-button';
 import { WeekPager } from './week-pager';
 import { TagColorKey } from './tag-color-key';
 
@@ -331,13 +330,6 @@ function BoardBody({
             unfilled={board.unfilled}
             locale={locale}
           />
-
-          {/* The second opinion, beside publish and deliberately quieter than it.
-              Publish changes what the client sees and keeps the bar's only fill;
-              this improves a draft she is already looking at. See
-              `refine-button.tsx` for why it is a button at all rather than part
-              of generating. */}
-          <RefineButton planId={board.id} status={board.status} locale={locale} />
 
           {/* This app's tooltip, not the browser's `title` — the same swap the
               whole board makes in this pass. A native tip is drawn by the OS in

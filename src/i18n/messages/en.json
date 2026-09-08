@@ -2444,10 +2444,7 @@
       "cancel": "Cancel",
       "failed": "The note could not be saved.",
       "heading": "A note from your dietitian"
-    },
-    "refine": "Improve plan",
-    "refining": "Improving…",
-    "refineHint": "A second reading of the whole week: protein, steady carbohydrate, and the shape of each day."
+    }
   },
   "dishes": {
     "title": "Dish catalog",
