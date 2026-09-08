@@ -17,9 +17,10 @@ import type { BillEntry } from '@/features/billing/bill';
 import { ClientExpensesPanel } from '@/features/billing/components/client-expenses-panel';
 import type { ClientFreeze } from '@/features/billing/queries';
 import type { ClinicServiceView } from '@/features/billing/services';
-import { type MeasurementSubject } from '@/features/measurements/compare';
+import { latestBodyComposition, type MeasurementSubject } from '@/features/measurements/compare';
 import { MeasurementsPanel } from '@/features/measurements/components/measurements-panel';
 import { type MeasurementRow } from '@/features/measurements/queries';
+import { type NutritionRules } from '@/features/weekly-plans/nutrition-rules';
 import { type PlanListEntry } from '@/features/weekly-plans/queries';
 import { type Locale } from '@/i18n/routing';
 import { type IsoDate } from '@/lib/iso-date';
@@ -103,6 +104,12 @@ export type ClientProfileProps = {
    */
   intake: ClientIntakeValues;
   /**
+   * The clinic's dosing rules — how much protein per kilo of which weight, and
+   * whose BMR the calorie suggestion is built on. See
+   * `clinic_nutrition_rules`; edited in Settings.
+   */
+  nutritionRules: NutritionRules;
+  /**
    * The Measurements view: this client's readings newest first, the two client
    * facts a comparison needs, the current weight the save form's checkbox would
    * replace, and which comparison `?range=` asked for.
@@ -162,6 +169,7 @@ export async function ClientProfile({
   visits,
   plans,
   intake,
+  nutritionRules,
   measurements,
   progress,
   progressWeeks,
@@ -260,10 +268,20 @@ export async function ClientProfile({
                 dashboard's attention list, which is where staleness is
                 handled rather than with a second rule here.
               */
-              measuredBmrKcal={
-                measurements.rows.find((row) => row.basalMetabolicRateKcal !== null)
-                  ?.basalMetabolicRateKcal ?? null
-              }
+              rules={nutritionRules}
+              /*
+                The analyser's last word on this body — the BMR the calorie
+                target may be built on, and the lean mass the protein rate may
+                be dosed against. Derived from the rows already loaded rather
+                than queried again, and each figure taken from the most recent
+                visit that carried it: see `latestBodyComposition`, which also
+                says why that is not simply the newest row.
+
+                A client nobody has measured in twelve weeks is already on the
+                dashboard's attention list, which is where staleness is handled
+                rather than with a second rule here.
+              */
+              composition={latestBodyComposition(measurements.rows)}
             />
           ),
           measurements: (

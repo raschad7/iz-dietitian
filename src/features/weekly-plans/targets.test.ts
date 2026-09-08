@@ -162,6 +162,53 @@ describe('suggestTargets', () => {
     expect(result.suggestedKcal).toBeNull();
     expect(result.missing).toEqual(['sex']);
   });
+
+  /*
+    Which BMR the day is built on. Both figures are estimates and they disagree
+    by enough to change what a person eats, so the clinic picks — and every
+    screen has to be able to say which one it got.
+  */
+  describe('the BMR source', () => {
+    // Mifflin's answer for `complete` is 1572.75; the analyser printed less.
+    const device = 1400;
+
+    test('builds the day on the analyser when the clinic asked for it', () => {
+      const result = suggestTargets({ ...complete, measuredBmrKcal: device, bmrSource: 'device' });
+
+      expect(result.bmr).toBe(device);
+      expect(result.bmrSource).toBe('measured');
+      expect(result.suggestedKcal).toBe(Math.round(device * 1.375 - 500));
+      // Both are still reported, so a screen can show the one it did not use.
+      expect(result.estimatedBmr).toBeCloseTo(1572.75, 2);
+      expect(result.deviceBmr).toBe(device);
+    });
+
+    test('falls back to the formula for a client the analyser has never seen', () => {
+      /*
+        ⚠ The case a screen must not assume away. A clinic set to `device`
+        still has unscanned clients, and a tab that labelled their target from
+        the *setting* rather than from `bmrSource` would name the wrong source.
+      */
+      const result = suggestTargets({ ...complete, measuredBmrKcal: null, bmrSource: 'device' });
+
+      expect(result.bmrSource).toBe('estimated');
+      expect(result.bmr).toBeCloseTo(1572.75, 2);
+      expect(result.deviceBmr).toBeNull();
+    });
+
+    test('reports the analyser without using it when the clinic chose the formula', () => {
+      const result = suggestTargets({ ...complete, measuredBmrKcal: device, bmrSource: 'formula' });
+
+      expect(result.bmrSource).toBe('estimated');
+      expect(result.bmr).toBeCloseTo(1572.75, 2);
+      expect(result.deviceBmr).toBe(device);
+      expect(result.bmrGap).toBeCloseTo((device - 1572.75) / 1572.75, 6);
+    });
+
+    test('defaults to the formula, so a caller that was never threaded the rules is conservative', () => {
+      expect(suggestTargets({ ...complete, measuredBmrKcal: device }).bmrSource).toBe('estimated');
+    });
+  });
 });
 
 describe('suggestProteinGrams', () => {
@@ -193,6 +240,60 @@ describe('suggestProteinGrams', () => {
 
   test('is null without a weight', () => {
     expect(suggestProteinGrams(null)).toBeNull();
+  });
+
+  /*
+    The clinic's rule. Every case below is a figure a dietitian could set in
+    Settings, and the point of each is that the *same* client comes out
+    different — which is why the rate and the basis are stored, shown and
+    edited as a pair.
+  */
+  describe('the clinic rule', () => {
+    /* 78 kg, 160 cm, female: Devine ideal is 52.4 kg and the adjusted weight
+       58.8 kg. The analyser put her fat-free mass at 54.6 kg. */
+    const client = { heightCm: 160, sex: 'female', fatFreeMassKg: 54.6 };
+
+    test('one rate against three bases is three different targets', () => {
+      expect(suggestProteinGrams(78, { ...client, perKg: 1, basis: 'actual' })).toBe(78);
+      expect(suggestProteinGrams(78, { ...client, perKg: 1, basis: 'adjusted' })).toBe(59);
+      expect(suggestProteinGrams(78, { ...client, perKg: 1, basis: 'lean' })).toBe(55);
+    });
+
+    test('the rate is the one the clinic set, not 1.6', () => {
+      expect(suggestProteinGrams(80, { perKg: 1 })).toBe(80);
+      expect(suggestProteinGrams(80, { perKg: 2.2 })).toBe(176);
+    });
+
+    test('lean falls back to the adjusted weight for a client never scanned', () => {
+      // Not null, and not the scale: a clinic dosing on measured lean mass still
+      // has clients who have never stood on the analyser.
+      expect(suggestProteinGrams(78, { ...client, fatFreeMassKg: null, perKg: 1, basis: 'lean' }))
+        .toBe(59);
+    });
+
+    test('a kidney keeps its own basis when the clinic doses on lean mass', () => {
+      /*
+        ⚠ The regression this pair exists for. Applying 0.7 g/kg to 54.6 kg of
+        lean mass is 38 g for a renal client whose published ceiling is 41 —
+        silently under, on the one condition where under is dangerous. The
+        clinical figure is computed on the adjusted weight it is published
+        against, and the lower of the two wins.
+      */
+      expect(
+        suggestProteinGrams(78, { ...client, perKg: 2, basis: 'lean', clinicalTags: ['kidney_disease'] }),
+      ).toBe(41);
+
+      // And a clinic cannot raise a restricted client's target by editing a rate.
+      expect(
+        suggestProteinGrams(78, { ...client, perKg: 3, basis: 'actual', clinicalTags: ['kidney_disease'] }),
+      ).toBe(41);
+    });
+
+    test('a rate below the clinical one still wins, because lower is the safe direction', () => {
+      expect(
+        suggestProteinGrams(80, { perKg: 0.5, clinicalTags: ['dialysis'] }),
+      ).toBe(40);
+    });
   });
 });
 

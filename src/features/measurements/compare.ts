@@ -506,3 +506,34 @@ export function clockDrift(
   const gap = Math.abs(a.measuredAtMinute - b.measuredAtMinute);
   return gap >= CLOCK_DRIFT_MINUTES ? gap : null;
 }
+
+/**
+ * The analyser's last word on this body: the BMR it printed and the fat-free
+ * mass it estimated, each from the most recent visit that carried it.
+ *
+ * ⚠ **Each figure is found independently, and they need not come from the same
+ * row.** A dietitian who records a bare weigh-in between scans leaves a newest
+ * row holding neither — and a rule of "read the latest measurement" would then
+ * blank both and move the client's calorie target on a visit that measured
+ * nothing new.
+ *
+ * `rows` must be newest first, which is the order `listMeasurements` returns
+ * and every caller on the record page already holds.
+ *
+ * ⚠ This is the same rule `latestBodyComposition` runs in SQL for the planner,
+ * which cannot afford to load a client's whole history to answer it. **Change
+ * one and change the other**, or the week will be generated against a different
+ * BMR from the one the record prints.
+ */
+export function latestBodyComposition(
+  rows: readonly Pick<
+    ComparableMeasurement,
+    'basalMetabolicRateKcal' | 'fatFreeMassKg'
+  >[],
+): { basalMetabolicRateKcal: number | null; fatFreeMassKg: number | null } {
+  return {
+    basalMetabolicRateKcal:
+      rows.find((row) => row.basalMetabolicRateKcal !== null)?.basalMetabolicRateKcal ?? null,
+    fatFreeMassKg: rows.find((row) => row.fatFreeMassKg !== null)?.fatFreeMassKg ?? null,
+  };
+}

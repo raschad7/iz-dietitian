@@ -43,6 +43,10 @@ import {
   type IntakeSectionId,
 } from '@/features/clients/intake-sections';
 import { type ClientIntakeValues, type MealSlotValues } from '@/features/clients/types';
+import {
+  DEFAULT_NUTRITION_RULES,
+  type NutritionRules,
+} from '@/features/weekly-plans/nutrition-rules';
 import { suggestProteinGrams, suggestTargets } from '@/features/weekly-plans/targets';
 import { type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
@@ -120,11 +124,17 @@ export function IntakeForm({
   intake,
   locale,
   section: initialSection = 'measurements',
+  rules = DEFAULT_NUTRITION_RULES,
+  composition = { basalMetabolicRateKcal: null, fatFreeMassKg: null },
   onCancel,
   onSaved,
 }: {
   intake: ClientIntakeValues;
   locale: Locale;
+  /** The clinic's dosing rules, so this readout previews the card behind it. */
+  rules?: NutritionRules;
+  /** The analyser's last word on this body — see `ClientNutrition`. */
+  composition?: { basalMetabolicRateKcal: number | null; fatFreeMassKg: number | null };
   /**
    * Which panel the dialog opens on. The gap chips on the Nutrition tab pass
    * the section that holds the field they name, so a chip reading "الحساسية"
@@ -204,6 +214,11 @@ export function IntakeForm({
       had been saved. It catches up when the form does.
     */
     clinicalTags: intake.clinicalTags,
+    /* Both from the record for the same reason as the tags: a target must not
+       move under the pointer. The BMR the clinic has chosen to build on is a
+       stored fact about a past visit, not something this dialog edits. */
+    measuredBmrKcal: composition.basalMetabolicRateKcal,
+    bmrSource: rules.bmrSource,
   });
 
   /* Height and sex from the record, like the calorie preview above — the same
@@ -211,6 +226,9 @@ export function IntakeForm({
   const suggestedProtein = suggestProteinGrams(toNumberOrNull(weightKg), {
     heightCm: intake.heightCm,
     sex: intake.sex,
+    perKg: rules.proteinPerKg,
+    basis: rules.proteinBasis,
+    fatFreeMassKg: composition.fatFreeMassKg,
   });
   const panelId = useId();
 

@@ -893,7 +893,9 @@
       "balanceShares": "Balance to 100%",
       "allergenHint": "Only the ticks above remove dishes from the catalog.",
       "dailyTarget": "Daily target",
-      "bmrDisagreement": "The analyser put basal metabolism at {device, number} kcal; the formula estimates {estimate, number}. The calorie target is built on the formula — set it by hand if the device figure fits this client better.",
+      "bmrUsingDevice": "The calorie target is built on the analyser's basal metabolism: {device, number} kcal. Mifflin-St Jeor estimates {estimate, number}.",
+      "bmrUsingFormula": "The calorie target is built on Mifflin-St Jeor: {estimate, number} kcal. The analyser printed {device, number}.",
+      "proteinRule": "Dosed at {perKg} g per kg of {basis}.",
       "bmi": "BMI",
       "bmiScale": "Where it falls on the scale",
       "dismissWarning": "Dismiss this warning",
@@ -1041,6 +1043,11 @@
       "low_sodium": "Low sodium",
       "renal": "Renal",
       "low_fat": "Low fat"
+    },
+    "proteinBasis": {
+      "actual": "actual weight",
+      "adjusted": "adjusted weight",
+      "lean": "fat-free mass"
     }
   },
   "forms": {
@@ -3637,5 +3644,48 @@
     "heading": "This account is disabled",
     "body": "The platform has turned this account off. Nothing has been deleted — signing in will work again as soon as it is re-enabled.",
     "contact": "Get in touch with the platform administrator."
+  },
+  "nutritionRules": {
+    "title": "Nutrition rules",
+    "description": "How each client's calorie and protein targets are worked out. These apply across the clinic; a single client can still be given a different target from their own record.",
+    "change": "Change",
+    "protein": {
+      "label": "Protein dose",
+      "value": "{perKg} g per kg of {basis}",
+      "dialogTitle": "Protein dose",
+      "changeLabel": "Change the protein dose",
+      "rateLabel": "Rate",
+      "rateUnit": "g/kg",
+      "rateHint": "Between {min} and {max} g per kg.",
+      "basisLabel": "Applied to"
+    },
+    "basis": {
+      "actual": {
+        "name": "actual weight",
+        "hint": "The number on the scale. The simplest choice, and it charges a client carrying extra fat for tissue that uses no protein."
+      },
+      "adjusted": {
+        "name": "adjusted weight",
+        "hint": "Ideal weight plus a quarter of the excess — what most clinical references are written against, and it needs no analyser."
+      },
+      "lean": {
+        "name": "fat-free mass",
+        "hint": "The lean mass the analyser actually measured, and the most accurate. A client who has never been scanned falls back to the adjusted weight."
+      }
+    },
+    "bmr": {
+      "label": "Basal metabolism",
+      "dialogTitle": "Basal metabolism source",
+      "changeLabel": "Change the basal metabolism source",
+      "dialogHint": "Both figures are estimates, not measurements: the analyser measures electrical resistance and then runs its own equation, and Mifflin-St Jeor is a published one. On a real report the two differed by 125 kcal a day.",
+      "device": {
+        "name": "The figure printed on the analyser's report",
+        "hint": "A client who has never been scanned falls back to Mifflin-St Jeor."
+      },
+      "formula": {
+        "name": "Mifflin-St Jeor",
+        "hint": "The published equation, worked out from weight, height, age and sex."
+      }
+    }
   }
 }

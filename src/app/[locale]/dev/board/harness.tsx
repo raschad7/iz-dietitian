@@ -8,6 +8,7 @@ import { ContextPanel } from '@/features/weekly-plans/components/context-panel';
 import { EmptyPlanBoard } from '@/features/weekly-plans/components/empty-plan-board';
 import { PlanBoard } from '@/features/weekly-plans/components/plan-board';
 import type { NewWeekProps } from '@/features/weekly-plans/components/new-week-dialog';
+import { DEFAULT_NUTRITION_RULES } from '@/features/weekly-plans/nutrition-rules';
 import { PLANNER_THEME } from '@/features/weekly-plans/theme';
 import {
   dishGrams,
@@ -419,6 +420,12 @@ export function BoardHarness({ locale }: { locale: Locale }) {
       suggestedKcal: 2178,
         missing: [],
       },
+      /* The built-in rules and a client the analyser has never seen — which is
+         what `bmrSource: 'estimated'` above already says. The board does not
+         draw either, but `ClientContext` carries them for the intake dialog the
+         context panel mounts. */
+      rules: DEFAULT_NUTRITION_RULES,
+      composition: { basalMetabolicRateKcal: null, fatFreeMassKg: null },
       effectiveKcal: 2178,
       effectiveProteinGrams: 128,
       budgets: SLOTS.map((slot) => ({

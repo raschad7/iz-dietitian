@@ -14,6 +14,11 @@
 import type { ClientActivityLevel, ClientGoal } from '@/features/clients/schema';
 
 import { lifeStageKcal } from './clinical';
+import {
+  DEFAULT_NUTRITION_RULES,
+  type BmrSource,
+  type ProteinBasis,
+} from './nutrition-rules';
 import type { ClinicalCondition } from '@/features/clients/nutrition';
 
 /**
@@ -152,12 +157,17 @@ export type SuggestedTargets = {
   bmiCategory: BmiCategory | null;
   bmr: number | null;
   /**
-   * Which BMR the target above was built on. Always `estimated` when there is
-   * one — see `measuredBmrKcal` for why the analyser's figure does not displace
-   * it, and why this field is still worth reporting rather than assuming.
+   * Which BMR the target above was actually built on — `measured` when the
+   * clinic is set to the analyser's figure *and* a report carried one,
+   * `estimated` otherwise.
+   *
+   * Reported rather than inferred, because the fallback is invisible from
+   * outside: a clinic set to `device` still gets `estimated` for every client
+   * who has never been scanned, and a screen that assumed the setting would
+   * label those targets wrongly.
    */
   bmrSource: 'measured' | 'estimated' | null;
-  /** Mifflin's answer. The one the suggestion is built on. */
+  /** Mifflin's answer, whether or not it is the one in use. */
   estimatedBmr: number | null;
   /** What the analyser's own equation said, when a report carried one. */
   deviceBmr: number | null;
@@ -195,6 +205,7 @@ export function suggestTargets({
   goal,
   clinicalTags = [],
   measuredBmrKcal = null,
+  bmrSource = 'formula',
 }: {
   weightKg: number | null;
   heightCm: number | null;
@@ -211,34 +222,37 @@ export function suggestTargets({
   /**
    * The BMR printed on a body composition report, when there is one.
    *
-   * ## It does **not** win, and correcting that is why this comment is long
-   *
-   * An earlier version of this let the analyser's figure displace Mifflin-St
-   * Jeor, on the reasoning that the machine "measures" what the formula guesses
-   * at. That reasoning is wrong, and the error matters because it was setting
-   * people's calorie targets.
-   *
-   * A Tanita does not measure metabolic rate. Measuring it means indirect
-   * calorimetry — the gold standard, and a different machine. What an analyser
-   * does is measure *impedance*, estimate fat-free mass from it, and then run
-   * its own proprietary equation from that mass to a BMR. It is a prediction
-   * too. So the choice is not measurement against estimate; it is one
-   * undisclosed equation against Mifflin-St Jeor, which is the best-validated
-   * one in the literature (roughly 73–82% accuracy against calorimetry) and the
-   * one the Academy of Nutrition and Dietetics recommends when calorimetry is
-   * not available.
-   *
-   * On a real report the two differed by 125 kcal a day — 1,321 against 1,446 —
-   * and that gap is exactly why the app must not pick silently. It is shown
-   * beside the estimate instead, on the Nutrition tab, so a dietitian who knows
-   * this client is unusually muscular can set `daily_kcal_target` by hand and
-   * knows they are doing it.
-   *
-   * `bmrSource` therefore always reports `estimated` when a BMR exists at all.
-   * The field is kept so the screen can name the difference, and so the day
-   * somebody adds a per-client choice there is a place to put it.
+   * Whether it wins is `bmrSource`'s decision, not this argument's — pass the
+   * figure whenever a report carries it, even on a clinic set to `formula`, so
+   * the Nutrition tab can show what the other answer would have been.
    */
   measuredBmrKcal?: number | null;
+  /**
+   * Which BMR to build the day on. The clinic's setting — see
+   * `clinic_nutrition_rules.bmr_source`.
+   *
+   * ## Neither figure is a measurement, and that is why this is a setting
+   *
+   * A Tanita does not measure metabolic rate. Measuring it means indirect
+   * calorimetry — a different machine. What an analyser does is measure
+   * *impedance*, estimate fat-free mass from it, then run its own proprietary
+   * equation from that mass to a BMR. So this is not measurement against
+   * estimate; it is one undisclosed equation against Mifflin-St Jeor, which is
+   * the best-validated one in the literature and the one the Academy of
+   * Nutrition and Dietetics recommends when calorimetry is not available.
+   *
+   * On a real report the two differed by 125 kcal a day — 1,321 against 1,446.
+   * A gap that size decides how much a person eats, so the app must not pick
+   * silently and must not pretend the choice is settled. The clinic picks, on a
+   * screen that shows both numbers, and `bmrSource` in the result names which
+   * one produced the target so every screen can say so too.
+   *
+   * Defaults to `formula` here rather than to the column's `device`: a caller
+   * that has not been given the clinic's rules gets the conservative,
+   * well-validated answer instead of one that depends on which report happened
+   * to be uploaded. Callers that matter all pass it.
+   */
+  bmrSource?: BmrSource;
 }): SuggestedTargets {
   const missing: SuggestedTargets['missing'][number][] = [];
   if (weightKg === null || !(weightKg > 0)) missing.push('weightKg');
@@ -248,22 +262,25 @@ export function suggestTargets({
 
   const bmiValue = bmi(weightKg, heightCm);
   const estimated = mifflinStJeorBmr({ weightKg, heightCm, age, sex });
+  const device = measuredBmrKcal !== null && measuredBmrKcal > 0 ? measuredBmrKcal : null;
 
   /*
-    The device's figure is reported, never substituted — see the note on
-    `measuredBmrKcal`. The suggestion is built on Mifflin-St Jeor and only on
-    Mifflin-St Jeor, so shipping the device reading cannot move a number anybody
-    is already eating to.
+    Which of the two the day is built on — the clinic's setting, and the report
+    has to exist for it to apply. `device` with no report is not an error and
+    not a blank target: it falls through to Mifflin-St Jeor, which is the only
+    other answer there is. See `bmrSource` on `clinic_nutrition_rules`.
   */
-  const device = measuredBmrKcal !== null && measuredBmrKcal > 0 ? measuredBmrKcal : null;
-  const tdeeValue = estimated === null ? null : tdee(estimated, activityLevel);
+  const usingDevice = bmrSource === 'device' && device !== null;
+  const basalKcal = usingDevice ? device : estimated;
+
+  const tdeeValue = basalKcal === null ? null : tdee(basalKcal, activityLevel);
   const lifeStage = lifeStageKcal(clinicalTags);
 
   return {
     bmi: bmiValue,
     bmiCategory: bmiValue === null ? null : bmiCategory(bmiValue),
-    bmr: estimated,
-    bmrSource: estimated === null ? null : 'estimated',
+    bmr: basalKcal,
+    bmrSource: basalKcal === null ? null : usingDevice ? 'measured' : 'estimated',
     estimatedBmr: estimated,
     deviceBmr: device,
     /*
@@ -282,13 +299,20 @@ export function suggestTargets({
 }
 
 /**
- * Protein suggestion in grams, at 1.6 g per kilogram of body weight.
+ * The rate used when a caller passes none.
  *
- * The upper end of general guidance rather than the 0.8 g/kg RDA, which is a
- * minimum to avoid deficiency and not a target for anyone actively changing their
- * body composition — which is every client this software has.
+ * ⚠ **This is a fallback, not the clinic's answer.** The rate belongs to the
+ * clinic and is edited in Settings — see `clinic_nutrition_rules.protein_per_kg`
+ * and `DEFAULT_NUTRITION_RULES`, which this deliberately mirrors so a caller
+ * that has not been threaded the rules yet behaves exactly as the app did when
+ * the figure was a constant.
+ *
+ * It is also what `proteinIsRestricted` compares against, which is the reason
+ * it stays a module constant rather than becoming a parameter everywhere: that
+ * question is "is this a ceiling or a goal", and the answer must not change
+ * because a clinic edited a rate.
  */
-const DEFAULT_PROTEIN_PER_KG = 1.6;
+const DEFAULT_PROTEIN_PER_KG = DEFAULT_NUTRITION_RULES.proteinPerKg;
 
 /**
  * Grams of protein per kilogram, where a condition changes the answer.
@@ -346,14 +370,6 @@ export function proteinIsRestricted(clinicalTags: readonly string[]): boolean {
 const KCAL_PER_GRAM_PROTEIN = 4;
 
 /**
- * Protein suggestion in grams.
- *
- * `clinicalTags` narrow the rate — see {@link PROTEIN_PER_KG}. `dailyKcalTarget`
- * caps the result at a share of the day's energy that food can actually deliver;
- * omit it and no cap is applied, which is what the intake form wants while the
- * calorie target is still being decided.
- */
-/**
  * The weight a gram-per-kilo rate should be read against.
  *
  * Protein is dosed to the tissue that uses it, and fat mass does not. Charging
@@ -385,6 +401,24 @@ export function dosingWeightKg(
   return ideal + 0.25 * (weightKg - ideal);
 }
 
+/**
+ * Protein suggestion in grams.
+ *
+ * Three things narrow the answer, in this order, and each is a different kind
+ * of limit:
+ *
+ * 1. **The clinic's rule** — `perKg` against the weight `basis` names. This is
+ *    the target, and it is a setting because it is a clinical judgement the app
+ *    has no standing to make.
+ * 2. **The condition** — a renal client's published ceiling, computed on its own
+ *    basis and taking the lower of the two. See the note inside.
+ * 3. **The day's energy** — `dailyKcalTarget` caps the result at a share of the
+ *    day that food can actually deliver; omit it and no cap applies, which is
+ *    what the intake form wants while the calorie target is still being decided.
+ *
+ * Returns null only when there is no weight, which is the one input with no
+ * substitute.
+ */
 export function suggestProteinGrams(
   weightKg: number | null,
   {
@@ -392,28 +426,85 @@ export function suggestProteinGrams(
     dailyKcalTarget = null,
     heightCm = null,
     sex = null,
+    perKg = DEFAULT_PROTEIN_PER_KG,
+    basis = DEFAULT_NUTRITION_RULES.proteinBasis,
+    fatFreeMassKg = null,
   }: {
     clinicalTags?: readonly string[];
     dailyKcalTarget?: number | null;
     /** Both needed for the adjusted weight; without them the scale is used unchanged. */
     heightCm?: number | null;
     sex?: string | null;
+    /** The clinic's rate — `clinic_nutrition_rules.protein_per_kg`. */
+    perKg?: number;
+    /** Which weight that rate multiplies — `clinic_nutrition_rules.protein_basis`. */
+    basis?: ProteinBasis;
+    /**
+     * Fat-free mass from the client's most recent body composition report.
+     *
+     * Only read when `basis` is `lean`, and its absence is the ordinary case
+     * rather than an error — see {@link proteinDosingWeightKg}.
+     */
+    fatFreeMassKg?: number | null;
   } = {},
 ): number | null {
   if (weightKg === null || !(weightKg > 0)) return null;
 
-  const perKg = clinicalTags.reduce(
+  const adjusted = dosingWeightKg(weightKg, heightCm, sex);
+  const grams = proteinDosingWeightKg(weightKg, adjusted, basis, fatFreeMassKg) * perKg;
+
+  /*
+    ⚠ **A condition's rate is a separate answer, not a replacement rate**, and
+    computing it apart from the clinic's is what keeps the kidney safe.
+
+    Both used to be one number: the lowest applicable g/kg, times the adjusted
+    weight. That worked while the clinic's rate was also per adjusted kilo. It
+    stops working the moment a clinic doses on `lean` — 0.7 g/kg against 54.6 kg
+    of lean mass is 38 g for a renal client who should be eating 41 g, and the
+    error is silent and in the direction that matters.
+
+    So the published figure keeps the basis it is published in — adjusted body
+    weight, which is what renal guidance is written against — and the lower of
+    the two wins. A clinic can never raise a restricted client's target by
+    editing a setting, and lowering one still works.
+  */
+  const clinicalPerKg = clinicalTags.reduce(
     (lowest, tag) => Math.min(lowest, PROTEIN_PER_KG[tag as ClinicalCondition] ?? lowest),
-    DEFAULT_PROTEIN_PER_KG,
+    Number.POSITIVE_INFINITY,
   );
+  const clinicalGrams = Number.isFinite(clinicalPerKg) ? adjusted * clinicalPerKg : grams;
 
-  const grams = dosingWeightKg(weightKg, heightCm, sex) * perKg;
+  const dosed = Math.min(grams, clinicalGrams);
 
-  if (dailyKcalTarget === null || !(dailyKcalTarget > 0)) return Math.round(grams);
+  if (dailyKcalTarget === null || !(dailyKcalTarget > 0)) return Math.round(dosed);
 
   const ceiling = (dailyKcalTarget * MAX_PROTEIN_ENERGY_SHARE) / KCAL_PER_GRAM_PROTEIN;
 
-  return Math.round(Math.min(grams, ceiling));
+  return Math.round(Math.min(dosed, ceiling));
+}
+
+/**
+ * Which kilos the clinic's rate multiplies.
+ *
+ * ⚠ **`lean` falls back to `adjusted`, and the fallback is the feature.** A
+ * clinic dosing on measured fat-free mass still has clients who have never
+ * stood on the analyser — a walk-in, a first visit, anyone weighed on an
+ * ordinary scale. Returning null for them would blank the one figure a plan is
+ * judged against; using the scale unchanged would quietly hand a client
+ * carrying thirty kilos of fat a target built on all of it. The adjusted weight
+ * is the estimate of lean mass that exists without a report, so it is what
+ * `lean` degrades to, and `SuggestedTargets` is not where that is announced —
+ * the Nutrition tab names the basis it actually used.
+ */
+export function proteinDosingWeightKg(
+  weightKg: number,
+  adjustedKg: number,
+  basis: ProteinBasis,
+  fatFreeMassKg: number | null,
+): number {
+  if (basis === 'actual') return weightKg;
+  if (basis === 'lean' && fatFreeMassKg !== null && fatFreeMassKg > 0) return fatFreeMassKg;
+  return adjustedKg;
 }
 
 export type SlotBudget = {

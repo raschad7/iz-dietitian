@@ -434,6 +434,11 @@ export function ContextPanel({
           <IntakeFormTrigger
             locale={locale}
             clientId={context.clientId}
+            /* The dialog's readout previews the figures this panel is already
+               showing, so it has to use the rules they were computed from —
+               see `ClientContext.rules`. */
+            rules={context.rules}
+            composition={context.composition}
             aria-label={profile ? t('editProfile') : t('createProfile')}
             className={cn(buttonVariants({ variant: 'neutral', size: 'sm' }), 'size-10 px-0')}
           >

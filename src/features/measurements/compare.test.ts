@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test';
 
 import {
   bmiDisagreement,
+  latestBodyComposition,
   changeFor,
   compareMeasurements,
   daysBetween,
@@ -346,5 +347,37 @@ describe('clockDrift', () => {
     // Minute 0 is "no clock recorded", not midnight — see the note.
     expect(clockDrift(at(0), at(791))).toBeNull();
     expect(clockDrift(at(394), at(0))).toBeNull();
+  });
+});
+
+describe('latestBodyComposition', () => {
+  const row = (
+    basalMetabolicRateKcal: number | null,
+    fatFreeMassKg: number | null,
+  ) => ({ basalMetabolicRateKcal, fatFreeMassKg });
+
+  it('takes each figure from the newest visit that carried it', () => {
+    /*
+      ⚠ The reason this is not "read the latest measurement". A bare weigh-in
+      recorded between two scans is a row with neither figure on it, and a rule
+      that read only the newest row would blank both — moving a client's calorie
+      target and their protein target on a visit that measured nothing new.
+    */
+    expect(
+      latestBodyComposition([row(null, null), row(1400, null), row(1350, 54.6)]),
+    ).toEqual({ basalMetabolicRateKcal: 1400, fatFreeMassKg: 54.6 });
+  });
+
+  it('is null for a client the analyser has never seen', () => {
+    // Not an error and not a gap: the formula and the adjusted weight are what
+    // both of these fall back to.
+    expect(latestBodyComposition([row(null, null)])).toEqual({
+      basalMetabolicRateKcal: null,
+      fatFreeMassKg: null,
+    });
+    expect(latestBodyComposition([])).toEqual({
+      basalMetabolicRateKcal: null,
+      fatFreeMassKg: null,
+    });
   });
 });

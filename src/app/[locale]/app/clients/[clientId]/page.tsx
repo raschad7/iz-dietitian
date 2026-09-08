@@ -10,6 +10,7 @@ import { getClientWeekMeals, getClientWeekProgress } from '@/features/clients/pr
 import { getClient, getClientIntake } from '@/features/clients/queries';
 import { measurementSharing } from '@/features/measurements/portal';
 import { listMeasurements, measurementsWithFiles } from '@/features/measurements/queries';
+import { nutritionRules } from '@/features/weekly-plans/queries';
 import {
   clinicServices,
   firstFreeUsed,
@@ -89,6 +90,7 @@ export default async function ClientInfoPage({ params, searchParams }: ClientInf
     measurementRows,
     measurementReportIds,
     measurementSharingState,
+    rules,
   ] = await Promise.all([
       listClientVisits(clinicId, client.id),
       listPlans(clinicId, client.id),
@@ -123,6 +125,13 @@ export default async function ClientInfoPage({ params, searchParams }: ClientInf
       // tells the history which rows can offer "open the original".
       measurementsWithFiles(clinicId, client.id),
       measurementSharing(clinicId, client.id),
+      /*
+        The clinic's protein rate and its BMR choice. Read here with everything
+        else because the Nutrition view cannot compute a single figure without
+        them, and read from the *clinic* rather than the client: they are one
+        practice's way of working, not a fact about this person.
+      */
+      nutritionRules(clinicId),
     ]);
 
   // An unknown `?tab=` opens on the first view — Nutrition — rather than 404ing: the param is
@@ -197,6 +206,7 @@ export default async function ClientInfoPage({ params, searchParams }: ClientInf
       visits={{ entries: visitEntries }}
       plans={plans}
       intake={intake}
+      nutritionRules={rules}
       measurements={{
         rows: measurementRows,
         // The two client facts a comparison needs. Read off the record already

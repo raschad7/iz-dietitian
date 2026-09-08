@@ -3,6 +3,7 @@ import { and, eq, ne, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import {
   clients,
+  clinicNutritionRules,
   weeklyPlanGenerations,
   weeklyPlanMealOptions,
   weeklyPlanMealSides,
@@ -16,6 +17,7 @@ import type { GenerationOutcome, ReconciledMeal } from './generate';
 import { mealIngredientLines } from './meal-ingredients';
 import { buildMealSnapshot } from './nutrition-snapshot';
 import { loadDishesByIds, ownAmountsByMeal, sidesByMealId } from './queries';
+import type { NutritionRulesInput } from './nutrition-rules';
 import type { GenerationScope } from './schema';
 import { planWeekDays, weekDateForDay } from './week';
 
@@ -723,4 +725,29 @@ export async function setPlanClientNote(
     .returning({ id: weeklyPlans.id });
 
   return rows.length > 0;
+}
+
+/**
+ * Save the clinic's dosing rules, creating the row on first use.
+ *
+ * An upsert rather than a read-then-write: there is one row per clinic and no
+ * lifecycle to it, so "has this clinic set rules before" is a question with no
+ * consequence and the unique index already answers it. Two dietitians saving
+ * the same setting from two tabs is then last-write-wins rather than a
+ * duplicate-key error on the second one.
+ *
+ * Takes values already parsed by `nutritionRulesSchema`, so the column checks
+ * behind it are a floor and not the validation.
+ */
+export async function saveNutritionRules(
+  clinicId: string,
+  input: NutritionRulesInput,
+): Promise<void> {
+  await db
+    .insert(clinicNutritionRules)
+    .values({ clinicId, ...input })
+    .onConflictDoUpdate({
+      target: clinicNutritionRules.clinicId,
+      set: { ...input, updatedAt: new Date() },
+    });
 }

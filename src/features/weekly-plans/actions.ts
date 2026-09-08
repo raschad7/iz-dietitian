@@ -6,6 +6,9 @@ import { after } from 'next/server';
 
 import { type IsoDate } from '@/features/booking/date';
 import { localeSchema } from '@/features/clients/schema';
+/* The settings dialog's own state shape — see `SettingsEditDialog`. Imported
+   rather than restated so a new status there cannot silently diverge here. */
+import type { FieldEditState } from '@/features/clinic-profile/form-state';
 import { notifyPlanPublished } from '@/features/portal/push/notify';
 import { type Locale } from '@/i18n/routing';
 import { requireStaffClinic } from '@/lib/session';
@@ -53,6 +56,8 @@ import {
   swapMealSchema,
   type GenerationScope,
 } from './schema';
+import { nutritionRulesSchema } from './nutrition-rules';
+import { saveNutritionRules } from './mutations';
 import { proteinIsRestricted, slotBudgets } from './targets';
 import type { GenerateState, PlanActionState, ReviewState } from './form-state';
 import { runReview, type ReviewOutcome } from './review';
@@ -795,4 +800,46 @@ export async function savePlanClientNoteAction(
   revalidatePath(`/${locale}/portal/plan`, 'page');
 
   return { status: 'done' };
+}
+
+/**
+ * Save the clinic's protein and BMR rules from the Settings dialog.
+ *
+ * Typed over `FieldEditState` because `SettingsEditDialog` owns the form, the
+ * pending state and the close — the same contract the clinic profile's field
+ * editors use. Three fields rather than one, which is what the dialog's
+ * `children` render prop is for: the rate and the basis are meaningless apart
+ * (see `PROTEIN_BASES`), so they are edited and validated together or not at
+ * all.
+ *
+ * Revalidates the record pages as well as Settings. The rate decides the
+ * protein figure on every Nutrition tab and in the plan context panel, so a
+ * clinic that changed it and then opened a client would otherwise read the old
+ * target off a cached page and have no reason to doubt it.
+ */
+export async function saveNutritionRulesAction(
+  _previous: FieldEditState,
+  formData: FormData,
+): Promise<FieldEditState> {
+  const locale = localeSchema.parse(formData.get('locale'));
+  const { clinicId } = await requireStaffClinic(locale);
+
+  const parsed = nutritionRulesSchema.safeParse({
+    proteinPerKg: formData.get('proteinPerKg'),
+    proteinBasis: formData.get('proteinBasis'),
+    bmrSource: formData.get('bmrSource'),
+  });
+  if (!parsed.success) return { status: 'invalid', validationKey: 'required' };
+
+  try {
+    await saveNutritionRules(clinicId, parsed.data);
+  } catch (error) {
+    console.error('[weekly-plans] nutrition rules save failed', error);
+    return { status: 'error', messageKey: 'unexpected' };
+  }
+
+  revalidatePath(`/${locale}/app/settings`);
+  revalidatePath(`/${locale}/app/clients`, 'layout');
+  revalidatePath(`/${locale}/app/plans`, 'layout');
+  return { status: 'success' };
 }

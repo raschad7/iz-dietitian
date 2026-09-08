@@ -15,6 +15,8 @@ import {
   SettingsWorkspace,
   type SettingsSectionDef,
 } from '@/features/settings/components/settings-workspace';
+import { NutritionRulesSettings } from '@/features/weekly-plans/components/nutrition-rules-settings';
+import { nutritionRules } from '@/features/weekly-plans/queries';
 import { WhatsappSettings } from '@/features/whatsapp/components/whatsapp-settings';
 import { readConnection } from '@/features/whatsapp/connection';
 import { resolveLocale } from '@/i18n/params';
@@ -44,13 +46,14 @@ export default async function SettingsPage({ params, searchParams }: SettingsPag
   const { clinicId, session } = await requireStaffClinic(locale);
   const requestHeaders = await headers();
 
-  const [profile, services, connection, forms, passkeys, accounts] = await Promise.all([
+  const [profile, services, connection, forms, passkeys, accounts, rules] = await Promise.all([
     getClinicProfile(clinicId, session.user.id),
     clinicServices(clinicId),
     readConnection(clinicId),
     clinicFormOverrides(clinicId),
     auth.api.listPasskeys({ headers: requestHeaders }),
     auth.api.listUserAccounts({ headers: requestHeaders }),
+    nutritionRules(clinicId),
   ]);
 
   /*
@@ -96,6 +99,15 @@ export default async function SettingsPage({ params, searchParams }: SettingsPag
         <>
           <ClinicSettings locale={locale} profile={profile} />
           <ServicesSettings locale={locale} services={services} />
+          {/*
+            Third under this tab rather than a sixth tab of its own, on the same
+            argument the services list is here: a tab is a place somebody has to
+            know to look, and two rows do not earn one. It sits with the
+            clinic's other standing decisions — how it works, not what it is —
+            and last of the three because it is the one a practice sets once and
+            revisits when its practice changes.
+          */}
+          <NutritionRulesSettings locale={locale} rules={rules} />
         </>
       ),
     },

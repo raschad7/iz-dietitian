@@ -28,4 +28,5 @@ export * from './whatsapp';
 export * from './clinic-forms';
 export * from './push-subscriptions';
 export * from './client-measurements';
+export * from './clinic-nutrition-rules';
 export * from './admin-audit';
