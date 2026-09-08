@@ -299,23 +299,36 @@ export function repairVariety({
         meal.dishId = replacement.dish.id;
         meal.servings = replacement.servings;
         report.repaired += 1;
-
-        day.add(source(replacement.dish));
-        dishes.add(replacement.dish.id);
-        bump(weekSources, source(replacement.dish));
-        countDish(weekDishes, replacement.dish.id);
-        continue;
+      } else {
+        // Nothing fits the budget. The repeat stays, and is counted so a caller can
+        // say the catalog is too thin rather than that the rule was ignored.
+        report.unresolved += 1;
       }
-
-      // Nothing fits the budget. The repeat stays, and is counted so a caller can
-      // say the catalog is too thin rather than that the rule was ignored.
-      report.unresolved += 1;
     }
 
-    day.add(current);
-    dishes.add(dish.id);
-    bump(weekSources, current);
-    countDish(weekDishes, dish.id);
+    const chosen = byId.get(meal.dishId) ?? dish;
+
+    dishes.add(chosen.id);
+    countDish(weekDishes, chosen.id);
+
+    /*
+      ⚠ A source is **tallied only where it is judged**, which is lunch and dinner.
+
+      The rule above already asks its question only of a plated meal. Recording
+      every meal into the same tallies undid that: a yoghurt breakfast put `dairy`
+      into the day, an egg snack put `egg` in, a handful of walnuts put `nuts` in —
+      so by Friday evening a week of perfectly ordinary breakfasts had ruled out
+      every dairy, egg and nut dinner in the catalog. Fifty-five dinners could reach
+      that budget and thirty-two were refused for a food eaten at ten in the
+      morning, and the week went out with the same chicken salad three nights.
+
+      The dish tallies above stay unconditional: a dish repeating is a repeat
+      wherever it sits.
+    */
+    if (plated) {
+      day.add(source(chosen));
+      bump(weekSources, source(chosen));
+    }
   }
 
   return report;

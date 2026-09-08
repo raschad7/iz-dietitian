@@ -189,6 +189,54 @@ describe('repairVariety', () => {
     expect(meals[1]!.dishId).not.toBe('egg-a');
   });
 
+  /*
+    The half of "variety belongs to the plate" that did not land the first time.
+
+    The *rule* was narrowed to lunch and dinner and the *tally* was not, so a
+    breakfast still spent a source for the whole day and a snack still counted
+    toward the week. In a real generated week that ruled out every dairy, egg and
+    nut dinner by Friday — because of a yoghurt breakfast, an egg snack and a
+    handful of walnuts — and shipped the same chicken salad three nights.
+
+    Both cases need a *different dish* of the same source, or the dish rule
+    catches the repeat first and the tally is never the thing under test.
+  */
+  test("a breakfast does not spend the day's protein source", () => {
+    const catalog = [
+      ...CATALOG,
+      // "egg" in the name so `proteinSource` reads the same source as `egg-a`.
+      { ...dish('egg-b', 'dairy_eggs', 'egg omelette'), mealTypes: ['breakfast', 'dinner'] },
+    ];
+    const meals = [
+      meal(0, 'breakfast', 'egg-b'),
+      meal(0, 'lunch', 'chicken-a'),
+      meal(0, 'dinner', 'egg-a'),
+    ];
+
+    const report = repairVariety({ meals, catalog, allergens: [] });
+
+    expect(report.repaired).toBe(0);
+    expect(meals[2]!.dishId).toBe('egg-a');
+  });
+
+  test('a snack does not count toward a week-long source cap', () => {
+    // Four poultry snacks — the week cap — and then a poultry lunch, which is the
+    // first plated poultry of the week and must be left alone.
+    const snacks = ['s1', 's2', 's3', 's4'].map((id) => ({
+      ...dish(id, 'poultry', `chicken ${id}`),
+      mealTypes: ['snack'],
+    }));
+    const meals = [
+      ...snacks.map((one, day) => meal(day, 'snack_1', one.id)),
+      meal(4, 'lunch', 'chicken-a'),
+    ];
+
+    const report = repairVariety({ meals, catalog: [...CATALOG, ...snacks], allergens: [] });
+
+    expect(report.repaired).toBe(0);
+    expect(meals[4]!.dishId).toBe('chicken-a');
+  });
+
   test('a repair never introduces a protein the week does not already use', () => {
     // A vegetarian week: the constraint lives in prose the repair cannot read, so
     // the envelope is what keeps meat out. Fifteen meals is the point at which an
