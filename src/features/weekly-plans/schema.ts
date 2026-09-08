@@ -553,7 +553,30 @@ export const MAX_RATIONALE_LENGTH = 240;
  */
 export const generatedMealSchema = z.object({
   dish: z.string().trim().min(1).max(120),
-  servings: z.coerce.number().min(MIN_SERVINGS).max(MAX_SERVINGS),
+  /**
+   * Clamped rather than rejected.
+   *
+   * This number is a hint and the prompt says so: `chooseServings` recomputes it
+   * from the recipe and the slot budget, and the model's own figure is discarded
+   * whenever we can do better. So a response that answered `3.5` is a response
+   * with a hint slightly outside a range nothing downstream reads — and it used
+   * to throw away the entire week, which is thirty-five good dish choices lost to
+   * one number that was never going to be used.
+   *
+   * A model that returns nonsense here still cannot hurt anything: the value is
+   * only reached for a dish with no recipe or no energy, where the clamp is the
+   * difference between a plausible portion and an absurd one.
+   */
+  servings: z.coerce
+    .number()
+    .catch(1)
+    .transform((value) =>
+      // `z.coerce` turns null into 0, which is not a portion anybody meant. Only a
+      // positive finite number is worth clamping; anything else is one serving.
+      Number.isFinite(value) && value > 0
+        ? Math.min(MAX_SERVINGS, Math.max(MIN_SERVINGS, value))
+        : 1,
+    ),
   rationaleAr: z.string().trim().max(2000).default(''),
   /**
    * Slugs of dishes to stand beside the main — صحن سلطة، كوب شوربة.

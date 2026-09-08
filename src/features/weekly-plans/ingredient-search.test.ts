@@ -13,6 +13,7 @@ import type { FoodSearchResult } from './queries';
 function food(id: string, nameEn: string): FoodSearchResult {
   return {
     id,
+    slug: id,
     nameAr: nameEn,
     nameEn,
     clinicId: null,

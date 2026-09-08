@@ -31,11 +31,21 @@ import { recentDishUse } from '@/features/weekly-plans/usage';
 import { currentSunday, formatDateParts, nextSunday, weekDates } from '@/features/weekly-plans/week';
 
 /**
- * A 90-second generation runs as a server action, which exceeds the default
- * function timeout on most serverless hosts. See the "Known risk" section of
+ * Generation runs as a server action and now makes **two** model calls — the week,
+ * then the same model reading the week back. See `runReviewedGeneration`.
+ *
+ * Measured end to end at 126 s, which is why this is no longer 120: the first pass
+ * may take its full 100 s timeout and the second is given 60, so the worst case is
+ * 160 and this leaves room above it. The second pass is the part that can be
+ * dropped — it aborts on its own deadline and the first pass's week is what gets
+ * saved — so the platform killing the function is the only failure that costs the
+ * dietitian a plan, and it is the one this number exists to prevent.
+ *
+ * Anything above 60 s exceeds the default function timeout on most serverless
+ * hosts. See the "Known risk" section of
  * `docs/superpowers/specs/2026-07-30-weekly-plans-v2-design.md`.
  */
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 type PageProps = {
   params: Promise<{ locale: string; clientId: string }>;

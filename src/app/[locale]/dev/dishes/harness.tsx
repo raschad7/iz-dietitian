@@ -38,6 +38,7 @@ function row(
 ): Fixture {
   return {
     id,
+    slug: id,
     nameAr,
     nameEn,
     clinicId: null,

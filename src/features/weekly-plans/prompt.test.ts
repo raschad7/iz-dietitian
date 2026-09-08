@@ -19,6 +19,8 @@ const CATALOG: PromptDish[] = [
     occasion: 'everyday',
     baseKcal: 618.4,
     baseProtein: 21.7,
+    baseCarbs: 30,
+    baseSodium: 200,
     nutritionCategory: 'balanced',
     proteinSource: 'legume',
     carbBase: 'rice',
@@ -35,6 +37,8 @@ const CATALOG: PromptDish[] = [
     occasion: 'everyday',
     baseKcal: 381.2,
     baseProtein: 18.4,
+    baseCarbs: 30,
+    baseSodium: 200,
     nutritionCategory: 'high_protein',
     proteinSource: 'dairy',
     carbBase: 'bread',
@@ -167,7 +171,7 @@ describe('buildPrompt — content', () => {
     const { user } = buildPrompt(input());
 
     expect(user).toContain(
-      'mujaddara-salad\tمجدرة مع سلطة خضراء\tlunch|dinner\t618kcal\t22g\tbalanced',
+      'mujaddara-salad\tمجدرة مع سلطة خضراء\tlunch|dinner\t618kcal\t22g\t30g\t200mg\tbalanced',
     );
   });
 
@@ -180,13 +184,13 @@ describe('buildPrompt — content', () => {
     const { user } = buildPrompt(input());
 
     expect(user).toContain(
-      'slug\tname\tmeal_types\tbase_kcal\tbase_protein\tnutrition\tprotein_source\tcarb_base\tsource\teffort\tcost\toccasion',
+      'slug\tname\tmeal_types\tbase_kcal\tbase_protein\tbase_carbs\tbase_sodium\tnutrition\tprotein_source\tcarb_base\tsource\teffort\tcost\toccasion',
     );
 
     // labaneh is computed high_protein, and that appears only in the nutrition
     // column — there is nowhere on the wire for a hand-written one to live.
     expect(user).toContain(
-      'labaneh-zeit-pita\tلبنة بزيت الزيتون مع خبز\tbreakfast\t381kcal\t18g\thigh_protein\tdairy\tbread\thome\tmedium\tnormal\teveryday',
+      'labaneh-zeit-pita\tلبنة بزيت الزيتون مع خبز\tbreakfast\t381kcal\t18g\t30g\t200mg\thigh_protein\tdairy\tbread\thome\tmedium\tnormal\teveryday',
     );
   });
 
@@ -320,6 +324,8 @@ describe('buildPrompt — sides', () => {
     occasion: 'everyday',
     baseKcal: 85,
     baseProtein: 2,
+    baseCarbs: 30,
+    baseSodium: 200,
     nutritionCategory: 'balanced',
     proteinSource: 'none',
     carbBase: 'none',
@@ -358,5 +364,65 @@ describe('buildPrompt — sides', () => {
     expect(user).toContain('## Sides');
     expect(user).toContain('صحن سلطة');
     expect(user).toContain('never instead of one');
+  });
+});
+
+/**
+ * The second pass reuses everything: the same catalogue table, the same client
+ * block, the same JSON schema. Only the instructions and the draft change — which
+ * is the whole reason it lives here rather than in a module of its own.
+ */
+describe('buildPrompt — the refinement pass', () => {
+  const draft = {
+    days: [
+      {
+        dayOfWeek: 0,
+        kcal: 1500,
+        protein: 60,
+        carbs: 200,
+        meals: [
+          { slotKey: 'breakfast', slug: 'labaneh-zeit-pita', kcal: 381, budgetKcal: 460, protein: 18 },
+          { slotKey: 'lunch', slug: 'mujaddara-salad', kcal: 618, budgetKcal: 640, protein: 22 },
+        ],
+      },
+    ],
+    findings: ['Day 0: 60 g protein against a 134 g target — short.'],
+  };
+
+  test('asks for a correction rather than a plan', () => {
+    const planning = buildPrompt(input());
+    const refining = buildPrompt({ ...input(), draft });
+
+    expect(planning.system).toContain('You are a clinical dietitian planning weekly meals');
+    expect(refining.system).toContain('correcting a DRAFT weekly plan');
+    expect(refining.user).toContain('## The draft to correct');
+    expect(refining.user).toContain('Return the corrected week');
+  });
+
+  test('the schema and the catalogue are byte-identical, so the answer reconciles the same way', () => {
+    const planning = buildPrompt(input());
+    const refining = buildPrompt({ ...input(), draft });
+
+    expect(refining.jsonSchema).toEqual(planning.jsonSchema);
+
+    const catalogOf = (user: string) =>
+      user.slice(user.indexOf('## Dish catalog'), user.indexOf('## Last week'));
+    expect(catalogOf(refining.user)).toBe(catalogOf(planning.user));
+  });
+
+  test('carries each meal against its own budget, and the checks already run', () => {
+    const { user } = buildPrompt({ ...input(), draft });
+
+    expect(user).toContain('lunch: mujaddara-salad — 618/640 kcal, 22 g protein');
+    expect(user).toContain('## What the checks already found');
+    expect(user).toContain('60 g protein against a 134 g target');
+  });
+
+  test('the draft names no client', () => {
+    const { user, system } = buildPrompt({ ...input(), draft });
+
+    for (const forbidden of ['سارة', 'sara', '0599', '@']) {
+      expect(`${system}\n${user}`.toLowerCase()).not.toContain(forbidden.toLowerCase());
+    }
   });
 });

@@ -40,6 +40,7 @@ import {
 } from '@/db/schema/catalog-foods';
 import { normalizeArabic } from '@/features/weekly-plans/arabic-normalize';
 import { NUTRIENT_KEYS, type NutrientKey } from '@/features/weekly-plans/nutrition';
+import { LIMITED_FOODS } from '@/features/weekly-plans/portion-limits';
 import { isMember } from '@/lib/enum';
 import { catalogChecksum } from './build-catalog-dataset';
 
@@ -181,6 +182,29 @@ export function validateCuratedFoods(records: readonly CuratedFood[]): string[] 
     if (defaults > 1) problems.push(`${food.slug}: ${defaults} default portions, expected at most one`);
     if ((food.portions?.length ?? 0) > 0 && defaults === 0) {
       problems.push(`${food.slug}: has portions but none is the default`);
+    }
+  }
+
+  /*
+    A portion ceiling written against a name no food answers to.
+
+    Checked here rather than in a unit test because the two halves live apart: the
+    numbers are in `portion-limits.ts` and the names are in this dataset, and a key
+    that stops matching — a food renamed, a slug mistyped — fails **silently**. The
+    ceiling simply never applies again, and the first anyone hears of it is a plan
+    that tells a client to eat forty-three pistachios.
+  */
+  const portionsBySlug = new Map(
+    records.map((food) => [food.slug, new Set((food.portions ?? []).map((one) => one.labelEn))]),
+  );
+
+  for (const { slug, unit } of LIMITED_FOODS) {
+    const portions = portionsBySlug.get(slug);
+
+    if (!portions) {
+      problems.push(`portion-limits.ts caps "${slug}", which is not a food in this dataset`);
+    } else if (unit && !portions.has(unit)) {
+      problems.push(`portion-limits.ts caps "${slug}" per ${unit}, a portion it does not have`);
     }
   }
 

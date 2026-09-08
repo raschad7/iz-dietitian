@@ -60,6 +60,8 @@ const CATALOG: CatalogDish[] = [
     allergenTags: [],
     baseKcal: 620,
     baseProtein: 22,
+    baseCarbs: 30,
+    baseSodium: 200,
     nutritionCategory: 'balanced',
     proteinSource: 'legume',
     carbBase: 'rice',
@@ -77,6 +79,8 @@ const CATALOG: CatalogDish[] = [
     allergenTags: [],
     baseKcal: 600,
     baseProtein: 20,
+    baseCarbs: 30,
+    baseSodium: 200,
     nutritionCategory: 'balanced',
     proteinSource: 'legume',
     carbBase: 'rice',
@@ -94,6 +98,8 @@ const CATALOG: CatalogDish[] = [
     allergenTags: ['nuts'],
     baseKcal: 610,
     baseProtein: 18,
+    baseCarbs: 30,
+    baseSodium: 200,
     nutritionCategory: 'balanced',
     proteinSource: 'legume',
     carbBase: 'rice',
@@ -111,6 +117,8 @@ const CATALOG: CatalogDish[] = [
     allergenTags: ['lactose'],
     baseKcal: 380,
     baseProtein: 18,
+    baseCarbs: 30,
+    baseSodium: 200,
     nutritionCategory: 'balanced',
     proteinSource: 'legume',
     carbBase: 'rice',
@@ -128,6 +136,8 @@ const CATALOG: CatalogDish[] = [
     allergenTags: [],
     baseKcal: 120,
     baseProtein: 4,
+    baseCarbs: 30,
+    baseSodium: 200,
     nutritionCategory: 'balanced',
     proteinSource: 'legume',
     carbBase: 'rice',
@@ -193,6 +203,8 @@ const WIDE_CATALOG: CatalogDish[] = [
     allergenTags: [],
     baseKcal: 600 + index,
     baseProtein: 20,
+    baseCarbs: 30,
+    baseSodium: 200,
     nutritionCategory: 'balanced',
     proteinSource: 'legume',
     carbBase: 'rice',
@@ -428,8 +440,18 @@ describe('parseGeneratedPlan', () => {
     expect(() => parseGeneratedPlan({ days: [] }, ['lunch'])).toThrow();
   });
 
-  test('rejects servings outside the legal range', () => {
-    expect(() => parseGeneratedPlan({ days: [day(0, meal({ servings: 9 }))] }, ['lunch'])).toThrow();
+  /**
+   * Clamped rather than rejected, because the number is a hint nothing reads.
+   *
+   * A refinement answered `servings: 3.5` on one meal of thirty-five and the whole
+   * week was thrown away — thirty-five good dish choices lost to a figure
+   * `chooseServings` was about to discard. The dish reference is the valuable part
+   * of the response; the multiplier is not.
+   */
+  test('clamps servings outside the legal range instead of losing the week', () => {
+    const parsed = parseGeneratedPlan({ days: [day(0, meal({ servings: 9 }))] }, ['lunch']);
+
+    expect(parsed.days[0]!.meals[0]!.servings).toBe(3);
   });
 
   test('reads the week summary beside the days', () => {
@@ -474,6 +496,8 @@ describe('reconcile — sides', () => {
     allergenTags: [],
     baseKcal: 85,
     baseProtein: 2,
+    baseCarbs: 30,
+    baseSodium: 200,
     nutritionCategory: 'balanced',
     proteinSource: 'none',
     carbBase: 'none',

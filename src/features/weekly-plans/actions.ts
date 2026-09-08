@@ -10,7 +10,12 @@ import { notifyPlanPublished } from '@/features/portal/push/notify';
 import { type Locale } from '@/i18n/routing';
 import { requireStaffClinic } from '@/lib/session';
 
-import { GenerationFailedError, runGeneration, type GenerationOutcome } from './generate';
+import {
+  GenerationFailedError,
+  runGeneration,
+  runReviewedGeneration,
+  type GenerationOutcome,
+} from './generate';
 import { EmptySlotCatalogError, type PromptInput } from './prompt';
 import { LlmNotConfiguredError } from './llm';
 import {
@@ -48,7 +53,7 @@ import {
   swapMealSchema,
   type GenerationScope,
 } from './schema';
-import { slotBudgets } from './targets';
+import { proteinIsRestricted, slotBudgets } from './targets';
 import type { GenerateState, PlanActionState, ReviewState } from './form-state';
 import { runReview, type ReviewOutcome } from './review';
 
@@ -271,8 +276,8 @@ export async function generateWeekAction(
   let outcome: GenerationOutcome;
 
   try {
-    outcome = await runGeneration(
-      promptInput({
+    outcome = await runReviewedGeneration({
+      input: promptInput({
         ready,
         instruction,
         previous: await previousPlanSlugs(clinicId, parsed.data.clientId),
@@ -280,10 +285,13 @@ export async function generateWeekAction(
         scope: 'week',
         budgets: ready.budgets,
       }),
-      toPromptCatalog(ready.catalog, ready.profile.dietPattern),
-      ready.allergens,
-      toPromptSides(ready.catalog, ready.profile.dietPattern),
-    );
+      catalog: toPromptCatalog(ready.catalog, ready.profile.dietPattern),
+      allergens: ready.allergens,
+      sides: toPromptSides(ready.catalog, ready.profile.dietPattern),
+      kcalTarget: ready.kcalTarget,
+      proteinTargetGrams: ready.proteinTargetGrams,
+      proteinIsRestriction: proteinIsRestricted(ready.profile.clinicalTags),
+    });
   } catch (error) {
     // The audit row is written for failures too — those are the interesting ones.
     await recordGeneration({

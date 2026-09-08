@@ -127,6 +127,12 @@ function textArray(values: readonly string[]): SQL {
  */
 const foodColumns = {
   id: catalogFoods.id,
+  /**
+   * The stable natural key the seed upserts on — and the key a per-food portion
+   * ceiling is written against, because `id` is a uuid here and a slug in the
+   * offline dataset. See `portion-limits.ts`.
+   */
+  slug: catalogFoods.slug,
   nameAr: catalogFoods.nameAr,
   nameEn: catalogFoods.nameEn,
   /** Null for a shared catalog food — what tells "my clinic added this" from the shipped set. */
@@ -598,6 +604,8 @@ function toCatalogDish(dish: DishDetail): CatalogDish {
     allergenTags: dish.allergenTags,
     baseKcal: baseServingKcal(dish.ingredients),
     baseProtein: dishTotals(dish.ingredients, 1).protein.value,
+    baseCarbs: dishTotals(dish.ingredients, 1).carbs.value,
+    baseSodium: dishTotals(dish.ingredients, 1).sodium?.value ?? 0,
     // Carried for `chooseServings`, which has to portion a recipe to know what a
     // multiplier produces. Never reaches the model: `describeCatalog` writes the
     // columns it wants by name.
@@ -1007,6 +1015,8 @@ export async function listMealTypes(): Promise<string[]> {
 
 export type FoodSearchResult = {
   id: string;
+  /** The seed's natural key. What `portion-limits.ts` keys a ceiling on. */
+  slug: string;
   /** Both stored, neither derived. The reader's locale picks one; see `food-display.ts`. */
   nameAr: string;
   nameEn: string;
@@ -1446,7 +1456,17 @@ export async function getClientContext(clinicId: string, clientId: string): Prom
       : null,
     targets,
     effectiveKcal,
-    effectiveProteinGrams: row.proteinTargetGrams ?? suggestProteinGrams(weightKg),
+    /* Conditions narrow the rate and the calorie target caps it — a renal client
+       must not be handed 1.6 g/kg, and no client should be measured against a
+       figure their day has no room for. See `suggestProteinGrams`. */
+    effectiveProteinGrams:
+      row.proteinTargetGrams ??
+      suggestProteinGrams(weightKg, {
+        clinicalTags: row.clinicalTags ?? [],
+        dailyKcalTarget: effectiveKcal,
+        heightCm: row.heightCm,
+        sex: row.sex,
+      }),
     budgets: effectiveKcal === null ? [] : slotBudgets(effectiveKcal, schedule),
   };
 }

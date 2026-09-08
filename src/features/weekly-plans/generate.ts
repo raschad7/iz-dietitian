@@ -23,8 +23,8 @@ import {
   type GeneratedPlan,
   type GenerationScope,
 } from './schema';
+import { draftFromMeals } from './refine';
 import { repairVariety, type VarietyReport } from './variety';
-import { DAY_TOLERANCE, driftState } from './drift';
 import type { DishIngredientDetail } from './nutrition';
 import { chooseServings, nextServings, portionedKcal } from './portioning';
 import { bestServings, isSimilar, snapServings } from './similar';
@@ -111,6 +111,7 @@ export function reconcile({
   catalog,
   sides = [],
   allergens,
+  proteinTargetGrams = null,
 }: {
   plan: GeneratedPlan;
   days: readonly number[];
@@ -119,9 +120,12 @@ export function reconcile({
   /** What may stand beside a main. Empty means sides are simply never attached. */
   sides?: readonly CatalogDish[];
   allergens: readonly string[];
+  /** The daily protein target, so the variety repair can weigh what a swap costs. */
+  proteinTargetGrams?: number | null;
 }): ReconcileResult {
   const bySlug = new Map(catalog.map((dish) => [dish.slug, dish]));
   const sideBySlug = new Map(sides.map((dish) => [dish.slug, dish]));
+  const sideById = new Map(sides.map((dish) => [dish.id, dish]));
   const blocked = new Set(allergens);
   const warnings: ReconcileWarning[] = [];
 
@@ -259,7 +263,17 @@ export function reconcile({
       };
 
       meals.push(meal);
-      filled.push({ meal, recipe: dish.recipe, wholeOnly: isFixedPortion(dish.source) });
+      filled.push({
+        meal,
+        recipe: dish.recipe,
+        wholeOnly: isFixedPortion(dish.source),
+        // One serving each, never scaled — the same rule `mealIngredientLines`
+        // applies when it renders them.
+        sideKcal: meal.sideDishIds.reduce(
+          (sum, id) => sum + portionedKcal(sideById.get(id)?.recipe ?? [], 1),
+          0,
+        ),
+      });
     }
 
     balanceDay(filled);
@@ -267,7 +281,7 @@ export function reconcile({
 
   // Variety last: it swaps dishes, and a swapped dish is portioned by the same
   // chooser, so it must run after every meal has one to swap away from.
-  const variety = repairVariety({ meals, catalog, allergens });
+  const variety = repairVariety({ meals, catalog, allergens, proteinTargetGrams });
 
   return {
     meals,
@@ -404,6 +418,18 @@ type BalanceEntry = {
   recipe: readonly DishIngredientDetail[];
   /** True for a dish sold whole, which may only move a serving at a time. */
   wholeOnly: boolean;
+  /**
+   * Energy of the dishes standing beside the main, which the multiplier does not
+   * move.
+   *
+   * Carried because the balancer used to sum main recipes only, while the board
+   * the dietitian reads sums main plus sides. The gap is not small: a side
+   * averages 119 kcal and reaches 282, and roughly half of lunches and dinners
+   * carry one, so a day arrived about 8% above a target the balancer believed it
+   * had hit. Ninety-six of a hundred and twelve audited days finished over target
+   * and only ten under, which is not a rounding error but a missing term.
+   */
+  sideKcal: number;
 };
 
 /** How many single-step adjustments one day is allowed. */
@@ -437,15 +463,28 @@ function balanceDay(entries: readonly BalanceEntry[]): void {
   const target = entries.reduce((sum, entry) => sum + entry.meal.budgetKcal, 0);
   if (!(target > 0)) return;
 
-  const kcalOf = (entry: BalanceEntry) => portionedKcal(entry.recipe, entry.meal.servings);
+  const kcalOf = (entry: BalanceEntry) =>
+    portionedKcal(entry.recipe, entry.meal.servings) + entry.sideKcal;
   const dayKcal = () => entries.reduce((sum, entry) => sum + kcalOf(entry), 0);
 
   for (let pass = 0; pass < BALANCE_PASSES; pass += 1) {
     const total = dayKcal();
-    const drift = driftState(total, target, DAY_TOLERANCE);
-    if (!drift) return;
 
-    const direction = drift === 'under' ? 1 : -1;
+    /*
+      Aim at the target, not at the edge of the tolerance.
+
+      This used to exit the moment `driftState` reported no drift, which meant a
+      day sitting at +9% was declared finished — the balancer was a rescue for
+      days that had gone badly rather than something that made ordinary days
+      right. Since a move is only kept when it brings the day closer, walking all
+      the way in costs nothing and stops well before the pass limit.
+
+      `DAY_TOLERANCE` keeps its real job, which is deciding when the board tells
+      the dietitian a day is off.
+    */
+    if (Math.abs(total - target) < 1) return;
+
+    const direction = total < target ? 1 : -1;
 
     let chosen: { entry: BalanceEntry; servings: number } | null = null;
     let mostRoom = -Infinity;
@@ -526,6 +565,8 @@ export async function runGeneration(
   allergens: readonly string[],
   /** What may stand beside a main. Last, and optional, so every existing caller reads unchanged. */
   sides: readonly CatalogDish[] = [],
+  /** Cuts this call short of the transport's own timeout — see {@link runReviewedGeneration}. */
+  signal?: AbortSignal,
 ): Promise<GenerationOutcome> {
   const transport = getLlmTransport();
   const payload = buildPrompt(input);
@@ -545,7 +586,7 @@ export async function runGeneration(
     let result: LlmResult;
 
     try {
-      result = await transport.complete(attemptPayload);
+      result = await transport.complete(attemptPayload, signal);
     } catch (cause) {
       // Surface transport failures immediately, with nothing written.
       throw new GenerationFailedError(
@@ -594,3 +635,109 @@ function describeError(error: unknown): string {
 
 /** Re-exported so callers need one import for the scope union. */
 export type { GenerationScope };
+
+/**
+ * How long the second pass gets.
+ *
+ * The first pass may take its full {@link LLM_TIMEOUT_MS}; this one runs after it
+ * and the route has a ceiling for both. Sixty seconds is comfortably over the
+ * measured forty-five and leaves the sum inside {@link maxDuration} even when the
+ * first pass ran long.
+ *
+ * Running out of it is not a failure. The draft is already reconciled and already
+ * good; the second reading is an improvement on it, so a slow one is dropped and
+ * the week goes out as the first pass wrote it.
+ */
+const REVIEW_TIMEOUT_MS = 60_000;
+
+/**
+ * A week, generated and then read back by the same model before anyone sees it.
+ *
+ * ## Why this is not a button
+ *
+ * It was one, briefly, and the argument was time: two calls against a route
+ * ceiling. But a second opinion the dietitian has to ask for is a second opinion
+ * most plans never get, and the pass is not a garnish — it is what takes a week
+ * from 74% of its protein target to 92%, and what pulls a diabetic week's
+ * carbohydrate range from 104–256 g down to 116–144 g. A plan that needs it and
+ * did not get it is the plan that reaches a client.
+ *
+ * So it runs every time, and the cost of that is the *only* thing the button was
+ * really buying: about forty-five seconds and nine tenths of a cent.
+ *
+ * ## Why it cannot lose a plan
+ *
+ * The second pass answers in the same schema and goes through the same
+ * `reconcile`, so it can choose worse dishes but cannot break an invariant. And
+ * every way it can fail — a timeout, a transport error, a response that will not
+ * parse — is caught here and answered with the first pass's outcome, which is a
+ * complete, reconciled, publishable week. The failure mode of the second opinion
+ * is not having had one.
+ */
+export async function runReviewedGeneration({
+  input,
+  catalog,
+  allergens,
+  sides = [],
+  kcalTarget,
+  proteinTargetGrams,
+  proteinIsRestriction = false,
+}: {
+  input: PromptInput;
+  catalog: readonly CatalogDish[];
+  allergens: readonly string[];
+  sides?: readonly CatalogDish[];
+  kcalTarget: number;
+  proteinTargetGrams: number | null;
+  proteinIsRestriction?: boolean;
+}): Promise<GenerationOutcome> {
+  const first = await runGeneration(input, catalog, allergens, sides);
+
+  // A first pass that could not fill the week is not worth a second reading — the
+  // gaps are what the dietitian needs to see, and a refinement would hide the fact
+  // that they were there.
+  if (first.unfilled > 0) return first;
+
+  try {
+    const second = await runGeneration(
+      {
+        ...input,
+        draft: draftFromMeals({
+          meals: first.meals,
+          budgets: input.budgets,
+          catalog,
+          sides,
+          days: input.days,
+          kcalTarget,
+          proteinTargetGrams,
+          proteinIsRestriction,
+        }),
+      },
+      catalog,
+      allergens,
+      sides,
+      AbortSignal.timeout(REVIEW_TIMEOUT_MS),
+    );
+
+    if (second.unfilled > 0) return first;
+
+    return {
+      ...second,
+      // The dietitian is shown what the whole generation cost, not half of it.
+      usage: {
+        promptTokens: addTokens(first.usage.promptTokens, second.usage.promptTokens),
+        completionTokens: addTokens(first.usage.completionTokens, second.usage.completionTokens),
+      },
+      durationMs: first.durationMs + second.durationMs,
+    };
+  } catch (error) {
+    console.warn('[weekly-plans] the second pass did not land; keeping the draft', error);
+    return first;
+  }
+}
+
+/** Two counts, either of which the provider may not have reported. */
+function addTokens(a: number | null, b: number | null): number | null {
+  if (a === null && b === null) return null;
+  return (a ?? 0) + (b ?? 0);
+}

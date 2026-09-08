@@ -33,11 +33,11 @@
       "ingredients": [
         {
           "fdcId": 170567,
-          "grams": 24.0,
+          "grams": 14.4,
           "note": "Nuts, almonds",
           "primary": true,
           "unit": "Piece",
-          "count": 20
+          "count": 12
         }
       ]
     },
@@ -68,10 +68,10 @@
         },
         {
           "fdcId": 170567,
-          "grams": 20.4,
+          "grams": 14.4,
           "note": "Nuts, almonds",
           "unit": "Piece",
-          "count": 17
+          "count": 12
         }
       ]
     },
@@ -177,9 +177,11 @@
       "ingredients": [
         {
           "fdcId": 170026,
-          "grams": 200,
+          "grams": 213.0,
           "note": "Potatoes, flesh and skin, raw",
-          "primary": true
+          "primary": true,
+          "unit": "Piece",
+          "count": 1.0
         },
         {
           "fdcId": 173420,
@@ -318,14 +320,18 @@
         },
         {
           "fdcId": 171267,
-          "grams": 220,
+          "grams": 244.0,
           "note": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.0
         },
         {
           "fdcId": 173904,
-          "grams": 25,
-          "note": "Cereals, oats, regular and quick, not fortified, dry"
+          "grams": 20.2,
+          "note": "Cereals, oats, regular and quick, not fortified, dry",
+          "unit": "Cup",
+          "count": 0.25
         },
         {
           "fdcId": 169640,
@@ -384,9 +390,11 @@
       "ingredients": [
         {
           "fdcId": 170026,
-          "grams": 180,
+          "grams": 159.8,
           "note": "Potatoes, flesh and skin, raw",
-          "primary": true
+          "primary": true,
+          "unit": "Piece",
+          "count": 0.75
         },
         {
           "fdcId": 170427,
@@ -572,9 +580,11 @@
         },
         {
           "fdcId": 170440,
-          "grams": 220,
+          "grams": 208.8,
           "note": "Potatoes, boiled, cooked without skin, flesh, without salt",
-          "primary": true
+          "primary": true,
+          "unit": "Piece",
+          "count": 1.25
         },
         {
           "fdcId": 170459,
@@ -619,9 +629,11 @@
         },
         {
           "fdcId": 171284,
-          "grams": 170,
+          "grams": 183.8,
           "note": "Yogurt, plain, whole milk",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.75
         }
       ]
     },
@@ -729,9 +741,11 @@
         },
         {
           "fdcId": 172688,
-          "grams": 35,
+          "grams": 32.0,
           "note": "Bread, whole-wheat, commercially prepared",
-          "primary": true
+          "primary": true,
+          "unit": "Slice",
+          "count": 1.0
         },
         {
           "fdcId": 168409,
@@ -854,11 +868,11 @@
       "ingredients": [
         {
           "fdcId": 900001,
-          "grams": 45,
+          "grams": 45.0,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
           "unit": "Tablespoon",
-          "count": 3
+          "count": 3.0
         },
         {
           "fdcId": 173420,
@@ -1017,9 +1031,11 @@
       "ingredients": [
         {
           "fdcId": 170287,
-          "grams": 290,
+          "grams": 273.0,
           "note": "Bulgur, cooked",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.5
         },
         {
           "fdcId": 171477,
@@ -1058,9 +1074,11 @@
       "ingredients": [
         {
           "fdcId": 170287,
-          "grams": 250,
+          "grams": 227.5,
           "note": "Bulgur, cooked",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.25
         },
         {
           "fdcId": 172544,
@@ -1105,9 +1123,11 @@
       "ingredients": [
         {
           "fdcId": 170287,
-          "grams": 245,
+          "grams": 227.5,
           "note": "Bulgur, cooked",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.25
         },
         {
           "fdcId": 170459,
@@ -1126,9 +1146,11 @@
         },
         {
           "fdcId": 173800,
-          "grams": 40,
+          "grams": 63.2,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
-          "primary": true
+          "primary": true,
+          "unit": "Container",
+          "count": 0.25
         }
       ]
     },
@@ -1315,11 +1337,11 @@
         },
         {
           "fdcId": 900001,
-          "grams": 30,
+          "grams": 30.0,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
           "unit": "Tablespoon",
-          "count": 2
+          "count": 2.0
         }
       ]
     },
@@ -1347,9 +1369,11 @@
         },
         {
           "fdcId": 173800,
-          "grams": 80,
+          "grams": 63.2,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
-          "primary": true
+          "primary": true,
+          "unit": "Container",
+          "count": 0.25
         },
         {
           "fdcId": 168604,
@@ -1377,11 +1401,11 @@
       "ingredients": [
         {
           "fdcId": 170162,
-          "grams": 25.6,
+          "grams": 19.2,
           "note": "Nuts, cashew nuts, raw",
           "primary": true,
           "unit": "Piece",
-          "count": 16
+          "count": 12
         },
         {
           "fdcId": 168191,
@@ -1412,11 +1436,11 @@
       "ingredients": [
         {
           "fdcId": 170162,
-          "grams": 24.0,
+          "grams": 19.2,
           "note": "Nuts, cashew nuts, raw",
           "primary": true,
           "unit": "Piece",
-          "count": 15
+          "count": 12
         }
       ]
     },
@@ -1533,9 +1557,11 @@
       "ingredients": [
         {
           "fdcId": 172688,
-          "grams": 70,
+          "grams": 72.0,
           "note": "Bread, whole-wheat, commercially prepared",
-          "primary": true
+          "primary": true,
+          "unit": "Slice",
+          "count": 2.25
         },
         {
           "fdcId": 173424,
@@ -1593,8 +1619,10 @@
         },
         {
           "fdcId": 170440,
-          "grams": 180,
-          "note": "Potatoes, boiled, cooked without skin, flesh, without salt"
+          "grams": 167.0,
+          "note": "Potatoes, boiled, cooked without skin, flesh, without salt",
+          "unit": "Piece",
+          "count": 1.0
         },
         {
           "fdcId": 170427,
@@ -1721,9 +1749,11 @@
       "ingredients": [
         {
           "fdcId": 169737,
-          "grams": 200,
+          "grams": 186.0,
           "note": "Pasta, cooked, enriched, without added salt",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.5
         },
         {
           "fdcId": 170847,
@@ -1769,9 +1799,11 @@
       "ingredients": [
         {
           "fdcId": 172688,
-          "grams": 50,
+          "grams": 48.0,
           "note": "Bread, whole-wheat, commercially prepared",
-          "primary": true
+          "primary": true,
+          "unit": "Slice",
+          "count": 1.5
         },
         {
           "fdcId": 170847,
@@ -1853,9 +1885,11 @@
       "ingredients": [
         {
           "fdcId": 170287,
-          "grams": 220,
+          "grams": 227.5,
           "note": "Bulgur, cooked",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.25
         },
         {
           "fdcId": 171477,
@@ -1948,9 +1982,11 @@
         },
         {
           "fdcId": 169700,
-          "grams": 200,
+          "grams": 196.2,
           "note": "Couscous, cooked",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.25
         },
         {
           "fdcId": 170393,
@@ -1988,9 +2024,11 @@
       "ingredients": [
         {
           "fdcId": 169700,
-          "grams": 235,
+          "grams": 235.5,
           "note": "Couscous, cooked",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.5
         },
         {
           "fdcId": 171477,
@@ -2035,9 +2073,11 @@
       "ingredients": [
         {
           "fdcId": 900002,
-          "grams": 100,
+          "grams": 90.0,
           "note": "Freekeh, roasted green wheat, dry (manufacturer panels)",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.5
         },
         {
           "fdcId": 172388,
@@ -2090,14 +2130,18 @@
         },
         {
           "fdcId": 900002,
-          "grams": 75,
+          "grams": 90.0,
           "note": "Freekeh, roasted green wheat, dry (manufacturer panels)",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.5
         },
         {
           "fdcId": 171284,
-          "grams": 150,
-          "note": "Yogurt, plain, whole milk"
+          "grams": 122.5,
+          "note": "Yogurt, plain, whole milk",
+          "unit": "Cup",
+          "count": 0.5
         },
         {
           "fdcId": 171413,
@@ -2213,9 +2257,11 @@
       "ingredients": [
         {
           "fdcId": 169737,
-          "grams": 260,
+          "grams": 248.0,
           "note": "Pasta, cooked, enriched, without added salt",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 2.0
         },
         {
           "fdcId": 171477,
@@ -2552,9 +2598,11 @@
         },
         {
           "fdcId": 170440,
-          "grams": 180,
+          "grams": 167.0,
           "note": "Potatoes, boiled, cooked without skin, flesh, without salt",
-          "primary": true
+          "primary": true,
+          "unit": "Piece",
+          "count": 1.0
         },
         {
           "fdcId": 170393,
@@ -2643,9 +2691,11 @@
       "ingredients": [
         {
           "fdcId": 173800,
-          "grams": 200,
+          "grams": 189.8,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
-          "primary": true
+          "primary": true,
+          "unit": "Container",
+          "count": 0.75
         },
         {
           "fdcId": 168462,
@@ -2693,9 +2743,11 @@
       "ingredients": [
         {
           "fdcId": 173757,
-          "grams": 220,
+          "grams": 205.0,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.25
         },
         {
           "fdcId": 174915,
@@ -2712,8 +2764,10 @@
         },
         {
           "fdcId": 171284,
-          "grams": 150,
-          "note": "Yogurt, plain, whole milk"
+          "grams": 122.5,
+          "note": "Yogurt, plain, whole milk",
+          "unit": "Cup",
+          "count": 0.5
         },
         {
           "fdcId": 171413,
@@ -2747,9 +2801,11 @@
         },
         {
           "fdcId": 171267,
-          "grams": 200,
+          "grams": 183.0,
           "note": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.75
         }
       ]
     },
@@ -2810,9 +2866,11 @@
         },
         {
           "fdcId": 171267,
-          "grams": 250,
+          "grams": 244.0,
           "note": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.0
         },
         {
           "fdcId": 173944,
@@ -2882,9 +2940,11 @@
       "ingredients": [
         {
           "fdcId": 171284,
-          "grams": 100,
+          "grams": 122.5,
           "note": "Yogurt, plain, whole milk",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.5
         },
         {
           "fdcId": 168409,
@@ -2927,9 +2987,11 @@
         },
         {
           "fdcId": 170026,
-          "grams": 150,
+          "grams": 159.8,
           "note": "Potatoes, flesh and skin, raw",
-          "primary": true
+          "primary": true,
+          "unit": "Piece",
+          "count": 0.75
         },
         {
           "fdcId": 170000,
@@ -2970,11 +3032,11 @@
         },
         {
           "fdcId": 900001,
-          "grams": 30,
+          "grams": 30.0,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
           "unit": "Tablespoon",
-          "count": 2
+          "count": 2.0
         }
       ]
     },
@@ -3091,9 +3153,11 @@
         },
         {
           "fdcId": 170440,
-          "grams": 200,
+          "grams": 208.8,
           "note": "Potatoes, boiled, cooked without skin, flesh, without salt",
-          "primary": true
+          "primary": true,
+          "unit": "Piece",
+          "count": 1.25
         },
         {
           "fdcId": 170427,
@@ -3180,11 +3244,11 @@
       "ingredients": [
         {
           "fdcId": 171287,
-          "grams": 200,
+          "grams": 150,
           "note": "Egg, whole, raw, fresh",
           "primary": true,
           "unit": "Piece",
-          "count": 4
+          "count": 3
         },
         {
           "fdcId": 170457,
@@ -3298,11 +3362,11 @@
         },
         {
           "fdcId": 900001,
-          "grams": 45,
+          "grams": 45.0,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
           "unit": "Tablespoon",
-          "count": 3
+          "count": 3.0
         },
         {
           "fdcId": 174916,
@@ -3895,15 +3959,19 @@
       "ingredients": [
         {
           "fdcId": 173800,
-          "grams": 150,
+          "grams": 126.5,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
-          "primary": true
+          "primary": true,
+          "unit": "Container",
+          "count": 0.5
         },
         {
           "fdcId": 171284,
-          "grams": 120,
+          "grams": 122.5,
           "note": "Yogurt, plain, whole milk",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.5
         },
         {
           "fdcId": 174915,
@@ -3930,13 +3998,14 @@
       "nameAr": "فتوش",
       "nameEn": "Fattoush",
       "mealTypes": [
-        "dinner"
+        "dinner",
+        "lunch"
       ],
       "source": "home",
       "effort": "no_cook",
       "cost": "cheap",
       "occasion": "everyday",
-      "isSide": false,
+      "isSide": true,
       "allergenTags": [
         "gluten"
       ],
@@ -3994,7 +4063,7 @@
       "effort": "no_cook",
       "cost": "cheap",
       "occasion": "everyday",
-      "isSide": false,
+      "isSide": true,
       "allergenTags": [
         "gluten"
       ],
@@ -4143,8 +4212,10 @@
         },
         {
           "fdcId": 174683,
-          "grams": 100,
-          "note": "Grapes, red or green (European type, such as Thompson seedless), raw"
+          "grams": 113.2,
+          "note": "Grapes, red or green (European type, such as Thompson seedless), raw",
+          "unit": "Cup",
+          "count": 0.75
         },
         {
           "fdcId": 171688,
@@ -4243,8 +4314,10 @@
         },
         {
           "fdcId": 171284,
-          "grams": 150,
-          "note": "Yogurt, plain, whole milk"
+          "grams": 122.5,
+          "note": "Yogurt, plain, whole milk",
+          "unit": "Cup",
+          "count": 0.5
         }
       ]
     },
@@ -4311,11 +4384,11 @@
       "ingredients": [
         {
           "fdcId": 170184,
-          "grams": 20.3,
+          "grams": 14.0,
           "note": "Nuts, pistachio nuts, raw",
           "primary": true,
           "unit": "Piece",
-          "count": 29
+          "count": 20
         },
         {
           "fdcId": 170162,
@@ -4361,9 +4434,11 @@
         },
         {
           "fdcId": 171265,
-          "grams": 200,
+          "grams": 183.0,
           "note": "Milk, whole, 3.25% milkfat, with added vitamin D",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.75
         },
         {
           "fdcId": 169655,
@@ -4412,10 +4487,10 @@
         },
         {
           "fdcId": 170567,
-          "grams": 18.0,
+          "grams": 14.4,
           "note": "Nuts, almonds",
           "unit": "Piece",
-          "count": 15
+          "count": 12
         },
         {
           "fdcId": 170591,
@@ -4528,9 +4603,11 @@
         },
         {
           "fdcId": 170440,
-          "grams": 230,
+          "grams": 250.5,
           "note": "Potatoes, boiled, cooked without skin, flesh, without salt",
-          "primary": true
+          "primary": true,
+          "unit": "Piece",
+          "count": 1.5
         },
         {
           "fdcId": 171413,
@@ -4726,9 +4803,11 @@
         },
         {
           "fdcId": 173800,
-          "grams": 130,
+          "grams": 126.5,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
-          "primary": true
+          "primary": true,
+          "unit": "Container",
+          "count": 0.5
         },
         {
           "fdcId": 174916,
@@ -4872,9 +4951,11 @@
       "ingredients": [
         {
           "fdcId": 900002,
-          "grams": 80,
+          "grams": 90.0,
           "note": "Freekeh, roasted green wheat, dry (manufacturer panels)",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.5
         },
         {
           "fdcId": 172388,
@@ -4919,9 +5000,11 @@
       "ingredients": [
         {
           "fdcId": 900002,
-          "grams": 25,
+          "grams": 45.0,
           "note": "Freekeh, roasted green wheat, dry (manufacturer panels)",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.25
         },
         {
           "fdcId": 170393,
@@ -4960,9 +5043,11 @@
       "ingredients": [
         {
           "fdcId": 900002,
-          "grams": 70,
+          "grams": 90.0,
           "note": "Freekeh, roasted green wheat, dry (manufacturer panels)",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.5
         },
         {
           "fdcId": 170393,
@@ -5006,9 +5091,11 @@
       "ingredients": [
         {
           "fdcId": 171284,
-          "grams": 150,
+          "grams": 122.5,
           "note": "Yogurt, plain, whole milk",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.5
         },
         {
           "fdcId": 171688,
@@ -5051,9 +5138,11 @@
       "ingredients": [
         {
           "fdcId": 174683,
-          "grams": 150,
+          "grams": 151.0,
           "note": "Grapes, red or green (European type, such as Thompson seedless), raw",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.0
         }
       ]
     },
@@ -5519,10 +5608,10 @@
       "ingredients": [
         {
           "fdcId": 173044,
-          "grams": 137.5,
+          "grams": 110,
           "note": "Guavas, common, raw",
           "unit": "Piece",
-          "count": 2.5,
+          "count": 2,
           "primary": true
         }
       ]
@@ -5589,11 +5678,11 @@
       "ingredients": [
         {
           "fdcId": 170581,
-          "grams": 21.0,
+          "grams": 16.8,
           "note": "Nuts, hazelnuts or filberts",
           "primary": true,
           "unit": "Piece",
-          "count": 15
+          "count": 12
         }
       ]
     },
@@ -5617,9 +5706,11 @@
       "ingredients": [
         {
           "fdcId": 173800,
-          "grams": 150,
+          "grams": 126.5,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
-          "primary": true
+          "primary": true,
+          "unit": "Container",
+          "count": 0.5
         },
         {
           "fdcId": 172455,
@@ -5666,9 +5757,11 @@
       "ingredients": [
         {
           "fdcId": 173800,
-          "grams": 180,
+          "grams": 189.8,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
-          "primary": true
+          "primary": true,
+          "unit": "Container",
+          "count": 0.75
         },
         {
           "fdcId": 168604,
@@ -5716,9 +5809,11 @@
       "ingredients": [
         {
           "fdcId": 173757,
-          "grams": 180,
+          "grams": 164.0,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.0
         },
         {
           "fdcId": 168604,
@@ -5774,9 +5869,11 @@
         },
         {
           "fdcId": 173800,
-          "grams": 110,
+          "grams": 126.5,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
-          "primary": true
+          "primary": true,
+          "unit": "Container",
+          "count": 0.5
         },
         {
           "fdcId": 168604,
@@ -5816,9 +5913,11 @@
       "ingredients": [
         {
           "fdcId": 173800,
-          "grams": 130,
+          "grams": 126.5,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
-          "primary": true
+          "primary": true,
+          "unit": "Container",
+          "count": 0.5
         },
         {
           "fdcId": 168604,
@@ -5897,9 +5996,11 @@
         },
         {
           "fdcId": 171267,
-          "grams": 200,
+          "grams": 183.0,
           "note": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.75
         }
       ]
     },
@@ -6024,11 +6125,11 @@
         },
         {
           "fdcId": 168878,
-          "grams": 275,
+          "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
           "unit": "Tablespoon",
-          "count": 11
+          "count": 9
         },
         {
           "fdcId": 170000,
@@ -6168,9 +6269,11 @@
       "ingredients": [
         {
           "fdcId": 170287,
-          "grams": 205,
+          "grams": 227.5,
           "note": "Bulgur, cooked",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.25
         },
         {
           "fdcId": 171792,
@@ -6215,9 +6318,11 @@
       "ingredients": [
         {
           "fdcId": 170287,
-          "grams": 200,
+          "grams": 182.0,
           "note": "Bulgur, cooked",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.0
         },
         {
           "fdcId": 171792,
@@ -6300,9 +6405,11 @@
       "ingredients": [
         {
           "fdcId": 168153,
-          "grams": 150,
+          "grams": 155.2,
           "note": "Kiwifruit, green, raw",
-          "primary": true
+          "primary": true,
+          "unit": "Piece",
+          "count": 2.25
         }
       ]
     },
@@ -6371,9 +6478,11 @@
         },
         {
           "fdcId": 170026,
-          "grams": 100,
+          "grams": 106.5,
           "note": "Potatoes, flesh and skin, raw",
-          "primary": true
+          "primary": true,
+          "unit": "Piece",
+          "count": 0.5
         },
         {
           "fdcId": 170457,
@@ -6478,9 +6587,11 @@
         },
         {
           "fdcId": 170026,
-          "grams": 100,
+          "grams": 106.5,
           "note": "Potatoes, flesh and skin, raw",
-          "primary": true
+          "primary": true,
+          "unit": "Piece",
+          "count": 0.5
         }
       ]
     },
@@ -6509,9 +6620,11 @@
         },
         {
           "fdcId": 170440,
-          "grams": 260,
+          "grams": 250.5,
           "note": "Potatoes, boiled, cooked without skin, flesh, without salt",
-          "primary": true
+          "primary": true,
+          "unit": "Piece",
+          "count": 1.5
         },
         {
           "fdcId": 168604,
@@ -6550,11 +6663,11 @@
       "ingredients": [
         {
           "fdcId": 900001,
-          "grams": 45,
+          "grams": 45.0,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
           "unit": "Tablespoon",
-          "count": 3
+          "count": 3.0
         },
         {
           "fdcId": 168409,
@@ -6595,11 +6708,11 @@
       "ingredients": [
         {
           "fdcId": 900001,
-          "grams": 30,
+          "grams": 30.0,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
           "unit": "Tablespoon",
-          "count": 2
+          "count": 2.0
         },
         {
           "fdcId": 168409,
@@ -6629,11 +6742,11 @@
       "ingredients": [
         {
           "fdcId": 900001,
-          "grams": 45,
+          "grams": 45.0,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
           "unit": "Tablespoon",
-          "count": 3
+          "count": 3.0
         },
         {
           "fdcId": 170187,
@@ -6678,11 +6791,11 @@
       "ingredients": [
         {
           "fdcId": 900001,
-          "grams": 45,
+          "grams": 45.0,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
           "unit": "Tablespoon",
-          "count": 3
+          "count": 3.0
         },
         {
           "fdcId": 171413,
@@ -6733,11 +6846,11 @@
         },
         {
           "fdcId": 900001,
-          "grams": 45,
+          "grams": 45.0,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
           "unit": "Tablespoon",
-          "count": 3
+          "count": 3.0
         },
         {
           "fdcId": 171413,
@@ -6777,9 +6890,11 @@
       "ingredients": [
         {
           "fdcId": 900001,
-          "grams": 60,
+          "grams": 60.0,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
-          "primary": true
+          "primary": true,
+          "unit": "Tablespoon",
+          "count": 4.0
         },
         {
           "fdcId": 171413,
@@ -6822,9 +6937,11 @@
         },
         {
           "fdcId": 171284,
-          "grams": 100,
+          "grams": 122.5,
           "note": "Yogurt, plain, whole milk",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.5
         },
         {
           "fdcId": 170591,
@@ -6852,9 +6969,11 @@
       "ingredients": [
         {
           "fdcId": 172421,
-          "grams": 200,
+          "grams": 198.0,
           "note": "Lentils, mature seeds, cooked, boiled, without salt",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.0
         },
         {
           "fdcId": 168878,
@@ -6910,9 +7029,11 @@
         },
         {
           "fdcId": 170287,
-          "grams": 125,
+          "grams": 136.5,
           "note": "Bulgur, cooked",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.75
         },
         {
           "fdcId": 170000,
@@ -6949,9 +7070,11 @@
       "ingredients": [
         {
           "fdcId": 172421,
-          "grams": 90,
+          "grams": 99.0,
           "note": "Lentils, mature seeds, cooked, boiled, without salt",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.5
         },
         {
           "fdcId": 170393,
@@ -7080,7 +7203,6 @@
       "nameAr": "لوبيا بالزيت",
       "nameEn": "Green beans in olive oil",
       "mealTypes": [
-        "lunch",
         "dinner"
       ],
       "source": "home",
@@ -7088,7 +7210,9 @@
       "cost": "cheap",
       "occasion": "everyday",
       "isSide": false,
-      "allergenTags": [],
+      "allergenTags": [
+        "gluten"
+      ],
       "baseServingLabel": "حصة واحدة",
       "ingredients": [
         {
@@ -7188,9 +7312,11 @@
       "ingredients": [
         {
           "fdcId": 169700,
-          "grams": 235,
+          "grams": 235.5,
           "note": "Couscous, cooked",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.5
         },
         {
           "fdcId": 172388,
@@ -7200,9 +7326,11 @@
         },
         {
           "fdcId": 173800,
-          "grams": 60,
+          "grams": 63.2,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
-          "primary": true
+          "primary": true,
+          "unit": "Container",
+          "count": 0.25
         },
         {
           "fdcId": 170000,
@@ -7241,14 +7369,18 @@
         },
         {
           "fdcId": 169700,
-          "grams": 280,
+          "grams": 274.8,
           "note": "Couscous, cooked",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.75
         },
         {
           "fdcId": 173757,
-          "grams": 100,
-          "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt"
+          "grams": 82.0,
+          "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt",
+          "unit": "Cup",
+          "count": 0.5
         },
         {
           "fdcId": 170000,
@@ -7487,14 +7619,18 @@
         },
         {
           "fdcId": 171267,
-          "grams": 200,
+          "grams": 183.0,
           "note": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.75
         },
         {
           "fdcId": 173904,
-          "grams": 20,
-          "note": "Cereals, oats, regular and quick, not fortified, dry"
+          "grams": 20.2,
+          "note": "Cereals, oats, regular and quick, not fortified, dry",
+          "unit": "Cup",
+          "count": 0.25
         }
       ]
     },
@@ -7525,16 +7661,18 @@
         },
         {
           "fdcId": 168878,
-          "grams": 250,
+          "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
           "unit": "Tablespoon",
-          "count": 10
+          "count": 9
         },
         {
           "fdcId": 171284,
-          "grams": 220,
-          "note": "Yogurt, plain, whole milk"
+          "grams": 245.0,
+          "note": "Yogurt, plain, whole milk",
+          "unit": "Cup",
+          "count": 1.0
         },
         {
           "fdcId": 174915,
@@ -7633,11 +7771,11 @@
         },
         {
           "fdcId": 168878,
-          "grams": 250,
+          "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
           "unit": "Tablespoon",
-          "count": 10
+          "count": 9
         },
         {
           "fdcId": 169228,
@@ -7686,11 +7824,11 @@
         },
         {
           "fdcId": 168878,
-          "grams": 250,
+          "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
           "unit": "Tablespoon",
-          "count": 10
+          "count": 9
         },
         {
           "fdcId": 169228,
@@ -7716,7 +7854,7 @@
       "nameAr": "مقلوبة خضار",
       "nameEn": "Vegetable maqluba",
       "mealTypes": [
-        "lunch"
+        "dinner"
       ],
       "source": "home",
       "effort": "long",
@@ -7783,9 +7921,11 @@
       "ingredients": [
         {
           "fdcId": 170287,
-          "grams": 230,
+          "grams": 227.5,
           "note": "Bulgur, cooked",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.25
         },
         {
           "fdcId": 171792,
@@ -7886,9 +8026,11 @@
       "ingredients": [
         {
           "fdcId": 173757,
-          "grams": 120,
+          "grams": 123.0,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.75
         },
         {
           "fdcId": 168604,
@@ -7934,11 +8076,11 @@
       "ingredients": [
         {
           "fdcId": 170567,
-          "grams": 20.4,
+          "grams": 14.4,
           "note": "Nuts, almonds",
           "primary": true,
           "unit": "Piece",
-          "count": 17
+          "count": 12
         },
         {
           "fdcId": 170187,
@@ -8125,9 +8267,11 @@
         },
         {
           "fdcId": 171284,
-          "grams": 50,
+          "grams": 61.2,
           "note": "Yogurt, plain, whole milk",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.25
         },
         {
           "fdcId": 167747,
@@ -8208,15 +8352,19 @@
       "ingredients": [
         {
           "fdcId": 172421,
-          "grams": 210,
+          "grams": 198.0,
           "note": "Lentils, mature seeds, cooked, boiled, without salt",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.0
         },
         {
           "fdcId": 170287,
-          "grams": 205,
+          "grams": 227.5,
           "note": "Bulgur, cooked",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.25
         },
         {
           "fdcId": 170000,
@@ -8248,9 +8396,11 @@
       "ingredients": [
         {
           "fdcId": 172421,
-          "grams": 210,
+          "grams": 198.0,
           "note": "Lentils, mature seeds, cooked, boiled, without salt",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.0
         },
         {
           "fdcId": 168878,
@@ -8404,10 +8554,10 @@
       "ingredients": [
         {
           "fdcId": 170567,
-          "grams": 20.4,
+          "grams": 14.4,
           "note": "Nuts, almonds",
           "unit": "Piece",
-          "count": 17
+          "count": 12
         },
         {
           "fdcId": 170187,
@@ -8488,15 +8638,19 @@
       "ingredients": [
         {
           "fdcId": 173904,
-          "grams": 50,
+          "grams": 40.5,
           "note": "Cereals, oats, regular and quick, not fortified, dry",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.5
         },
         {
           "fdcId": 171265,
-          "grams": 200,
+          "grams": 183.0,
           "note": "Milk, whole, 3.25% milkfat, with added vitamin D",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.75
         },
         {
           "fdcId": 171688,
@@ -8527,15 +8681,19 @@
       "ingredients": [
         {
           "fdcId": 173904,
-          "grams": 50,
+          "grams": 40.5,
           "note": "Cereals, oats, regular and quick, not fortified, dry",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.5
         },
         {
           "fdcId": 171265,
-          "grams": 200,
+          "grams": 183.0,
           "note": "Milk, whole, 3.25% milkfat, with added vitamin D",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.75
         },
         {
           "fdcId": 173944,
@@ -8567,15 +8725,19 @@
       "ingredients": [
         {
           "fdcId": 173904,
-          "grams": 70,
+          "grams": 60.8,
           "note": "Cereals, oats, regular and quick, not fortified, dry",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.75
         },
         {
           "fdcId": 171267,
-          "grams": 250,
+          "grams": 244.0,
           "note": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.0
         },
         {
           "fdcId": 170187,
@@ -8618,9 +8780,11 @@
       "ingredients": [
         {
           "fdcId": 173904,
-          "grams": 45,
+          "grams": 40.5,
           "note": "Cereals, oats, regular and quick, not fortified, dry",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.5
         },
         {
           "fdcId": 172470,
@@ -8637,8 +8801,10 @@
         },
         {
           "fdcId": 171267,
-          "grams": 120,
-          "note": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D"
+          "grams": 122.0,
+          "note": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D",
+          "unit": "Cup",
+          "count": 0.5
         }
       ]
     },
@@ -8662,15 +8828,19 @@
       "ingredients": [
         {
           "fdcId": 173904,
-          "grams": 40,
+          "grams": 40.5,
           "note": "Cereals, oats, regular and quick, not fortified, dry",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.5
         },
         {
           "fdcId": 171284,
-          "grams": 150,
+          "grams": 122.5,
           "note": "Yogurt, plain, whole milk",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.5
         },
         {
           "fdcId": 168191,
@@ -8880,11 +9050,11 @@
         },
         {
           "fdcId": 168878,
-          "grams": 250,
+          "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
           "unit": "Tablespoon",
-          "count": 10
+          "count": 9
         },
         {
           "fdcId": 170419,
@@ -8944,8 +9114,10 @@
         },
         {
           "fdcId": 171267,
-          "grams": 120,
-          "note": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D"
+          "grams": 122.0,
+          "note": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D",
+          "unit": "Cup",
+          "count": 0.5
         },
         {
           "fdcId": 170903,
@@ -8985,9 +9157,11 @@
       "ingredients": [
         {
           "fdcId": 169737,
-          "grams": 250,
+          "grams": 248.0,
           "note": "Pasta, cooked, enriched, without added salt",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 2.0
         },
         {
           "fdcId": 171792,
@@ -9032,9 +9206,11 @@
       "ingredients": [
         {
           "fdcId": 169737,
-          "grams": 220,
+          "grams": 217.0,
           "note": "Pasta, cooked, enriched, without added salt",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.75
         },
         {
           "fdcId": 171792,
@@ -9079,9 +9255,11 @@
       "ingredients": [
         {
           "fdcId": 169737,
-          "grams": 185,
+          "grams": 186.0,
           "note": "Pasta, cooked, enriched, without added salt",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.5
         },
         {
           "fdcId": 171477,
@@ -9127,9 +9305,11 @@
       "ingredients": [
         {
           "fdcId": 169737,
-          "grams": 200,
+          "grams": 186.0,
           "note": "Pasta, cooked, enriched, without added salt",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.5
         },
         {
           "fdcId": 171477,
@@ -9174,9 +9354,11 @@
       "ingredients": [
         {
           "fdcId": 169737,
-          "grams": 210,
+          "grams": 217.0,
           "note": "Pasta, cooked, enriched, without added salt",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.75
         },
         {
           "fdcId": 170459,
@@ -9316,11 +9498,11 @@
       "ingredients": [
         {
           "fdcId": 170184,
-          "grams": 30.1,
+          "grams": 14.0,
           "note": "Nuts, pistachio nuts, raw",
           "primary": true,
           "unit": "Piece",
-          "count": 43
+          "count": 20
         }
       ]
     },
@@ -9422,9 +9604,11 @@
       "ingredients": [
         {
           "fdcId": 169134,
-          "grams": 150,
+          "grams": 141.0,
           "note": "Pomegranates, raw",
-          "primary": true
+          "primary": true,
+          "unit": "Piece",
+          "count": 0.5
         }
       ]
     },
@@ -9447,9 +9631,11 @@
       "ingredients": [
         {
           "fdcId": 170440,
-          "grams": 250,
+          "grams": 250.5,
           "note": "Potatoes, boiled, cooked without skin, flesh, without salt",
-          "primary": true
+          "primary": true,
+          "unit": "Piece",
+          "count": 1.5
         },
         {
           "fdcId": 170847,
@@ -9504,9 +9690,11 @@
         },
         {
           "fdcId": 171265,
-          "grams": 80,
+          "grams": 61.0,
           "note": "Milk, whole, 3.25% milkfat, with added vitamin D",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.25
         }
       ]
     },
@@ -9585,9 +9773,11 @@
         },
         {
           "fdcId": 173800,
-          "grams": 50,
+          "grams": 63.2,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
-          "primary": true
+          "primary": true,
+          "unit": "Container",
+          "count": 0.25
         },
         {
           "fdcId": 169230,
@@ -9624,16 +9814,18 @@
         },
         {
           "fdcId": 168878,
-          "grams": 250,
+          "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
           "unit": "Tablespoon",
-          "count": 10
+          "count": 9
         },
         {
           "fdcId": 173757,
-          "grams": 90,
-          "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt"
+          "grams": 82.0,
+          "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt",
+          "unit": "Cup",
+          "count": 0.5
         },
         {
           "fdcId": 169230,
@@ -9710,9 +9902,11 @@
       "ingredients": [
         {
           "fdcId": 173757,
-          "grams": 180,
+          "grams": 164.0,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.0
         },
         {
           "fdcId": 174915,
@@ -9724,8 +9918,10 @@
         },
         {
           "fdcId": 171284,
-          "grams": 170,
-          "note": "Yogurt, plain, whole milk"
+          "grams": 183.8,
+          "note": "Yogurt, plain, whole milk",
+          "unit": "Cup",
+          "count": 0.75
         },
         {
           "fdcId": 168604,
@@ -9744,13 +9940,14 @@
       "nameAr": "فتوش بالخبز المحمّص",
       "nameEn": "Fattoush with toasted bread",
       "mealTypes": [
-        "dinner"
+        "dinner",
+        "lunch"
       ],
       "source": "home",
       "effort": "no_cook",
       "cost": "cheap",
       "occasion": "ramadan",
-      "isSide": false,
+      "isSide": true,
       "allergenTags": [
         "gluten"
       ],
@@ -9854,9 +10051,11 @@
         },
         {
           "fdcId": 171284,
-          "grams": 170,
+          "grams": 183.8,
           "note": "Yogurt, plain, whole milk",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.75
         }
       ]
     },
@@ -10154,6 +10353,65 @@
       ]
     },
     {
+      "slug": "ramadan-suhoor-labneh",
+      "nameAr": "سحور لبنة ولبن مع خبز",
+      "nameEn": "Suhoor: labneh, yoghurt and bread",
+      "mealTypes": [
+        "breakfast"
+      ],
+      "source": "home",
+      "effort": "no_cook",
+      "cost": "normal",
+      "occasion": "ramadan",
+      "isSide": false,
+      "allergenTags": [
+        "gluten",
+        "lactose"
+      ],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        {
+          "fdcId": 900001,
+          "grams": 60.0,
+          "note": "Labneh, strained yogurt, full fat (manufacturer label)",
+          "primary": true,
+          "unit": "Tablespoon",
+          "count": 4
+        },
+        {
+          "fdcId": 171284,
+          "grams": 245.0,
+          "note": "Yogurt, plain, whole milk",
+          "unit": "Cup",
+          "count": 1
+        },
+        {
+          "fdcId": 174916,
+          "grams": 64.0,
+          "note": "Bread, pita, whole-wheat",
+          "unit": "Loaf",
+          "count": 1
+        },
+        {
+          "fdcId": 171413,
+          "grams": 8.0,
+          "note": "Oil, olive, salad or cooking"
+        },
+        {
+          "fdcId": 169096,
+          "grams": 21.6,
+          "note": "Olives, pickled, canned or bottled, green",
+          "unit": "Piece",
+          "count": 8
+        },
+        {
+          "fdcId": 168409,
+          "grams": 80.0,
+          "note": "Cucumber, with peel, raw"
+        }
+      ]
+    },
+    {
       "slug": "rice-tuna",
       "nameAr": "رز مع تونة",
       "nameEn": "Rice with tuna",
@@ -10309,9 +10567,11 @@
         },
         {
           "fdcId": 172688,
-          "grams": 70,
+          "grams": 72.0,
           "note": "Bread, whole-wheat, commercially prepared",
-          "primary": true
+          "primary": true,
+          "unit": "Slice",
+          "count": 2.25
         },
         {
           "fdcId": 173418,
@@ -10352,9 +10612,11 @@
         },
         {
           "fdcId": 169700,
-          "grams": 200,
+          "grams": 196.2,
           "note": "Couscous, cooked",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.25
         },
         {
           "fdcId": 169291,
@@ -10394,9 +10656,11 @@
         },
         {
           "fdcId": 170026,
-          "grams": 150,
+          "grams": 159.8,
           "note": "Potatoes, flesh and skin, raw",
-          "primary": true
+          "primary": true,
+          "unit": "Piece",
+          "count": 0.75
         },
         {
           "fdcId": 171413,
@@ -10436,9 +10700,11 @@
         },
         {
           "fdcId": 169704,
-          "grams": 180,
+          "grams": 202.0,
           "note": "Rice, brown, long-grain, cooked (Includes foods for USDA's Food Distribution Program)",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.0
         },
         {
           "fdcId": 170379,
@@ -10632,9 +10898,11 @@
         },
         {
           "fdcId": 172688,
-          "grams": 70,
+          "grams": 72.0,
           "note": "Bread, whole-wheat, commercially prepared",
-          "primary": true
+          "primary": true,
+          "unit": "Slice",
+          "count": 2.25
         },
         {
           "fdcId": 167747,
@@ -11298,15 +11566,19 @@
         },
         {
           "fdcId": 170287,
-          "grams": 245,
+          "grams": 227.5,
           "note": "Bulgur, cooked",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.25
         },
         {
           "fdcId": 171284,
-          "grams": 40,
+          "grams": 61.2,
           "note": "Yogurt, plain, whole milk",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.25
         },
         {
           "fdcId": 171413,
@@ -11491,9 +11763,11 @@
       "ingredients": [
         {
           "fdcId": 172421,
-          "grams": 200,
+          "grams": 198.0,
           "note": "Lentils, mature seeds, cooked, boiled, without salt",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.0
         },
         {
           "fdcId": 174915,
@@ -11538,9 +11812,11 @@
         },
         {
           "fdcId": 171284,
-          "grams": 150,
+          "grams": 122.5,
           "note": "Yogurt, plain, whole milk",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.5
         },
         {
           "fdcId": 169230,
@@ -11581,9 +11857,11 @@
         },
         {
           "fdcId": 171284,
-          "grams": 120,
+          "grams": 122.5,
           "note": "Yogurt, plain, whole milk",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.5
         }
       ]
     },
@@ -11662,13 +11940,14 @@
       "nameAr": "تبولة",
       "nameEn": "Tabbouleh",
       "mealTypes": [
-        "dinner"
+        "dinner",
+        "lunch"
       ],
       "source": "home",
       "effort": "no_cook",
       "cost": "cheap",
       "occasion": "everyday",
-      "isSide": false,
+      "isSide": true,
       "allergenTags": [
         "gluten"
       ],
@@ -11676,9 +11955,11 @@
       "ingredients": [
         {
           "fdcId": 170287,
-          "grams": 125,
+          "grams": 136.5,
           "note": "Bulgur, cooked",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.75
         },
         {
           "fdcId": 170416,
@@ -11744,8 +12025,10 @@
         },
         {
           "fdcId": 170287,
-          "grams": 30,
-          "note": "Bulgur, cooked"
+          "grams": 45.5,
+          "note": "Bulgur, cooked",
+          "unit": "Cup",
+          "count": 0.25
         },
         {
           "fdcId": 170005,
@@ -11827,9 +12110,11 @@
       "ingredients": [
         {
           "fdcId": 172688,
-          "grams": 70,
+          "grams": 72.0,
           "note": "Bread, whole-wheat, commercially prepared",
-          "primary": true
+          "primary": true,
+          "unit": "Slice",
+          "count": 2.25
         },
         {
           "fdcId": 172470,
@@ -12011,9 +12296,11 @@
       "ingredients": [
         {
           "fdcId": 169737,
-          "grams": 200,
+          "grams": 186.0,
           "note": "Pasta, cooked, enriched, without added salt",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.5
         },
         {
           "fdcId": 171986,
@@ -12058,9 +12345,11 @@
       "ingredients": [
         {
           "fdcId": 169737,
-          "grams": 165,
+          "grams": 155.0,
           "note": "Pasta, cooked, enriched, without added salt",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.25
         },
         {
           "fdcId": 171986,
@@ -12111,9 +12400,11 @@
         },
         {
           "fdcId": 170026,
-          "grams": 150,
+          "grams": 159.8,
           "note": "Potatoes, flesh and skin, raw",
-          "primary": true
+          "primary": true,
+          "unit": "Piece",
+          "count": 0.75
         },
         {
           "fdcId": 171413,
@@ -12218,9 +12509,11 @@
       "ingredients": [
         {
           "fdcId": 174924,
-          "grams": 60,
+          "grams": 58.0,
           "note": "Bread, white, commercially prepared (includes soft bread crumbs)",
-          "primary": true
+          "primary": true,
+          "unit": "Slice",
+          "count": 2.0
         },
         {
           "fdcId": 171986,
@@ -12268,9 +12561,11 @@
       "ingredients": [
         {
           "fdcId": 172688,
-          "grams": 70,
+          "grams": 72.0,
           "note": "Bread, whole-wheat, commercially prepared",
-          "primary": true
+          "primary": true,
+          "unit": "Slice",
+          "count": 2.25
         },
         {
           "fdcId": 171986,
@@ -12317,9 +12612,11 @@
       "ingredients": [
         {
           "fdcId": 170287,
-          "grams": 210,
+          "grams": 227.5,
           "note": "Bulgur, cooked",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.25
         },
         {
           "fdcId": 171496,
@@ -12366,9 +12663,11 @@
       "ingredients": [
         {
           "fdcId": 172688,
-          "grams": 60,
+          "grams": 64.0,
           "note": "Bread, whole-wheat, commercially prepared",
-          "primary": true
+          "primary": true,
+          "unit": "Slice",
+          "count": 2.0
         },
         {
           "fdcId": 171496,
@@ -12416,9 +12715,11 @@
       "ingredients": [
         {
           "fdcId": 172688,
-          "grams": 70,
+          "grams": 72.0,
           "note": "Bread, whole-wheat, commercially prepared",
-          "primary": true
+          "primary": true,
+          "unit": "Slice",
+          "count": 2.25
         },
         {
           "fdcId": 171496,
@@ -12466,9 +12767,11 @@
       "ingredients": [
         {
           "fdcId": 169737,
-          "grams": 220,
+          "grams": 217.0,
           "note": "Pasta, cooked, enriched, without added salt",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.75
         },
         {
           "fdcId": 171496,
@@ -12599,9 +12902,11 @@
         },
         {
           "fdcId": 170026,
-          "grams": 100,
+          "grams": 106.5,
           "note": "Potatoes, flesh and skin, raw",
-          "primary": true
+          "primary": true,
+          "unit": "Piece",
+          "count": 0.5
         },
         {
           "fdcId": 169291,
@@ -12646,8 +12951,10 @@
         },
         {
           "fdcId": 170026,
-          "grams": 60,
-          "note": "Potatoes, flesh and skin, raw"
+          "grams": 53.2,
+          "note": "Potatoes, flesh and skin, raw",
+          "unit": "Piece",
+          "count": 0.25
         },
         {
           "fdcId": 170857,
@@ -12826,7 +13133,6 @@
       "nameAr": "ورق عنب بالزيت",
       "nameEn": "Vine leaves in olive oil",
       "mealTypes": [
-        "lunch",
         "dinner"
       ],
       "source": "home",
@@ -12975,9 +13281,11 @@
         },
         {
           "fdcId": 171284,
-          "grams": 220,
+          "grams": 245.0,
           "note": "Yogurt, plain, whole milk",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 1.0
         },
         {
           "fdcId": 168878,
@@ -13019,9 +13327,11 @@
       "ingredients": [
         {
           "fdcId": 171284,
-          "grams": 200,
+          "grams": 183.8,
           "note": "Yogurt, plain, whole milk",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.75
         }
       ]
     },
@@ -13051,9 +13361,11 @@
         },
         {
           "fdcId": 173904,
-          "grams": 30,
+          "grams": 20.2,
           "note": "Cereals, oats, regular and quick, not fortified, dry",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.25
         },
         {
           "fdcId": 170567,
@@ -13112,8 +13424,7 @@
       "nameAr": "كوسا باللبن",
       "nameEn": "Zucchini in yogurt sauce",
       "mealTypes": [
-        "dinner",
-        "lunch"
+        "dinner"
       ],
       "source": "home",
       "effort": "medium",
@@ -13132,9 +13443,11 @@
         },
         {
           "fdcId": 171284,
-          "grams": 150,
+          "grams": 122.5,
           "note": "Yogurt, plain, whole milk",
-          "primary": true
+          "primary": true,
+          "unit": "Cup",
+          "count": 0.5
         },
         {
           "fdcId": 168878,

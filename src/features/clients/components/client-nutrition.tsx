@@ -148,7 +148,16 @@ export function ClientNutrition({
   });
 
   const effectiveKcal = intake.dailyKcalTarget ?? targets.suggestedKcal;
-  const effectiveProtein = intake.proteinTargetGrams ?? suggestProteinGrams(intake.weightKg);
+  /* Same inputs as the planner uses, so this screen and the generated week cannot
+     disagree about what the client needs — see `suggestProteinGrams`. */
+  const effectiveProtein =
+    intake.proteinTargetGrams ??
+    suggestProteinGrams(intake.weightKg, {
+      clinicalTags: intake.clinicalTags,
+      dailyKcalTarget: effectiveKcal,
+      heightCm: intake.heightCm,
+      sex: intake.sex,
+    });
   const allergenTags = membersOf(ALLERGENS, intake.allergenTags);
 
   const goalLabel = isMember(CLIENT_GOALS, intake.goal) ? t(`goal.${intake.goal}`) : null;

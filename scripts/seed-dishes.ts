@@ -37,6 +37,7 @@ import {
   DISH_SOURCES,
   MEAL_TYPES,
 } from '@/features/weekly-plans/schema';
+import { countLimit } from '@/features/weekly-plans/portion-limits';
 import { isMember } from '@/lib/enum';
 
 import { readCatalogDataset } from './seed-catalog-foods';
@@ -198,6 +199,70 @@ export function validateDishRecords(records: DishRecord[]): string[] {
  *
  * Takes the food dataset rather than reading the database, so it runs in a test.
  */
+/**
+ * Foods whose own identity implies an allergen, matched on the food's slug.
+ *
+ * Deliberately narrow. It matches wheat and barley by name and does not try to be
+ * clever: a rule that guesses wrongly gets switched off, and a rule that catches
+ * the obvious cases stays on. Oats are absent on purpose — they are gluten-free
+ * grains that are usually cross-contaminated, and whether a clinic treats them as
+ * safe is a decision for the dietitian rather than for a seed script.
+ */
+const ALLERGEN_BY_FOOD_SLUG: readonly { allergen: string; pattern: RegExp }[] = [
+  {
+    allergen: 'gluten',
+    pattern: /pita|bread|toast|bulgur|freekeh|barley|couscous|pasta|macaroni|spaghetti|noodle|semolina|flour|cracker|kaak|manaqish|wheat/i,
+  },
+  { allergen: 'sesame', pattern: /sesame|tahini|halva/i },
+  { allergen: 'egg', pattern: /^egg(s|-|$)/i },
+  { allergen: 'fish', pattern: /^(fish|tuna|sardine|salmon|shrimp|anchovy|mackerel)/i },
+];
+
+/**
+ * Dishes whose ingredients imply an allergen the dish does not declare.
+ *
+ * ## Why this exists
+ *
+ * `loubia-bzeit` carried sixty-four grams of whole-wheat pita and no `gluten`
+ * tag. It is also one of the dishes the planner reaches for most, so it landed in
+ * a coeliac client's week as «خبز عربي أسمر ٢ رغيف» — two loaves of wheat bread
+ * on a plan built to exclude wheat.
+ *
+ * One missing tag on one row of two hundred and ninety-four, and the whole
+ * allergen architecture — filter before the prompt, check again at reconciliation
+ * — was defeated by it, because every layer trusts the tag. So the tag is checked
+ * against the food itself, here, before anything reaches the database.
+ */
+export function validateAllergenTags(
+  records: readonly DishRecord[],
+  foods: readonly { sourceRef: string; slug: string }[],
+): string[] {
+  const problems: string[] = [];
+  const byRef = new Map(foods.map((food) => [food.sourceRef, food]));
+
+  for (const dish of records) {
+    const declared = new Set(dish.allergenTags);
+
+    for (const ingredient of dish.ingredients) {
+      const food = byRef.get(String(ingredient.fdcId));
+      if (!food) continue;
+
+      for (const { allergen, pattern } of ALLERGEN_BY_FOOD_SLUG) {
+        if (declared.has(allergen)) continue;
+        if (!pattern.test(food.slug)) continue;
+
+        problems.push(
+          `${dish.slug}: contains ${food.slug} (${ingredient.grams} g) but does not declare "${allergen}"`,
+        );
+        // One report per dish and allergen; the fix is the same tag either way.
+        declared.add(allergen);
+      }
+    }
+  }
+
+  return problems;
+}
+
 export function validateCountingUnits(
   records: readonly DishRecord[],
   foods: readonly { sourceRef: string; slug: string; countedAs?: string }[],
@@ -223,10 +288,98 @@ export function validateCountingUnits(
   return problems;
 }
 
+/**
+ * A recipe that is already past what a person eats at one sitting.
+ *
+ * `portion-limits.ts` is a **ceiling on growth** — it stops a multiplier pushing a
+ * line further, and it deliberately never rewrites what an author wrote, because
+ * a dietitian's own dish is hers. That contract leaves one hole, and the shipped
+ * catalog fell into it: a recipe whose own count is already over the ceiling is
+ * never touched by anything, so «فستق حلبي ٤٣ حبة» went out as written.
+ *
+ * The hole closes here rather than in the portioner, because these numbers are
+ * ours and a build is the right place to be told about them.
+ */
+export function validateRecipeCounts(
+  records: readonly DishRecord[],
+  foods: readonly { sourceRef: string; slug: string }[],
+): string[] {
+  const problems: string[] = [];
+  const byRef = new Map(foods.map((food) => [food.sourceRef, food]));
+
+  for (const dish of records) {
+    for (const ingredient of dish.ingredients) {
+      const food = byRef.get(String(ingredient.fdcId));
+      if (!food || ingredient.count === undefined) continue;
+
+      const limit = countLimit(food.slug, ingredient.unit);
+      if (limit !== null && ingredient.count > limit) {
+        problems.push(
+          `${dish.slug}: ${ingredient.count} × ${food.slug} is past the ${limit} a meal may hold`,
+        );
+      }
+    }
+  }
+
+  return problems;
+}
+
+/**
+ * The least protein a plate may carry and still be the day's main meal.
+ *
+ * Twelve grams is not a target — it is the line below which a 535 kcal lunch has
+ * stopped being a meal and become a plate of starch. Hajer's Thursday is the
+ * case: eggs at breakfast, walnuts at ten, **لوبيا بالزيت at lunch**, melon at
+ * five and كوسا باللبن at eight — five plates, 1,484 kcal, and 53 g of protein
+ * against a 96 g target. Nothing in that day was wrong on its own; the lunch was
+ * simply not carrying a lunch's share.
+ *
+ * Only lunch, deliberately. A light dinner beside a proper lunch is how people
+ * actually eat, and لوبيا بالزيت *is* a Palestinian dinner — it is being the
+ * largest plate of the day that it cannot do.
+ */
+const MIN_LUNCH_PROTEIN_GRAMS = 12;
+
+/**
+ * A main that cannot carry the meal it is offered for.
+ *
+ * Sides are exempt by definition: a صحن سلطة is not pretending to be the meal.
+ * That exemption is the other half of this rule — فتوش and تبولة were `isSide:
+ * false` and reachable as dinners, so the planner served a bowl of salad as an
+ * evening meal and broke no rule saying so.
+ */
+export function validateMainProtein(
+  records: readonly DishRecord[],
+  foods: readonly { sourceRef: string; slug: string; nutrition: Record<string, number | null> }[],
+): string[] {
+  const byRef = new Map(foods.map((food) => [food.sourceRef, food]));
+
+  return records.flatMap((dish) => {
+    if (dish.isSide || !dish.mealTypes.includes('lunch')) return [];
+
+    const protein = dish.ingredients.reduce((total, ingredient) => {
+      const food = byRef.get(String(ingredient.fdcId));
+      const per100 = food?.nutrition.protein ?? 0;
+      return total + (per100 * ingredient.grams) / 100;
+    }, 0);
+
+    if (protein >= MIN_LUNCH_PROTEIN_GRAMS) return [];
+
+    return [
+      `${dish.slug}: ${protein.toFixed(1)} g of protein is too little for a lunch — ` +
+        `give it a protein food, mark it isSide, or offer it at dinner only`,
+    ];
+  });
+}
+
 function validate(records: DishRecord[]): void {
+  const foods = readCatalogDataset();
   const problems = [
     ...validateDishRecords(records),
-    ...validateCountingUnits(records, readCatalogDataset()),
+    ...validateCountingUnits(records, foods),
+    ...validateAllergenTags(records, foods),
+    ...validateRecipeCounts(records, foods),
+    ...validateMainProtein(records, foods),
   ];
 
   if (problems.length) {
