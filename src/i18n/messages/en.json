@@ -3182,7 +3182,8 @@
         "heading": "Clinics",
         "active": "Active",
         "onboarding": "Onboarding",
-        "suspended": "Suspended"
+        "suspended": "Suspended",
+        "overLimit": "Over their plan limits"
       },
       "accounts": {
         "heading": "Accounts",
@@ -3228,7 +3229,18 @@
         "plansSeries": "Plans"
       },
       "footnote": "Every compared figure covers {from} to {to}.",
-      "footnoteAll": "Every figure covers the whole history, so there is no earlier period to compare against."
+      "footnoteAll": "Every figure covers the whole history, so there is no earlier period to compare against.",
+      "standing": {
+        "mrr": "Monthly revenue",
+        "mrrHint": "{paying} of {live} clinics paying",
+        "atRisk": "Revenue at risk",
+        "atRiskHint": "{count, plural, one {# clinic} other {# clinics}} stopped, or stopping",
+        "atRiskNone": "Every clinic being served is active.",
+        "trials": "Trials to close",
+        "trialsHint": "{ending} ending · {expired} expired · {running} running",
+        "activated": "Practices working",
+        "activatedHint": "of {live} being served have written a plan"
+      }
     },
     "ai": {
       "title": "AI usage",

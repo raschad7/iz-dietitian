@@ -20,17 +20,18 @@ import {
 } from '@/components/ui/table';
 import { listAuditEntries } from '@/features/admin/audit';
 import { AuditLine } from '@/features/admin/components/audit-table';
-import { CountBars, TrendArea } from '@/features/admin/components/charts';
+import { TrendArea } from '@/features/admin/components/charts';
 import { ClinicHealthCell } from '@/features/admin/components/clinic-status';
 import { MetricCard, Standing } from '@/features/admin/components/metric-card';
 import { UsageRangeTabs } from '@/features/admin/components/usage-range-tabs';
 import { needsAttention } from '@/features/admin/health';
+import { summariseStanding } from '@/features/admin/overview-summary';
 import { parseUsageRange, periodOf } from '@/features/admin/period';
 import { getPlatformOverview, listClinics } from '@/features/admin/queries';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
 import { getLocaleDirection } from '@/i18n/routing';
-import { formatDate, formatDateLtr, formatNumber, toIntlLocale } from '@/lib/format';
+import { formatCurrency, formatDate, formatDateLtr, formatNumber, toIntlLocale } from '@/lib/format';
 
 type AdminOverviewPageProps = {
   params: Promise<{ locale: string }>;
@@ -88,16 +89,37 @@ function Panel({
  * halves, so "last 7 days" is compared against the 7 before it and not against a
  * fixed month.
  *
- * **The attention queue is first.** It is the only part of this screen that
- * names a specific clinic and a specific reason, so it goes above the figures
- * rather than under them. It is deliberately narrower than "everything not
- * healthy": a queue that lists every new signup is a queue the operator learns
- * to scroll past.
+ * **The charts are real charts**, drawn through the app's own Recharts wrapper
+ * in the `viz-*` ramp, RTL-aware. The hand-rolled `<div>` with an inline pixel
+ * height was defensible for six bars and stopped being so the moment the screen
+ * wanted ninety points.
  *
- * **The charts are real charts.** Signups per month and plans per day, drawn
- * through the app's own Recharts wrapper in the `viz-*` ramp, RTL-aware. The
- * hand-rolled `<div>` with an inline pixel height was defensible for six bars
- * and stopped being so the moment the screen wanted ninety points.
+ * ## The second rewrite: standing before exceptions
+ *
+ * The screen still did not answer "how is the platform doing". Its headline row
+ * was clinics joined, plans written, model calls and failed calls — activity,
+ * three-quarters of it vanity in the strict sense: totals that only climb and
+ * that no decision hangs on. Two of the four also restated the AI screen. And
+ * the money, the one thing a platform owner opens this panel for, was on
+ * another page entirely.
+ *
+ * So the row is now recurring revenue, the share of it attached to a clinic
+ * that has stopped, the trials that need a call this week, and how many
+ * practices ever actually started. `summariseStanding` derives all of it from
+ * the clinic list the queue already loads, so the answer costs no query and
+ * cannot disagree with the rows underneath it.
+ *
+ * **The attention queue moved one step down.** It was first, and leading with
+ * the exceptions meant opening the panel to a list of problems with no sense of
+ * the scale they were problems against. Standing, then who needs you — which is
+ * the order the two questions get asked in. It is still deliberately narrower
+ * than "everything not healthy": a queue that lists every new signup is a queue
+ * the operator learns to scroll past.
+ *
+ * **Signups-by-month was deleted.** On a deployment with a handful of clinics it
+ * is one bar and five empty months; a monthly bucket needs more rows than that
+ * before its shape says anything. Plans per day survives being read at this
+ * size and took the width.
  *
  * ## One figure was deleted rather than fixed
  *
@@ -137,28 +159,25 @@ export default async function AdminOverviewPage({ params, searchParams }: AdminO
 
   /* Axis ticks are formatted here, on the server, so the chart components never
      need to know what a locale is. See the header of `charts.tsx`. */
-  const monthLabel = new Intl.DateTimeFormat(toIntlLocale(locale), {
-    month: 'short',
-    /* UTC, because the bucket keys are UTC month starts — see `monthKeys`.
-       Formatting them in `DISPLAY_TIME_ZONE` would shift a key like `2026-03`
-       back into February for anyone west of it and mislabel the whole axis. */
-    timeZone: 'UTC',
-  });
   const dayLabel = new Intl.DateTimeFormat(toIntlLocale(locale), {
     day: 'numeric',
     month: 'short',
     timeZone: 'UTC',
   });
 
-  const signupPoints = overview.signups.map((row) => ({
-    label: monthLabel.format(new Date(`${row.key}-01T00:00:00Z`)),
-    value: row.value,
-  }));
-
   const planPoints = overview.planSeries.map((row) => ({
     label: dayLabel.format(new Date(`${row.key}T00:00:00Z`)),
     value: row.value,
   }));
+
+  /*
+    Read off the same clinic list the queue above is built from, so the figures
+    and the names underneath them can never disagree. See `summariseStanding`.
+  */
+  const standing = summariseStanding(clinics, now);
+
+  /* Minor units to a shekel amount, the revenue screen's own one-liner. */
+  const money = (minor: number) => formatCurrency(locale, minor / 100);
 
   return (
     <div className="space-y-6 text-start">
@@ -172,9 +191,101 @@ export default async function AdminOverviewPage({ params, searchParams }: AdminO
       </header>
 
       {/*
-        The queue is above the figures on purpose. It is the only block on this
-        screen that names a clinic and a reason — everything below it is context
-        for a decision this list has already identified.
+        The standing, not the activity.
+
+        This row used to be clinics joined, plans written, model calls and
+        failed calls. Three of those are the shape the dashboard literature
+        calls a vanity metric — a total that only climbs, that reads as
+        information and changes no decision. "Plans written: 8" is true and
+        inert. Two of them also restated the AI screen, which owns that subject
+        and says more about it.
+
+        What replaces them is the question the operator actually opened the
+        panel with: is the business alright. Recurring revenue and what share of
+        it is attached to a clinic that has stopped; the trials that need a
+        conversation this week; whether the practices who signed up ever
+        started. Each of the four is a number someone would act on.
+
+        None of it costs a query — every figure is arithmetic over the clinic
+        list the attention queue below was already loading. See
+        `summariseStanding`.
+      */}
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label={t('standing.mrr')}
+          value={standing.monthlyMinor}
+          locale={locale}
+          format={money}
+          hint={t('standing.mrrHint', {
+            paying: formatNumber(locale, standing.payingClinics),
+            live: formatNumber(locale, standing.liveClinics),
+          })}
+          href="/admin/revenue"
+          icon="bills"
+          pointInTime
+        />
+        <MetricCard
+          label={t('standing.atRisk')}
+          value={standing.atRiskMinor}
+          locale={locale}
+          format={money}
+          polarity="up-is-bad"
+          /*
+            The figure the old screen could not state. "1 clinic at risk" is a
+            count of rows; this is what stops arriving if nobody calls them.
+          */
+          hint={
+            standing.atRiskClinics === 0
+              ? t('standing.atRiskNone')
+              : t('standing.atRiskHint', { count: formatNumber(locale, standing.atRiskClinics) })
+          }
+          href="/admin/clinics"
+          icon="attention"
+          pointInTime
+        />
+        <MetricCard
+          label={t('standing.trials')}
+          /*
+            Ending AND already expired, together.
+
+            Leading with "ending" alone put a 0 on this card on a day a trial
+            had expired that morning — the single most actionable state the
+            platform can be in, reported as nothing to do, because it had
+            crossed from "about to need a decision" into "needed one
+            yesterday". Both are the same job. The split is in the hint.
+          */
+          value={standing.trialsEnding + standing.trialsExpired}
+          locale={locale}
+          polarity="neutral"
+          hint={t('standing.trialsHint', {
+            ending: formatNumber(locale, standing.trialsEnding),
+            expired: formatNumber(locale, standing.trialsExpired),
+            running: formatNumber(locale, standing.trialsRunning),
+          })}
+          href="/admin/clinics"
+          icon="clock"
+          pointInTime
+        />
+        <MetricCard
+          label={t('standing.activated')}
+          value={standing.activatedClinics}
+          locale={locale}
+          hint={t('standing.activatedHint', { live: formatNumber(locale, standing.liveClinics) })}
+          href="/admin/clinics"
+          icon="clinicOutline"
+          pointInTime
+        />
+      </section>
+
+      {/*
+        The queue, one step down the page.
+
+        It led the screen before, and leading with the exceptions meant opening
+        the panel every morning to a list of problems with no sense of the scale
+        they were problems against. The standing above answers "how are we", and
+        this answers "who needs me" — that is the order the two questions are
+        actually asked in, and the queue is still the first thing with a name in
+        it.
       */}
       <Panel
         heading={t('queue.heading')}
@@ -236,65 +347,20 @@ export default async function AdminOverviewPage({ params, searchParams }: AdminO
         )}
       </Panel>
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          label={t('cards.signups')}
-          value={overview.clinics.joined.value}
-          previous={overview.clinics.joined.previous}
-          locale={locale}
-          hint={t('cards.signupsHint', { total: formatNumber(locale, overview.clinics.total) })}
-          href="/admin/clinics"
-          icon="clinicOutline"
-        />
-        <MetricCard
-          label={t('cards.plans')}
-          value={overview.plans.created.value}
-          previous={overview.plans.created.previous}
-          locale={locale}
-          hint={t('cards.plansHint', { total: formatNumber(locale, overview.plans.total) })}
-          icon="weeklyPlans"
-        />
-        <MetricCard
-          label={t('cards.ai')}
-          value={overview.generations.runs.value}
-          previous={overview.generations.runs.previous}
-          locale={locale}
-          /*
-            Neutral, not "up is good". More model calls is more work getting
-            done and more money going out at the same time, and a card that
-            tinted it green would be picking one of the two for the reader.
-          */
-          polarity="neutral"
-          href="/admin/ai"
-          icon="ai"
-        />
-        <MetricCard
-          label={t('cards.failures')}
-          value={overview.generations.failed.value}
-          previous={overview.generations.failed.previous}
-          locale={locale}
-          polarity="up-is-bad"
-          href="/admin/ai"
-          icon="attention"
-        />
-      </section>
+      {/*
+        One chart, not two.
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Panel heading={t('charts.signups')} description={t('charts.signupsSeries')}>
-          <CountBars
-            data={signupPoints}
-            direction={direction}
-            seriesLabel={t('charts.signupsSeries')}
-            /* The last month is still being filled. Drawn one step down the
-               sequential ramp so a partial bar does not read as a collapse. */
-            highlightLast
-          />
-        </Panel>
-
-        <Panel heading={t('charts.plans')} description={t('charts.plansSeries')}>
-          <TrendArea data={planPoints} direction={direction} seriesLabel={t('charts.plansSeries')} />
-        </Panel>
-      </div>
+        The pair that was here included signups by month, which on this
+        deployment is a single bar and five empty months of axis — a monthly
+        bucket needs more than a handful of rows before its shape means
+        anything, and drawing it anyway is the "wrong chart for the data" that
+        every dashboard post-mortem lists. Plans per day is the platform's
+        actual pulse and survives being read at this size, so it gets the width
+        the two of them were sharing.
+      */}
+      <Panel heading={t('charts.plans')} description={t('charts.plansSeries')}>
+        <TrendArea data={planPoints} direction={direction} seriesLabel={t('charts.plansSeries')} />
+      </Panel>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <Panel heading={t('clinics.heading')}>
@@ -309,6 +375,23 @@ export default async function AdminOverviewPage({ params, searchParams }: AdminO
               label={t('clinics.suspended')}
               value={overview.clinics.suspended}
               locale={locale}
+              tone="attention"
+            />
+            {/*
+              Demoted from the headline row rather than deleted: joining is
+              worth knowing and is not worth the largest type on the screen.
+            */}
+            <Standing label={t('cards.signups')} value={overview.clinics.joined.value} locale={locale} />
+            {/*
+              `overLimits` has been computed for every clinic since the health
+              rules were written and has never been shown anywhere. It is the
+              upsell list, and it was free.
+            */}
+            <Standing
+              label={t('clinics.overLimit')}
+              value={standing.overLimitClinics}
+              locale={locale}
+              /* `Standing` only tints a non-zero, so this needs no ternary. */
               tone="attention"
             />
           </dl>
@@ -345,6 +428,7 @@ export default async function AdminOverviewPage({ params, searchParams }: AdminO
               value={overview.appointments.booked.value}
               locale={locale}
             />
+            <Standing label={t('cards.plans')} value={overview.plans.created.value} locale={locale} />
           </dl>
           {/*
             The gap between configured and connected is the actionable number,
