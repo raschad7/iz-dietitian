@@ -71,7 +71,8 @@
     "adminAccounts": "Accounts",
     "adminCatalog": "Shared catalog",
     "adminAudit": "Audit",
-    "adminRevenue": "Revenue"
+    "adminRevenue": "Revenue",
+    "adminPlans": "Packages"
   },
   "commandPalette": {
     "label": "Search and commands",
@@ -3182,7 +3183,8 @@
         "heading": "Clinics",
         "active": "Active",
         "onboarding": "Onboarding",
-        "suspended": "Suspended"
+        "suspended": "Suspended",
+        "overLimit": "Over their plan limits"
       },
       "accounts": {
         "heading": "Accounts",
@@ -3228,7 +3230,18 @@
         "plansSeries": "Plans"
       },
       "footnote": "Every compared figure covers {from} to {to}.",
-      "footnoteAll": "Every figure covers the whole history, so there is no earlier period to compare against."
+      "footnoteAll": "Every figure covers the whole history, so there is no earlier period to compare against.",
+      "standing": {
+        "mrr": "Monthly revenue",
+        "mrrHint": "{paying} of {live} clinics paying",
+        "atRisk": "Revenue at risk",
+        "atRiskHint": "{count, plural, one {# clinic} other {# clinics}} stopped, or stopping",
+        "atRiskNone": "Every clinic being served is active.",
+        "trials": "Trials to close",
+        "trialsHint": "{ending} ending · {expired} expired · {running} running",
+        "activated": "Practices working",
+        "activatedHint": "of {live} being served have written a plan"
+      }
     },
     "ai": {
       "title": "AI usage",
@@ -3293,7 +3306,10 @@
         "failed": "Failed",
         "spend": "Spend by clinic",
         "spendHint": "The eight clinics costing the most in this window.",
-        "spendEmpty": "No priced spend in this window."
+        "spendEmpty": "No priced spend in this window.",
+        "duration": "How long a call takes",
+        "durationHint": "The median call on each day that ran one. A line climbing to the right is the generator getting slower.",
+        "durationEmpty": "Not enough days with runs to show a trend yet."
       }
     },
     "clinics": {
@@ -3595,12 +3611,17 @@
         "accountDisable": "Disabled an account",
         "accountEnable": "Enabled an account",
         "accountPromote": "Promoted to admin",
-        "catalogFoodUpdate": "Edited a shared food"
+        "catalogFoodUpdate": "Edited a shared food",
+        "planCreate": "Added a package",
+        "planUpdate": "Edited a package",
+        "planArchive": "Retired a package",
+        "planRestore": "Put a package back on sale"
       },
       "targets": {
         "clinic": "Clinic",
         "account": "Account",
-        "food": "Food"
+        "food": "Food",
+        "plan": "Package"
       },
       "refusals": {
         "self": "tried to disable their own account",
@@ -3630,6 +3651,47 @@
         "suspended": "Suspended",
         "disabled": "Disabled",
         "inactive": "Inactive"
+      }
+    },
+    "packages": {
+      "heading": "Packages",
+      "subtitle": "What the platform sells. Prices here apply to every clinic that has not been given its own.",
+      "add": "Add a package",
+      "create": "Create",
+      "cancel": "Cancel",
+      "save": "Save",
+      "restore": "Put back on sale",
+      "archive": "Retire",
+      "archived": "retired",
+      "archiveTitle": "Retire {name}?",
+      "archiveHint": "It disappears from the pickers. Nothing else changes.",
+      "archiveWarning": "{count, plural, one {# clinic is} other {# clinics are}} on this package. They keep it and keep being charged for it — retiring only stops it being offered.",
+      "onThisPlan": "{count, plural, =0 {No clinics} one {# clinic} other {# clinics}}",
+      "empty": "No packages yet.",
+      "fields": {
+        "key": "Key",
+        "keyHint": "Letters, digits and hyphens. Written once — it cannot be changed later.",
+        "nameEn": "Name (English)",
+        "nameAr": "Name (Arabic)",
+        "price": "Monthly price",
+        "rank": "Order",
+        "seats": "Seats",
+        "ai": "AI plans a month",
+        "trialDays": "Trial length (days)",
+        "unlimited": "Unlimited",
+        "noTrial": "No trial"
+      },
+      "status": {
+        "saved": "Saved.",
+        "failed": "Could not save.",
+        "invalid": "Check the fields and try again.",
+        "badPrice": "Write a price like 240 or 240.50.",
+        "badLimit": "Allowances must be whole numbers, or left blank for unlimited.",
+        "badKey": "A key is lowercase letters, digits and hyphens.",
+        "duplicateKey": "A package already uses that key.",
+        "notFound": "That package no longer exists.",
+        "lastPlan": "This is the only package on sale. Add another before retiring it.",
+        "reasonRequired": "Say why, in a sentence."
       }
     }
   },

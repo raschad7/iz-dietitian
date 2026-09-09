@@ -7,17 +7,19 @@ import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { PLATFORM_PLANS, type PlanKey } from '@/features/admin/plans';
 import type { Locale } from '@/i18n/routing';
 
 import { updateClinicPlanAction, type AdminActionState } from '../actions';
 
-const TIER_KEY = {
-  trial: 'tier.trial',
-  starter: 'tier.starter',
-  pro: 'tier.pro',
-  clinic: 'tier.clinic',
-} as const satisfies Record<PlanKey, string>;
+/**
+ * The packages this form offers, and their names already resolved.
+ *
+ * Passed in rather than imported. This is a client component and the price list
+ * is a table now, so reaching for it here would mean either a stale build-time
+ * constant or the postgres driver in the browser bundle — the second of which
+ * has happened once in this feature already.
+ */
+export type PlanOption = { key: string; name: string };
 
 /**
  * Which plan a clinic is on, at what price, and when its trial ends.
@@ -52,17 +54,19 @@ export function PlanForm({
   plan,
   priceInput,
   trialEndsAt,
+  options,
 }: {
   clinicId: string;
   locale: Locale;
   plan: string;
+  /** Every package still offered, plus the clinic's own if it has been retired. */
+  options: readonly PlanOption[];
   /** Major units as text — "240" or "240.50" — or empty for the list price. */
   priceInput: string;
   /** `YYYY-MM-DD`, or empty. */
   trialEndsAt: string;
 }) {
   const t = useTranslations('admin.plans.form');
-  const tPlans = useTranslations('admin.plans');
 
   const [state, formAction] = useActionState<AdminActionState, FormData>(updateClinicPlanAction, {
     status: 'idle',
@@ -80,9 +84,9 @@ export function PlanForm({
         <Field>
           <Label htmlFor="plan">{t('plan')}</Label>
           <select id="plan" name="plan" defaultValue={plan} className={selectClass}>
-            {PLATFORM_PLANS.map((tier) => (
-              <option key={tier.key} value={tier.key}>
-                {tPlans(TIER_KEY[tier.key])}
+            {options.map((option) => (
+              <option key={option.key} value={option.key}>
+                {option.name}
               </option>
             ))}
           </select>

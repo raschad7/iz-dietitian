@@ -22,7 +22,7 @@
  */
 
 /** What kind of thing an action was performed on. */
-export type AuditTargetType = 'clinic' | 'account' | 'food';
+export type AuditTargetType = 'clinic' | 'account' | 'food' | 'plan';
 
 export type AdminActionSpec = {
   key: string;
@@ -65,6 +65,23 @@ export const ADMIN_ACTIONS = [
   { key: 'account.enable', target: 'account', requiresReason: false, destructive: false },
   { key: 'account.promote', target: 'account', requiresReason: true, destructive: true },
   { key: 'catalog.food.update', target: 'food', requiresReason: false, destructive: false },
+
+  /*
+    The price list. `create` and `update` need no reason — the before/after pair
+    on the row says exactly what changed, which is the rule this file already
+    applies to a food edit and to a clinic's plan.
+
+    `archive` does need one, and is the only package verb marked destructive.
+    Retiring a package is not reversible from the customer's side: it disappears
+    from every picker, and a clinic sitting on it can no longer be moved back
+    onto it once moved off. That is the same shape as suspending a practice, so
+    it earns the same sentence. `restore` is its reverse and, like every other
+    reverse here, costs nothing — see the note above `requiresReason`.
+  */
+  { key: 'plan.create', target: 'plan', requiresReason: false, destructive: false },
+  { key: 'plan.update', target: 'plan', requiresReason: false, destructive: false },
+  { key: 'plan.archive', target: 'plan', requiresReason: true, destructive: true },
+  { key: 'plan.restore', target: 'plan', requiresReason: false, destructive: false },
 ] as const satisfies readonly AdminActionSpec[];
 
 export type AdminActionKey = (typeof ADMIN_ACTIONS)[number]['key'];

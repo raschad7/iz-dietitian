@@ -94,6 +94,19 @@ type MetricCardProps = {
   format?: (value: number) => string;
   /** A decorative glyph in the label row, so a grid of cards is scannable. */
   icon?: IconName;
+  /**
+   * This figure is a state, not a window — recurring revenue, clinics on a
+   * trial, money attached to a failing account.
+   *
+   * Such a card has no earlier period *by nature*, not because the range picker
+   * happens to be on "all time", so the "no earlier period" line underneath it
+   * is not merely empty — it is a false explanation. It tells the reader a
+   * comparison was attempted and came up short, when in fact none was ever
+   * meaningful: MRR today has no "MRR over the last 30 days" to sit beside.
+   *
+   * Set this and the baseline line is omitted rather than excused.
+   */
+  pointInTime?: boolean;
 };
 
 /** Which way a change should be read. */
@@ -117,6 +130,7 @@ export async function MetricCard({
   href,
   format,
   icon,
+  pointInTime = false,
 }: MetricCardProps) {
   const t = await getTranslations('admin.metrics');
   const change = delta(value, previous);
@@ -155,8 +169,15 @@ export async function MetricCard({
         ) : null}
 
         {change.ratio === null
-          ? // A rise from zero. The count is the only honest statement.
-            `${change.change > 0 ? '+' : ''}${formatNumber(locale, change.change)}`
+          ? /*
+              A rise from zero. The count is the only honest statement — and it
+              is stated in the CARD'S OWN UNIT, which is what `format` carries.
+              Without it a cost card printed "$0.0286" above a chip reading
+              "+28,643", the same quantity in micro-dollars, and a token card
+              paired "382.9K" with "+382,893". Two renderings of one number,
+              side by side, read as two different measures.
+            */
+            `${change.change > 0 ? '+' : ''}${format ? format(change.change) : formatNumber(locale, change.change)}`
           : formatPercent(locale, change.ratio, {
               signDisplay: 'exceptZero',
               maximumFractionDigits: 0,
@@ -195,11 +216,19 @@ export async function MetricCard({
             No previous window — the range is "all", so there is nothing before
             it. Saying so beats an empty space the reader has to interpret, and
             beats a "0%" that would claim the figure held steady.
+
+            Unless the figure never had one: see `pointInTime`, where the same
+            sentence would be an explanation for an absence that needs none.
           */
-          <p className="text-caption text-muted-foreground">{t('noBaseline')}</p>
+          pointInTime ? null : (
+            <p className="text-caption text-muted-foreground">{t('noBaseline')}</p>
+          )
         ) : change.previous !== null ? (
           <p className="text-caption text-muted-foreground">
-            {t('previous', { value: formatNumber(locale, change.previous) })}
+            {/* The card's own unit here too, for the reason the chip gives. */}
+            {t('previous', {
+              value: format ? format(change.previous) : formatNumber(locale, change.previous),
+            })}
           </p>
         ) : null}
 

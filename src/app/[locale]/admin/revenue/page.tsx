@@ -24,9 +24,10 @@ import {
   monthlyPriceOf,
   monthlyRecurringMinor,
   planBreakdown,
+  planNameOf,
   planOf,
-  type PlanKey,
 } from '@/features/admin/plans';
+import { loadPlanCatalog } from '@/features/admin/plan-catalog';
 import { getRevenue, listClinics } from '@/features/admin/queries';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
@@ -44,13 +45,6 @@ export async function generateMetadata({ params }: RevenuePageProps): Promise<Me
 }
 
 /** Tier to message key, written out rather than templated. See `BAND_KEY`. */
-const TIER_KEY = {
-  trial: 'tier.trial',
-  starter: 'tier.starter',
-  pro: 'tier.pro',
-  clinic: 'tier.clinic',
-} as const satisfies Record<PlanKey, string>;
-
 /**
  * What the platform earns.
  *
@@ -86,24 +80,25 @@ export default async function RevenuePage({ params }: RevenuePageProps) {
   const now = new Date();
   const direction = getLocaleDirection(locale);
 
-  const [t, tPlans, tAdmin, revenue, clinics] = await Promise.all([
+  const [t, tPlans, tAdmin, revenue, clinics, catalog] = await Promise.all([
     getTranslations('admin.revenue'),
     getTranslations('admin.plans'),
     getTranslations('admin'),
     getRevenue(),
     listClinics(now),
+    loadPlanCatalog(),
   ]);
 
-  const mrr = monthlyRecurringMinor(revenue.clinics);
+  const mrr = monthlyRecurringMinor(catalog, revenue.clinics);
   const paying = revenue.clinics.filter(
-    (clinic) => !clinic.suspendedAt && monthlyPriceOf(clinic) > 0,
+    (clinic) => !clinic.suspendedAt && monthlyPriceOf(catalog, clinic) > 0,
   );
-  const breakdown = planBreakdown(revenue.clinics);
+  const breakdown = planBreakdown(catalog, revenue.clinics);
 
   const money = (minor: number) => formatCurrency(locale, minor / 100);
 
   const candidates = clinics.filter((clinic) =>
-    isConversionCandidate(clinic, clinic.activity, clinic.health),
+    isConversionCandidate(clinic, clinic.activity, clinic.health, planOf(catalog, clinic.plan)),
   );
 
   /* Ranked by what each clinic moves through its own ledger — the sales signal,
@@ -173,7 +168,7 @@ export default async function RevenuePage({ params }: RevenuePageProps) {
         />
         <MetricCard
           label={t('arpa')}
-          value={averageRevenueMinor(revenue.clinics)}
+          value={averageRevenueMinor(catalog, revenue.clinics)}
           previous={null}
           locale={locale}
           format={money}
@@ -209,11 +204,11 @@ export default async function RevenuePage({ params }: RevenuePageProps) {
                 </TableHeader>
                 <TableBody>
                   {breakdown.map((row) => (
-                    <TableRow key={row.key}>
+                    <TableRow key={row.plan.key}>
                       <TableCell>
-                        {tPlans(TIER_KEY[row.key])}
+                        {planNameOf(row.plan, locale)}
                         <span className="block text-caption text-muted-foreground" dir="ltr">
-                          {money(planOf(row.key).monthlyPriceMinor)}
+                          {money(row.plan.monthlyPriceMinor)}
                         </span>
                       </TableCell>
                       <TableCell numeric>{formatNumber(locale, row.clinics)}</TableCell>
@@ -280,7 +275,12 @@ export default async function RevenuePage({ params }: RevenuePageProps) {
                         </span>
                       </TableCell>
                       <TableCell>
-                        <PlanBadge clinic={clinic} now={now} />
+                        <PlanBadge
+                          clinic={clinic}
+                          plan={planOf(catalog, clinic.plan)}
+                          locale={locale}
+                          now={now}
+                        />
                       </TableCell>
                       <TableCell numeric>{money(clinic.billedMinor)}</TableCell>
                       <TableCell numeric>{money(clinic.collectedMinor)}</TableCell>

@@ -10,6 +10,7 @@
 export * from './auth';
 export * from './clients';
 export * from './clinics';
+export * from './platform-plans';
 export * from './clinic-working-hours';
 export * from './practitioners';
 export * from './appointments';

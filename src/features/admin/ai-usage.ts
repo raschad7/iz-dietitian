@@ -85,6 +85,46 @@ export function medianOf(values: readonly number[]): number | null {
   return sorted.length % 2 === 0 ? Math.round((sorted[middle - 1]! + sorted[middle]!) / 2) : sorted[middle]!;
 }
 
+/**
+ * The median duration of each day that ran anything, oldest first.
+ *
+ * **Days with no runs are absent rather than zero**, which is the whole reason
+ * this is not a `bucketBy` call like every other series on the page. `bucketBy`
+ * fills a quiet day with a zero, which is the right answer for a count — nothing
+ * happened, so the count is none — and the wrong one for a duration, where it
+ * draws the line falling to the floor and says the calls that day were instant.
+ * The honest shape of a day with no calls is no point at all.
+ *
+ * The cost of that is an axis whose steps are not evenly spaced in time. It is
+ * the right trade here: this series is read for its direction over weeks, not
+ * off its ticks, and a platform with a handful of clinics has more quiet days
+ * than busy ones.
+ *
+ * Runs that reported no duration are skipped for `medianOf`'s reason — a
+ * missing measurement is not a fast one.
+ */
+export function medianDurationByDay(
+  rows: readonly UsageRow[],
+  keyOf: (row: UsageRow) => string,
+): { key: string; value: number }[] {
+  const byDay = new Map<string, number[]>();
+
+  for (const row of rows) {
+    if (row.durationMs === null) continue;
+
+    const key = keyOf(row);
+    const held = byDay.get(key);
+
+    if (held) held.push(row.durationMs);
+    else byDay.set(key, [row.durationMs]);
+  }
+
+  return [...byDay.entries()]
+    .map(([key, values]) => ({ key, value: medianOf(values) ?? 0 }))
+    .filter((point) => point.value > 0)
+    .sort((a, b) => a.key.localeCompare(b.key));
+}
+
 /** Totals over any set of rows. */
 export function summarise(rows: readonly UsageRow[]): UsageTotals {
   const totals: UsageTotals = {

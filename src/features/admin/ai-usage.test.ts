@@ -5,6 +5,7 @@ import {
   byClinic,
   byModel,
   byScope,
+  medianDurationByDay,
   medianOf,
   parseUsageRange,
   rangeStart,
@@ -134,6 +135,57 @@ describe('medianOf', () => {
 
     expect(medianOf(values)).toBe(12_500);
     expect(mean).toBeGreaterThan(30_000);
+  });
+});
+
+describe('medianDurationByDay', () => {
+  const dayOf = (r: UsageRow) => r.createdAt.toISOString().slice(0, 10);
+
+  test('gives one median per day, oldest first', () => {
+    const points = medianDurationByDay(
+      [
+        row({ createdAt: new Date('2026-09-02T09:00:00Z'), durationMs: 40_000 }),
+        row({ createdAt: new Date('2026-09-01T09:00:00Z'), durationMs: 10_000 }),
+        row({ createdAt: new Date('2026-09-01T11:00:00Z'), durationMs: 30_000 }),
+      ],
+      dayOf,
+    );
+
+    expect(points).toEqual([
+      { key: '2026-09-01', value: 20_000 },
+      { key: '2026-09-02', value: 40_000 },
+    ]);
+  });
+
+  /* The reason this is not a `bucketBy` call: a zero on a duration axis draws
+     the line to the floor and says the day was instant. */
+  test('omits days with no runs rather than zeroing them', () => {
+    const points = medianDurationByDay(
+      [
+        row({ createdAt: new Date('2026-09-01T09:00:00Z'), durationMs: 10_000 }),
+        row({ createdAt: new Date('2026-09-04T09:00:00Z'), durationMs: 20_000 }),
+      ],
+      dayOf,
+    );
+
+    expect(points.map((point) => point.key)).toEqual(['2026-09-01', '2026-09-04']);
+  });
+
+  test('skips runs that reported no duration, and days made only of them', () => {
+    const points = medianDurationByDay(
+      [
+        row({ createdAt: new Date('2026-09-01T09:00:00Z'), durationMs: null }),
+        row({ createdAt: new Date('2026-09-02T09:00:00Z'), durationMs: null }),
+        row({ createdAt: new Date('2026-09-02T10:00:00Z'), durationMs: 8_000 }),
+      ],
+      dayOf,
+    );
+
+    expect(points).toEqual([{ key: '2026-09-02', value: 8_000 }]);
+  });
+
+  test('is empty when nothing timed anything', () => {
+    expect(medianDurationByDay([row({ durationMs: null })], dayOf)).toEqual([]);
   });
 });
 

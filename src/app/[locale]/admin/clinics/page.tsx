@@ -17,11 +17,12 @@ import {
 } from '@/features/admin/components/clinic-status';
 import { AdminToolbar, FilterSelect } from '@/features/admin/components/toolbar';
 import { HEALTH_BANDS, healthRank, type HealthBand } from '@/features/admin/health';
-import { monthlyPriceOf, PLAN_KEYS, planOf, type PlanKey } from '@/features/admin/plans';
+import { loadPlanCatalog } from '@/features/admin/plan-catalog';
+import { monthlyPriceOf, planNameOf, planOf, type PlanCatalog } from '@/features/admin/plans';
 import { listClinics, type ClinicRecord } from '@/features/admin/queries';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
-import { formatCurrency, formatDate, formatNumber } from '@/lib/format';
+import { formatCurrency, formatDateLtr, formatNumber } from '@/lib/format';
 import type { Locale } from '@/i18n/routing';
 
 type ClinicsPageProps = {
@@ -56,13 +57,6 @@ const SORT_KEY = {
   revenue: 'sort.revenue',
 } as const satisfies Record<Sort, string>;
 
-const TIER_KEY = {
-  trial: 'tier.trial',
-  starter: 'tier.starter',
-  pro: 'tier.pro',
-  clinic: 'tier.clinic',
-} as const satisfies Record<PlanKey, string>;
-
 const BAND_KEY = {
   dormant: 'band.dormant',
   'at-risk': 'band.at-risk',
@@ -71,7 +65,7 @@ const BAND_KEY = {
   healthy: 'band.healthy',
 } as const satisfies Record<HealthBand, string>;
 
-function compare(sort: Sort, locale: Locale) {
+function compare(catalog: PlanCatalog, sort: Sort, locale: Locale) {
   return (a: ClinicRecord, b: ClinicRecord): number => {
     switch (sort) {
       case 'attention':
@@ -95,7 +89,7 @@ function compare(sort: Sort, locale: Locale) {
       case 'plans':
         return b.plans - a.plans;
       case 'revenue':
-        return monthlyPriceOf(b) - monthlyPriceOf(a);
+        return monthlyPriceOf(catalog, b) - monthlyPriceOf(catalog, a);
       case 'joined':
       default:
         return b.createdAt.getTime() - a.createdAt.getTime();
@@ -140,12 +134,12 @@ export default async function ClinicsPage({ params, searchParams }: ClinicsPageP
   const query = await searchParams;
   const now = new Date();
 
-  const [t, tPlans, tHealth, tFilters, all] = await Promise.all([
+  const [t, tHealth, tFilters, all, catalog] = await Promise.all([
     getTranslations('admin.clinics'),
-    getTranslations('admin.plans'),
     getTranslations('admin.health'),
     getTranslations('admin.filters'),
     listClinics(now),
+    loadPlanCatalog(),
   ]);
 
   const term = query.q?.trim().toLowerCase() ?? '';
@@ -157,11 +151,11 @@ export default async function ClinicsPage({ params, searchParams }: ClinicsPageP
     .filter((clinic) => {
       if (term && !clinic.name.toLowerCase().includes(term)) return false;
       if (band && clinic.health.band !== band) return false;
-      if (plan && planOf(clinic.plan).key !== plan) return false;
+      if (plan && planOf(catalog, clinic.plan).key !== plan) return false;
 
       return true;
     })
-    .sort(compare(sort, locale));
+    .sort(compare(catalog, sort, locale));
 
   const money = (minor: number) => formatCurrency(locale, minor / 100);
 
@@ -194,7 +188,10 @@ export default async function ClinicsPage({ params, searchParams }: ClinicsPageP
           value={plan}
           options={[
             { value: '', label: tFilters('any') },
-            ...PLAN_KEYS.map((value) => ({ value, label: tPlans(TIER_KEY[value]) })),
+            ...catalog.offered.map((option) => ({
+              value: option.key,
+              label: planNameOf(option, locale),
+            })),
           ]}
         />
         <FilterSelect
@@ -247,22 +244,27 @@ export default async function ClinicsPage({ params, searchParams }: ClinicsPageP
                   </TableCell>
 
                   <TableCell>
-                    <PlanBadge clinic={clinic} now={now} />
+                    <PlanBadge
+                      clinic={clinic}
+                      plan={planOf(catalog, clinic.plan)}
+                      locale={locale}
+                      now={now}
+                    />
                   </TableCell>
 
-                  <TableCell numeric>{money(monthlyPriceOf(clinic))}</TableCell>
+                  <TableCell numeric>{money(monthlyPriceOf(catalog, clinic))}</TableCell>
                   <TableCell numeric>{formatNumber(locale, clinic.staff)}</TableCell>
                   <TableCell numeric>{formatNumber(locale, clinic.clients)}</TableCell>
                   <TableCell numeric>{formatNumber(locale, clinic.plans)}</TableCell>
 
                   <TableCell numeric className="whitespace-nowrap text-muted-foreground">
                     {clinic.health.lastActiveAt
-                      ? formatDate(locale, clinic.health.lastActiveAt)
+                      ? formatDateLtr(locale, clinic.health.lastActiveAt)
                       : t('never')}
                   </TableCell>
 
                   <TableCell numeric className="whitespace-nowrap text-muted-foreground">
-                    {formatDate(locale, clinic.createdAt)}
+                    {formatDateLtr(locale, clinic.createdAt)}
                   </TableCell>
                 </TableRow>
               ))

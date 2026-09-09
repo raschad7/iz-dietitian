@@ -21,7 +21,7 @@ import {
 describe('the action registry', () => {
   test('every verb declares a target', () => {
     for (const spec of ADMIN_ACTIONS) {
-      expect(['clinic', 'account', 'food']).toContain(spec.target);
+      expect(['clinic', 'account', 'food', 'plan']).toContain(spec.target);
     }
   });
 

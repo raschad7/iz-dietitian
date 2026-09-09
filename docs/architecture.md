@@ -144,13 +144,21 @@ driver into the browser bundle.
 the *platform*. This is not the billing ledger — that one records what a clinic
 charges its own patients, and the two are never added together.
 
-The tiers live in `src/features/admin/plans.ts` as code: adding one is a line
-and a pair of strings, never a migration. A *clinic's* own service list is a
-table for the opposite reason — see `clinic_services`, and the ⚠ in `plans.ts`
-for which of the two owns which list. A clinic's price is `plan_price_minor` when set and the tier's list
-price otherwise, so a negotiated deal survives a change to the list — the same
-reasoning `client_charges` uses for storing its own amount. Zero is a price, not
-an absence.
+The packages live in `platform_plans` and are edited at `/admin/plans` — price,
+both names, seats, the AI allowance, trial length and ordering. They were a
+constant in `src/features/admin/plans.ts` until the operator of a deployment
+turned out not to be the person who ships releases, which made "raise the Pro
+price" a support request with a deploy attached; the file's header records the
+argument it lost. Packages are **archived, never deleted**: a retired one
+disappears from the pickers and keeps pricing the clinics already on it.
+
+`clinics.plan` still stores the key as text with no foreign key behind it, so a
+package's key can never be renamed and `planOf` still falls back rather than
+throwing on one it does not recognise. Every screen reads the list through
+`loadPlanCatalog`, once per request. A clinic's price is `plan_price_minor` when
+set and the package's list price otherwise, so a negotiated deal survives a
+change to the list — the same reasoning `client_charges` uses for storing its
+own amount. Zero is a price, not an absence.
 
 Nothing is enforced. Seat and AI-plan counts are what a tier is *sold* with, and
 a clinic over them keeps working and shows up on the registry as over its limit.

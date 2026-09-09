@@ -1,4 +1,6 @@
 import { describe, expect, test } from 'bun:test';
+import { planOf } from './plans';
+import { TEST_CATALOG } from './plans.fixture';
 
 import {
   assessClinic,
@@ -11,7 +13,19 @@ import {
 } from './health';
 
 const NOW = new Date('2026-09-05T12:00:00.000Z');
-const LIMITS = { seats: 2, aiPlansPerMonth: 60 };
+/*
+  The rules read the clinic's own package now rather than a loose pair of
+  limits, so each test resolves the package its clinic is actually on and then
+  pins the two allowances these tests are written against. Before the change the
+  price came from the global tier list (via `clinic.plan`) and the limits came
+  from a separate literal; this keeps both halves saying what they said.
+*/
+function planFor(clinic: { plan: string }) {
+  return { ...planOf(TEST_CATALOG, clinic.plan), seats: 2, aiPlansPerMonth: 60 };
+}
+
+/** The default subject's package, for the calls that build their own subject. */
+const LIMITS = planFor({ plan: 'pro' });
 
 function daysAgo(days: number): Date {
   return new Date(NOW.getTime() - days * 86_400_000);
@@ -44,7 +58,7 @@ function activity(over: Partial<ClinicActivity> = {}): ClinicActivity {
 }
 
 function assess(clinic = subject(), acts = activity()) {
-  return assessClinic(clinic, acts, LIMITS, NOW);
+  return assessClinic(clinic, acts, planFor(clinic), NOW);
 }
 
 describe('lastActivityAt', () => {
@@ -206,21 +220,21 @@ describe('isConversionCandidate', () => {
     const clinic = subject({ plan: 'trial' });
     const acts = activity();
 
-    expect(isConversionCandidate(clinic, acts, assess(clinic, acts))).toBe(true);
+    expect(isConversionCandidate(clinic, acts, assess(clinic, acts), planFor(clinic))).toBe(true);
   });
 
   test('a paying clinic is not a candidate', () => {
     const clinic = subject({ plan: 'pro' });
     const acts = activity();
 
-    expect(isConversionCandidate(clinic, acts, assess(clinic, acts))).toBe(false);
+    expect(isConversionCandidate(clinic, acts, assess(clinic, acts), planFor(clinic))).toBe(false);
   });
 
   test('an empty free clinic is not a candidate either', () => {
     const clinic = subject({ plan: 'trial' });
     const acts = activity({ clients: 0, plansRecent: 0 });
 
-    expect(isConversionCandidate(clinic, acts, assess(clinic, acts))).toBe(false);
+    expect(isConversionCandidate(clinic, acts, assess(clinic, acts), planFor(clinic))).toBe(false);
   });
 });
 

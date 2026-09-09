@@ -13,7 +13,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Link } from '@/i18n/navigation';
-import { formatDateTime } from '@/lib/format';
+import { formatDateTime, formatDateTimeLtr } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { Locale } from '@/i18n/routing';
 
@@ -230,7 +230,7 @@ export async function AuditLine({ entry, locale }: { entry: AuditEntry; locale: 
             being obeyed, in the other language.
           */}
           <span className="ms-auto shrink-0 text-caption text-muted-foreground">
-            <span dir="ltr">{formatDateTime(locale, entry.createdAt)}</span>
+            <span dir="ltr">{formatDateTimeLtr(locale, entry.createdAt)}</span>
           </span>
         </div>
 

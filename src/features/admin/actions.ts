@@ -14,7 +14,8 @@ import { requireAdminSession } from '@/lib/session';
 import { writeAudit } from './audit';
 import { isUsableReason, REASON_MAX_LENGTH, type AdminActionKey } from './audit-rules';
 import { sharedFoodSchema, updateSharedFood } from './catalog';
-import { PLAN_KEYS, parsePlanPrice } from './plans';
+import { loadPlanCatalog } from './plan-catalog';
+import { parsePlanPrice } from './plans';
 import { countActiveAdmins } from './queries';
 
 /**
@@ -229,7 +230,13 @@ export async function setClinicSuspensionAction(
 const planInput = z.object({
   clinicId: z.string().uuid(),
   locale: z.enum(locales),
-  plan: z.enum(PLAN_KEYS as [string, ...string[]]),
+  /*
+    Any non-empty string here, checked against the catalogue in the handler
+    rather than baked into the schema. The set of packages is a table now, and a
+    `z.enum` built at module load would be a snapshot of it that goes stale the
+    moment the operator adds one.
+  */
+  plan: z.string().min(1).max(40),
   /** Blank means "whatever the tier lists" — see `monthlyPriceOf`. */
   price: z.string().max(20).optional(),
   /** `YYYY-MM-DD`, or blank to clear. */
@@ -291,6 +298,18 @@ export async function updateClinicPlanAction(
   if (trialDate !== null && Number.isNaN(trialDate.getTime())) {
     return { status: 'error', message: 'badDate' };
   }
+
+  /*
+    The package has to exist. `plan` is now a free string in the schema — see
+    the note there — so this is where a key that names nothing is refused,
+    against the table rather than against a constant compiled last release.
+
+    An ARCHIVED package is accepted: the picker does not offer one, but a clinic
+    already sitting on a retired package must be able to have its price or trial
+    date saved without being silently moved off it.
+  */
+  const catalog = await loadPlanCatalog();
+  if (!catalog.byKey.has(plan)) return { status: 'error', message: 'invalid' };
 
   const [clinic] = await db
     .select({

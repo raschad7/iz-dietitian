@@ -8,10 +8,11 @@ import {
   byClinic,
   byModel,
   byScope,
+  medianDurationByDay,
   summarise,
   unpricedModels,
 } from '@/features/admin/ai-usage';
-import { PairedLines, RankedBars } from '@/features/admin/components/charts';
+import { PairedLines, RankedBars, TrendArea } from '@/features/admin/components/charts';
 import { MetricCard } from '@/features/admin/components/metric-card';
 import { UsageBreakdown } from '@/features/admin/components/usage-breakdown';
 import { ClinicUsageTable, FailuresTable, KeyedUsageTable } from '@/features/admin/components/usage-tables';
@@ -146,6 +147,30 @@ export default async function AiUsagePage({ params, searchParams }: AiUsagePageP
     second: failedByDay[index]?.value ?? 0,
   }));
 
+  /*
+    The duration trend. Days without runs are dropped by `medianDurationByDay`
+    rather than zeroed — see the note there — so this is built from its own
+    output instead of from `keys`, and the labels come off the keys it returns.
+  */
+  const durationPoints = medianDurationByDay(rows, (row) => dayKey(row.createdAt)).map((point) => ({
+    label: dayLabel.format(new Date(`${point.key}T00:00:00Z`)),
+    /*
+      SECONDS on the axis, not the milliseconds the column stores.
+
+      `YAxis` is 32px wide and `allowDecimals={false}`, which is right for the
+      counts every other series here plots and impossible for a duration: a tick
+      reading 45000 does not fit and renders as a clipped "5000", so the chart
+      grew an axis of numbers that were not the numbers. Seconds are two digits
+      for anything this generator will plausibly do, and they are also the unit
+      the reader thinks in — the card above says "39s", not "39,000".
+
+      The tooltip keeps the precision, off `display` below.
+    */
+    value: Math.round(point.value / 1000),
+    // `display` formatted here rather than passed as a formatter — see `Point`.
+    display: formatDuration(locale, point.value) ?? NO_VALUE,
+  }));
+
   /* Spend ranked by clinic, top eight. A ranked bar chart stops being readable
      somewhere around ten rows, and the full list is the table below it. */
   const spend = [...clinicRows]
@@ -211,12 +236,30 @@ export default async function AiUsagePage({ params, searchParams }: AiUsagePageP
           locale={locale}
           polarity="up-is-bad"
           icon="bills"
-          format={(value) => formatCost(locale, value) ?? NO_VALUE}
           /*
-            A cost with unpriced runs behind it is a floor, not a bill, and the
-            hint says so rather than leaving the reader to assume the column is
-            complete.
+            Three states, because "what did this cost" has three honest answers
+            and only one of them is a plain number.
+
+            Nothing priced at all → a dash. This is the case that sent someone
+            looking for a bug: a window whose every run was on an unrated model
+            totalled $0.0000, and a zero in a cost column does not read as "not
+            known", it reads as "free". The footnote underneath said 13 runs
+            could not be priced and was believed less than the big number above
+            it, which is what big numbers do.
+
+            Some priced, some not → the figure behind a `≥`. It is a floor, the
+            comment below has always said so, and the place to say it is where
+            the eye actually lands.
+
+            Everything priced → the figure alone, which is the only time it is
+            the whole answer.
           */
+          format={(value) => {
+            const money = formatCost(locale, value) ?? NO_VALUE;
+            if (totals.unpricedRuns === 0) return money;
+
+            return value === 0 ? NO_VALUE : `≥ ${money}`;
+          }}
           hint={
             totals.unpricedRuns > 0 ? t('tiles.costFloor', { count: totals.unpricedRuns }) : undefined
           }
@@ -311,6 +354,44 @@ export default async function AiUsagePage({ params, searchParams }: AiUsagePageP
               <EmptyState icon="bills" layout="row" title={t('charts.spendEmpty')} />
             ) : (
               <RankedBars data={spend} direction={direction} seriesLabel={t('cards.cost')} />
+            )}
+          </CardContent>
+        </Card>
+        {/*
+          How long a call takes, over time.
+
+          The `tiles.median` card above answers "how long does this normally
+          take" for the window as a whole, and a single median cannot answer the
+          question that actually matters about it — whether that number is
+          moving. A platform whose typical generation has gone from twenty-six
+          seconds to forty-six has a problem its median describes and does not
+          reveal, because both readings are just "a number of seconds" until you
+          put them next to each other.
+
+          Full width under the pair above, because a slow drift over weeks is
+          read off the horizontal and a half-width panel flattens exactly the
+          shape this exists to show.
+        */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle as="h2" size="sm">
+              {t('charts.duration')}
+            </CardTitle>
+            <CardDescription>{t('charts.durationHint')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {durationPoints.length < 2 ? (
+              /*
+                One point is not a trend, and a chart drawn through it invites a
+                reading it cannot support. Two is the minimum that can slope.
+              */
+              <EmptyState icon="clock" layout="row" title={t('charts.durationEmpty')} />
+            ) : (
+              <TrendArea
+                data={durationPoints}
+                direction={direction}
+                seriesLabel={t('tiles.median')}
+              />
             )}
           </CardContent>
         </Card>

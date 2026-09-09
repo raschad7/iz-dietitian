@@ -18,7 +18,7 @@ import { AdminToolbar, FilterSelect } from '@/features/admin/components/toolbar'
 import { ACCOUNTS_PAGE_SIZE, countAccounts, listAccounts } from '@/features/admin/queries';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
-import { formatDate } from '@/lib/format';
+import { formatDateLtr } from '@/lib/format';
 
 type AccountsPageProps = {
   params: Promise<{ locale: string }>;
@@ -203,11 +203,11 @@ export default async function AccountsPage({ params, searchParams }: AccountsPag
                   </TableCell>
 
                   <TableCell numeric className="whitespace-nowrap text-muted-foreground">
-                    {account.lastSeenAt ? formatDate(locale, account.lastSeenAt) : t('neverSeen')}
+                    {account.lastSeenAt ? formatDateLtr(locale, account.lastSeenAt) : t('neverSeen')}
                   </TableCell>
 
                   <TableCell numeric className="whitespace-nowrap text-muted-foreground">
-                    {formatDate(locale, account.createdAt)}
+                    {formatDateLtr(locale, account.createdAt)}
                   </TableCell>
 
                   <TableCell>
