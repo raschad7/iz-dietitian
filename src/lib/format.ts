@@ -126,6 +126,39 @@ export function stripBidiMarks(text: string): string {
 }
 
 /**
+ * {@link formatDate} for a container that has already fixed its direction — a
+ * `numeric` table cell, a `dir="ltr"` span, a chart label.
+ *
+ * Arabic `dateStyle` puts a U+200F between every part, so `formatDate` returns
+ * `09‏/09‏/2026`. Dropped into a cell that has declared `dir="ltr"`, those marks
+ * are three right-to-left runs inside a left-to-right box, and the browser lays
+ * them out exactly as it was told to: **`092026/09/`**, a string that is not a
+ * date in any calendar. It is the failure the comment above predicts, and it is
+ * invisible to anyone reading the English build.
+ *
+ * The pairing is the rule: `dir="ltr"` on the element, this on the value. Use
+ * plain {@link formatDate} anywhere the text flows with the document — a
+ * sentence, a translated string, a paragraph — where the marks are what keep a
+ * date readable next to Arabic words.
+ */
+export function formatDateLtr(
+  locale: Locale,
+  value: Date | string | number,
+  options?: Intl.DateTimeFormatOptions,
+): string {
+  return stripBidiMarks(formatDate(locale, value, options));
+}
+
+/** {@link formatDateTime} for a fixed-direction container. See {@link formatDateLtr}. */
+export function formatDateTimeLtr(
+  locale: Locale,
+  value: Date | string | number,
+  options?: Intl.DateTimeFormatOptions,
+): string {
+  return stripBidiMarks(formatDateTime(locale, value, options));
+}
+
+/**
  * A date as `24/08/2026` — day first, Latin digits, no direction marks, and the
  * same shape in both languages.
  *

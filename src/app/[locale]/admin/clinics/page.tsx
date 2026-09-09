@@ -21,7 +21,7 @@ import { monthlyPriceOf, PLAN_KEYS, planOf, type PlanKey } from '@/features/admi
 import { listClinics, type ClinicRecord } from '@/features/admin/queries';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
-import { formatCurrency, formatDate, formatNumber } from '@/lib/format';
+import { formatCurrency, formatDateLtr, formatNumber } from '@/lib/format';
 import type { Locale } from '@/i18n/routing';
 
 type ClinicsPageProps = {
@@ -257,12 +257,12 @@ export default async function ClinicsPage({ params, searchParams }: ClinicsPageP
 
                   <TableCell numeric className="whitespace-nowrap text-muted-foreground">
                     {clinic.health.lastActiveAt
-                      ? formatDate(locale, clinic.health.lastActiveAt)
+                      ? formatDateLtr(locale, clinic.health.lastActiveAt)
                       : t('never')}
                   </TableCell>
 
                   <TableCell numeric className="whitespace-nowrap text-muted-foreground">
-                    {formatDate(locale, clinic.createdAt)}
+                    {formatDateLtr(locale, clinic.createdAt)}
                   </TableCell>
                 </TableRow>
               ))

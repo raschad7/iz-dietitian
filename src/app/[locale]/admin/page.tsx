@@ -30,7 +30,7 @@ import { getPlatformOverview, listClinics } from '@/features/admin/queries';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
 import { getLocaleDirection } from '@/i18n/routing';
-import { formatDate, formatNumber, toIntlLocale } from '@/lib/format';
+import { formatDate, formatDateLtr, formatNumber, toIntlLocale } from '@/lib/format';
 
 type AdminOverviewPageProps = {
   params: Promise<{ locale: string }>;
@@ -223,7 +223,7 @@ export default async function AdminOverviewPage({ params, searchParams }: AdminO
                     </TableCell>
                     <TableCell numeric className="text-muted-foreground whitespace-nowrap">
                       {clinic.health.lastActiveAt
-                        ? formatDate(locale, clinic.health.lastActiveAt)
+                        ? formatDateLtr(locale, clinic.health.lastActiveAt)
                         : t('queue.never')}
                     </TableCell>
                     <TableCell numeric>{formatNumber(locale, clinic.clients)}</TableCell>
