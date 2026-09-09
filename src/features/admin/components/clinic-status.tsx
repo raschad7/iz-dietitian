@@ -5,7 +5,7 @@ import { formatNumber } from '@/lib/format';
 import type { Locale } from '@/i18n/routing';
 
 import type { ClinicHealth, HealthBand, HealthSignal } from '../health';
-import { monthlyPriceOf, planOf, trialStateOf, type PlanKey } from '../plans';
+import { planNameOf, priceFor, trialStateFor, type PlatformPlan } from '../plans';
 
 /**
  * How a clinic is doing, said in one badge and a row of reasons.
@@ -145,30 +145,42 @@ export async function HealthSignals({
  * that width belongs to the clinic's name.
  */
 /** Tier to message key. Written out for the reason `BAND_KEY` is. */
-const TIER_KEY = {
-  trial: 'tier.trial',
-  starter: 'tier.starter',
-  pro: 'tier.pro',
-  clinic: 'tier.clinic',
-} as const satisfies Record<PlanKey, string>;
+/* The tier -> message-key map lived here. A package the operator invents at
+   runtime cannot have a translation shipped for it, so a package now carries
+   its own name in both languages and `planNameOf` reads the right one. */
 
 export async function PlanBadge({
   clinic,
+  plan,
+  locale,
   now,
 }: {
   clinic: { plan: string; planPriceMinor: number | null; trialEndsAt: Date | null };
+  /** The clinic's own package, resolved by the caller from the catalogue. */
+  plan: PlatformPlan;
+  locale: Locale;
   now: Date;
 }) {
   const t = await getTranslations('admin.plans');
-  const plan = planOf(clinic.plan);
-  const trial = trialStateOf(clinic, now);
+  const trial = trialStateFor(plan, clinic, now);
 
+  /*
+    A free package gets the outline treatment. Keyed off the price rather than
+    off the key being the literal string "trial", which stopped being safe the
+    moment the operator could name a package anything they like.
+  */
   const variant =
-    trial === 'expired' ? 'attention' : trial === 'ending' ? 'incomplete' : plan.key === 'trial' ? 'outline' : 'muted';
+    trial === 'expired'
+      ? 'attention'
+      : trial === 'ending'
+        ? 'incomplete'
+        : priceFor(plan, clinic) === 0
+          ? 'outline'
+          : 'muted';
 
   return (
     <Badge variant={variant}>
-      {t(TIER_KEY[plan.key])}
+      {planNameOf(plan, locale)}
       {trial === 'expired' ? ` · ${t('trialExpired')}` : null}
       {trial === 'ending' ? ` · ${t('trialEnding')}` : null}
     </Badge>
@@ -213,8 +225,11 @@ export async function ClinicStatusBadge({ status }: { status: ClinicStatus }) {
 }
 
 /** Whether a clinic pays anything at all — for the "worth a call" marker. */
-export function isPaying(clinic: { plan: string; planPriceMinor: number | null }): boolean {
-  return monthlyPriceOf(clinic) > 0;
+export function isPaying(
+  plan: PlatformPlan,
+  clinic: { plan: string; planPriceMinor: number | null },
+): boolean {
+  return priceFor(plan, clinic) > 0;
 }
 
 /** A clinic's health, its plan, and its signals, as one cell in a table row. */

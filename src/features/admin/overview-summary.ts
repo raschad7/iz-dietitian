@@ -1,5 +1,10 @@
 import { type ClinicHealth } from './health';
-import { monthlyPriceOf, monthlyRecurringMinor, trialStateOf } from './plans';
+import {
+  monthlyPriceOf,
+  monthlyRecurringMinor,
+  trialStateOf,
+  type PlanCatalog,
+} from './plans';
 
 /**
  * The state of the business, in the six numbers a platform owner opens the
@@ -101,14 +106,15 @@ const AT_RISK_BANDS = new Set(['at-risk', 'dormant']);
  * already drops them; the rest of this file does so explicitly.
  */
 export function summariseStanding(
+  catalog: PlanCatalog,
   clinics: readonly StandingSubject[],
   now: Date,
 ): PlatformStanding {
   const live = clinics.filter((clinic) => !clinic.suspendedAt);
 
   const standing: PlatformStanding = {
-    monthlyMinor: monthlyRecurringMinor(clinics),
-    payingClinics: live.filter((clinic) => monthlyPriceOf(clinic) > 0).length,
+    monthlyMinor: monthlyRecurringMinor(catalog, clinics),
+    payingClinics: live.filter((clinic) => monthlyPriceOf(catalog, clinic) > 0).length,
 
     trialsRunning: 0,
     trialsEnding: 0,
@@ -128,7 +134,7 @@ export function summariseStanding(
   };
 
   for (const clinic of live) {
-    switch (trialStateOf(clinic, now)) {
+    switch (trialStateOf(catalog, clinic, now)) {
       case 'running':
         standing.trialsRunning += 1;
         break;
@@ -144,7 +150,7 @@ export function summariseStanding(
 
     if (AT_RISK_BANDS.has(clinic.health.band)) {
       standing.atRiskClinics += 1;
-      standing.atRiskMinor += monthlyPriceOf(clinic);
+      standing.atRiskMinor += monthlyPriceOf(catalog, clinic);
     }
   }
 

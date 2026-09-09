@@ -407,6 +407,20 @@
       "when": 1788944126070,
       "tag": "0057_athlete_rate_by_activity",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1788962060357,
+      "tag": "0058_red_puff_adder",
+      "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1788962071721,
+      "tag": "0059_seed_platform_plans",
+      "breakpoints": true
     }
   ]
 }

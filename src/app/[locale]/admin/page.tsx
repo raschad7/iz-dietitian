@@ -25,6 +25,7 @@ import { ClinicHealthCell } from '@/features/admin/components/clinic-status';
 import { MetricCard, Standing } from '@/features/admin/components/metric-card';
 import { UsageRangeTabs } from '@/features/admin/components/usage-range-tabs';
 import { needsAttention } from '@/features/admin/health';
+import { loadPlanCatalog } from '@/features/admin/plan-catalog';
 import { summariseStanding } from '@/features/admin/overview-summary';
 import { parseUsageRange, periodOf } from '@/features/admin/period';
 import { getPlatformOverview, listClinics } from '@/features/admin/queries';
@@ -142,11 +143,12 @@ export default async function AdminOverviewPage({ params, searchParams }: AdminO
   const now = new Date();
   const period = periodOf(range, now);
 
-  const [t, overview, clinics, recentAudit] = await Promise.all([
+  const [t, overview, clinics, recentAudit, catalog] = await Promise.all([
     getTranslations('admin.overview'),
     getPlatformOverview(period),
     listClinics(now),
     listAuditEntries({ limit: 6 }),
+    loadPlanCatalog(),
   ]);
 
   const tAudit = await getTranslations('admin.audit');
@@ -174,7 +176,7 @@ export default async function AdminOverviewPage({ params, searchParams }: AdminO
     Read off the same clinic list the queue above is built from, so the figures
     and the names underneath them can never disagree. See `summariseStanding`.
   */
-  const standing = summariseStanding(clinics, now);
+  const standing = summariseStanding(catalog, clinics, now);
 
   /* Minor units to a shekel amount, the revenue screen's own one-liner. */
   const money = (minor: number) => formatCurrency(locale, minor / 100);

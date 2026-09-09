@@ -1,4 +1,5 @@
 import { passkey } from '@better-auth/passkey';
+import { asc, isNull } from 'drizzle-orm';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { nextCookies } from 'better-auth/next-js';
@@ -9,6 +10,7 @@ import { account, passkey as passkeyTable, session, user, verification } from '@
 import { clinicServices } from '@/db/schema/billing';
 import { clinics } from '@/db/schema/clinics';
 import { clinicWorkingHours } from '@/db/schema/clinic-working-hours';
+import { platformPlans } from '@/db/schema/platform-plans';
 import { CLIENT_MIN_PASSWORD_LENGTH } from '@/features/auth/password-policy';
 import { DEFAULT_SERVICES } from '@/features/billing/services';
 import { defaultClinicScheduleRows } from '@/features/clinic-profile/default-schedule';
@@ -375,10 +377,50 @@ export const auth = betterAuth({
           const role = 'role' in newUser ? newUser.role : undefined;
           if (role !== undefined && role !== 'staff') return { data: newUser };
 
+          /*
+            The package a new practice starts on, and how long its trial runs.
+
+            **This is what the trial column was missing.** Sign-up inserted a
+            clinic with `plan` left to its column default and `trial_ends_at`
+            null, so no clinic that ever signed up had a deadline — the platform
+            screen's whole trial pipeline was reporting on a column only a human
+            had ever written to, and every trial figure on it read zero.
+
+            The cheapest package still offered, which on an untouched deployment
+            is the trial. Read directly rather than through `loadPlanCatalog`:
+            this hook runs outside a render, where React's `cache` has no
+            request to scope itself to.
+          */
+          const [starting] = await db
+            .select({ key: platformPlans.key, trialDays: platformPlans.trialDays })
+            .from(platformPlans)
+            .where(isNull(platformPlans.archivedAt))
+            .orderBy(asc(platformPlans.monthlyPriceMinor), asc(platformPlans.rank))
+            .limit(1);
+
+          const startedAt = new Date();
+
           const clinicId = await db.transaction(async (tx) => {
             const [clinic] = await tx
               .insert(clinics)
-              .values({ name: newUser.name })
+              .values({
+                name: newUser.name,
+                /*
+                  Left to the column default when the table has nothing to say,
+                  so a deployment mid-migration still gets a working clinic
+                  rather than a failed sign-up.
+                */
+                ...(starting
+                  ? {
+                      plan: starting.key,
+                      planStartedAt: startedAt,
+                      trialEndsAt:
+                        starting.trialDays === null
+                          ? null
+                          : new Date(startedAt.getTime() + starting.trialDays * 86_400_000),
+                    }
+                  : {}),
+              })
               .returning({ id: clinics.id });
 
             if (!clinic) {

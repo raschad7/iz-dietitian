@@ -15,7 +15,8 @@ import type { UsageRow } from './ai-usage';
 import { escapeLike } from './audit-rules';
 import { assessClinic, type ClinicActivity, type ClinicHealth } from './health';
 import { bucketBy, dayKey, dayKeys, monthKey, monthKeys, type Period } from './period';
-import { planOf } from './plans';
+import { loadPlanCatalog } from './plan-catalog';
+import { isKnownPlan, planOf, type PlanCatalog } from './plans';
 
 /**
  * The platform's reads — the ONLY queries in this application that deliberately
@@ -379,7 +380,12 @@ async function statsByClinic(now: Date): Promise<Map<string, Counts>> {
 }
 
 /** Turns a clinic row and its counts into the record the screens read. */
-function toRecord(row: typeof clinics.$inferSelect, stats: Counts, now: Date): ClinicRecord {
+function toRecord(
+  row: typeof clinics.$inferSelect,
+  stats: Counts,
+  now: Date,
+  catalog: PlanCatalog,
+): ClinicRecord {
   const activity: ClinicActivity = {
     lastPlanAt: stats.lastPlanAt,
     lastClientAt: stats.lastClientAt,
@@ -390,8 +396,6 @@ function toRecord(row: typeof clinics.$inferSelect, stats: Counts, now: Date): C
     clients: stats.clients,
     aiPlansThisMonth: stats.aiPlansThisMonth,
   };
-
-  const plan = planOf(row.plan);
 
   return {
     id: row.id,
@@ -412,12 +416,7 @@ function toRecord(row: typeof clinics.$inferSelect, stats: Counts, now: Date): C
     billedMinor: stats.billedMinor,
     collectedMinor: stats.collectedMinor,
     activity,
-    health: assessClinic(
-      row,
-      activity,
-      { seats: plan.seats, aiPlansPerMonth: plan.aiPlansPerMonth },
-      now,
-    ),
+    health: assessClinic(row, activity, planOf(catalog, row.plan), now),
   };
 }
 
@@ -432,12 +431,13 @@ function toRecord(row: typeof clinics.$inferSelect, stats: Counts, now: Date): C
  * test them.
  */
 export async function listClinics(now: Date): Promise<ClinicRecord[]> {
-  const [rows, stats] = await Promise.all([
+  const [rows, stats, catalog] = await Promise.all([
     db.select().from(clinics).orderBy(desc(clinics.createdAt)),
     statsByClinic(now),
+    loadPlanCatalog(),
   ]);
 
-  return rows.map((row) => toRecord(row, stats.get(row.id) ?? NO_COUNTS, now));
+  return rows.map((row) => toRecord(row, stats.get(row.id) ?? NO_COUNTS, now, catalog));
 }
 
 /** One clinic, or null when the id names nothing. */
@@ -450,9 +450,9 @@ export async function getClinic(clinicId: string, now: Date): Promise<ClinicReco
   // alternative is a second set of six queries whose arithmetic could drift from
   // the registry's — and a detail screen disagreeing with the list it was opened
   // from is worse than a scan of a table with tens of rows in it.
-  const stats = await statsByClinic(now);
+  const [stats, catalog] = await Promise.all([statsByClinic(now), loadPlanCatalog()]);
 
-  return toRecord(row, stats.get(clinicId) ?? NO_COUNTS, now);
+  return toRecord(row, stats.get(clinicId) ?? NO_COUNTS, now, catalog);
 }
 
 /** The people who can sign in to one clinic. */
@@ -956,7 +956,10 @@ export async function getRevenue(): Promise<RevenueSummary> {
     })
     .from(clinics);
 
-  const unknown = [...new Set(rows.filter((row) => planOf(row.plan).key !== row.plan).map((row) => row.plan))];
+  const catalog = await loadPlanCatalog();
+  const unknown = [
+    ...new Set(rows.filter((row) => !isKnownPlan(catalog, row.plan)).map((row) => row.plan)),
+  ];
 
   return { clinics: rows, unknownPlans: unknown.sort() };
 }

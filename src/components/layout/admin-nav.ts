@@ -67,6 +67,13 @@ export const ADMIN_NAV = [
       { href: '/admin/clinics', labelKey: 'adminClinics' },
       { href: '/admin/accounts', labelKey: 'adminAccounts' },
       /*
+        The price list. Under إدارة rather than beside Revenue on purpose: the
+        revenue screen is a figure you check, and this is the register that
+        *sets* it — you come here to change something, which is what everything
+        else in this band has in common.
+      */
+      { href: '/admin/plans', labelKey: 'adminPlans' },
+      /*
         The shared catalog — `catalog_foods` and the `clinic_id IS NULL` dishes.
         A clinic's own private foods are edited by that clinic in `/app/dishes`
         and are not this screen's business.
@@ -94,6 +101,10 @@ export const ADMIN_NAV_ICONS = {
   adminOverview: 'dashboard',
   adminAi: 'ai',
   adminRevenue: 'bills',
+  /* No package glyph exists; the charge mark is the closest honest fit — this
+     is the register that decides what a clinic is charged. `bills` is spoken
+     for by Revenue, which reads the result. */
+  adminPlans: 'recordCharge',
   adminClinics: 'clinicOutline',
   adminAccounts: 'person',
   adminCatalog: 'foods',

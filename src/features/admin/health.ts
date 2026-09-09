@@ -1,5 +1,5 @@
 import { daysBetween } from './period';
-import { monthlyPriceOf, trialStateOf } from './plans';
+import { overLimits, priceFor, trialStateFor, type PlatformPlan } from './plans';
 
 /**
  * Whether a clinic is doing well, and what says so.
@@ -137,7 +137,13 @@ export function lastActivityAt(activity: ClinicActivity): Date | null {
 export function healthSignals(
   clinic: HealthSubject,
   activity: ClinicActivity,
-  limits: { seats: number | null; aiPlansPerMonth: number | null },
+  /*
+    The clinic's OWN package, not the whole price list. These rules judge one
+    practice against what it was sold, so handing them the catalogue would be
+    passing every package in to answer a question about one — and would make
+    every test here need a catalogue to say "over its seats".
+  */
+  plan: PlatformPlan,
   now: Date,
 ): HealthSignal[] {
   const signals: HealthSignal[] = [];
@@ -146,7 +152,7 @@ export function healthSignals(
     signals.push({ key: 'suspended', severity: 'critical', days: daysBetween(clinic.suspendedAt, now) });
   }
 
-  const trial = trialStateOf(clinic, now);
+  const trial = trialStateFor(plan, clinic, now);
   if (trial === 'expired') {
     signals.push({
       key: 'trialExpired',
@@ -212,16 +218,23 @@ export function healthSignals(
     });
   }
 
-  if (limits.seats !== null && activity.staff > limits.seats) {
-    signals.push({ key: 'overSeats', severity: 'info', count: activity.staff, limit: limits.seats });
+  /*
+    Through `overLimits` rather than comparing here, so "past what the package
+    was sold with" is decided in one place. This file and the platform screen
+    used to answer that question with two copies of the same two comparisons.
+  */
+  const over = overLimits(plan, activity);
+
+  if (over.includes('seats')) {
+    signals.push({ key: 'overSeats', severity: 'info', count: activity.staff, limit: plan.seats ?? undefined });
   }
 
-  if (limits.aiPlansPerMonth !== null && activity.aiPlansThisMonth > limits.aiPlansPerMonth) {
+  if (over.includes('ai')) {
     signals.push({
       key: 'overAi',
       severity: 'info',
       count: activity.aiPlansThisMonth,
-      limit: limits.aiPlansPerMonth,
+      limit: plan.aiPlansPerMonth ?? undefined,
     });
   }
 
@@ -283,10 +296,10 @@ export type ClinicHealth = {
 export function assessClinic(
   clinic: HealthSubject,
   activity: ClinicActivity,
-  limits: { seats: number | null; aiPlansPerMonth: number | null },
+  plan: PlatformPlan,
   now: Date,
 ): ClinicHealth {
-  const signals = healthSignals(clinic, activity, limits, now);
+  const signals = healthSignals(clinic, activity, plan, now);
   const lastActiveAt = lastActivityAt(activity);
 
   return {
@@ -321,9 +334,10 @@ export function isConversionCandidate(
   clinic: HealthSubject,
   activity: ClinicActivity,
   health: ClinicHealth,
+  plan: PlatformPlan,
 ): boolean {
   if (clinic.suspendedAt) return false;
-  if (monthlyPriceOf(clinic) > 0) return false;
+  if (priceFor(plan, clinic) > 0) return false;
 
   return health.band === 'healthy' && activity.plansRecent > 0 && activity.clients > 0;
 }

@@ -17,7 +17,8 @@ import {
 } from '@/features/admin/components/clinic-status';
 import { PlanForm } from '@/features/admin/components/plan-form';
 import { SuspendClinicForm } from '@/features/admin/components/suspend-clinic-form';
-import { monthlyPriceOf, planOf } from '@/features/admin/plans';
+import { loadPlanCatalog } from '@/features/admin/plan-catalog';
+import { planNameOf, planOf, priceFor } from '@/features/admin/plans';
 import { countClinicGenerations, getClinic, listClinicStaff } from '@/features/admin/queries';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
@@ -85,10 +86,11 @@ export default async function ClinicPage({ params }: ClinicPageProps) {
   const { clinicId } = await params;
   const now = new Date();
 
-  const [t, tPlans, clinic] = await Promise.all([
+  const [t, tPlans, clinic, catalog] = await Promise.all([
     getTranslations('admin.clinics'),
     getTranslations('admin.plans'),
     getClinic(clinicId, now),
+    loadPlanCatalog(),
   ]);
 
   if (!clinic) notFound();
@@ -99,7 +101,7 @@ export default async function ClinicPage({ params }: ClinicPageProps) {
     listAuditForTarget('clinic', clinicId, 10),
   ]);
 
-  const plan = planOf(clinic.plan);
+  const plan = planOf(catalog, clinic.plan);
   const money = (minor: number) => formatCurrency(locale, minor / 100);
 
   /*
@@ -109,6 +111,10 @@ export default async function ClinicPage({ params }: ClinicPageProps) {
     first time anybody pressed the button without touching it.
   */
   const priceInput = clinic.planPriceMinor === null ? '' : (clinic.planPriceMinor / 100).toString();
+
+  const planOptions = catalog.offered.some((option) => option.key === plan.key)
+    ? catalog.offered
+    : [plan, ...catalog.offered];
   const trialInput = clinic.trialEndsAt ? clinic.trialEndsAt.toISOString().slice(0, 10) : '';
 
   return (
@@ -126,7 +132,7 @@ export default async function ClinicPage({ params }: ClinicPageProps) {
           <h1 className="font-heading text-heading-lg font-semibold tracking-tight">{clinic.name}</h1>
           <ClinicStatusBadge status={clinicStatusOf(clinic)} />
           <HealthBadge band={clinic.health.band} />
-          <PlanBadge clinic={clinic} now={now} />
+          <PlanBadge clinic={clinic} plan={plan} locale={locale} now={now} />
         </header>
 
         <HealthSignals signals={clinic.health.signals} locale={locale} />
@@ -146,7 +152,7 @@ export default async function ClinicPage({ params }: ClinicPageProps) {
         />
         <StatTile
           label={t('columns.mrr')}
-          value={money(monthlyPriceOf(clinic))}
+          value={money(priceFor(plan, clinic))}
           note={clinic.planPriceMinor === null ? tPlans('listPrice') : tPlans('custom')}
         />
         <StatTile
@@ -178,6 +184,16 @@ export default async function ClinicPage({ params }: ClinicPageProps) {
             clinicId={clinic.id}
             locale={locale}
             plan={clinic.plan}
+            /*
+              What is offered, plus this clinic's own package when it has been
+              retired — otherwise saving a price on a clinic sitting on an
+              archived package would silently move it to whatever the select
+              happened to land on.
+            */
+            options={planOptions.map((option) => ({
+              key: option.key,
+              name: planNameOf(option, locale),
+            }))}
             priceInput={priceInput}
             trialEndsAt={trialInput}
           />
