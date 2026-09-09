@@ -42,7 +42,8 @@ import { MeasurementFormTrigger } from './measurement-form-trigger';
 import { MeasurementSharingSwitch } from './measurement-sharing-switch';
 import { MeasurementRowActions } from './measurement-row-actions';
 import { MeasurementHeadline } from './measurement-headline';
-import { MeasurementTrend, type TrendMetricSeries } from './measurement-trend';
+import { type TrendMetricSeries } from './measurement-trend';
+import { MeasurementTrendCard } from './measurement-trend-card';
 
 /**
  * The client record's Measurements tab.
@@ -128,7 +129,6 @@ type MeasurementsPanelProps = {
   measurements: MeasurementRow[];
   subject: MeasurementSubject;
   /** `client_nutrition_profiles.weight_kg`, for the form's "current weight" hint. */
-  currentWeightKg: number | null;
   /** `?range=` — which comparison the headline is showing. */
   range: 'last' | 'start';
   /** Whether this client can see their measurements in their portal. */
@@ -149,7 +149,6 @@ export async function MeasurementsPanel({
   today,
   measurements,
   subject,
-  currentWeightKg,
   range,
   reportIds,
   sharing,
@@ -192,7 +191,6 @@ export async function MeasurementsPanel({
         clientId={clientId}
         locale={locale}
         today={today}
-        currentWeightKg={currentWeightKg}
         takenSlots={takenSlots}
         mode="upload"
         icon="bills"
@@ -202,7 +200,6 @@ export async function MeasurementsPanel({
         clientId={clientId}
         locale={locale}
         today={today}
-        currentWeightKg={currentWeightKg}
         takenSlots={takenSlots}
         variant="neutral"
         label={t('add')}
@@ -354,19 +351,20 @@ export async function MeasurementsPanel({
       />
 
       {/* ── The trend ────────────────────────────────────────────────── */}
-      {series.length > 0 ? (
-        <Card>
-          <CardHeader className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-            <CardTitle>{t('trend.title')}</CardTitle>
-            <p className="text-caption text-muted-foreground">
-              {t('trend.subtitle', { count: measurements.length })}
-            </p>
-          </CardHeader>
-          <CardContent>
-            <MeasurementTrend series={series} pickLabel={t('trend.pick')} />
-          </CardContent>
-        </Card>
-      ) : null}
+      {/*
+        The card owns its own header, unlike every other card on this panel.
+
+        The metric picker belongs on the heading's row and the selection has to
+        live somewhere — this panel is a server component and cannot hold it.
+        See `MeasurementTrendCard`, which also renders nothing when there is no
+        series worth plotting.
+      */}
+      <MeasurementTrendCard
+        series={series}
+        title={t('trend.title')}
+        subtitle={t('trend.subtitle', { count: measurements.length })}
+        pickLabel={t('trend.pick')}
+      />
 
       {/* ── Every visit ──────────────────────────────────────────────── */}
       <Card>
@@ -469,8 +467,7 @@ export async function MeasurementsPanel({
                           clientId={clientId}
                           locale={locale}
                           today={today}
-                          currentWeightKg={currentWeightKg}
-                          takenSlots={takenSlots}
+                                            takenSlots={takenSlots}
                           dateLabel={formatMediumDate(locale, row.measuredOn)}
                           /*
                             The stored row, flattened to the strings and numbers

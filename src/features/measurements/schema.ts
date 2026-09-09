@@ -185,34 +185,25 @@ export const measurementSchema = z.object({
 export type MeasurementInput = z.infer<typeof measurementSchema>;
 
 /**
- * The save, plus the one decision that reaches outside this feature.
+ * The save.
  *
- * `applyToCurrentWeight` is a checkbox, not an inference. Making the newest
- * reading the client's current weight changes the calorie target and the next
- * generated plan, so it is a thing the dietitian does on purpose and can see
- * themselves doing — the schema note on `client_nutrition_profiles.weight_kg`
- * is the reason it is not automatic.
+ * ⚠ **There are no decision checkboxes on this schema any more.** There were
+ * two: `applyToCurrentWeight`, which asked whether this reading should become
+ * the client's current weight, and `applyHeightToClient`, which asked whether
+ * to correct `clients.height_cm` from it.
+ *
+ * Both existed because the intake dialog carried a height box and a weight box
+ * of its own — one fact with two writers, so the second one had to ask
+ * permission. It no longer does. The weight *is* the newest measurement, so
+ * there is nothing to apply it to; and the height has one writer, so a tick
+ * standing between a scanned client and a height on their record would leave
+ * them with a blank BMI on two tabs.
+ *
+ * A disagreement between the report and the record is still reported — see
+ * `heightMismatch` — and the height on this form is editable, so the dietitian
+ * settles it by saving the number she believes.
  */
-export const saveMeasurementSchema = measurementSchema
-  .extend({
-    applyToCurrentWeight: z.preprocess((value) => value === 'on' || value === true, z.boolean()),
-    /**
-     * Correct `clients.height_cm` to the height on this form.
-     *
-     * Offered only when the upload found the two disagreeing. The warning used
-     * to state the disagreement and stop there — "the machine was told 157 cm,
-     * the record says 156" — which left the reader with a fact, no control, and
-     * a second screen to go and find. One of the two numbers is always wrong,
-     * and the moment somebody is looking at both is the moment to settle it.
-     *
-     * A checkbox rather than an automatic write, for the same reason
-     * `applyToCurrentWeight` is one: height feeds the BMI on two tabs and the
-     * calorie target underneath them, and the operator who typed it into the
-     * analyser is not always the authority on it.
-     */
-    applyHeightToClient: z.preprocess((value) => value === 'on' || value === true, z.boolean()),
-  })
-  .extend(reportOriginSchema.shape);
+export const saveMeasurementSchema = measurementSchema.extend(reportOriginSchema.shape);
 
 export type SaveMeasurementInput = z.infer<typeof saveMeasurementSchema>;
 

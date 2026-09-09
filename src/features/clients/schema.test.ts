@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 
-import { HEIGHT_CM_RANGE, MAX_AGE, MIN_AGE, WEIGHT_KG_RANGE } from './form-rules';
+import { MAX_AGE, MIN_AGE } from './form-rules';
 import { clientFormSchema, intakeSchema, listClientsSchema } from './schema';
 
 /**
@@ -263,8 +263,6 @@ describe('intakeSchema', () => {
    */
   const intake = {
     clientId: '00000000-0000-4000-8000-000000000000',
-    heightCm: '172',
-    weightKg: '70',
     goal: 'weight_loss',
     activityLevel: 'moderate',
     allergenTags: [],
@@ -289,28 +287,29 @@ describe('intakeSchema', () => {
     is why the numbers preprocess through `blankToUndefined`: `z.coerce.number`
     reads `''` as 0, which would fail the lower bound instead.
   */
-  test.each(['heightCm', 'weightKg', 'goal', 'activityLevel'])('requires %s', (field) => {
+  test.each(['goal', 'activityLevel'] as const)('requires %s', (field) => {
     expect(firstError({ [field]: '' }, field)).toBe('required');
     expect(firstError({ [field]: undefined }, field)).toBe('required');
   });
 
-  test('bounds the height, inclusive', () => {
-    expect(firstError({ heightCm: String(HEIGHT_CM_RANGE.max) }, 'heightCm')).toBeNull();
-    expect(firstError({ heightCm: String(HEIGHT_CM_RANGE.max + 1) }, 'heightCm')).toBe(
-      'heightOutOfRange',
-    );
-    expect(firstError({ heightCm: String(HEIGHT_CM_RANGE.min - 1) }, 'heightCm')).toBe(
-      'heightOutOfRange',
-    );
-  });
+  /**
+   * ⚠ The body is not on this schema, and a field it does not name is a field
+   * `saveIntake` does not write.
+   *
+   * Both were required here until the measurement card became the one place a
+   * body is recorded. `heightCm` in particular must stay out: `saveIntake`
+   * leaves `clients.height_cm` out of its UPDATE so an unrelated save keeps
+   * whatever the analyser wrote, and a schema key would put it back in the
+   * write with a null default — clearing the height of every client on their
+   * next intake save. `.strip()` is Zod's default, so an extra key is silently
+   * dropped rather than rejected, which is why this is asserted on the output
+   * and not on `.success`.
+   */
+  test.each(['heightCm', 'weightKg'])('does not carry %s', (field) => {
+    const result = intakeSchema.safeParse({ ...intake, [field]: '170' });
 
-  test('bounds the weight, inclusive', () => {
-    expect(firstError({ weightKg: String(WEIGHT_KG_RANGE.max) }, 'weightKg')).toBeNull();
-    expect(firstError({ weightKg: String(WEIGHT_KG_RANGE.max + 1) }, 'weightKg')).toBe(
-      'weightOutOfRange',
-    );
-    // Half a kilo is how a scale reads, so the weight is not an integer.
-    expect(firstError({ weightKg: '70.5' }, 'weightKg')).toBeNull();
+    expect(result.success).toBe(true);
+    expect(result.success && field in result.data).toBe(false);
   });
 
   /*

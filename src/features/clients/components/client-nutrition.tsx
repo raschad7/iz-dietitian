@@ -31,6 +31,10 @@ import { CLIENT_ACTIVITY_LEVELS, CLIENT_GOALS } from '@/features/clients/schema'
 import { type ClientIntakeValues } from '@/features/clients/types';
 import { mealTypeForSlot, type MealType } from '@/features/weekly-plans/schema';
 import {
+  DEFAULT_NUTRITION_RULES,
+  type NutritionRules,
+} from '@/features/weekly-plans/nutrition-rules';
+import {
   type BmiCategory,
   suggestProteinGrams,
   suggestTargets,
@@ -38,6 +42,7 @@ import {
 import { type Locale } from '@/i18n/routing';
 import { isMember, membersOf } from '@/lib/enum';
 import { cn } from '@/lib/utils';
+import { EMPTY_BODY_METRICS, type BodyMetrics } from '@/features/measurements/compare';
 
 /**
  * A client's nutrition record, read-only, with the dialog that writes it.
@@ -113,20 +118,29 @@ import { cn } from '@/lib/utils';
 export function ClientNutrition({
   intake,
   locale,
-  measuredBmrKcal = null,
+  rules = DEFAULT_NUTRITION_RULES,
+  metrics = EMPTY_BODY_METRICS,
 }: {
   intake: ClientIntakeValues;
   locale: Locale;
   /**
-   * The BMR printed on this client's most recent body composition report.
-   *
-   * It does **not** set the calorie target — `suggestTargets` explains at
-   * length why an analyser's BMR is a second prediction rather than a
-   * measurement, and why Mifflin-St Jeor stays the one the suggestion is built
-   * on. What it does is get *shown*, when the two disagree by enough to matter,
-   * so the dietitian can decide.
+   * The clinic's dosing rules — the protein rate, the weight it multiplies, and
+   * whose BMR the calorie suggestion is built on. Edited in Settings; see
+   * `clinic_nutrition_rules`.
    */
-  measuredBmrKcal?: number | null;
+  rules?: NutritionRules;
+  /**
+   * What the analyser last said about this body.
+   *
+   * `basalMetabolicRateKcal` is the figure the calorie target is built on when
+   * the clinic is set to `device`, and is shown beside the formula's answer
+   * either way. `fatFreeMassKg` is what a `lean` protein basis doses against.
+   *
+   * Both null for a client who has never been scanned, which is an ordinary
+   * state and not a gap: the formula and the adjusted weight are what the two
+   * fall back to.
+   */
+  metrics?: BodyMetrics;
 }) {
   const t = useTranslations('clients');
   const format = useFormatter();
@@ -134,7 +148,7 @@ export function ClientNutrition({
   const age = intake.dateOfBirth ? calculateAge(intake.dateOfBirth) : null;
 
   const targets = suggestTargets({
-    weightKg: intake.weightKg,
+    weightKg: metrics.weightKg,
     heightCm: intake.heightCm,
     age,
     sex: intake.sex,
@@ -144,7 +158,8 @@ export function ClientNutrition({
        The suggestion the card prints has to be the one generation will use, or
        the two screens disagree about what this client needs. */
     clinicalTags: intake.clinicalTags,
-    measuredBmrKcal,
+    measuredBmrKcal: metrics.basalMetabolicRateKcal,
+    bmrSource: rules.bmrSource,
   });
 
   const effectiveKcal = intake.dailyKcalTarget ?? targets.suggestedKcal;
@@ -152,11 +167,17 @@ export function ClientNutrition({
      disagree about what the client needs — see `suggestProteinGrams`. */
   const effectiveProtein =
     intake.proteinTargetGrams ??
-    suggestProteinGrams(intake.weightKg, {
+    suggestProteinGrams(metrics.weightKg, {
+      /* An athlete is dosed as one, and a renal client is capped — see
+         `proteinPerKgFor`. The athlete rate reads how the client trains, not
+         what they want, so it is the activity level and not the goal. */
+      activityLevel: intake.activityLevel,
       clinicalTags: intake.clinicalTags,
       dailyKcalTarget: effectiveKcal,
       heightCm: intake.heightCm,
       sex: intake.sex,
+      rules,
+      fatFreeMassKg: metrics.fatFreeMassKg,
     });
   const allergenTags = membersOf(ALLERGENS, intake.allergenTags);
 
@@ -441,6 +462,10 @@ export function ClientNutrition({
             <IntakeFormTrigger
               locale={locale}
               clientId={intake.clientId}
+              /* So the dialog's live readout previews *this* card rather than
+                 recomputing the same client on the built-in defaults. */
+              rules={rules}
+              metrics={metrics}
               className={buttonVariants({ variant: 'default', size: 'sm' })}
             >
               <Icon name="edit" />
@@ -462,27 +487,42 @@ export function ClientNutrition({
         */}
         <CardContent className="flex flex-col gap-4 pt-2">
           {/*
-            The analyser and the formula disagreeing about resting metabolism.
+            The analyser and the formula disagreeing about resting metabolism,
+            and **which of the two this target was built on**.
+
+            ⚠ The wording is the change, not the condition. This used to say
+            only that the two disagreed, because the app always built on
+            Mifflin-St Jeor and left the choice to the reader. The clinic makes
+            that choice now — `clinic_nutrition_rules.bmr_source` — so a notice
+            that names a gap without naming the winner is a notice that tells a
+            dietitian two numbers exist and not which one her client is eating
+            to. `targets.bmrSource` is read rather than the setting, because a
+            clinic set to `device` still falls back to the formula for every
+            client who has never been scanned.
 
             Shown only past 8%, which is roughly where the difference becomes a
             different meal plan rather than rounding — on a real report the gap
             was 125 kcal a day on 1,321, or nine and a half percent. Below that
-            a second number on the card is noise.
+            a second number on the card is noise whichever one is in use.
 
             `neutral`, not `attention`: neither figure is wrong and there is
-            nothing to chase. It is a fact about this client that the dietitian
-            is better placed to act on than the app is — see `suggestTargets` on
-            why the app does not pick.
+            nothing to chase. It is a fact about this client, and the clinic has
+            already said what to do about it.
           */}
           {targets.bmrGap !== null &&
           targets.deviceBmr !== null &&
           targets.estimatedBmr !== null &&
           Math.abs(targets.bmrGap) >= 0.08 ? (
             <Callout tone="neutral">
-              {t('intake.bmrDisagreement', {
-                device: Math.round(targets.deviceBmr),
-                estimate: Math.round(targets.estimatedBmr),
-              })}
+              {t(
+                targets.bmrSource === 'measured'
+                  ? 'intake.bmrUsingDevice'
+                  : 'intake.bmrUsingFormula',
+                {
+                  device: Math.round(targets.deviceBmr),
+                  estimate: Math.round(targets.estimatedBmr),
+                },
+              )}
             </Callout>
           ) : null}
 
@@ -570,7 +610,7 @@ export function ClientNutrition({
             />
             <StatTile
               label={t('fields.weightKg')}
-              value={intake.weightKg}
+              value={metrics.weightKg}
               unit={t('units.kg')}
             />
             <StatTile
@@ -597,6 +637,40 @@ export function ClientNutrition({
               unit={t('units.g')}
             />
           </StatGrid>
+
+          {/*
+            Where the protein figure above came from, in one muted line.
+
+            ⚠ **The rate is useless without the basis, so the line always says
+            both.** "1 g per kg" is 78 g, 59 g or 55 g for the same client
+            depending on which weight is meant — see `PROTEIN_BASES` — and the
+            clinic can now set either half in Settings. A figure a dietitian
+            cannot trace to a rule is a figure she retypes.
+
+            It names the basis actually *used*, not the one configured:
+            `lean` degrades to the adjusted weight for a client who has never
+            been scanned, and a line claiming lean mass for a client with no
+            report would be the app describing an input it did not have.
+
+            Not a `note` on the tile — see the warning above the grid. This is
+            one sentence about the whole rule, not a caption on one figure, and
+            it stays out of the grid so the two rows keep reading as rows. It is
+            absent when there is no target to explain.
+          */}
+          {effectiveProtein !== null && intake.proteinTargetGrams === null ? (
+            <p className="text-caption text-muted-foreground">
+              {t('intake.proteinRule', {
+                perKg: format.number(rules.proteinPerKg, { maximumFractionDigits: 1 }),
+                basis: t(
+                  `proteinBasis.${
+                    rules.proteinBasis === 'lean' && metrics.fatFreeMassKg === null
+                      ? 'adjusted'
+                      : rules.proteinBasis
+                  }`,
+                ),
+              })}
+            </p>
+          ) : null}
 
           {/*
             ⚠ **The scale is the second half of this card, not a card of its
@@ -701,7 +775,7 @@ export function ClientNutrition({
             <Notes items={backgroundNotes} columns={3} />
           </div>
         ) : (
-          <SectionEmpty locale={locale} clientId={intake.clientId} section="background" label={t('intake.fillSection')} />
+          <SectionEmpty locale={locale} clientId={intake.clientId} section="background" label={t('intake.fillSection')} rules={rules} metrics={metrics} />
         )}
       </Disclosure>
 
@@ -731,7 +805,7 @@ export function ClientNutrition({
             ) : null}
           </div>
         ) : (
-          <SectionEmpty locale={locale} clientId={intake.clientId} section="habits" label={t('intake.fillSection')} />
+          <SectionEmpty locale={locale} clientId={intake.clientId} section="habits" label={t('intake.fillSection')} rules={rules} metrics={metrics} />
         )}
       </Disclosure>
 
@@ -766,7 +840,7 @@ export function ClientNutrition({
           */
           <Notes items={allergyItems} />
         ) : (
-          <SectionEmpty locale={locale} clientId={intake.clientId} section="allergies" label={t('intake.fillSection')} />
+          <SectionEmpty locale={locale} clientId={intake.clientId} section="allergies" label={t('intake.fillSection')} rules={rules} metrics={metrics} />
         )}
       </Disclosure>
 
@@ -778,7 +852,7 @@ export function ClientNutrition({
         {hasScheduleRecord ? (
           <MealSchedule slots={intake.mealSchedule} />
         ) : (
-          <SectionEmpty locale={locale} clientId={intake.clientId} section="schedule" label={t('intake.fillSection')} />
+          <SectionEmpty locale={locale} clientId={intake.clientId} section="schedule" label={t('intake.fillSection')} rules={rules} metrics={metrics} />
         )}
       </Disclosure>
 
@@ -790,7 +864,7 @@ export function ClientNutrition({
         {planningCount > 0 ? (
           <Notes items={planningItems} />
         ) : (
-          <SectionEmpty locale={locale} clientId={intake.clientId} section="planning" label={t('intake.fillSection')} />
+          <SectionEmpty locale={locale} clientId={intake.clientId} section="planning" label={t('intake.fillSection')} rules={rules} metrics={metrics} />
         )}
       </Disclosure>
 
@@ -815,7 +889,7 @@ export function ClientNutrition({
             <Notes items={privateItems} />
           </Card>
         ) : (
-          <SectionEmpty locale={locale} clientId={intake.clientId} section="clinical" label={t('intake.fillSection')} />
+          <SectionEmpty locale={locale} clientId={intake.clientId} section="clinical" label={t('intake.fillSection')} rules={rules} metrics={metrics} />
         )}
       </Disclosure>
     </div>
@@ -1223,17 +1297,26 @@ function SectionEmpty({
   clientId,
   section,
   label,
+  rules,
+  metrics,
 }: {
   locale: Locale;
   clientId: string;
   section: IntakeSectionId;
   label: string;
+  /* Forwarded, not defaulted: the dialog this opens carries the same live
+     readout as the one the header's button opens, and two doors into one form
+     must not compute a client's protein target differently. */
+  rules: NutritionRules;
+  metrics: BodyMetrics;
 }) {
   return (
     <IntakeFormTrigger
       locale={locale}
       clientId={clientId}
       section={section}
+      rules={rules}
+      metrics={metrics}
       className="inline-flex h-10 items-center gap-2 rounded-full border border-dashed border-input px-4 text-label text-muted-foreground transition-colors hover:border-solid hover:border-primary hover:bg-secondary hover:text-secondary-foreground"
     >
       <Icon name="add" className="size-4" />

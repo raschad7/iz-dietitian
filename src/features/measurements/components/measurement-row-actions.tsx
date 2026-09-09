@@ -29,7 +29,6 @@ export function MeasurementRowActions({
   clientId,
   locale,
   today,
-  currentWeightKg,
   takenSlots,
   measurement,
   /** Already formatted, so the confirmation names the row a reader can see. */
@@ -38,7 +37,6 @@ export function MeasurementRowActions({
   clientId: string;
   locale: Locale;
   today: IsoDate;
-  currentWeightKg: number | null;
   /** Every recorded reading, this row's own included — the form excludes it by id. */
   takenSlots: readonly { id: string; measuredOn: IsoDate; measuredAtMinute: number }[];
   measurement: MeasurementFormValues;
@@ -52,7 +50,6 @@ export function MeasurementRowActions({
         clientId={clientId}
         locale={locale}
         today={today}
-        currentWeightKg={currentWeightKg}
         takenSlots={takenSlots}
         measurement={measurement}
         label={t('edit')}

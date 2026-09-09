@@ -14,6 +14,7 @@ import { seedDefaultServices } from '@/features/billing/mutations';
 import { addDays, toIsoDate } from '@/features/booking/date';
 import { ensurePractitioner } from '@/features/booking/mutations';
 import { createClient, saveIntake } from '@/features/clients/mutations';
+import { applyHeightToClient, createMeasurement } from '@/features/measurements/mutations';
 import { DEFAULT_MEAL_SCHEDULE } from '@/features/clients/nutrition';
 import { issuePortalCredentials, suggestPortalUsername } from '@/features/clients/portal-credentials';
 import { defaultClinicScheduleRows } from '@/features/clinic-profile/default-schedule';
@@ -37,6 +38,14 @@ const STAFF_PASSWORD = 'clinic-dev-password';
 type SeedClient = {
   client: Parameters<typeof createClient>[1];
   intake?: Omit<Parameters<typeof saveIntake>[1], 'clientId'>;
+  /**
+   * The body, which is no longer part of the intake.
+   *
+   * The weight is filed as the weigh-in it is — every weight is a measurement
+   * now — and the height is written onto the client card by the same call the
+   * measurement form makes. See `latestBodyMetrics`.
+   */
+  body?: { heightCm: number; weightKg: number };
 };
 
 /** The fields every intake carries, so each seed row states only what differs. */
@@ -49,25 +58,26 @@ const BASE_INTAKE = {
 const SEED_CLIENTS: SeedClient[] = [
   {
     client: { fullName: 'أحمد خليل', phone: '0599123456', email: 'ahmad@example.ps', preferredLocale: 'ar', dateOfBirth: '1988-04-12', sex: 'male' },
-    intake: { ...BASE_INTAKE, heightCm: 178, goal: 'weight_loss', activityLevel: 'light', weightKg: 92, allergies: 'لا يوجد' },
+    intake: { ...BASE_INTAKE, goal: 'weight_loss', activityLevel: 'light', allergies: 'لا يوجد' },
+    body: { heightCm: 178, weightKg: 92 },
   },
   {
     client: { fullName: 'سارة عبد الله', phone: '0598222333', email: 'sara@example.ps', preferredLocale: 'ar', dateOfBirth: '1994-11-03', sex: 'female' },
-    intake: { ...BASE_INTAKE, heightCm: 165, goal: 'maintenance', activityLevel: 'moderate', weightKg: 61 },
+    intake: { ...BASE_INTAKE, goal: 'maintenance', activityLevel: 'moderate' },
+    body: { heightCm: 165, weightKg: 61 },
   },
   {
     client: { fullName: 'إبراهيم نصّار', phone: '0597444555', preferredLocale: 'ar', dateOfBirth: '1972-01-20', sex: 'male' },
     intake: {
       ...BASE_INTAKE,
-      heightCm: 170,
       goal: 'medical',
       activityLevel: 'sedentary',
-      weightKg: 88,
       medicalNotes: 'ارتفاع ضغط الدم',
       conditions: 'ارتفاع ضغط الدم',
       medications: 'أملوديبين ٥ ملغ يومياً',
       permanentInstructions: 'تقليل الملح في كل الوجبات',
     },
+    body: { heightCm: 170, weightKg: 88 },
   },
   // No intake: the "profile incomplete" path in the planner needs a client to
   // be incomplete, and a freshly added walk-in is exactly this shape.
@@ -76,14 +86,13 @@ const SEED_CLIENTS: SeedClient[] = [
     client: { fullName: 'Layla Haddad', email: 'layla@example.ps', preferredLocale: 'en', dateOfBirth: '2000-07-09', sex: 'female' },
     intake: {
       ...BASE_INTAKE,
-      heightCm: 160,
       goal: 'sports',
       activityLevel: 'very_active',
-      weightKg: 55,
       allergenTags: ['lactose'],
       allergies: 'Lactose intolerant — lactose-free dairy is fine',
       dislikes: 'Okra',
     },
+    body: { heightCm: 160, weightKg: 55 },
   },
 ];
 
@@ -200,8 +209,22 @@ async function seed(): Promise<void> {
   // client has no nutrition profile and the planner refuses to generate for
   // all of them, which is not a useful development database.
   for (const [index, client] of created.entries()) {
-    const intake = SEED_CLIENTS[index]?.intake;
-    if (intake) await saveIntake(clinicId, { ...intake, clientId: client.id });
+    const seed = SEED_CLIENTS[index];
+    if (seed?.intake) await saveIntake(clinicId, { ...seed.intake, clientId: client.id });
+
+    /*
+      The body, written where a body is written. `applyHeightToClient` is the
+      one writer for `clients.height_cm`, and the weight is a measurement —
+      there is no column on the profile to put it in any more.
+    */
+    if (seed?.body) {
+      await applyHeightToClient(clinicId, client.id, seed.body.heightCm);
+      await createMeasurement(clinicId, client.id, {
+        measuredOn: toIsoDate(new Date()),
+        weightKg: seed.body.weightKg,
+        heightCm: seed.body.heightCm,
+      });
+    }
   }
 
   // One client gets portal credentials so the granted state — and a working

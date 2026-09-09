@@ -2,8 +2,6 @@ import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { clientNutritionProfiles, clients, user } from '@/db/schema';
-import { recordIntakeWeight } from '@/features/measurements/mutations';
-import { toIsoDate } from '@/lib/iso-date';
 
 import { normalizeForSearch } from './search';
 import { type ClientFormInput, type IntakeInput } from './schema';
@@ -98,10 +96,9 @@ export async function updateClient(
  *
  * `clients` takes the columns the rest of the app already reads — height, goal,
  * the portal-visible prose — and `client_nutrition_profiles` takes the ones only
- * planning needs. **One transaction**, because a saved height with an unsaved
- * weight is exactly the half-filled state this whole change exists to remove:
- * the planner would report a different set of missing fields than the dietitian
- * had just filled in.
+ * planning needs. **One transaction**, so a client row and its profile row
+ * cannot land half-written and leave the planner reporting a different set of
+ * missing fields than the dietitian had just filled in.
  *
  * The profile row is still created lazily, on the first save that reaches here,
  * so every client who predates this form is valid without a backfill.
@@ -114,9 +111,9 @@ export async function updateClient(
  * insists on. The same split as {@link ClientRecordInput}, for the same reason.
  *
  * Every column here is written as `input.X ?? null`, so all of them are optional
- * at this layer. That height, weight, goal and activity level are *required on
- * the form* is a rule about the form — see the ⚠ on `intakeSchema` — and a
- * backfill script or a test writing one allergen should not have to satisfy it.
+ * at this layer. That the goal and the activity level are *required on the form*
+ * is a rule about the form — see the ⚠ on `intakeSchema` — and a backfill script
+ * or a test writing one allergen should not have to satisfy it.
  *
  * The three that stay required are the ones written straight into non-null
  * columns rather than through `?? null`.
@@ -124,17 +121,23 @@ export async function updateClient(
 export type IntakeRecordInput = Partial<IntakeInput> &
   Pick<IntakeInput, 'clientId' | 'allergenTags' | 'customAllergens' | 'mealSchedule'>;
 
-export async function saveIntake(
-  clinicId: string,
-  input: IntakeRecordInput,
-  /** Who is saving, for the weigh-in this may write. Absent in tests and scripts. */
-  recordedBy?: string | null,
-): Promise<boolean> {
+export async function saveIntake(clinicId: string, input: IntakeRecordInput): Promise<boolean> {
   return db.transaction(async (tx) => {
     const rows = await tx
       .update(clients)
       .set({
-        heightCm: input.heightCm ?? null,
+        /*
+         * ⚠ **`height_cm` is absent from this write, and must stay absent.**
+         *
+         * The intake dialog no longer carries a height box — the measurement
+         * card owns it, beside the report that so often reveals it is wrong.
+         * A column left out of an UPDATE keeps whatever it holds, exactly as
+         * `care_note` does below; writing `input.heightCm ?? null` here would
+         * clear a height the dietitian recorded on the analyser every time
+         * somebody saved an unrelated field on this form.
+         *
+         * `applyHeightToClient` in the measurements feature is the one writer.
+         */
         goal: input.goal ?? null,
         activityLevel: input.activityLevel ?? null,
         allergies: input.allergies ?? null,
@@ -172,7 +175,6 @@ export async function saveIntake(
      * back; until then, leaving them untouched is the reversible option.
      */
     const profile = {
-      weightKg: input.weightKg ?? null,
       dailyKcalTarget: input.dailyKcalTarget ?? null,
       proteinTargetGrams: input.proteinTargetGrams ?? null,
       allergenTags: input.allergenTags,
@@ -207,16 +209,6 @@ export async function saveIntake(
       sweetsFrequency: input.sweetsFrequency ?? null,
     };
 
-    /*
-      Read before the upsert overwrites it: the weight this save is replacing,
-      which is what decides whether anything actually moved.
-    */
-    const [before] = await tx
-      .select({ weightKg: clientNutritionProfiles.weightKg })
-      .from(clientNutritionProfiles)
-      .where(eq(clientNutritionProfiles.clientId, input.clientId))
-      .limit(1);
-
     await tx
       .insert(clientNutritionProfiles)
       .values({ clinicId, clientId: input.clientId, ...profile })
@@ -224,34 +216,6 @@ export async function saveIntake(
         target: clientNutritionProfiles.clientId,
         set: { ...profile, updatedAt: new Date() },
       });
-
-    /*
-      One writer for the current weight.
-
-      `weight_kg` on the row above is what the calorie target, the protein
-      suggestion and the next plan are built from — and until now this dialog
-      could move it without the Measurements tab ever hearing about it. A
-      dietitian who typed 70 into the box left a record whose history still
-      said 72.2, with no row for the change and a gap in the chart nobody could
-      explain.
-
-      So the box now writes a weigh-in behind itself, in the same transaction:
-      either both land or neither does. `recordIntakeWeight` owns the rules —
-      in particular that it will not write over a day the analyser already
-      covered.
-
-      Only on a real change. Re-saving the intake for an unrelated field must
-      not file a fresh weigh-in for a number nobody touched.
-    */
-    if (input.weightKg != null && (before?.weightKg ?? null) !== input.weightKg) {
-      await recordIntakeWeight(tx, {
-        clinicId,
-        clientId: input.clientId,
-        weightKg: input.weightKg,
-        measuredOn: toIsoDate(new Date()),
-        recordedBy,
-      });
-    }
 
     return true;
   });

@@ -893,7 +893,9 @@
       "balanceShares": "Balance to 100%",
       "allergenHint": "Only the ticks above remove dishes from the catalog.",
       "dailyTarget": "Daily target",
-      "bmrDisagreement": "The analyser put basal metabolism at {device, number} kcal; the formula estimates {estimate, number}. The calorie target is built on the formula — set it by hand if the device figure fits this client better.",
+      "bmrUsingDevice": "The calorie target is built on the analyser's basal metabolism: {device, number} kcal. Mifflin-St Jeor estimates {estimate, number}.",
+      "bmrUsingFormula": "The calorie target is built on Mifflin-St Jeor: {estimate, number} kcal. The analyser printed {device, number}.",
+      "proteinRule": "Dosed at {perKg} g per kg of {basis}.",
       "bmi": "BMI",
       "bmiScale": "Where it falls on the scale",
       "dismissWarning": "Dismiss this warning",
@@ -904,8 +906,6 @@
       "hasContent": "Has content",
       "allergyDetailPlaceholder": "Mild reaction to walnuts but not almonds",
       "placeholders": {
-        "heightCm": "170",
-        "weightKg": "70",
         "conditions": "Diabetes",
         "medications": "Metformin 500mg twice daily",
         "medicalNotes": "What the clinic should remember about this client",
@@ -952,7 +952,15 @@
       "conditionLegend": "Clinical conditions",
       "conditionHint": "These are what the app plans around: they raise the calorie target for pregnancy and breastfeeding, and reach the plan generator as stated constraints. Anything else goes in the box below.",
       "dietPatternNone": "Balanced plan",
-      "dietPatternHint": "A pattern the whole week follows. A diagnosis is not a prescription — choose one only where it has actually been prescribed."
+      "dietPatternHint": "A pattern the whole week follows. A diagnosis is not a prescription — choose one only where it has actually been prescribed.",
+      "kgValue": "{value} kg",
+      "cmValue": "{value} cm",
+      "body": {
+        "measuredOn": "From the {date} measurement",
+        "none": "Not measured yet — record it on the Measurements tab",
+        "weight": "Weight",
+        "height": "Height"
+      }
     },
     "allergens": {
       "nuts": "Nuts",
@@ -1041,6 +1049,11 @@
       "low_sodium": "Low sodium",
       "renal": "Renal",
       "low_fat": "Low fat"
+    },
+    "proteinBasis": {
+      "actual": "actual weight",
+      "adjusted": "adjusted weight",
+      "lean": "fat-free mass"
     }
   },
   "forms": {
@@ -3071,7 +3084,6 @@
       "addTitle": "Record a measurement",
       "editTitle": "Correct this measurement",
       "hint": "Only the weight is required. Leave a box empty when the machine did not report it — an empty box is recorded as \"not measured\", never as zero.",
-      "when": "When",
       "measuredOn": "Date",
       "measuredAtMinute": "Time",
       "core": "The basics",
@@ -3080,18 +3092,11 @@
       "girth": "Tape measurements",
       "note": "Note",
       "notePlaceholder": "Anything worth remembering about this reading.",
-      "applyToCurrentWeight": "Make this the client's current weight",
-      "applyHint": "This is the weight the calorie target and the next weekly plan are built from. Plans already published keep the weight they were written with.",
-      "applyHintCurrent": "It currently reads {weight} kg.",
-      "applyHintUnset": "No weight is recorded on this client's nutrition profile yet.",
-      "applyHeightToClient": "Correct the record's height to {height} cm",
-      "applyHeightHint": "The record says {current} cm; the machine was told {height} cm. The record's height is what every screen computes BMI from.",
       "bmiPreview": "BMI from these figures",
       "bmiNoHeight": "No height on record, so no BMI."
     },
     "flash": {
-      "saved": "Measurement saved.",
-      "savedAndApplied": "Measurement saved, and the current weight is now {weight} kg.",
+      "saved": "Measurement saved, and the current weight is now {weight} kg.",
       "deleted": "Measurement deleted."
     },
     "validation": {
@@ -3138,7 +3143,7 @@
       "checksum": "Two figures on the report disagree ({check}): we expected about {expected} and read {found}. One of them may have been read from the wrong place — check them both.",
       "dateAmbiguous": "The date reads “{raw}” and could be day/month or month/day. Confirm it below.",
       "nameMismatch": "The report says “{onReport}” but this record is “{onRecord}”. Make sure this is the right client.",
-      "heightMismatch": "The machine was told {onReport} cm; the record says {onRecord} cm. The record's height is kept — change it here only if the machine was right.",
+      "heightMismatch": "The machine was told {onReport} cm; the record says {onRecord} cm. Whatever you save in the height box here becomes the record.",
       "duplicate": "There is already a measurement for this client on {measuredOn}."
     },
     "sharing": {
@@ -3637,5 +3642,57 @@
     "heading": "This account is disabled",
     "body": "The platform has turned this account off. Nothing has been deleted — signing in will work again as soon as it is re-enabled.",
     "contact": "Get in touch with the platform administrator."
+  },
+  "nutritionRules": {
+    "title": "Nutrition rules",
+    "description": "How each client's calorie and protein targets are worked out. These apply across the clinic; a single client can still be given a different target from their own record.",
+    "change": "Change",
+    "protein": {
+      "label": "Protein dose",
+      "value": "{perKg} g per kg of {basis}",
+      "dialogTitle": "Protein dose",
+      "changeLabel": "Change the protein dose",
+      "rateLabel": "Rate",
+      "rateUnit": "g/kg",
+      "rateHint": "Between {min} and {max} g per kg.",
+      "basisLabel": "Applied to",
+      "valueWithCases": "{perKg} g per kg of {basis}, and {count} special {count, plural, one {case} other {cases}}",
+      "casesLabel": "Clients dosed differently",
+      "casesHint": "By how the client trains and what they have, not by their goal. Leave a box empty for the ordinary dose."
+    },
+    "basis": {
+      "actual": {
+        "name": "actual weight",
+        "hint": "The number on the scale. The simplest choice, and it charges a client carrying extra fat for tissue that uses no protein."
+      },
+      "adjusted": {
+        "name": "adjusted weight",
+        "hint": "Ideal weight plus a quarter of the excess — what most clinical references are written against, and it needs no analyser."
+      },
+      "lean": {
+        "name": "fat-free mass",
+        "hint": "The lean mass the analyser actually measured, and the most accurate. A client who has never been scanned falls back to the adjusted weight."
+      }
+    },
+    "bmr": {
+      "label": "Basal metabolism",
+      "dialogTitle": "Basal metabolism source",
+      "changeLabel": "Change the basal metabolism source",
+      "dialogHint": "Both figures are estimates, not measurements: the analyser measures electrical resistance and then runs its own equation, and Mifflin-St Jeor is a published one. On a real report the two differed by 125 kcal a day.",
+      "device": {
+        "name": "The figure printed on the analyser's report",
+        "hint": "A client who has never been scanned falls back to Mifflin-St Jeor."
+      },
+      "formula": {
+        "name": "Mifflin-St Jeor",
+        "hint": "The published equation, worked out from weight, height, age and sex."
+      }
+    },
+    "cases": {
+      "active": "Active — trains regularly",
+      "very_active": "Very active — trains hard",
+      "kidney_disease": "Kidney — no dialysis",
+      "dialysis": "Kidney — on dialysis"
+    }
   }
 }

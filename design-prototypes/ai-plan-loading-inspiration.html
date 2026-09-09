@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enzyme AI · The Living Intelligence Loading Experience</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  
+  <style>
+    :root {
+      --ai-green: #75CF48;
+      --ai-deep: #164203;
+      --ai-cyan: #38E1FF;
+      --ai-amber: #FFB422;
+      --ai-purple: #A855F7;
+      --ai-bg: #030804;
+    }
+    body {
+      font-family: 'IBM Plex Sans Arabic', 'Plus Jakarta Sans', system-ui, sans-serif;
+      background-color: var(--ai-bg);
+      color: #EDFBEA;
+      overflow-x: hidden;
+      margin: 0;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .font-display {
+      font-family: 'Plus Jakarta Sans', 'IBM Plex Sans Arabic', sans-serif;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(117, 207, 72, 0.3); border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(117, 207, 72, 0.7); }
+
+    /* Glassmorphic Cards */
+    .ai-card {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%),
+                  rgba(6, 16, 8, 0.75);
+      backdrop-filter: blur(28px) saturate(190%);
+      -webkit-backdrop-filter: blur(28px) saturate(190%);
+      border: 1px solid rgba(117, 207, 72, 0.25);
+      box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.7), inset 0 1px 1px 0 rgba(255, 255, 255, 0.15);
+    }
+
+    /* Holographic border shimmer */
+    @keyframes borderGlow {
+      0%, 100% { border-color: rgba(117, 207, 72, 0.3); box-shadow: 0 0 30px rgba(117, 207, 72, 0.15); }
+      50% { border-color: rgba(56, 225, 255, 0.45); box-shadow: 0 0 45px rgba(56, 225, 255, 0.25); }
+    }
+    .ai-glow-border {
+      animation: borderGlow 4s ease-in-out infinite;
+    }
+
+    /* Laser Scanner Beam */
+    @keyframes scanBeam {
+      0% { top: 0%; opacity: 0; }
+      15% { opacity: 1; }
+      85% { opacity: 1; }
+      100% { top: 100%; opacity: 0; }
+    }
+    .scanner-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #38E1FF, #75CF48, transparent);
+      box-shadow: 0 0 14px #38E1FF, 0 0 4px #75CF48;
+      animation: scanBeam 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+
+    /* Terminal Typewriter Cursor */
+    @keyframes blinkCursor {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    .typewriter-cursor {
+      display: inline-block;
+      width: 6px;
+      height: 14px;
+      background-color: #75CF48;
+      vertical-align: middle;
+      animation: blinkCursor 0.8s infinite;
+    }
+
+    /* Radial Breathing Orb */
+    @keyframes breathingAura {
+      0%, 100% { transform: scale(1); opacity: 0.35; filter: blur(35px); }
+      50% { transform: scale(1.15); opacity: 0.7; filter: blur(45px); }
+    }
+    .ai-aura {
+      animation: breathingAura 3.6s ease-in-out infinite;
+    }
+
+    /* 3D Tilt perspective */
+    .perspective-stage {
+      perspective: 1200px;
+      transform-style: preserve-3d;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-[#030804] text-[#E7F5E4] antialiased selection:bg-[#75CF48] selection:text-[#030804]">
+
+  <!-- ========================================================================= -->
+  <!-- TOP APP CONTROLS & HUD                                                    -->
+  <!-- ========================================================================= -->
+  <header class="sticky top-0 z-50 border-b border-[#75CF48]/20 bg-[#030804]/90 backdrop-blur-2xl px-4 sm:px-8 py-3">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+      
+      <!-- Brand & AI Status -->
+      <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
+        <div class="flex items-center gap-3">
+          <!-- Animated AI Spark Symbol -->
+          <div class="relative w-10 h-10 rounded-2xl bg-gradient-to-br from-[#75CF48] to-[#164203] p-0.5 shadow-lg shadow-[#75CF48]/30 flex items-center justify-center">
+            <svg viewBox="0 0 24 24" class="w-5 h-5 text-[#030804] animate-pulse" fill="currentColor">
+              <path d="M12 2L14.4 8.6L21 11L14.4 13.4L12 20L9.6 13.4L3 11L9.6 8.6L12 2Z"/>
+            </svg>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-display font-extrabold text-white text-base tracking-tight">إنزيم · Enzyme AI</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#75CF48]/20 text-[#75CF48] border border-[#75CF48]/40 uppercase tracking-wider flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#75CF48] animate-ping"></span>
+                <span>Active Thinking Core</span>
+              </span>
+            </div>
+            <p class="text-xs text-gray-400">إظهار عمليات التفكير العصبي والفحص السريري المباشر</p>
+          </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="flex items-center gap-2">
+          <button onclick="toggleLocale()" id="localeBtn" class="px-2.5 py-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-xs font-semibold text-gray-300 transition-all flex items-center gap-1.5">
+            <span class="text-[#75CF48]">🌐</span>
+            <span id="localeLabel">English</span>
+          </button>
+          <button onclick="triggerAiInference()" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#75CF48] to-[#38E1FF] text-[#030804] font-bold text-xs shadow-md shadow-[#75CF48]/30 hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5">
+            <span>✨ نبضة تفكير عصبية (Synapse Burst)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- AI View Switcher -->
+      <div class="flex items-center gap-1.5 bg-black/50 p-1 rounded-2xl border border-white/10 text-xs font-semibold overflow-x-auto max-w-full">
+        <button onclick="switchView(1)" id="view-btn-1" class="view-btn active px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap bg-[#75CF48] text-[#030804] font-bold shadow-md shadow-[#75CF48]/30">
+          <span class="w-2 h-2 rounded-full bg-[#030804] animate-ping"></span>
+          <span>1. النواة العصبية وسجل التفكير الحي</span>
+        </button>
+        <button onclick="switchView(2)" id="view-btn-2" class="view-btn px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap text-gray-400 hover:text-white">
+          <span>2. الماسح الهولوغرافي للأطباق (Dish Vision)</span>
+        </button>
+        <button onclick="switchView(3)" id="view-btn-3" class="view-btn px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap text-gray-400 hover:text-white">
+          <span>3. شبكة التشابك العصبي للبيانات (Neural Graph)</span>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Master Progress Scrubber -->
+    <div class="max-w-7xl mx-auto mt-3 pt-2.5 border-t border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs">
+      
+      <!-- Simulation playback -->
+      <div class="flex items-center gap-2">
+        <button id="playBtn" onclick="togglePlay()" class="h-8 px-3.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold flex items-center gap-1.5 transition-all">
+          <span id="playIcon">⏸</span>
+          <span id="playText">إيقاف</span>
+        </button>
+        <button onclick="fastComplete()" class="h-8 px-3 rounded-xl bg-[#75CF48]/20 hover:bg-[#75CF48]/30 text-[#75CF48] border border-[#75CF48]/40 font-bold flex items-center gap-1.5 transition-all">
+          <span>🚀 إنهاء الخطة (100% Landing)</span>
+        </button>
+      </div>
+
+      <!-- Scrubber Track -->
+      <div class="flex-1 min-w-[260px] max-w-xl flex items-center gap-3">
+        <span class="text-gray-400 font-mono text-xs tabular-nums" id="timerLabel">00:26s</span>
+        <div class="relative flex-1 flex items-center">
+          <input type="range" id="aiScrubber" min="0" max="100" value="58" step="0.2" oninput="onScrub(this.value)" class="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#75CF48]">
+        </div>
+        <div class="w-14 text-center font-mono font-bold text-sm text-[#75CF48] tabular-nums" id="percentLabel">58.0%</div>
+      </div>
+
+      <!-- AI Phase readout -->
+      <div class="flex items-center gap-2 font-mono text-[11px]">
+        <span class="text-gray-400">AI PHASE:</span>
+        <span id="aiPhaseBadge" class="px-2.5 py-1 rounded-lg bg-[#38E1FF]/15 border border-[#38E1FF]/30 text-[#38E1FF] font-bold">
+          SYNTHESIS & MACRO OPTIMIZER
+        </span>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- MAIN WORKSPACE                                                            -->
+  <!-- ========================================================================= -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-8 py-8 flex flex-col items-center">
+
+    <!-- Concept Rationale Banner -->
+    <div class="w-full max-w-4xl mb-6 p-4 rounded-2xl ai-card flex items-start gap-4">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#75CF48] via-[#38E1FF] to-[#A855F7] flex items-center justify-center text-xl shrink-0 shadow-lg shadow-[#75CF48]/30">
+        🤖
+      </div>
+      <div class="flex-1">
+        <div class="flex items-center justify-between">
+          <h2 id="viewTitle" class="font-display font-bold text-white text-base">
+            إظهار الذكاء الاصطناعي: النواة العصبية وتدفق التفكير الحي (Live Reasoning Stream)
+          </h2>
+          <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-[#75CF48]/20 text-[#75CF48] font-bold">
+            AGENTIC REASONING
+          </span>
+        </div>
+        <p id="viewDesc" class="text-xs text-gray-300 mt-1 leading-relaxed">
+          بدلاً من شاشات التحميل الصامتة القديمة، يرى أخصائي التغذية "عقل الذكاء الاصطناعي" أثناء العمل: نواة عصبية ثلاثية الأبعاد تتفاعل مع الفأرة، وتيار تفكير يتدفق كلمة بكلمة يشرح القرارات السريرية، وفحصاً حياً للأطباق المختارة.
+        </p>
+      </div>
+    </div>
+
+    <!-- DIALOG MODAL SIMULATION (Matches Enzyme 52rem production modal with 3D Depth) -->
+    <div id="mainModal" class="w-full max-w-3xl min-h-[660px] rounded-3xl ai-card ai-glow-border relative overflow-hidden flex flex-col justify-between p-6 sm:p-10 shadow-2xl transition-all duration-500 perspective-stage">
+      
+      <!-- Ambient Colored Light Fields -->
+      <div class="absolute -top-40 -left-40 w-96 h-96 bg-[#75CF48]/15 rounded-full blur-[100px] pointer-events-none ai-aura"></div>
+      <div class="absolute -bottom-40 -right-40 w-96 h-96 bg-[#38E1FF]/15 rounded-full blur-[100px] pointer-events-none ai-aura" style="animation-delay: 1.8s"></div>
+
+      <!-- ===================================================================== -->
+      <!-- VIEW 1: THE AI NEURAL CORE & REASONING TERMINAL                       -->
+      <!-- ===================================================================== -->
+      <div id="view-1" class="view-panel flex flex-col flex-1 justify-between relative z-10">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between border-b border-white/10 pb-4">
+          <div class="flex items-center gap-3">
+            <div class="relative w-7 h-7 rounded-lg bg-[#75CF48]/20 border border-[#75CF48]/40 flex items-center justify-center">
+              <span class="w-2 h-2 rounded-full bg-[#75CF48] animate-ping"></span>
+            </div>
+            <div>
+              <span class="text-xs font-bold text-white block">مساعد إنزيم السريري الذكي (Clinical Copilot)</span>
+              <span class="text-[10px] font-mono text-gray-400">ENGINE: ENZYME-MED-REASONING-V3</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-mono px-3 py-1 rounded-lg bg-black/50 border border-white/10 text-gray-300">
+              الوقت المتوقع: <strong class="text-[#75CF48]">~18 ثانية</strong>
+            </span>
+          </div>
+        </div>
+
+        <!-- Upper Middle: The Glowing Holographic AI Core -->
+        <div class="my-4 flex flex-col items-center justify-center text-center">
+          
+          <div class="relative w-44 h-44 sm:w-52 sm:h-52 flex items-center justify-center cursor-pointer" onclick="triggerAiInference()">
+            
+            <!-- Rotating Holographic Synaptic Ring 1 -->
+            <div class="absolute inset-0 rounded-full border-2 border-dashed border-[#75CF48]/40 animate-spin" style="animation-duration: 20s"></div>
+            <!-- Counter Rotating Ring 2 -->
+            <div class="absolute inset-3 rounded-full border border-dotted border-[#38E1FF]/50 animate-spin" style="animation-duration: 14s; animation-direction: reverse"></div>
+            <!-- Ring 3 with glowing energy nodes -->
+            <div class="absolute inset-7 rounded-full border border-[#FFB422]/30 animate-spin" style="animation-duration: 28s"></div>
+
+            <!-- Central AI Orb (Canvas for Real-time Synapse Sparks) -->
+            <canvas id="neuralOrbCanvas" width="180" height="180" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+
+            <!-- Holographic Center Badge -->
+            <div class="relative z-10 p-4 rounded-3xl bg-[#030804]/90 border border-[#75CF48]/50 shadow-2xl backdrop-blur-xl flex flex-col items-center">
+              <span class="text-[9px] font-mono text-gray-400 tracking-wider">AI PROGRESS</span>
+              <div class="font-display font-black text-3xl sm:text-4xl text-white tabular-nums tracking-tight mt-0.5">
+                <span id="v1-percent">58</span><span class="text-base text-[#75CF48] ml-0.5">%</span>
+              </div>
+              <span class="text-[9px] font-mono text-[#38E1FF] font-bold">2,150 KCAL</span>
+            </div>
+
+          </div>
+
+          <h3 id="v1-mainHeading" class="font-display font-bold text-lg sm:text-xl text-white mt-3">
+            جارٍ صياغة الوجبات السبع وتجنب تكرار المكونات
+          </h3>
+          <p id="v1-subHeading" class="text-xs text-gray-400 mt-1 max-w-md">
+            نطابق أطباق الغداء والعشاء مع مؤشر الشبع ونسب البروتين المطلوبة للمشترك.
+          </p>
+
+        </div>
+
+        <!-- Lower Middle: Live AI Thought / Reasoning Terminal (Like DeepSeek R1 / Claude) -->
+        <div class="my-2 p-3.5 rounded-2xl bg-black/60 border border-[#75CF48]/30 shadow-inner font-mono text-xs overflow-hidden">
+          
+          <div class="flex items-center justify-between pb-2 mb-2 border-b border-white/10 text-[11px] text-gray-400">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span class="text-white font-bold">سلسلة استدلال الذكاء الاصطناعي (Live Reasoning Trace)</span>
+            </div>
+            <span class="text-[10px] text-[#38E1FF]">STREAMING TOKENS...</span>
+          </div>
+
+          <!-- Thought Terminal Lines -->
+          <div id="terminalBody" class="space-y-1.5 text-[11px] max-h-36 overflow-y-auto pr-1">
+            <div class="text-gray-400 flex items-start gap-2">
+              <span class="text-[#75CF48] shrink-0">[00:04]</span>
+              <span>قراءة التاريخ الصحي: حساسية لاكتوز، هدف نزول وزن بمقدار 0.75 كجم/أسبوع.</span>
+            </div>
+            <div class="text-gray-400 flex items-start gap-2">
+              <span class="text-[#75CF48] shrink-0">[00:09]</span>
+              <span>استبعاد 18 طبقاً يحتوي على مشتقات الحليب من كتالوج العيادة.</span>
+            </div>
+            <div class="text-gray-300 flex items-start gap-2">
+              <span class="text-[#75CF48] shrink-0">[00:16]</span>
+              <span>توزيع الماكروز: 135 جم بروتين (28%) · 220 جم كارب معقد (46%) · 65 جم دهون صحية (26%).</span>
+            </div>
+            <div class="text-[#38E1FF] font-semibold flex items-start gap-2">
+              <span class="text-[#75CF48] shrink-0">[00:26]</span>
+              <span id="activeTerminalLine">فحص توازن الأحماض الأمينية وتغطية الألياف (> 30 جم يومياً)...</span>
+              <span class="typewriter-cursor"></span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Bottom: Connected Clinical Milestones -->
+        <div class="border-t border-white/10 pt-4 grid grid-cols-4 gap-2 text-center text-xs">
+          <div class="p-2 rounded-xl bg-white/5 border border-[#75CF48]/40">
+            <span class="text-[10px] text-gray-400 block font-mono">STEP 01</span>
+            <span class="font-bold text-white text-[11px]">الملف والقيود</span>
+            <span class="text-[#75CF48] text-xs block mt-0.5">✓ مكتمل</span>
+          </div>
+          <div class="p-2 rounded-xl bg-white/5 border border-[#75CF48]/40">
+            <span class="text-[10px] text-gray-400 block font-mono">STEP 02</span>
+            <span class="font-bold text-white text-[11px]">السعرات والماكروز</span>
+            <span class="text-[#75CF48] text-xs block mt-0.5">✓ تم الحساب</span>
+          </div>
+          <div class="p-2 rounded-xl bg-[#75CF48]/15 border border-[#75CF48] shadow-md shadow-[#75CF48]/15">
+            <span class="text-[10px] text-[#75CF48] block font-mono">STEP 03</span>
+            <span class="font-bold text-white text-[11px]">بناء 28 طبقاً</span>
+            <span class="text-[#38E1FF] text-xs block mt-0.5 animate-pulse">✦ نشط الآن</span>
+          </div>
+          <div class="p-2 rounded-xl bg-white/5 border border-white/10 opacity-50">
+            <span class="text-[10px] text-gray-500 block font-mono">STEP 04</span>
+            <span class="font-bold text-gray-400 text-[11px]">الاعتماد والمسودة</span>
+            <span class="text-gray-500 text-xs block mt-0.5">○ قيد الانتظار</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ===================================================================== -->
+      <!-- VIEW 2: THE HOLOGRAPHIC DISH SCANNER (DISH VISION HUD)                -->
+      <!-- ===================================================================== -->
+      <div id="view-2" class="view-panel hidden flex flex-col flex-1 justify-between relative z-10">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between border-b border-white/10 pb-4">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">👁️</span>
+            <div>
+              <h3 class="text-sm font-bold text-white">رؤية الذكاء الاصطناعي للأطباق (AI Dish Vision & Allergen Scanner)</h3>
+              <p class="text-[10px] text-gray-400 font-mono">OPTICAL VERIFICATION // REAL-TIME DISH SELECTION</p>
+            </div>
+          </div>
+          <span class="text-xs font-mono text-[#75CF48] px-2.5 py-1 rounded-lg bg-[#75CF48]/15 border border-[#75CF48]/30">
+            تم فحص 142 طبقاً
+          </span>
+        </div>
+
+        <!-- Center: Scanner Stage with Active Scanning Laser -->
+        <div class="my-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          
+          <!-- Dish 1: Evaluated and Passed -->
+          <div class="relative p-4 rounded-2xl bg-white/5 border border-[#75CF48]/40 overflow-hidden shadow-lg">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-mono font-bold text-[#75CF48]">✓ تم القبول · غداء السبت</span>
+              <span class="text-xs font-mono text-gray-300">520 kcal</span>
+            </div>
+            <div class="text-sm font-bold text-white">فيليه السلمون المشوي مع الهليون والكينوا</div>
+            <div class="mt-2 flex flex-wrap gap-1.5 text-[10px] font-mono">
+              <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">42g Protein</span>
+              <span class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300">38g Carbs</span>
+              <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">18g Healthy Fat</span>
+            </div>
+            <div class="mt-3 text-[11px] text-gray-400 border-t border-white/10 pt-2 flex items-center justify-between">
+              <span>مطابقة الحساسية: <strong class="text-[#75CF48]">خالٍ تماماً</strong></span>
+              <span class="text-[#75CF48] font-bold">MATCH: 99.2%</span>
+            </div>
+          </div>
+
+          <!-- Dish 2: Active Laser Scan in Progress! -->
+          <div class="relative p-4 rounded-2xl bg-[#75CF48]/10 border-2 border-[#38E1FF] overflow-hidden shadow-xl shadow-[#38E1FF]/10">
+            <!-- Animated Laser Scanner Line -->
+            <div class="scanner-line"></div>
+            
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-mono font-bold text-[#38E1FF] flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#38E1FF] animate-ping"></span>
+                <span>جارٍ المسح الليزري السريري…</span>
+              </span>
+              <span class="text-xs font-mono text-[#38E1FF]">غداء الأحد</span>
+            </div>
+            <div class="text-sm font-bold text-white">صدر دجاج مشوي مع أرز الزعفران والخضار</div>
+            <div class="mt-2 flex flex-wrap gap-1.5 text-[10px] font-mono">
+              <span class="px-2 py-0.5 rounded bg-[#75CF48]/20 text-[#75CF48]">48g Protein</span>
+              <span class="px-2 py-0.5 rounded bg-white/10 text-gray-300">45g Carbs</span>
+              <span class="px-2 py-0.5 rounded bg-white/10 text-gray-300">10g Fat</span>
+            </div>
+            <div class="mt-3 text-[11px] text-[#38E1FF] border-t border-[#38E1FF]/20 pt-2 flex items-center justify-between font-mono">
+              <span>فحص اللاكتوز والغلوتين: <strong class="text-[#75CF48]">آمن ✓</strong></span>
+              <span class="animate-pulse font-bold">CALIBRATING...</span>
+            </div>
+          </div>
+
+          <!-- Dish 3: Excluded candidate (Shows AI intelligence filtering out bad food!) -->
+          <div class="relative p-4 rounded-2xl bg-red-950/20 border border-red-500/30 opacity-75">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs font-mono font-bold text-red-400">✗ تم الاستبعاد تلقائياً</span>
+              <span class="text-[10px] text-gray-400">سلطة السيزر التقليدية</span>
+            </div>
+            <p class="text-[11px] text-gray-300 mt-1">
+              استبعده الذكاء الاصطناعي لاحتواء الصلصة على مشتقات الحليب (لاكتوز) التي تتعارض مع ملف المشترك.
+            </p>
+          </div>
+
+          <!-- Dish 4: Assembled Snack -->
+          <div class="relative p-4 rounded-2xl bg-white/5 border border-white/10">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs font-mono font-bold text-[#FFB422]">✓ سناك الطاقة · سناك العصر</span>
+              <span class="text-xs font-mono text-gray-300">180 kcal</span>
+            </div>
+            <div class="text-sm font-bold text-white">حفنة مكسرات نيئة مع زبادي جوز الهند</div>
+            <p class="text-[11px] text-gray-400 mt-1">تغطية المغنيسيوم والزنك والدهون الصحية غير المشبعة.</p>
+          </div>
+
+        </div>
+
+        <!-- Footer -->
+        <div class="border-t border-white/10 pt-3 flex items-center justify-between text-xs font-mono text-gray-400">
+          <span>AI CATALOG MATCHER // 1,420 DISHES EVALUATED</span>
+          <span class="text-[#75CF48]">0 ALLERGEN CONFLICTS</span>
+        </div>
+
+      </div>
+
+      <!-- ===================================================================== -->
+      <!-- VIEW 3: THE NEURAL SYNAPSE GRAPH (CANVAS OF BRAIN CONNECTIONS)        -->
+      <!-- ===================================================================== -->
+      <div id="view-3" class="view-panel hidden flex flex-col flex-1 justify-between relative z-10">
+        
+        <div class="flex items-center justify-between border-b border-white/10 pb-4">
+          <div>
+            <h3 class="text-sm font-bold text-white">شبكة التشابك العصبي للبيانات (Neural Synaptic Matrix)</h3>
+            <p class="text-[10px] text-gray-400 font-mono">INTERCONNECTED CLINICAL REASONING NODES</p>
+          </div>
+          <span class="text-xs font-mono text-[#38E1FF]">24 SYNAPTIC CONNECTIONS</span>
+        </div>
+
+        <!-- Center Canvas: Nodes linking patient profile -> calorie formula -> catalog dishes -> 7 days -->
+        <div class="relative flex-1 my-4 flex items-center justify-center">
+          <canvas id="synapseCanvas" width="560" height="280" class="w-full max-w-xl h-64 rounded-2xl border border-white/10 bg-black/40"></canvas>
+        </div>
+
+        <div class="border-t border-white/10 pt-3 flex items-center justify-between text-xs text-gray-300">
+          <div class="flex items-center gap-4 font-mono text-[11px]">
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#75CF48]"></span> بيانات المريض</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#38E1FF]"></span> معادلات الأيض</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#FFB422]"></span> أطباق الأسبوع</span>
+          </div>
+          <span class="text-gray-400 text-[11px]">انقر في الكانفاس لتوليد نبضات عصبية</span>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- HIGH-PERFORMANCE INTERACTIVE SCRIPT (Canvas + Synapses + Terminal)        -->
+  <!-- ========================================================================= -->
+  <script>
+    let activeView = 1;
+    let isPlaying = true;
+    let progress = 58.0;
+    let totalMs = 45000;
+    let elapsedMs = (progress / 100) * totalMs;
+    let lastTimestamp = performance.now();
+    let isRTL = true;
+
+    // View Switching
+    function switchView(viewId) {
+      activeView = viewId;
+      document.querySelectorAll('.view-btn').forEach((btn, i) => {
+        if (i + 1 === viewId) {
+          btn.classList.add('bg-[#75CF48]', 'text-[#030804]', 'font-bold', 'shadow-md');
+          btn.classList.remove('text-gray-400');
+        } else {
+          btn.classList.remove('bg-[#75CF48]', 'text-[#030804]', 'font-bold', 'shadow-md');
+          btn.classList.add('text-gray-400');
+        }
+      });
+
+      for (let i = 1; i <= 3; i++) {
+        const panel = document.getElementById(`view-${i}`);
+        if (panel) panel.classList.toggle('hidden', i !== viewId);
+      }
+
+      const titles = [
+        "",
+        "إظهار الذكاء الاصطناعي: النواة العصبية وتدفق التفكير الحي (Live Reasoning Stream)",
+        "رؤية الذكاء الاصطناعي: الماسح السريري للأطباق (AI Dish Vision & Optical Scanner)",
+        "شبكة التشابك العصبي للبيانات (Neural Synaptic Matrix)"
+      ];
+      const descs = [
+        "",
+        "يرى أخصائي التغذية 'عقل الذكاء الاصطناعي' أثناء العمل: نواة عصبية تتفاعل مع الفأرة، وتيار تفكير يتدفق كلمة بكلمة يشرح القرارات السريرية.",
+        "الذكاء الاصطناعي يقوم بمسح الأطباق ليزرياً وفحص المكونات، مستبعداً مسببات الحساسية وقابلاً للوجبات التي تطابق السعرات والماكروز.",
+        "خريطة عصبية تفاعلية توضح كيف يربط الذكاء الاصطناعي قيود المريض بمعادلات الأيض لتوزيع 28 طبقاً عبر الأيام السبعة بسلاسة."
+      ];
+      document.getElementById('viewTitle').textContent = titles[viewId];
+      document.getElementById('viewDesc').textContent = descs[viewId];
+    }
+
+    // Scrubber
+    function onScrub(val) {
+      progress = parseFloat(val);
+      elapsedMs = (progress / 100) * totalMs;
+      updateUI();
+    }
+
+    // Play/Pause
+    function togglePlay() {
+      isPlaying = !isPlaying;
+      document.getElementById('playIcon').textContent = isPlaying ? '⏸' : '▶';
+      document.getElementById('playText').textContent = isPlaying ? 'إيقاف' : 'تشغيل';
+    }
+
+    // 100% Landing Fast-forward
+    function fastComplete() {
+      progress = 100;
+      elapsedMs = totalMs;
+      isPlaying = false;
+      document.getElementById('playIcon').textContent = '▶';
+      document.getElementById('playText').textContent = 'تشغيل';
+      triggerAiInference();
+      updateUI();
+    }
+
+    // Locale Toggle
+    function toggleLocale() {
+      isRTL = !isRTL;
+      document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
+      document.documentElement.lang = isRTL ? 'ar' : 'en';
+      document.getElementById('localeLabel').textContent = isRTL ? 'English' : 'العربية';
+    }
+
+    // Trigger Synapse Burst
+    function triggerAiInference() {
+      // Add particle flash in orb canvas & synapse canvas
+      if (typeof orbSparks !== 'undefined') {
+        for (let i = 0; i < 20; i++) {
+          orbSparks.push({
+            x: 90,
+            y: 90,
+            vx: (Math.random() - 0.5) * 6,
+            vy: (Math.random() - 0.5) * 6,
+            radius: 2 + Math.random() * 3,
+            color: Math.random() > 0.5 ? '#75CF48' : '#38E1FF',
+            alpha: 1
+          });
+        }
+      }
+    }
+
+    // Update UI elements
+    function updateUI() {
+      const rounded = progress.toFixed(1);
+      const intVal = Math.round(progress);
+      
+      document.getElementById('percentLabel').textContent = `${rounded}%`;
+      document.getElementById('aiScrubber').value = progress;
+      
+      const v1p = document.getElementById('v1-percent');
+      if (v1p) v1p.textContent = intVal;
+
+      const secElapsed = Math.round(elapsedMs / 1000);
+      document.getElementById('timerLabel').textContent = `00:${secElapsed < 10 ? '0' : ''}${secElapsed}s`;
+
+      // Update active terminal message based on progress
+      const termLine = document.getElementById('activeTerminalLine');
+      if (termLine) {
+        if (progress < 25) {
+          termLine.textContent = "قراءة التاريخ الصحي والتحقق من حساسية اللاكتوز ومؤشر كتلة الجسم...";
+        } else if (progress < 50) {
+          termLine.textContent = "حساب معادلة Mifflin-St Jeor لعجز 500 سعرة حرارية وتثبيت الهدف عند 2,150 Kcal...";
+        } else if (progress < 85) {
+          termLine.textContent = "موازنة أطباق الغداء والعشاء وتأكيد 135 جم بروتين نقي بدون تكرار...";
+        } else {
+          termLine.textContent = "الفحص النهائي لاتزان المغذيات الصغرى وإعداد المسودة لاعتماد الأخصائي...";
+        }
+      }
+    }
+
+    // ==========================================
+    // CANVAS 1: NEURAL ORB SPARKS & ELECTRICAL PULSES
+    // ==========================================
+    const orbCanvas = document.getElementById('neuralOrbCanvas');
+    const orbCtx = orbCanvas ? orbCanvas.getContext('2d') : null;
+    let orbSparks = [];
+
+    function renderOrb(time) {
+      if (!orbCtx || !orbCanvas) return;
+      orbCtx.clearRect(0, 0, orbCanvas.width, orbCanvas.height);
+      const cx = orbCanvas.width / 2;
+      const cy = orbCanvas.height / 2;
+
+      // Draw pulsating energetic filaments
+      for (let i = 0; i < 8; i++) {
+        const angle = (i / 8) * Math.PI * 2 + time * 0.001;
+        const r1 = 55 + Math.sin(time * 0.005 + i) * 8;
+        const r2 = 75 + Math.cos(time * 0.004 + i) * 12;
+        
+        orbCtx.beginPath();
+        orbCtx.moveTo(cx + Math.cos(angle) * r1, cy + Math.sin(angle) * r1);
+        orbCtx.lineTo(cx + Math.cos(angle) * r2, cy + Math.sin(angle) * r2);
+        orbCtx.strokeStyle = i % 2 === 0 ? 'rgba(117, 207, 72, 0.7)' : 'rgba(56, 225, 255, 0.7)';
+        orbCtx.lineWidth = 2;
+        orbCtx.stroke();
+      }
+
+      // Render sparks
+      for (let i = orbSparks.length - 1; i >= 0; i--) {
+        const s = orbSparks[i];
+        orbCtx.beginPath();
+        orbCtx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+        orbCtx.fillStyle = s.color;
+        orbCtx.globalAlpha = s.alpha;
+        orbCtx.fill();
+
+        s.x += s.vx;
+        s.y += s.vy;
+        s.alpha *= 0.92;
+        if (s.alpha < 0.05) orbSparks.splice(i, 1);
+      }
+      orbCtx.globalAlpha = 1;
+    }
+
+    // ==========================================
+    // CANVAS 2: SYNAPSE GRAPH NETWORK
+    // ==========================================
+    const synCanvas = document.getElementById('synapseCanvas');
+    const synCtx = synCanvas ? synCanvas.getContext('2d') : null;
+
+    const synNodes = [
+      { x: 70, y: 70, label: 'الوزن والأهداف', color: '#75CF48' },
+      { x: 70, y: 140, label: 'السكري نوع 2', color: '#75CF48' },
+      { x: 70, y: 210, label: 'حساسية اللاكتوز', color: '#75CF48' },
+      { x: 280, y: 90, label: '2,150 Kcal Target', color: '#38E1FF' },
+      { x: 280, y: 180, label: '40/30/30 Macro Split', color: '#38E1FF' },
+      { x: 490, y: 60, label: 'أطباق الفطور (7)', color: '#FFB422' },
+      { x: 490, y: 130, label: 'أطباق الغداء (7)', color: '#FFB422' },
+      { x: 490, y: 200, label: 'أطباق العشاء (7)', color: '#FFB422' },
+    ];
+
+    const synEdges = [
+      [0, 3], [1, 3], [2, 4], [3, 5], [3, 6], [4, 6], [4, 7], [1, 7]
+    ];
+
+    function renderSynapses(time) {
+      if (!synCtx || !synCanvas) return;
+      synCtx.clearRect(0, 0, synCanvas.width, synCanvas.height);
+
+      // Draw Edges with travelling electrical pulses
+      synEdges.forEach(([fromIdx, toIdx], edgeIdx) => {
+        const from = synNodes[fromIdx];
+        const to = synNodes[toIdx];
+
+        synCtx.beginPath();
+        synCtx.moveTo(from.x, from.y);
+        synCtx.lineTo(to.x, to.y);
+        synCtx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+        synCtx.lineWidth = 1.5;
+        synCtx.stroke();
+
+        // Travelling pulse
+        const tPulse = (time * 0.0015 + edgeIdx * 0.25) % 1;
+        const px = from.x + (to.x - from.x) * tPulse;
+        const py = from.y + (to.y - from.y) * tPulse;
+
+        synCtx.beginPath();
+        synCtx.arc(px, py, 3, 0, Math.PI * 2);
+        synCtx.fillStyle = '#38E1FF';
+        synCtx.shadowColor = '#38E1FF';
+        synCtx.shadowBlur = 8;
+        synCtx.fill();
+        synCtx.shadowBlur = 0;
+      });
+
+      // Draw Nodes
+      synNodes.forEach((node) => {
+        synCtx.beginPath();
+        synCtx.arc(node.x, node.y, 8, 0, Math.PI * 2);
+        synCtx.fillStyle = node.color;
+        synCtx.shadowColor = node.color;
+        synCtx.shadowBlur = 12;
+        synCtx.fill();
+        synCtx.shadowBlur = 0;
+
+        synCtx.fillStyle = '#FFFFFF';
+        synCtx.font = '10px "IBM Plex Sans Arabic", sans-serif';
+        synCtx.textAlign = 'center';
+        synCtx.fillText(node.label, node.x, node.y + 20);
+      });
+    }
+
+    if (synCanvas) {
+      synCanvas.addEventListener('click', () => {
+        triggerAiInference();
+      });
+    }
+
+    // Master Animation Loop (60 FPS)
+    function mainLoop(timestamp) {
+      const dt = timestamp - lastTimestamp;
+      lastTimestamp = timestamp;
+
+      if (isPlaying) {
+        elapsedMs += dt;
+        if (elapsedMs >= totalMs) {
+          elapsedMs = totalMs;
+          progress = 97.5; // tail cap
+        } else {
+          progress = (elapsedMs / totalMs) * 100;
+        }
+        updateUI();
+      }
+
+      renderOrb(timestamp);
+      if (activeView === 3) {
+        renderSynapses(timestamp);
+      }
+
+      requestAnimationFrame(mainLoop);
+    }
+
+    // Initialize
+    updateUI();
+    requestAnimationFrame(mainLoop);
+  </script>
+</body>
+</html>

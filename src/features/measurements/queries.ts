@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, max, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNotNull, max, sql } from 'drizzle-orm';
 
 import { db } from '@/db';
 import {
@@ -9,7 +9,7 @@ import {
 } from '@/db/schema';
 import { type IsoDate } from '@/lib/iso-date';
 
-import { type ComparableMeasurement } from './compare';
+import { type BodyMetrics, type ComparableMeasurement } from './compare';
 
 /**
  * Reading measurements.
@@ -255,4 +255,86 @@ export async function measurementsWithFiles(
     .where(inClinic(clinicId, clientId));
 
   return new Set(rows.map((row) => row.measurementId));
+}
+
+/**
+ * What this client's body currently is, as far as anything has measured it.
+ *
+ * ## The weight is the whole point
+ *
+ * There is no `client_nutrition_profiles.weight_kg` any more, and this is what
+ * replaced it. The current weight is the newest measurement — the whole reason
+ * the column went is that a typed copy of it drifted from the history behind
+ * it. Every screen that needs a weight asks here, so no two of them can hold
+ * different answers.
+ *
+ * `measuredOn` comes back with it because a weight is only meaningful with the
+ * day it was taken. The record dialog prints it under the figure, which is the
+ * whole of its explanation for a number the dietitian can no longer type.
+ *
+ * ## Why three reads and not one row
+ *
+ * ⚠ **Each figure comes from the most recent row that carried it, and they need
+ * not be the same row.** A dietitian who records a bare weigh-in between scans
+ * would otherwise blank the BMR and the lean mass — the newest row has neither
+ * — and the target would jump on a visit that measured nothing new. The weight
+ * is the exception and takes the newest row unconditionally: `weight_kg` is the
+ * one NOT NULL figure, so the newest row always has one, and a weigh-in *is* a
+ * new answer about the weight even when it says nothing else.
+ *
+ * `DISTINCT ON` would be one query, but Drizzle has no portable form of it and
+ * the alternative reads worse than the extra round trips cost at one clinic's
+ * scale.
+ *
+ * Nulls are the ordinary case, not an error. A client who has never been
+ * measured falls back to Mifflin-St Jeor and to the adjusted weight, which is
+ * what {@link suggestTargets} and {@link proteinDosingWeightKg} are built to do
+ * — and one who has never been weighed at all has no target, which the record
+ * says in words rather than guessing at.
+ */
+export async function latestBodyMetrics(
+  clinicId: string,
+  clientId: string,
+): Promise<BodyMetrics> {
+  const scope = and(
+    eq(clientMeasurements.clinicId, clinicId),
+    eq(clientMeasurements.clientId, clientId),
+  );
+  /* Newest first, and by the same pair `listMeasurements` orders on so a second
+     reading taken later the same day wins over the morning's. */
+  const newestFirst = [
+    desc(clientMeasurements.measuredOn),
+    desc(clientMeasurements.measuredAtMinute),
+  ];
+
+  const [[weightRow], [bmrRow], [leanRow]] = await Promise.all([
+    db
+      .select({
+        weightKg: clientMeasurements.weightKg,
+        measuredOn: clientMeasurements.measuredOn,
+      })
+      .from(clientMeasurements)
+      .where(scope)
+      .orderBy(...newestFirst)
+      .limit(1),
+    db
+      .select({ value: clientMeasurements.basalMetabolicRateKcal })
+      .from(clientMeasurements)
+      .where(and(scope, isNotNull(clientMeasurements.basalMetabolicRateKcal)))
+      .orderBy(...newestFirst)
+      .limit(1),
+    db
+      .select({ value: clientMeasurements.fatFreeMassKg })
+      .from(clientMeasurements)
+      .where(and(scope, isNotNull(clientMeasurements.fatFreeMassKg)))
+      .orderBy(...newestFirst)
+      .limit(1),
+  ]);
+
+  return {
+    weightKg: weightRow?.weightKg ?? null,
+    measuredOn: (weightRow?.measuredOn as IsoDate | undefined) ?? null,
+    basalMetabolicRateKcal: bmrRow?.value ?? null,
+    fatFreeMassKg: leanRow?.value ?? null,
+  };
 }

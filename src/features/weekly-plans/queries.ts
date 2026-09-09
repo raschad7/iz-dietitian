@@ -19,6 +19,7 @@ import {
 import { db } from '@/db';
 import {
   clientNutritionProfiles,
+  clinicNutritionRules,
   clients,
   appointments,
   catalogFoodAliases,
@@ -38,6 +39,8 @@ import {
 import { wallClockIn, type WallClock } from '@/features/booking/completed';
 import { calculateAge } from '@/features/clients/age';
 import { clientSeq } from '@/features/clients/seq';
+import type { BodyMetrics } from '@/features/measurements/compare';
+import { latestBodyMetrics } from '@/features/measurements/queries';
 import { DISPLAY_TIME_ZONE } from '@/lib/format';
 
 import { normalizeArabic } from './arabic-normalize';
@@ -82,6 +85,7 @@ import {
   type MealScheduleInput,
 } from './schema';
 import { narrowToPattern } from './clinical';
+import { readNutritionRules, type NutritionRules } from './nutrition-rules';
 import { slotBudgets, suggestProteinGrams, suggestTargets, type SlotBudget, type SuggestedTargets } from './targets';
 import { weekDates } from './week';
 
@@ -1340,9 +1344,16 @@ export type ClientContext = {
   activityLevel: string | null;
   allergies: string | null;
   medicalNotes: string | null;
-  /** Null until the dietitian saves the form once. */
+  /**
+   * Null until the dietitian saves the form once.
+   *
+   * ⚠ **The weight is deliberately not in here.** It used to be, because it was
+   * a column on `client_nutrition_profiles` — which also meant a client with no
+   * saved intake had no weight even after standing on the analyser. It is a
+   * fact about the body, read from `metrics` below, and it is available whether
+   * or not anybody has filled in a questionnaire.
+   */
   profile: {
-    weightKg: number | null;
     dailyKcalTarget: number | null;
     proteinTargetGrams: number | null;
     allergenTags: string[];
@@ -1355,6 +1366,22 @@ export type ClientContext = {
     mealSchedule: MealScheduleInput;
   } | null;
   targets: SuggestedTargets;
+  /**
+   * The clinic's dosing rules and what has been measured of this client's body
+   * — the inputs `targets` and `effectiveProteinGrams` above were computed from.
+   *
+   * Carried on the context rather than left for the panel to re-read, because
+   * the panel mounts the intake dialog and that dialog previews these same
+   * figures. A preview computed from different rules than the panel behind it
+   * is the "two screens, one number, two answers" failure this feature keeps
+   * having.
+   */
+  rules: NutritionRules;
+  /**
+   * What this body currently is — the current weight and the day it was taken,
+   * plus the two figures an analyser adds. See {@link latestBodyMetrics}.
+   */
+  metrics: BodyMetrics;
   /** The target actually in force: the override, else the suggestion. */
   effectiveKcal: number | null;
   effectiveProteinGrams: number | null;
@@ -1393,7 +1420,6 @@ export async function getClientContext(clinicId: string, clientId: string): Prom
       allergies: clients.allergies,
       medicalNotes: clients.medicalNotes,
       profileId: clientNutritionProfiles.id,
-      weightKg: clientNutritionProfiles.weightKg,
       dailyKcalTarget: clientNutritionProfiles.dailyKcalTarget,
       proteinTargetGrams: clientNutritionProfiles.proteinTargetGrams,
       allergenTags: clientNutritionProfiles.allergenTags,
@@ -1412,10 +1438,26 @@ export async function getClientContext(clinicId: string, clientId: string): Prom
   if (!row) return null;
 
   const age = row.dateOfBirth ? calculateAge(row.dateOfBirth) : null;
-  const weightKg = row.weightKg ?? null;
+
+  /*
+    The clinic's dosing rules and what has actually been measured, read together
+    because neither is useful without the other: a `device` BMR source needs the
+    printed figure, a `lean` protein basis needs the fat-free mass, and every
+    one of them needs the weight. All three fall back on their own when a client
+    has never been scanned.
+
+    ⚠ **The planner has to read the same two as the Nutrition tab.** The figure
+    printed on the record and the figure the week is generated against are the
+    same promise to the client, and the day they were computed from different
+    rules is the day neither can be trusted.
+  */
+  const [rules, metrics] = await Promise.all([
+    nutritionRules(clinicId),
+    latestBodyMetrics(clinicId, clientId),
+  ]);
 
   const targets = suggestTargets({
-    weightKg,
+    weightKg: metrics.weightKg,
     heightCm: row.heightCm,
     age,
     sex: row.sex,
@@ -1425,6 +1467,8 @@ export async function getClientContext(clinicId: string, clientId: string): Prom
        `LIFE_STAGE_KCAL`. The override, where the dietitian has set one, still
        wins below. */
     clinicalTags: row.clinicalTags ?? [],
+    measuredBmrKcal: metrics.basalMetabolicRateKcal,
+    bmrSource: rules.bmrSource,
   });
 
   const effectiveKcal = row.dailyKcalTarget ?? targets.suggestedKcal;
@@ -1442,7 +1486,6 @@ export async function getClientContext(clinicId: string, clientId: string): Prom
     medicalNotes: row.medicalNotes,
     profile: row.profileId
       ? {
-          weightKg,
           dailyKcalTarget: row.dailyKcalTarget,
           proteinTargetGrams: row.proteinTargetGrams,
           allergenTags: row.allergenTags ?? [],
@@ -1455,17 +1498,22 @@ export async function getClientContext(clinicId: string, clientId: string): Prom
         }
       : null,
     targets,
+    rules,
+    metrics,
     effectiveKcal,
     /* Conditions narrow the rate and the calorie target caps it — a renal client
        must not be handed 1.6 g/kg, and no client should be measured against a
        figure their day has no room for. See `suggestProteinGrams`. */
     effectiveProteinGrams:
       row.proteinTargetGrams ??
-      suggestProteinGrams(weightKg, {
+      suggestProteinGrams(metrics.weightKg, {
+        activityLevel: row.activityLevel,
         clinicalTags: row.clinicalTags ?? [],
         dailyKcalTarget: effectiveKcal,
         heightCm: row.heightCm,
         sex: row.sex,
+        rules,
+        fatFreeMassKg: metrics.fatFreeMassKg,
       }),
     budgets: effectiveKcal === null ? [] : slotBudgets(effectiveKcal, schedule),
   };
@@ -2252,3 +2300,30 @@ export async function getPlanNotificationTarget(
 
   return row ?? null;
 }
+
+// ---------------------------------------------------------------------------
+// The clinic's dosing rules, and the measured body they are read against
+// ---------------------------------------------------------------------------
+
+/**
+ * The clinic's protein and BMR rules, or the defaults when it has never set any.
+ *
+ * Never returns null and never creates a row: a clinic that has not opened the
+ * dialog is not a clinic with a broken record, it is one running on the
+ * defaults in `nutrition-rules.ts`. A row appears the first time Settings saves.
+ */
+export async function nutritionRules(clinicId: string): Promise<NutritionRules> {
+  const [row] = await db
+    .select({
+      proteinPerKg: clinicNutritionRules.proteinPerKg,
+      proteinBasis: clinicNutritionRules.proteinBasis,
+      proteinRates: clinicNutritionRules.proteinRates,
+      bmrSource: clinicNutritionRules.bmrSource,
+    })
+    .from(clinicNutritionRules)
+    .where(eq(clinicNutritionRules.clinicId, clinicId))
+    .limit(1);
+
+  return readNutritionRules(row ?? null);
+}
+

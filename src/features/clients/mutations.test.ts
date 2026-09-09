@@ -202,7 +202,7 @@ describe('saveIntake', () => {
   }
 
   /**
-   * The point of the whole change: height lands on `clients`, weight lands on
+   * The point of the whole change: the questionnaire lands on `clients` and on
    * `client_nutrition_profiles`, and one submission writes both. Splitting these
    * across two forms is what let a client have one without the other.
    */
@@ -213,21 +213,17 @@ describe('saveIntake', () => {
       await saveIntake(clinicId, {
         ...base,
         clientId: id,
-        heightCm: 165,
         goal: 'weight_loss',
-        weightKg: 74.5,
         allergenTags: ['lactose'],
         conditions: 'سكري من النوع الثاني',
       }),
     ).toBe(true);
 
     const client = await readClient(id);
-    expect(client?.heightCm).toBe(165);
     expect(client?.goal).toBe('weight_loss');
     expect(client?.conditions).toBe('سكري من النوع الثاني');
 
     const profile = await readProfile(id);
-    expect(profile?.weightKg).toBe(74.5);
     expect(profile?.allergenTags).toEqual(['lactose']);
   });
 
@@ -236,20 +232,39 @@ describe('saveIntake', () => {
 
     expect(await readProfile(id)).toBeUndefined();
 
-    await saveIntake(clinicId, { ...base, clientId: id, weightKg: 84 });
-    await saveIntake(clinicId, { ...base, clientId: id, weightKg: 82 });
+    await saveIntake(clinicId, { ...base, clientId: id, dailyKcalTarget: 1800 });
+    await saveIntake(clinicId, { ...base, clientId: id, dailyKcalTarget: 1700 });
 
-    expect(await readProfile(id)).toMatchObject({ weightKg: 82 });
+    expect(await readProfile(id)).toMatchObject({ dailyKcalTarget: 1700 });
   });
 
   test('clears a field that was emptied rather than skipping it', async () => {
     const { id } = await createClient(clinicId, { fullName: 'سارة', preferredLocale: 'ar' });
 
-    await saveIntake(clinicId, { ...base, clientId: id, heightCm: 165, weightKg: 74 });
+    await saveIntake(clinicId, { ...base, clientId: id, dailyKcalTarget: 1800, dislikes: 'الكبدة' });
     await saveIntake(clinicId, { ...base, clientId: id });
 
-    expect((await readClient(id))?.heightCm).toBeNull();
-    expect((await readProfile(id))?.weightKg).toBeNull();
+    expect((await readProfile(id))?.dailyKcalTarget).toBeNull();
+    expect((await readProfile(id))?.dislikes).toBeNull();
+  });
+
+  /**
+   * ⚠ The mirror of the `care_note` test below, and the reason it exists.
+   *
+   * `height_cm` was written by this function until the measurement card became
+   * the one place a body is recorded. It is left out of the UPDATE now, so a
+   * save of an unrelated field keeps whatever the analyser last wrote — and
+   * putting it back with a `?? null` default would clear the height of every
+   * client in the database on their next intake save.
+   */
+  test('leaves height_cm exactly as it found it', async () => {
+    const { id } = await createClient(clinicId, { fullName: 'سارة', preferredLocale: 'ar' });
+
+    await db.update(clients).set({ heightCm: 165 }).where(eq(clients.id, id));
+
+    await saveIntake(clinicId, { ...base, clientId: id, goal: 'weight_loss' });
+
+    expect((await readClient(id))?.heightCm).toBe(165);
   });
 
   /**
@@ -264,7 +279,7 @@ describe('saveIntake', () => {
   test('leaves care_note and share_weight_with_client exactly as it found them', async () => {
     const { id } = await createClient(clinicId, { fullName: 'سارة', preferredLocale: 'ar' });
 
-    await saveIntake(clinicId, { ...base, clientId: id, weightKg: 74 });
+    await saveIntake(clinicId, { ...base, clientId: id });
 
     await db.update(clients).set({ careNote: 'تعليمات سابقة' }).where(eq(clients.id, id));
     await db
@@ -272,7 +287,7 @@ describe('saveIntake', () => {
       .set({ shareWeightWithClient: true })
       .where(eq(clientNutritionProfiles.clientId, id));
 
-    await saveIntake(clinicId, { ...base, clientId: id, weightKg: 75, heightCm: 165 });
+    await saveIntake(clinicId, { ...base, clientId: id, dailyKcalTarget: 1750 });
 
     expect((await readClient(id))?.careNote).toBe('تعليمات سابقة');
     expect((await readProfile(id))?.shareWeightWithClient).toBe(true);
@@ -282,9 +297,9 @@ describe('saveIntake', () => {
     const otherClinicId = await createTestClinic('Other Clinic');
     const { id } = await createClient(otherClinicId, { fullName: 'سارة', preferredLocale: 'ar' });
 
-    expect(await saveIntake(clinicId, { ...base, clientId: id, heightCm: 165 })).toBe(false);
+    expect(await saveIntake(clinicId, { ...base, clientId: id, goal: 'weight_loss' })).toBe(false);
 
-    expect((await readClient(id))?.heightCm).toBeNull();
+    expect((await readClient(id))?.goal).toBeNull();
     expect(await readProfile(id)).toBeUndefined();
   });
 

@@ -17,9 +17,10 @@ import type { BillEntry } from '@/features/billing/bill';
 import { ClientExpensesPanel } from '@/features/billing/components/client-expenses-panel';
 import type { ClientFreeze } from '@/features/billing/queries';
 import type { ClinicServiceView } from '@/features/billing/services';
-import { type MeasurementSubject } from '@/features/measurements/compare';
+import { bodyMetricsFrom, type MeasurementSubject } from '@/features/measurements/compare';
 import { MeasurementsPanel } from '@/features/measurements/components/measurements-panel';
 import { type MeasurementRow } from '@/features/measurements/queries';
+import { type NutritionRules } from '@/features/weekly-plans/nutrition-rules';
 import { type PlanListEntry } from '@/features/weekly-plans/queries';
 import { type Locale } from '@/i18n/routing';
 import { type IsoDate } from '@/lib/iso-date';
@@ -103,6 +104,12 @@ export type ClientProfileProps = {
    */
   intake: ClientIntakeValues;
   /**
+   * The clinic's dosing rules — how much protein per kilo of which weight, and
+   * whose BMR the calorie suggestion is built on. See
+   * `clinic_nutrition_rules`; edited in Settings.
+   */
+  nutritionRules: NutritionRules;
+  /**
    * The Measurements view: this client's readings newest first, the two client
    * facts a comparison needs, the current weight the save form's checkbox would
    * replace, and which comparison `?range=` asked for.
@@ -110,7 +117,6 @@ export type ClientProfileProps = {
   measurements: {
     rows: MeasurementRow[];
     subject: MeasurementSubject;
-    currentWeightKg: number | null;
     range: 'last' | 'start';
     /** Which of the rows have a stored report — see the panel's own note. */
     reportIds: Set<string>;
@@ -162,6 +168,7 @@ export async function ClientProfile({
   visits,
   plans,
   intake,
+  nutritionRules,
   measurements,
   progress,
   progressWeeks,
@@ -260,10 +267,22 @@ export async function ClientProfile({
                 dashboard's attention list, which is where staleness is
                 handled rather than with a second rule here.
               */
-              measuredBmrKcal={
-                measurements.rows.find((row) => row.basalMetabolicRateKcal !== null)
-                  ?.basalMetabolicRateKcal ?? null
-              }
+              rules={nutritionRules}
+              /*
+                What this body currently is — the weight the whole record is
+                planned against, and the two figures an analyser adds: the BMR
+                the calorie target may be built on and the lean mass the protein
+                rate may be dosed against. Derived from the rows already loaded
+                rather than queried again, and every figure but the weight taken
+                from the most recent visit that carried it: see
+                `bodyMetricsFrom`, which says why that is not simply the newest
+                row, and why the weight is the exception.
+
+                A client nobody has measured in twelve weeks is already on the
+                dashboard's attention list, which is where staleness is handled
+                rather than with a second rule here.
+              */
+              metrics={bodyMetricsFrom(measurements.rows)}
             />
           ),
           measurements: (
@@ -273,7 +292,6 @@ export async function ClientProfile({
               today={today}
               measurements={measurements.rows}
               subject={measurements.subject}
-              currentWeightKg={measurements.currentWeightKg}
               range={measurements.range}
               reportIds={measurements.reportIds}
               sharing={measurements.sharing}

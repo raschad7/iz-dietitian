@@ -6,6 +6,9 @@ import { after } from 'next/server';
 
 import { type IsoDate } from '@/features/booking/date';
 import { localeSchema } from '@/features/clients/schema';
+/* The settings dialog's own state shape — see `SettingsEditDialog`. Imported
+   rather than restated so a new status there cannot silently diverge here. */
+import type { FieldEditState } from '@/features/clinic-profile/form-state';
 import { notifyPlanPublished } from '@/features/portal/push/notify';
 import { type Locale } from '@/i18n/routing';
 import { requireStaffClinic } from '@/lib/session';
@@ -53,6 +56,8 @@ import {
   swapMealSchema,
   type GenerationScope,
 } from './schema';
+import { nutritionRulesSchema, PROTEIN_RATE_CASES } from './nutrition-rules';
+import { saveNutritionRules } from './mutations';
 import { proteinIsRestricted, slotBudgets } from './targets';
 import type { GenerateState, PlanActionState, ReviewState } from './form-state';
 import { runReview, type ReviewOutcome } from './review';
@@ -192,7 +197,7 @@ function promptInput({
       age: context.age,
       sex: context.sex,
       heightCm: context.heightCm,
-      weightKg: profile.weightKg,
+      weightKg: context.metrics.weightKg,
       bmi: context.targets.bmi,
       bmiCategory: context.targets.bmiCategory,
       activityLevel: context.activityLevel,
@@ -290,7 +295,10 @@ export async function generateWeekAction(
       sides: toPromptSides(ready.catalog, ready.profile.dietPattern),
       kcalTarget: ready.kcalTarget,
       proteinTargetGrams: ready.proteinTargetGrams,
-      proteinIsRestriction: proteinIsRestricted(ready.profile.clinicalTags),
+      /* The clinic's own table decides which conditions are ceilings — see
+         `CONDITION_RATE_KINDS`. Passing the rules keeps this in step with the
+         figure the target was actually computed from. */
+      proteinIsRestriction: proteinIsRestricted(ready.profile.clinicalTags, ready.context.rules),
     });
   } catch (error) {
     // The audit row is written for failures too — those are the interesting ones.
@@ -795,4 +803,60 @@ export async function savePlanClientNoteAction(
   revalidatePath(`/${locale}/portal/plan`, 'page');
 
   return { status: 'done' };
+}
+
+/**
+ * Save the clinic's protein and BMR rules from the Settings dialog.
+ *
+ * Typed over `FieldEditState` because `SettingsEditDialog` owns the form, the
+ * pending state and the close — the same contract the clinic profile's field
+ * editors use. Three fields rather than one, which is what the dialog's
+ * `children` render prop is for: the rate and the basis are meaningless apart
+ * (see `PROTEIN_BASES`), so they are edited and validated together or not at
+ * all.
+ *
+ * Revalidates the record pages as well as Settings. The rate decides the
+ * protein figure on every Nutrition tab and in the plan context panel, so a
+ * clinic that changed it and then opened a client would otherwise read the old
+ * target off a cached page and have no reason to doubt it.
+ */
+export async function saveNutritionRulesAction(
+  _previous: FieldEditState,
+  formData: FormData,
+): Promise<FieldEditState> {
+  const locale = localeSchema.parse(formData.get('locale'));
+  const { clinicId } = await requireStaffClinic(locale);
+
+  /*
+    The per-case rates arrive as one field per case, named `rate.<case>` — a
+    flat form posting into a map. An empty box is not zero and not an error: it
+    means this clinic has no special rate for that kind of client, so the key is
+    left out and the ordinary rate applies. That is how an athlete rate gets
+    *removed*, which a required field could not express.
+  */
+  const proteinRates = Object.fromEntries(
+    PROTEIN_RATE_CASES.map((key) => [key, formData.get(`rate.${key}`)]).filter(
+      ([, value]) => typeof value === 'string' && value.trim() !== '',
+    ),
+  );
+
+  const parsed = nutritionRulesSchema.safeParse({
+    proteinPerKg: formData.get('proteinPerKg'),
+    proteinBasis: formData.get('proteinBasis'),
+    proteinRates,
+    bmrSource: formData.get('bmrSource'),
+  });
+  if (!parsed.success) return { status: 'invalid', validationKey: 'required' };
+
+  try {
+    await saveNutritionRules(clinicId, parsed.data);
+  } catch (error) {
+    console.error('[weekly-plans] nutrition rules save failed', error);
+    return { status: 'error', messageKey: 'unexpected' };
+  }
+
+  revalidatePath(`/${locale}/app/settings`);
+  revalidatePath(`/${locale}/app/clients`, 'layout');
+  revalidatePath(`/${locale}/app/plans`, 'layout');
+  return { status: 'success' };
 }

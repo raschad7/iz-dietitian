@@ -8,11 +8,13 @@ import { Dialog, DialogHeader } from '@/components/ui/dialog';
 import { useDialogPresence } from '@/components/ui/dialog-motion';
 import { loadIntakeAction } from '@/features/clients/actions';
 import { IntakeForm } from '@/features/clients/components/intake-form';
+import { type NutritionRules } from '@/features/weekly-plans/nutrition-rules';
 import { type IntakeSectionId } from '@/features/clients/intake-sections';
 import { type ClientIntakeValues } from '@/features/clients/types';
 import { useRouter } from '@/i18n/navigation';
 import { getLocaleDirection, type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
+import { type BodyMetrics } from '@/features/measurements/compare';
 
 /**
  * The intake dialog, and the control that opens it.
@@ -32,6 +34,8 @@ export function IntakeFormTrigger({
   locale,
   clientId,
   section,
+  rules,
+  metrics,
   children,
   className,
   'aria-label': ariaLabel,
@@ -40,6 +44,19 @@ export function IntakeFormTrigger({
   clientId: string;
   /** Which panel the dialog opens on. Defaults to the form's first section. */
   section?: IntakeSectionId;
+  /**
+   * The clinic's dosing rules and this client's body composition, forwarded
+   * untouched to the form's live readout.
+   *
+   * ⚠ **Optional, and the default is not "no rules" — it is the same default
+   * `ClientNutrition` uses.** The readout inside this dialog previews the card
+   * the dialog was opened from, so the two computing a protein target from
+   * different rates would put two different figures a finger apart on the same
+   * screen. A caller that has the rules should pass them; the fallback exists
+   * for the one that does not yet.
+   */
+  rules?: NutritionRules;
+  metrics?: BodyMetrics;
   children: React.ReactNode;
   className?: string;
   'aria-label'?: string;
@@ -150,6 +167,8 @@ export function IntakeFormTrigger({
                 intake={intake}
                 locale={locale}
                 section={section}
+                rules={rules}
+                metrics={metrics}
                 onCancel={close}
                 onSaved={closeSaved}
               />
