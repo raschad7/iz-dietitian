@@ -3293,7 +3293,10 @@
         "failed": "Failed",
         "spend": "Spend by clinic",
         "spendHint": "The eight clinics costing the most in this window.",
-        "spendEmpty": "No priced spend in this window."
+        "spendEmpty": "No priced spend in this window.",
+        "duration": "How long a call takes",
+        "durationHint": "The median call on each day that ran one. A line climbing to the right is the generator getting slower.",
+        "durationEmpty": "Not enough days with runs to show a trend yet."
       }
     },
     "clinics": {

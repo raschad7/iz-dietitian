@@ -155,8 +155,15 @@ export async function MetricCard({
         ) : null}
 
         {change.ratio === null
-          ? // A rise from zero. The count is the only honest statement.
-            `${change.change > 0 ? '+' : ''}${formatNumber(locale, change.change)}`
+          ? /*
+              A rise from zero. The count is the only honest statement — and it
+              is stated in the CARD'S OWN UNIT, which is what `format` carries.
+              Without it a cost card printed "$0.0286" above a chip reading
+              "+28,643", the same quantity in micro-dollars, and a token card
+              paired "382.9K" with "+382,893". Two renderings of one number,
+              side by side, read as two different measures.
+            */
+            `${change.change > 0 ? '+' : ''}${format ? format(change.change) : formatNumber(locale, change.change)}`
           : formatPercent(locale, change.ratio, {
               signDisplay: 'exceptZero',
               maximumFractionDigits: 0,
@@ -199,7 +206,10 @@ export async function MetricCard({
           <p className="text-caption text-muted-foreground">{t('noBaseline')}</p>
         ) : change.previous !== null ? (
           <p className="text-caption text-muted-foreground">
-            {t('previous', { value: formatNumber(locale, change.previous) })}
+            {/* The card's own unit here too, for the reason the chip gives. */}
+            {t('previous', {
+              value: format ? format(change.previous) : formatNumber(locale, change.previous),
+            })}
           </p>
         ) : null}
 
