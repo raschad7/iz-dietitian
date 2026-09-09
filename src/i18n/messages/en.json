@@ -2643,6 +2643,10 @@
       },
       "ingredientsHeading": "Ingredients",
       "removeIngredient": "Remove ingredient",
+      "ingredientRole": "Portion control for {name}",
+      "rolePrimary": "Adjustable in plan",
+      "roleScaled": "Scales with dish",
+      "roleFree": "Free serving",
       "ingredientCount": "{count, plural, =0 {No ingredients} one {# ingredient} other {# ingredients}}",
       "amount": "Amount",
       "unitAria": "Unit",
@@ -2668,7 +2672,7 @@
         "nameRequired": "Arabic name is required",
         "nameEnRequired": "English name is required",
         "mealTypeRequired": "Select at least one meal time",
-        "ingredientRequired": "Add at least one ingredient with a food and a positive amount"
+        "ingredientRequired": "Enter a positive amount for every ingredient"
       },
       "submit": "Create dish",
       "saveChanges": "Save changes",

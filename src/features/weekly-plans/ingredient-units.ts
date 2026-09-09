@@ -111,6 +111,19 @@ export function rowGrams(options: readonly UnitOption[], quantity: number, value
   return option ? quantity * option.gramsPerUnit : 0;
 }
 
+/** Express the same amount in another of this food's units. */
+export function convertUnitQuantity(
+  options: readonly UnitOption[],
+  quantity: number,
+  from: string,
+  to: string,
+): number | null {
+  const source = findUnitOption(options, from);
+  const target = findUnitOption(options, to);
+  if (!source || !target || !Number.isFinite(quantity) || quantity <= 0) return null;
+  return (quantity * source.gramsPerUnit) / target.gramsPerUnit;
+}
+
 /**
  * What one press of `−` or `+` changes an ingredient by, in its own unit.
  *

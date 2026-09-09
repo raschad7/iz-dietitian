@@ -31,11 +31,17 @@ const uuid = z.string().uuid();
 export const ingredientInputSchema = z
   .object({
     foodId: uuid,
+    isPrimary: z.boolean().optional(),
+    isFree: z.boolean().optional(),
     // `.finite()` as well as `.positive()`: `Number("Infinity")` coerces happily,
     // and an infinite gram count would poison every total on the plan.
     quantityGrams: z.coerce.number().positive().finite(),
     portionId: uuid.nullish(),
     portionQuantity: z.coerce.number().positive().finite().nullish(),
+  })
+  .refine((value) => !(value.isPrimary && value.isFree), {
+    message: 'An ingredient cannot be both adjustable and a free serving.',
+    path: ['isPrimary'],
   })
   .refine(
     (value) =>

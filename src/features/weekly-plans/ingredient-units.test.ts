@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { localizedPortionLabel } from './food-display';
 import {
   defaultUnitValue,
+  convertUnitQuantity,
   findUnitOption,
   GRAMS_UNIT,
   resolveSavedRow,
@@ -39,6 +40,25 @@ const OIL_TSP = portion('oil-tsp', 'ملعقة صغيرة', 'Teaspoon', 4.5, { s
 const RICE_CUP = portion('rice-cup', 'كوب', 'Cup', 158, { isDefault: true, sortOrder: 0 });
 const RICE_HALF = portion('rice-half', 'نصف كوب', 'Half cup', 79, { sortOrder: 1 });
 const RICE_QUARTER = portion('rice-quarter', 'ربع كوب', 'Quarter cup', 39.5, { sortOrder: 2 });
+
+describe('changing a recipe unit', () => {
+  test('keeps two eggs at 100 grams when changing to grams and back', () => {
+    const options = unitOptions({ portions: [EGG_PIECE] });
+    expect(convertUnitQuantity(options, 2, EGG_PIECE.id, 'g')).toBe(100);
+    expect(convertUnitQuantity(options, 100, 'g', EGG_PIECE.id)).toBe(2);
+  });
+
+  test('converts a cup into half cups without changing nutrition', () => {
+    const options = unitOptions({ portions: [RICE_CUP, RICE_HALF] });
+    expect(convertUnitQuantity(options, 1, RICE_CUP.id, RICE_HALF.id)).toBe(2);
+  });
+
+  test('keeps an unfinished amount unfinished and rejects a foreign unit', () => {
+    const options = unitOptions({ portions: [EGG_PIECE] });
+    expect(convertUnitQuantity(options, 0, 'g', EGG_PIECE.id)).toBeNull();
+    expect(convertUnitQuantity(options, 100, 'g', RICE_CUP.id)).toBeNull();
+  });
+});
 
 const egg = { portions: [EGG_PIECE] };
 const oil = { portions: [OIL_TSP, OIL_TBSP] };

@@ -19,6 +19,26 @@ const validDish = {
 };
 
 describe('clinicDishInputSchema', () => {
+  test('allows the dietitian to mark any number of adjustable ingredients, including none', () => {
+    for (const count of [0, 1, 4]) {
+      const parsed = clinicDishInputSchema.parse({
+        ...validDish,
+        ingredients: Array.from({ length: 4 }, (_, index) => ({
+          foodId: `11111111-1111-4111-8111-11111111111${index}`,
+          quantityGrams: 100, isPrimary: index < count,
+        })),
+      });
+      expect(parsed.ingredients.filter(line => line.isPrimary)).toHaveLength(count);
+    }
+  });
+
+  test('refuses an ingredient marked both adjustable and free', () => {
+    expect(clinicDishInputSchema.safeParse({
+      ...validDish,
+      ingredients: [{ ...validDish.ingredients[0], isPrimary: true, isFree: true }],
+    }).success).toBe(false);
+  });
+
   test('accepts a valid dish with one ingredient', () => {
     const parsed = clinicDishInputSchema.parse(validDish);
     expect(parsed.ingredients).toHaveLength(1);

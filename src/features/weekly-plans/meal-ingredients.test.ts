@@ -164,6 +164,13 @@ describe('primaryLines', () => {
 });
 
 describe('nextIngredientAmount', () => {
+  test('weighed oil uses the same five-gram increment as generation', () => {
+    const oil = line('oil', 10);
+    oil.food.category = 'fats_oils';
+    expect(step(oil, 1).quantityGrams).toBe(15);
+    expect(step(oil, -1).quantityGrams).toBe(5);
+  });
+
   test('a loaf steps by half, because half a loaf is a real instruction', () => {
     const bread = line('bread', 60, { portion: loaf, portionQuantity: 1 });
     const next = step(bread, 1);

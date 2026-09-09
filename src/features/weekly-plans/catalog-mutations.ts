@@ -36,6 +36,8 @@ function makeSlug(clinicId: string, nameEn: string): string {
 /** One recipe line after the server has decided what it actually means. */
 type ResolvedIngredient = {
   foodId: string;
+  isPrimary: boolean;
+  isFree: boolean;
   /** Derived here, never taken from the request when a portion was chosen. */
   quantityGrams: number;
   portionId: string | null;
@@ -46,6 +48,8 @@ function ingredientRows(dishId: string, ingredients: readonly ResolvedIngredient
   return ingredients.map((ingredient, index) => ({
     dishId,
     catalogFoodId: ingredient.foodId,
+    isPrimary: ingredient.isPrimary,
+    isFree: ingredient.isFree,
     // The authoritative amount, and the only one nutrition reads.
     quantityGrams: ingredient.quantityGrams,
     // How it was typed, preserved exactly as entered.
@@ -142,6 +146,8 @@ async function resolveIngredients(
     if (ingredient.portionId == null || ingredient.portionQuantity == null) {
       resolved.push({
         foodId: ingredient.foodId,
+        isPrimary: ingredient.isPrimary ?? false,
+        isFree: ingredient.isFree ?? false,
         quantityGrams: ingredient.quantityGrams,
         portionId: null,
         portionQuantity: null,
@@ -162,6 +168,8 @@ async function resolveIngredients(
 
     resolved.push({
       foodId: ingredient.foodId,
+      isPrimary: ingredient.isPrimary ?? false,
+      isFree: ingredient.isFree ?? false,
       quantityGrams: grams,
       portionId: ingredient.portionId,
       portionQuantity: ingredient.portionQuantity,

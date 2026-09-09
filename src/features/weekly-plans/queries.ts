@@ -696,6 +696,8 @@ export type DishEditData = {
     quantityGrams: number;
     /** The portion the amount was saved in, or null for grams. */
     portionId: string | null;
+    isPrimary: boolean;
+    isFree: boolean;
   }[];
 };
 
@@ -920,6 +922,8 @@ export async function getClinicDishForEdit(clinicId: string, dishId: string): Pr
     .select({
       quantityGrams: dishIngredients.quantityGrams,
       portionId: dishIngredients.portionId,
+      isPrimary: dishIngredients.isPrimary,
+      isFree: dishIngredients.isFree,
       food: foodColumns,
     })
     .from(dishIngredients)
@@ -935,6 +939,8 @@ export async function getClinicDishForEdit(clinicId: string, dishId: string): Pr
       food: { ...row.food, portions: byFood.get(row.food.id) ?? [] },
       quantityGrams: row.quantityGrams,
       portionId: row.portionId,
+      isPrimary: row.isPrimary,
+      isFree: row.isFree,
     })),
   };
 }

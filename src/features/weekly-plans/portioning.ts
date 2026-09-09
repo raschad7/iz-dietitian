@@ -46,7 +46,7 @@
  * the page — the two cannot drift apart, because they are the same numbers.
  */
 
-import { GRAMS_STEP } from './ingredient-units';
+import { GRAMS_STEP, unitStep } from './ingredient-units';
 import { countLimit } from './portion-limits';
 import type { FoodNutrients } from './nutrition';
 import { MAX_SERVINGS, MIN_SERVINGS, SERVING_STEP } from './similar';
@@ -103,12 +103,6 @@ export type PortionedAmount = {
  * An egg moves by a whole egg. Half a رغيف is a real instruction and half an egg
  * is not, which is the distinction the table encodes.
  */
-const UNIT_STEPS: Record<string, number> = {
-  Cup: 0.25,
-  Loaf: 0.5,
-  Container: 0.5,
-};
-
 /**
  * The most of one food a single meal may grow to.
  *
@@ -192,7 +186,7 @@ function clean(value: number): number {
 /** The step a line's amount moves on, in whatever unit it is written in. */
 export function lineStep(line: PortionableLine): number {
   if (!line.portion) return GRAM_STEPS[line.food.category ?? ''] ?? GRAMS_STEP;
-  return UNIT_STEPS[line.portion.labelEn] ?? 1;
+  return unitStep(line.portion);
 }
 
 /**

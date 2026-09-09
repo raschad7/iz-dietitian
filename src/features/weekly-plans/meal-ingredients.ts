@@ -35,8 +35,8 @@
  * recipe line.
  */
 
-import { GRAMS_STEP, stepQuantity, unitStep } from './ingredient-units';
-import { portionLine } from './portioning';
+import { stepQuantity } from './ingredient-units';
+import { lineStep, portionLine } from './portioning';
 import {
   dishGrams,
   dishTotals,
@@ -263,7 +263,7 @@ export function nextIngredientAmount(
     Number.isFinite(portionQuantity) &&
     portionQuantity > 0
   ) {
-    const count = stepQuantity(portionQuantity, unitStep(portion), direction);
+    const count = stepQuantity(portionQuantity, lineStep(line), direction);
 
     return {
       foodId: line.food.id,
@@ -275,7 +275,7 @@ export function nextIngredientAmount(
 
   return {
     foodId: line.food.id,
-    quantityGrams: stepQuantity(line.quantityGrams, GRAMS_STEP, direction),
+    quantityGrams: stepQuantity(line.quantityGrams, lineStep({ ...line, portion: null }), direction),
     portionId: null,
     portionQuantity: null,
   };

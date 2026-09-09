@@ -65,6 +65,17 @@ describe('a multiplier of one is the recipe', () => {
 });
 
 describe('counts move in whole steps of their own unit', () => {
+  test('a watermelon slice can scale down by half, as the manual control does', () => {
+    const watermelon: PortionableLine = {
+      quantityGrams: 286,
+      food: food('fruits', 30),
+      portion: { labelEn: 'Slice', grams: 286 },
+      portionQuantity: 1,
+      isPrimary: true,
+    };
+    expect(portionLine(watermelon, 0.5)).toEqual({ quantityGrams: 143, portionQuantity: 0.5 });
+  });
+
   test('dates go to a half, not to 1.88', () => {
     const dates: PortionableLine = {
       quantityGrams: 36,

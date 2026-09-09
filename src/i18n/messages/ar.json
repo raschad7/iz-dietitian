@@ -2643,6 +2643,10 @@
       },
       "ingredientsHeading": "المكوّنات",
       "removeIngredient": "إزالة المكوّن",
+      "ingredientRole": "التحكم بكمية {name}",
+      "rolePrimary": "قابل للتعديل في الخطة",
+      "roleScaled": "يتغيّر مع حصة الطبق",
+      "roleFree": "كمية حرة",
       "ingredientCount": "{count, plural, =0 {لا مكوّنات} one {مكوّن واحد} two {مكوّنان} few {# مكوّنات} many {# مكوّناً} other {# مكوّن}}",
       "amount": "الكمية",
       "unitAria": "الوحدة",
@@ -2668,7 +2672,7 @@
         "nameRequired": "الاسم بالعربية مطلوب",
         "nameEnRequired": "الاسم بالإنجليزية مطلوب",
         "mealTypeRequired": "اختر وقت وجبة واحداً على الأقل",
-        "ingredientRequired": "أضف مكوّناً واحداً على الأقل بطعام وكمية موجبة"
+        "ingredientRequired": "أدخل كمية أكبر من صفر لكل مكوّن"
       },
       "submit": "إنشاء الطبق",
       "saveChanges": "حفظ التعديلات",
