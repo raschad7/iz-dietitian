@@ -57,6 +57,8 @@ export default async function DevSettingsPage({ params, searchParams }: DevSetti
           proteinBasis: isMember(PROTEIN_BASES, query.basis)
             ? query.basis
             : DEFAULT_NUTRITION_RULES.proteinBasis,
+          /* The clinic's per-case rates — the athlete and the two renal rows. */
+          proteinRates: DEFAULT_NUTRITION_RULES.proteinRates,
           bmrSource: isMember(BMR_SOURCES, query.bmr)
             ? query.bmr
             : DEFAULT_NUTRITION_RULES.bmrSource,

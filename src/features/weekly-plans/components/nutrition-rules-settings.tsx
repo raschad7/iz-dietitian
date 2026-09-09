@@ -22,6 +22,7 @@ import {
   PROTEIN_PER_KG_MAX,
   PROTEIN_PER_KG_MIN,
   PROTEIN_PER_KG_STEP,
+  PROTEIN_RATE_CASES,
   type NutritionRules,
 } from '../nutrition-rules';
 
@@ -66,6 +67,16 @@ export function NutritionRulesSettings({
 
   const rate = format.number(rules.proteinPerKg, { maximumFractionDigits: 1 });
 
+  /*
+    How many kinds of client are dosed differently from the ordinary one — the
+    athlete row, the two renal rows, whichever of them this clinic has filled
+    in. Named as a count rather than listed: the row states the rule everybody
+    is on, and four rates spelled out in one sentence is a paragraph.
+  */
+  const caseCount = PROTEIN_RATE_CASES.filter(
+    (key) => rules.proteinRates[key] !== undefined,
+  ).length;
+
   return (
     <SettingsSection title={t('title')} description={t('description')} icon="leaf">
       {/*
@@ -84,7 +95,15 @@ export function NutritionRulesSettings({
       */}
       <SettingsRow
         label={t('protein.label')}
-        value={t('protein.value', { perKg: rate, basis: t(`basis.${rules.proteinBasis}.name`) })}
+        value={
+          caseCount === 0
+            ? t('protein.value', { perKg: rate, basis: t(`basis.${rules.proteinBasis}.name`) })
+            : t('protein.valueWithCases', {
+                perKg: rate,
+                basis: t(`basis.${rules.proteinBasis}.name`),
+                count: caseCount,
+              })
+        }
         action={
           <SettingsEditDialog
             locale={locale}
@@ -112,9 +131,15 @@ export function NutritionRulesSettings({
             title={t('bmr.dialogTitle')}
             triggerLabel={t('change')}
             triggerAriaLabel={t('bmr.changeLabel')}
+            /*
+              Every value this dialog does not edit, the per-case rates
+              included. The row is upserted whole, so a rate left out here is a
+              rate cleared by somebody changing the BMR source.
+            */
             hiddenFields={{
               proteinPerKg: String(rules.proteinPerKg),
               proteinBasis: rules.proteinBasis,
+              ...caseHiddenFields(rules),
             }}
             action={saveNutritionRulesAction}
             initialState={initialFieldEditState}
@@ -182,6 +207,68 @@ function ProteinFields({ rules }: { rules: NutritionRules }) {
         />
         <p className="text-caption text-muted-foreground">{t(`basis.${basis}.hint`)}</p>
       </Field>
+
+      {/*
+        The kinds of client dosed differently from the ordinary one.
+
+        In the same dialog as the rate above and not a row of their own, for the
+        reason the rate and the basis share one: these are four readings of the
+        same rule, and a clinic that changed the athlete rate on one screen
+        without seeing the ordinary one beside it would have no idea whether it
+        had just raised or lowered anything.
+
+        Every box may be left empty, and empty is a real answer — this clinic
+        does not treat that kind of client differently and the ordinary rate
+        applies. It is also the only way to *remove* a case, which is why the
+        fields are not `required`.
+      */}
+      <fieldset className="space-y-2">
+        <legend className="text-label font-semibold text-muted-foreground">
+          {t('protein.casesLabel')}
+        </legend>
+        <p className="text-caption text-muted-foreground">{t('protein.casesHint')}</p>
+
+        {/* Stacked, not three across. The labels name a condition rather than a
+            figure — "كلى — بدون غسيل" — and at a third of a dialog they wrapped
+            onto two lines while "رياضي" stayed on one, so the three boxes sat at
+            different heights. A column gives each label the width it needs. */}
+        <div className="grid gap-3 pt-1">
+          {PROTEIN_RATE_CASES.map((key) => (
+            <NumberField
+              key={key}
+              name={`rate.${key}`}
+              label={t(`cases.${key}`)}
+              unit={t('protein.rateUnit')}
+              min={PROTEIN_PER_KG_MIN}
+              max={PROTEIN_PER_KG_MAX}
+              step={PROTEIN_PER_KG_STEP}
+              defaultValue={rateValue(rules, key)}
+              placeholder={String(rules.proteinPerKg)}
+            />
+          ))}
+        </div>
+      </fieldset>
     </>
+  );
+}
+
+/** One case's rate as the input wants it — `''` for a case with no rate. */
+function rateValue(rules: NutritionRules, key: (typeof PROTEIN_RATE_CASES)[number]): string {
+  const rate = rules.proteinRates[key];
+  return rate === undefined ? '' : String(rate);
+}
+
+/**
+ * The per-case rates as hidden inputs, for the dialog that does not edit them.
+ *
+ * A cleared case is simply absent — the same shape the action reads, where a
+ * missing or blank field means "no special rate" rather than zero.
+ */
+function caseHiddenFields(rules: NutritionRules): Record<string, string> {
+  return Object.fromEntries(
+    PROTEIN_RATE_CASES.filter((key) => rules.proteinRates[key] !== undefined).map((key) => [
+      `rate.${key}`,
+      String(rules.proteinRates[key]),
+    ]),
   );
 }

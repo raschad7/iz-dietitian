@@ -15,15 +15,11 @@ import { NumberField } from '@/components/ui/number-field';
 import { SelectField } from '@/components/ui/select-field';
 import { Textarea } from '@/components/ui/textarea';
 import { TimeInput } from '@/components/ui/time-input';
+import { formatMediumDate } from '@/features/booking/format';
+import { EMPTY_BODY_METRICS, type BodyMetrics } from '@/features/measurements/compare';
 import { saveIntakeAction } from '@/features/clients/actions';
 import { calculateAge } from '@/features/clients/age';
-import {
-  HEIGHT_CM_RANGE,
-  isValidationKey,
-  MEASUREMENT_MAX_DIGITS,
-  VALIDATION_VALUES,
-  WEIGHT_KG_RANGE,
-} from '@/features/clients/form-rules';
+import { isValidationKey, VALIDATION_VALUES } from '@/features/clients/form-rules';
 import { initialIntakeFormState, type IntakeFormState } from '@/features/clients/form-state';
 import { balanceToHundred } from '@/features/clients/meal-split';
 import { mergedNotes } from '@/features/clients/notes';
@@ -125,7 +121,7 @@ export function IntakeForm({
   locale,
   section: initialSection = 'measurements',
   rules = DEFAULT_NUTRITION_RULES,
-  composition = { basalMetabolicRateKcal: null, fatFreeMassKg: null },
+  metrics = EMPTY_BODY_METRICS,
   onCancel,
   onSaved,
 }: {
@@ -134,7 +130,7 @@ export function IntakeForm({
   /** The clinic's dosing rules, so this readout previews the card behind it. */
   rules?: NutritionRules;
   /** The analyser's last word on this body — see `ClientNutrition`. */
-  composition?: { basalMetabolicRateKcal: number | null; fatFreeMassKg: number | null };
+  metrics?: BodyMetrics;
   /**
    * Which panel the dialog opens on. The gap chips on the Nutrition tab pass
    * the section that holds the field they name, so a chip reading "الحساسية"
@@ -157,16 +153,18 @@ export function IntakeForm({
   const [section, setSection] = useState<SectionId>(initialSection);
 
   /*
-   * The four values the readout is computed from are controlled; everything else
-   * on this form is not.
+   * The two values the readout is computed from that this form still writes.
    *
    * That asymmetry is the point of the screen. The daily target is what gates
-   * generation, and until now it could only be discovered by saving, leaving,
-   * and reading a panel in another feature — which is how a client ended up with
-   * a height on one form and a weight on another and nobody noticing.
+   * generation, and it could once only be discovered by saving, leaving, and
+   * reading a panel in another feature.
+   *
+   * The height and the weight were controlled here too, until they stopped
+   * being fields at all — the body is recorded on the measurement card now, and
+   * the readout reads it from the record rather than from a box. Which is what
+   * finally removed the failure this dialog was built to catch: a height on one
+   * form, a weight on another, and nobody noticing.
    */
-  const [heightCm, setHeightCm] = useState(intake.heightCm?.toString() ?? '');
-  const [weightKg, setWeightKg] = useState(intake.weightKg?.toString() ?? '');
   const [goal, setGoal] = useState(intake.goal ?? '');
   const [activityLevel, setActivityLevel] = useState(intake.activityLevel ?? '');
 
@@ -201,8 +199,10 @@ export function IntakeForm({
    */
   const age = intake.dateOfBirth ? calculateAge(intake.dateOfBirth) : null;
   const targets = suggestTargets({
-    weightKg: toNumberOrNull(weightKg),
-    heightCm: toNumberOrNull(heightCm),
+    /* From the record, like the tags below: the body is not edited on this form
+       and cannot move under the pointer while somebody is typing. */
+    weightKg: metrics.weightKg,
+    heightCm: intake.heightCm,
     age,
     sex: intake.sex,
     activityLevel: activityLevel || null,
@@ -217,18 +217,23 @@ export function IntakeForm({
     /* Both from the record for the same reason as the tags: a target must not
        move under the pointer. The BMR the clinic has chosen to build on is a
        stored fact about a past visit, not something this dialog edits. */
-    measuredBmrKcal: composition.basalMetabolicRateKcal,
+    measuredBmrKcal: metrics.basalMetabolicRateKcal,
     bmrSource: rules.bmrSource,
   });
 
-  /* Height and sex from the record, like the calorie preview above — the same
-     reason: an adjusted weight must not move while somebody is typing. */
-  const suggestedProtein = suggestProteinGrams(toNumberOrNull(weightKg), {
+  /* From the record, like the calorie preview above. */
+  const suggestedProtein = suggestProteinGrams(metrics.weightKg, {
+    /* The live value, like the calorie preview above and unlike the tags: this
+       select is on this panel, so moving it to نشط has to move the protein
+       figure under it or the readout is describing a record that no longer
+       matches the form. The tags are not editable here and stay from the
+       record. */
+    activityLevel: activityLevel || null,
+    clinicalTags: intake.clinicalTags,
     heightCm: intake.heightCm,
     sex: intake.sex,
-    perKg: rules.proteinPerKg,
-    basis: rules.proteinBasis,
-    fatFreeMassKg: composition.fatFreeMassKg,
+    rules,
+    fatFreeMassKg: metrics.fatFreeMassKg,
   });
   const panelId = useId();
 
@@ -242,7 +247,7 @@ export function IntakeForm({
    * depends on, so it tracks the controlled values.
    */
   const filled: Record<SectionId, boolean> = {
-    measurements: Boolean(heightCm || weightKg || goal || activityLevel),
+    measurements: Boolean(goal || activityLevel),
     background: Boolean(
       intake.maritalStatus ||
         intake.childrenCount !== null ||
@@ -377,49 +382,21 @@ export function IntakeForm({
             className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6"
           >
             <Panel id="measurements" current={section}>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {/*
-                  All four fields in this panel are required — they are what the
-                  calorie formula runs on. See the ⚠ on `intakeSchema`: they are
-                  the exception on a form that is otherwise optional to the last
-                  field, and the rest of it must not follow.
-                */}
-                <NumberField
-                  name="heightCm"
-                  label={t('fields.heightCm')}
-                  icon="heightOutline"
-                  placeholder={t('intake.placeholders.heightCm')}
-                  min={HEIGHT_CM_RANGE.min}
-                  max={HEIGHT_CM_RANGE.max}
-                  step={1}
-                  /*
-                    Three digits, which is exactly what the bound above allows:
-                    300 cm and 200 kg are both three-digit numbers, so a fourth
-                    digit can only ever be a value the schema would reject. Better
-                    refused at the keystroke than accepted and complained about.
-                  */
-                  maxDigits={MEASUREMENT_MAX_DIGITS}
-                  required
-                  value={heightCm}
-                  onChange={setHeightCm}
-                  error={errorFor('heightCm')}
-                />
-                <NumberField
-                  name="weightKg"
-                  label={t('fields.weightKg')}
-                  icon="weightOutline"
-                  placeholder={t('intake.placeholders.weightKg')}
-                  min={WEIGHT_KG_RANGE.min}
-                  max={WEIGHT_KG_RANGE.max}
-                  step={0.5}
-                  // Digits, not characters — `70.5` still fits. See `maxDigits`.
-                  maxDigits={MEASUREMENT_MAX_DIGITS}
-                  required
-                  value={weightKg}
-                  onChange={setWeightKg}
-                  error={errorFor('weightKg')}
-                />
-              </div>
+              {/*
+                The body, read and not written.
+
+                Both figures were boxes here until the measurement card became
+                the single place a body is recorded — see the ⚠ on
+                `intakeSchema`. They are still *shown*, because the readout
+                below is computed from them and a target whose inputs are on
+                another screen is a target nobody can check.
+              */}
+              <BodySummary
+                weightKg={metrics.weightKg}
+                measuredOn={metrics.measuredOn}
+                heightCm={intake.heightCm}
+                locale={locale}
+              />
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field>
@@ -866,13 +843,6 @@ export function IntakeForm({
   );
 }
 
-/** `''` from an untouched number input is "not provided", not zero. */
-function toNumberOrNull(value: string): number | null {
-  if (value.trim() === '') return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
 /**
  * The five sections, always all visible, with a dot for the ones that hold
  * something.
@@ -1246,6 +1216,100 @@ function TargetReadout({
         note={t('intake.suggested')}
       />
     </div>
+  );
+}
+
+/**
+ * The body this record is planned against, shown rather than asked for.
+ *
+ * ## Why there is no box here
+ *
+ * The height and the weight were two required fields on this panel, and they
+ * were also two fields on the measurement card. One fact, two writers, and they
+ * drifted exactly as a duplicated fact does — a record reading 70 kg because
+ * somebody typed it during an intake months earlier, while the analyser's own
+ * history said 72.2 and every figure underneath was built on the stale one.
+ *
+ * So the dialog reads and does not write. `تسجيل قياس` is the single door: a
+ * Tanita report or an ordinary clinic scale typed in by hand, both landing in
+ * `client_measurements`, both dated, both in the history. The rule the screen
+ * has to convey is one sentence — a weight is something you record, not
+ * something you set — and the date under the figure is the whole of it.
+ *
+ * ## The empty state is the ordinary one
+ *
+ * A client can exist before anybody has weighed them, and a walk-in is often
+ * measured before the questionnaire is ever opened. That is not an error and is
+ * not drawn as one: the block says nothing has been recorded and offers the same
+ * control the filled state does. `--amber-*` and never `--red`, per the design
+ * system — missing data is not a fault.
+ *
+ * ## Why there is no button here either
+ *
+ * The obvious addition is a control that jumps to the measurements tab. It is
+ * not here because that tab is React state inside `ClientProfileTabs`, switched
+ * by `goTo` and only *reflected* into `?tab=` with `replaceState` — so a link or
+ * a `router.push` would change the address bar and leave the reader on the same
+ * panel. Reaching `goTo` from inside a portalled dialog means a context or a
+ * custom event, which is a mechanism this repository does not have and should
+ * not grow for one shortcut. Escape, then the tab, is two keystrokes.
+ */
+function BodySummary({
+  weightKg,
+  measuredOn,
+  heightCm,
+  locale,
+}: {
+  weightKg: number | null;
+  measuredOn: string | null;
+  heightCm: number | null;
+  locale: Locale;
+}) {
+  const t = useTranslations('clients');
+
+  const measuredLabel =
+    measuredOn === null
+      ? null
+      : t('intake.body.measuredOn', { date: formatMediumDate(locale, measuredOn) });
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border px-4 py-3">
+      <div className="flex min-w-0 flex-wrap items-baseline gap-x-6 gap-y-1">
+        {/* Labels without the unit — `fields.weightKg` carries "(كغ)" and the
+            value beside it already says "كغ", which read as the unit twice. */}
+        <BodyFigure
+          label={t('intake.body.weight')}
+          value={weightKg === null ? null : t('intake.kgValue', { value: weightKg })}
+        />
+        <BodyFigure
+          label={t('intake.body.height')}
+          value={heightCm === null ? null : t('intake.cmValue', { value: heightCm })}
+        />
+      </div>
+
+      <span className="text-caption text-muted-foreground">
+        {measuredLabel ?? t('intake.body.none')}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * One of the two figures above — the same anatomy as {@link Stat}, laid on its
+ * side because this block is a line of facts rather than a row of tiles.
+ *
+ * `<bdi>` for the reason `Stat` gives at length: "72.2 كغ" and "157 سم" begin
+ * with a Latin digit, and without the isolation the unit lands on the wrong end
+ * of the number in an Arabic line.
+ */
+function BodyFigure({ label, value }: { label: string; value: string | null }) {
+  return (
+    <span className="flex items-baseline gap-2">
+      <span className="text-caption text-muted-foreground">{label}</span>
+      <strong className="font-heading text-heading-sm font-semibold tabular-nums">
+        <bdi>{value ?? '—'}</bdi>
+      </strong>
+    </span>
   );
 }
 

@@ -28,7 +28,7 @@ export type IntakeSectionId = (typeof INTAKE_SECTIONS)[number];
 
 /** Which fields belong to which section, so a server error can open the right one. */
 export const FIELDS_BY_SECTION: Record<IntakeSectionId, readonly string[]> = {
-  measurements: ['heightCm', 'weightKg', 'goal', 'activityLevel'],
+  measurements: ['goal', 'activityLevel'],
   background: [
     'maritalStatus',
     'childrenCount',

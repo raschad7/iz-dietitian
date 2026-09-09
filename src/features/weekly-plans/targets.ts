@@ -15,9 +15,12 @@ import type { ClientActivityLevel, ClientGoal } from '@/features/clients/schema'
 
 import { lifeStageKcal } from './clinical';
 import {
+  CONDITION_RATE_KINDS,
   DEFAULT_NUTRITION_RULES,
   type BmrSource,
+  type NutritionRules,
   type ProteinBasis,
+  type ProteinRateCase,
 } from './nutrition-rules';
 import type { ClinicalCondition } from '@/features/clients/nutrition';
 
@@ -312,35 +315,6 @@ export function suggestTargets({
  * question is "is this a ceiling or a goal", and the answer must not change
  * because a clinic edited a rate.
  */
-const DEFAULT_PROTEIN_PER_KG = DEFAULT_NUTRITION_RULES.proteinPerKg;
-
-/**
- * Grams of protein per kilogram, where a condition changes the answer.
- *
- * ## Why a flat rate was unsafe
- *
- * 1.6 g/kg was applied to everybody, and for a client with chronic kidney disease
- * that is roughly double what they should eat: non-dialysis CKD guidance is
- * 0.6–0.8 g/kg. An audited plan for an 80 kg renal client was given a 128 g target,
- * delivered a clinically correct 57–85 g, and the board then reported every day of
- * the week as a protein failure. The plan was right and the target was wrong.
- *
- * Worse, the same prompt carried both "Daily protein target: 128 g" and "Chronic
- * kidney disease. Keep animal protein to one modest portion a day" — two
- * instructions pulling against each other in one payload.
- *
- * Dialysis is the mirror image and the reason the two cannot share a rule: dialysis
- * *raises* the requirement, because the treatment itself removes amino acids.
- *
- * The lowest applicable figure wins. A record carrying both `kidney_disease` and
- * `dialysis` is mid-correction, and erring downward is the safe direction for a
- * kidney.
- */
-const PROTEIN_PER_KG: Partial<Record<ClinicalCondition, number>> = {
-  kidney_disease: 0.7,
-  dialysis: 1.2,
-};
-
 /**
  * The most of a day's energy that may be asked of protein.
  *
@@ -355,6 +329,73 @@ const PROTEIN_PER_KG: Partial<Record<ClinicalCondition, number>> = {
 const MAX_PROTEIN_ENERGY_SHARE = 1 / 3;
 
 /**
+ * The rate this client is dosed at, and whether that rate is a ceiling.
+ *
+ * ## The order, and why each step is where it is
+ *
+ * 1. **The clinic's ordinary rate** — `proteinPerKg`, الشخص العادي. Everybody
+ *    starts here.
+ * 2. **The activity level's rate, if the clinic set one.** An athlete is dosed
+ *    as an athlete — and this reads how the client *trains*, not what they
+ *    want. A client lifting four times a week whose goal is `weight_loss` is
+ *    `active`, and she is precisely who the higher rate is for.
+ * 3. **A condition's `target` rate replaces both.** Dialysis raises a
+ *    requirement, and it raises it whatever the client's goal is — a dialysis
+ *    patient who also lifts weights is dosed for the dialysis. The highest wins
+ *    if a record somehow carries two.
+ * 4. **A condition's `ceiling` rate caps the result.** The lowest wins, and it
+ *    applies last so that nothing above it — not a goal, not another condition —
+ *    can raise a restricted client's allowance. A record carrying both
+ *    `kidney_disease` and `dialysis` is mid-correction, and erring downward is
+ *    the safe direction for a kidney.
+ *
+ * ⚠ **Steps 3 and 4 are not interchangeable and the old code could not tell
+ * them apart.** It took `min(clinicRate, lowestConditionRate)`, which happens to
+ * be right when every condition rate sits below the clinic's — true while the
+ * clinic's was 1.6 and renal was 0.7. The clinic's rate is 0.8 now, so a
+ * `min()` would have discarded a dialysis client's raised requirement in
+ * silence. The direction is read from `CONDITION_RATE_KINDS` rather than
+ * inferred from the numbers.
+ *
+ * ⚠ **Every rate multiplies the same weight** — whichever `proteinBasis` names.
+ * A previous version computed a condition's ceiling against the adjusted weight
+ * regardless, on the grounds that renal guidance is published that way. It is a
+ * defensible reading and it is gone, because two weights on one screen is the
+ * failure this whole area keeps having: the dietitian says "the weight times
+ * the rate", and a rule that silently used a different weight for one kind of
+ * client could not be checked by the person responsible for it.
+ */
+export function proteinPerKgFor(
+  activityLevel: string | null,
+  clinicalTags: readonly string[],
+  rules: NutritionRules,
+): { perKg: number; restricted: boolean } {
+  const rateFor = (key: string): number | undefined =>
+    rules.proteinRates[key as ProteinRateCase];
+
+  let perKg = rateFor(activityLevel ?? '') ?? rules.proteinPerKg;
+
+  for (const tag of clinicalTags) {
+    const rate = rateFor(tag);
+    if (rate === undefined) continue;
+    if (CONDITION_RATE_KINDS[tag as keyof typeof CONDITION_RATE_KINDS] !== 'target') continue;
+    perKg = Math.max(perKg, rate);
+  }
+
+  let restricted = false;
+
+  for (const tag of clinicalTags) {
+    const rate = rateFor(tag);
+    if (rate === undefined) continue;
+    if (CONDITION_RATE_KINDS[tag as keyof typeof CONDITION_RATE_KINDS] !== 'ceiling') continue;
+    perKg = Math.min(perKg, rate);
+    restricted = true;
+  }
+
+  return { perKg, restricted };
+}
+
+/**
  * Whether a condition makes the protein target a ceiling rather than a goal.
  *
  * The number reads the same either way, and the difference is the whole clinical
@@ -362,11 +403,13 @@ const MAX_PROTEIN_ENERGY_SHARE = 1 / 3;
  * else is the least. Anything judging a plan against the figure — the board, the
  * second pass — has to know which it is looking at.
  */
-export function proteinIsRestricted(clinicalTags: readonly string[]): boolean {
-  return clinicalTags.some(
-    (tag) => (PROTEIN_PER_KG[tag as ClinicalCondition] ?? DEFAULT_PROTEIN_PER_KG) < DEFAULT_PROTEIN_PER_KG,
-  );
+export function proteinIsRestricted(
+  clinicalTags: readonly string[],
+  rules: NutritionRules = DEFAULT_NUTRITION_RULES,
+): boolean {
+  return proteinPerKgFor(null, clinicalTags, rules).restricted;
 }
+
 const KCAL_PER_GRAM_PROTEIN = 4;
 
 /**
@@ -407,11 +450,12 @@ export function dosingWeightKg(
  * Three things narrow the answer, in this order, and each is a different kind
  * of limit:
  *
- * 1. **The clinic's rule** — `perKg` against the weight `basis` names. This is
- *    the target, and it is a setting because it is a clinical judgement the app
- *    has no standing to make.
- * 2. **The condition** — a renal client's published ceiling, computed on its own
- *    basis and taking the lower of the two. See the note inside.
+ * 1. **Which rate this client is dosed at** — {@link proteinPerKgFor}: the
+ *    clinic's ordinary rate, the activity level's rate where it set one, a
+ *    condition's raised requirement, and a condition's ceiling, in that order.
+ * 2. **Which kilos that rate multiplies** — {@link proteinDosingWeightKg},
+ *    from the clinic's `proteinBasis`. Every rate uses the same weight; see the
+ *    warning on `proteinPerKgFor` about why there is no longer an exception.
  * 3. **The day's energy** — `dailyKcalTarget` caps the result at a share of the
  *    day that food can actually deliver; omit it and no cap applies, which is
  *    what the intake form wants while the calorie target is still being decided.
@@ -422,27 +466,30 @@ export function dosingWeightKg(
 export function suggestProteinGrams(
   weightKg: number | null,
   {
+    activityLevel = null,
     clinicalTags = [],
     dailyKcalTarget = null,
     heightCm = null,
     sex = null,
-    perKg = DEFAULT_PROTEIN_PER_KG,
-    basis = DEFAULT_NUTRITION_RULES.proteinBasis,
+    rules = DEFAULT_NUTRITION_RULES,
     fatFreeMassKg = null,
   }: {
+    /**
+     * `clients.activity_level`. An athlete is dosed as one — see
+     * `PROTEIN_RATE_CASES` on why this and not the goal.
+     */
+    activityLevel?: string | null;
     clinicalTags?: readonly string[];
     dailyKcalTarget?: number | null;
     /** Both needed for the adjusted weight; without them the scale is used unchanged. */
     heightCm?: number | null;
     sex?: string | null;
-    /** The clinic's rate — `clinic_nutrition_rules.protein_per_kg`. */
-    perKg?: number;
-    /** Which weight that rate multiplies — `clinic_nutrition_rules.protein_basis`. */
-    basis?: ProteinBasis;
+    /** The clinic's dosing rules — `clinic_nutrition_rules`, read as one. */
+    rules?: NutritionRules;
     /**
      * Fat-free mass from the client's most recent body composition report.
      *
-     * Only read when `basis` is `lean`, and its absence is the ordinary case
+     * Only read when the basis is `lean`, and its absence is the ordinary case
      * rather than an error — see {@link proteinDosingWeightKg}.
      */
     fatFreeMassKg?: number | null;
@@ -450,31 +497,11 @@ export function suggestProteinGrams(
 ): number | null {
   if (weightKg === null || !(weightKg > 0)) return null;
 
+  const { perKg } = proteinPerKgFor(activityLevel, clinicalTags, rules);
+
   const adjusted = dosingWeightKg(weightKg, heightCm, sex);
-  const grams = proteinDosingWeightKg(weightKg, adjusted, basis, fatFreeMassKg) * perKg;
-
-  /*
-    ⚠ **A condition's rate is a separate answer, not a replacement rate**, and
-    computing it apart from the clinic's is what keeps the kidney safe.
-
-    Both used to be one number: the lowest applicable g/kg, times the adjusted
-    weight. That worked while the clinic's rate was also per adjusted kilo. It
-    stops working the moment a clinic doses on `lean` — 0.7 g/kg against 54.6 kg
-    of lean mass is 38 g for a renal client who should be eating 41 g, and the
-    error is silent and in the direction that matters.
-
-    So the published figure keeps the basis it is published in — adjusted body
-    weight, which is what renal guidance is written against — and the lower of
-    the two wins. A clinic can never raise a restricted client's target by
-    editing a setting, and lowering one still works.
-  */
-  const clinicalPerKg = clinicalTags.reduce(
-    (lowest, tag) => Math.min(lowest, PROTEIN_PER_KG[tag as ClinicalCondition] ?? lowest),
-    Number.POSITIVE_INFINITY,
-  );
-  const clinicalGrams = Number.isFinite(clinicalPerKg) ? adjusted * clinicalPerKg : grams;
-
-  const dosed = Math.min(grams, clinicalGrams);
+  const dosed =
+    proteinDosingWeightKg(weightKg, adjusted, rules.proteinBasis, fatFreeMassKg) * perKg;
 
   if (dailyKcalTarget === null || !(dailyKcalTarget > 0)) return Math.round(dosed);
 

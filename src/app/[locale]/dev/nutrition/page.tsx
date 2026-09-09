@@ -9,7 +9,10 @@ import {
   PROTEIN_BASES,
 } from '@/features/weekly-plans/nutrition-rules';
 
-import { FIXTURE_COMPOSITION, FIXTURE_INTAKE } from './fixture';
+import { EMPTY_BODY_METRICS } from '@/features/measurements/compare';
+
+import { FIXTURE_INTAKE, FIXTURE_METRICS, FIXTURE_UNSCANNED } from './fixture';
+import { IntakeHarness } from './intake-harness';
 
 type DevNutritionPageProps = {
   params: Promise<{ locale: string }>;
@@ -19,6 +22,7 @@ type DevNutritionPageProps = {
     bmr?: string;
     scan?: string;
     override?: string;
+    weighed?: string;
   }>;
 };
 
@@ -43,6 +47,9 @@ type DevNutritionPageProps = {
  *   adjusted weight, and neither may claim otherwise.
  * - `?override=1` — a dietitian-set protein target. The rule line is absent
  *   then, because there is no rule to explain.
+ * - `?weighed=no` — a client nobody has weighed at all. The state the intake
+ *   dialog cannot fix from inside itself now that the weight box is gone, so
+ *   the readout has to name it and the body block has to say where to go.
  *
  * Dev-only: 404 in production. It ships no data access and no session guard,
  * and must never acquire either — the same contract as every other `/dev`
@@ -58,31 +65,37 @@ export default async function DevNutritionPage({ params, searchParams }: DevNutr
 
   const rate = Number(query.rate);
 
+  const intake =
+    query.override === '1' ? { ...FIXTURE_INTAKE, proteinTargetGrams: 120 } : FIXTURE_INTAKE;
+
+  const rules = {
+    proteinPerKg:
+      Number.isFinite(rate) && rate > 0 ? rate : DEFAULT_NUTRITION_RULES.proteinPerKg,
+    proteinBasis: isMember(PROTEIN_BASES, query.basis)
+      ? query.basis
+      : DEFAULT_NUTRITION_RULES.proteinBasis,
+    /* The clinic's per-case rates — the athlete and the two renal rows. */
+    proteinRates: DEFAULT_NUTRITION_RULES.proteinRates,
+    bmrSource: isMember(BMR_SOURCES, query.bmr) ? query.bmr : DEFAULT_NUTRITION_RULES.bmrSource,
+  };
+
+  /*
+    `?weighed=no` is a client nobody has stood on a scale — the state the intake
+    dialog can no longer fix from inside itself, and therefore the one worth
+    being able to look at. The tab reports the missing weight in words and the
+    body block says where to record one.
+  */
+  const metrics =
+    query.weighed === 'no'
+      ? EMPTY_BODY_METRICS
+      : query.scan === 'none'
+        ? FIXTURE_UNSCANNED
+        : FIXTURE_METRICS;
+
   return (
     <main className="mx-auto w-full max-w-4xl p-4 sm:p-6">
-      <ClientNutrition
-        locale={locale}
-        intake={
-          query.override === '1'
-            ? { ...FIXTURE_INTAKE, proteinTargetGrams: 120 }
-            : FIXTURE_INTAKE
-        }
-        rules={{
-          proteinPerKg:
-            Number.isFinite(rate) && rate > 0 ? rate : DEFAULT_NUTRITION_RULES.proteinPerKg,
-          proteinBasis: isMember(PROTEIN_BASES, query.basis)
-            ? query.basis
-            : DEFAULT_NUTRITION_RULES.proteinBasis,
-          bmrSource: isMember(BMR_SOURCES, query.bmr)
-            ? query.bmr
-            : DEFAULT_NUTRITION_RULES.bmrSource,
-        }}
-        composition={
-          query.scan === 'none'
-            ? { basalMetabolicRateKcal: null, fatFreeMassKg: null }
-            : FIXTURE_COMPOSITION
-        }
-      />
+      <IntakeHarness intake={intake} locale={locale} rules={rules} metrics={metrics} />
+      <ClientNutrition locale={locale} intake={intake} rules={rules} metrics={metrics} />
     </main>
   );
 }

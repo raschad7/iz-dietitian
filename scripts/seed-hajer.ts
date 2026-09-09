@@ -22,7 +22,7 @@ import { db } from '@/db';
 import { practitioners, user } from '@/db/schema';
 import { createClient, saveIntake } from '@/features/clients/mutations';
 import { DEFAULT_MEAL_SCHEDULE } from '@/features/clients/nutrition';
-import { createMeasurement } from '@/features/measurements/mutations';
+import { applyHeightToClient, createMeasurement } from '@/features/measurements/mutations';
 import { runReviewedGeneration, type GenerationOutcome } from '@/features/weekly-plans/generate';
 import { createPlanFromGeneration } from '@/features/weekly-plans/mutations';
 import {
@@ -50,9 +50,12 @@ const HAJER = {
   sex: 'female' as const,
 };
 
+/*
+  No height and no weight: the body is on `MEASUREMENT` below, which is where a
+  body is recorded now. `createMeasurement` files the weight and
+  `applyHeightToClient` writes the height onto the card — see `latestBodyMetrics`.
+*/
 const INTAKE = {
-  heightCm: 162,
-  weightKg: 78.4,
   goal: 'weight_loss' as const,
   activityLevel: 'light' as const,
 
@@ -162,10 +165,11 @@ async function main(): Promise<void> {
     clientId = created.id;
     console.log(`client ${clientId} — ${HAJER.firstName} ${HAJER.lastName}`);
 
-    const saved = await saveIntake(clinicId, { clientId, ...INTAKE }, userId);
+    const saved = await saveIntake(clinicId, { clientId, ...INTAKE });
     if (!saved) throw new Error('The intake did not save.');
     console.log('intake saved');
 
+    await applyHeightToClient(clinicId, clientId, MEASUREMENT.heightCm);
     await createMeasurement(clinicId, clientId, { ...MEASUREMENT, recordedBy: userId });
     console.log('measurement saved');
   }
@@ -190,7 +194,7 @@ async function main(): Promise<void> {
         age: context.age,
         sex: context.sex,
         heightCm: context.heightCm,
-        weightKg: context.profile.weightKg,
+        weightKg: context.metrics.weightKg,
         bmi: context.targets.bmi,
         bmiCategory: context.targets.bmiCategory,
         activityLevel: context.activityLevel,

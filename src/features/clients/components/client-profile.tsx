@@ -17,7 +17,7 @@ import type { BillEntry } from '@/features/billing/bill';
 import { ClientExpensesPanel } from '@/features/billing/components/client-expenses-panel';
 import type { ClientFreeze } from '@/features/billing/queries';
 import type { ClinicServiceView } from '@/features/billing/services';
-import { latestBodyComposition, type MeasurementSubject } from '@/features/measurements/compare';
+import { bodyMetricsFrom, type MeasurementSubject } from '@/features/measurements/compare';
 import { MeasurementsPanel } from '@/features/measurements/components/measurements-panel';
 import { type MeasurementRow } from '@/features/measurements/queries';
 import { type NutritionRules } from '@/features/weekly-plans/nutrition-rules';
@@ -117,7 +117,6 @@ export type ClientProfileProps = {
   measurements: {
     rows: MeasurementRow[];
     subject: MeasurementSubject;
-    currentWeightKg: number | null;
     range: 'last' | 'start';
     /** Which of the rows have a stored report — see the panel's own note. */
     reportIds: Set<string>;
@@ -270,18 +269,20 @@ export async function ClientProfile({
               */
               rules={nutritionRules}
               /*
-                The analyser's last word on this body — the BMR the calorie
-                target may be built on, and the lean mass the protein rate may
-                be dosed against. Derived from the rows already loaded rather
-                than queried again, and each figure taken from the most recent
-                visit that carried it: see `latestBodyComposition`, which also
-                says why that is not simply the newest row.
+                What this body currently is — the weight the whole record is
+                planned against, and the two figures an analyser adds: the BMR
+                the calorie target may be built on and the lean mass the protein
+                rate may be dosed against. Derived from the rows already loaded
+                rather than queried again, and every figure but the weight taken
+                from the most recent visit that carried it: see
+                `bodyMetricsFrom`, which says why that is not simply the newest
+                row, and why the weight is the exception.
 
                 A client nobody has measured in twelve weeks is already on the
                 dashboard's attention list, which is where staleness is handled
                 rather than with a second rule here.
               */
-              composition={latestBodyComposition(measurements.rows)}
+              metrics={bodyMetricsFrom(measurements.rows)}
             />
           ),
           measurements: (
@@ -291,7 +292,6 @@ export async function ClientProfile({
               today={today}
               measurements={measurements.rows}
               subject={measurements.subject}
-              currentWeightKg={measurements.currentWeightKg}
               range={measurements.range}
               reportIds={measurements.reportIds}
               sharing={measurements.sharing}

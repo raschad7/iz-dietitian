@@ -42,6 +42,7 @@ import {
 import { type Locale } from '@/i18n/routing';
 import { isMember, membersOf } from '@/lib/enum';
 import { cn } from '@/lib/utils';
+import { EMPTY_BODY_METRICS, type BodyMetrics } from '@/features/measurements/compare';
 
 /**
  * A client's nutrition record, read-only, with the dialog that writes it.
@@ -118,7 +119,7 @@ export function ClientNutrition({
   intake,
   locale,
   rules = DEFAULT_NUTRITION_RULES,
-  composition = { basalMetabolicRateKcal: null, fatFreeMassKg: null },
+  metrics = EMPTY_BODY_METRICS,
 }: {
   intake: ClientIntakeValues;
   locale: Locale;
@@ -139,7 +140,7 @@ export function ClientNutrition({
    * state and not a gap: the formula and the adjusted weight are what the two
    * fall back to.
    */
-  composition?: { basalMetabolicRateKcal: number | null; fatFreeMassKg: number | null };
+  metrics?: BodyMetrics;
 }) {
   const t = useTranslations('clients');
   const format = useFormatter();
@@ -147,7 +148,7 @@ export function ClientNutrition({
   const age = intake.dateOfBirth ? calculateAge(intake.dateOfBirth) : null;
 
   const targets = suggestTargets({
-    weightKg: intake.weightKg,
+    weightKg: metrics.weightKg,
     heightCm: intake.heightCm,
     age,
     sex: intake.sex,
@@ -157,7 +158,7 @@ export function ClientNutrition({
        The suggestion the card prints has to be the one generation will use, or
        the two screens disagree about what this client needs. */
     clinicalTags: intake.clinicalTags,
-    measuredBmrKcal: composition.basalMetabolicRateKcal,
+    measuredBmrKcal: metrics.basalMetabolicRateKcal,
     bmrSource: rules.bmrSource,
   });
 
@@ -166,14 +167,17 @@ export function ClientNutrition({
      disagree about what the client needs — see `suggestProteinGrams`. */
   const effectiveProtein =
     intake.proteinTargetGrams ??
-    suggestProteinGrams(intake.weightKg, {
+    suggestProteinGrams(metrics.weightKg, {
+      /* An athlete is dosed as one, and a renal client is capped — see
+         `proteinPerKgFor`. The athlete rate reads how the client trains, not
+         what they want, so it is the activity level and not the goal. */
+      activityLevel: intake.activityLevel,
       clinicalTags: intake.clinicalTags,
       dailyKcalTarget: effectiveKcal,
       heightCm: intake.heightCm,
       sex: intake.sex,
-      perKg: rules.proteinPerKg,
-      basis: rules.proteinBasis,
-      fatFreeMassKg: composition.fatFreeMassKg,
+      rules,
+      fatFreeMassKg: metrics.fatFreeMassKg,
     });
   const allergenTags = membersOf(ALLERGENS, intake.allergenTags);
 
@@ -461,7 +465,7 @@ export function ClientNutrition({
               /* So the dialog's live readout previews *this* card rather than
                  recomputing the same client on the built-in defaults. */
               rules={rules}
-              composition={composition}
+              metrics={metrics}
               className={buttonVariants({ variant: 'default', size: 'sm' })}
             >
               <Icon name="edit" />
@@ -606,7 +610,7 @@ export function ClientNutrition({
             />
             <StatTile
               label={t('fields.weightKg')}
-              value={intake.weightKg}
+              value={metrics.weightKg}
               unit={t('units.kg')}
             />
             <StatTile
@@ -659,7 +663,7 @@ export function ClientNutrition({
                 perKg: format.number(rules.proteinPerKg, { maximumFractionDigits: 1 }),
                 basis: t(
                   `proteinBasis.${
-                    rules.proteinBasis === 'lean' && composition.fatFreeMassKg === null
+                    rules.proteinBasis === 'lean' && metrics.fatFreeMassKg === null
                       ? 'adjusted'
                       : rules.proteinBasis
                   }`,
@@ -771,7 +775,7 @@ export function ClientNutrition({
             <Notes items={backgroundNotes} columns={3} />
           </div>
         ) : (
-          <SectionEmpty locale={locale} clientId={intake.clientId} section="background" label={t('intake.fillSection')} rules={rules} composition={composition} />
+          <SectionEmpty locale={locale} clientId={intake.clientId} section="background" label={t('intake.fillSection')} rules={rules} metrics={metrics} />
         )}
       </Disclosure>
 
@@ -801,7 +805,7 @@ export function ClientNutrition({
             ) : null}
           </div>
         ) : (
-          <SectionEmpty locale={locale} clientId={intake.clientId} section="habits" label={t('intake.fillSection')} rules={rules} composition={composition} />
+          <SectionEmpty locale={locale} clientId={intake.clientId} section="habits" label={t('intake.fillSection')} rules={rules} metrics={metrics} />
         )}
       </Disclosure>
 
@@ -836,7 +840,7 @@ export function ClientNutrition({
           */
           <Notes items={allergyItems} />
         ) : (
-          <SectionEmpty locale={locale} clientId={intake.clientId} section="allergies" label={t('intake.fillSection')} rules={rules} composition={composition} />
+          <SectionEmpty locale={locale} clientId={intake.clientId} section="allergies" label={t('intake.fillSection')} rules={rules} metrics={metrics} />
         )}
       </Disclosure>
 
@@ -848,7 +852,7 @@ export function ClientNutrition({
         {hasScheduleRecord ? (
           <MealSchedule slots={intake.mealSchedule} />
         ) : (
-          <SectionEmpty locale={locale} clientId={intake.clientId} section="schedule" label={t('intake.fillSection')} rules={rules} composition={composition} />
+          <SectionEmpty locale={locale} clientId={intake.clientId} section="schedule" label={t('intake.fillSection')} rules={rules} metrics={metrics} />
         )}
       </Disclosure>
 
@@ -860,7 +864,7 @@ export function ClientNutrition({
         {planningCount > 0 ? (
           <Notes items={planningItems} />
         ) : (
-          <SectionEmpty locale={locale} clientId={intake.clientId} section="planning" label={t('intake.fillSection')} rules={rules} composition={composition} />
+          <SectionEmpty locale={locale} clientId={intake.clientId} section="planning" label={t('intake.fillSection')} rules={rules} metrics={metrics} />
         )}
       </Disclosure>
 
@@ -885,7 +889,7 @@ export function ClientNutrition({
             <Notes items={privateItems} />
           </Card>
         ) : (
-          <SectionEmpty locale={locale} clientId={intake.clientId} section="clinical" label={t('intake.fillSection')} rules={rules} composition={composition} />
+          <SectionEmpty locale={locale} clientId={intake.clientId} section="clinical" label={t('intake.fillSection')} rules={rules} metrics={metrics} />
         )}
       </Disclosure>
     </div>
@@ -1294,7 +1298,7 @@ function SectionEmpty({
   section,
   label,
   rules,
-  composition,
+  metrics,
 }: {
   locale: Locale;
   clientId: string;
@@ -1304,7 +1308,7 @@ function SectionEmpty({
      readout as the one the header's button opens, and two doors into one form
      must not compute a client's protein target differently. */
   rules: NutritionRules;
-  composition: { basalMetabolicRateKcal: number | null; fatFreeMassKg: number | null };
+  metrics: BodyMetrics;
 }) {
   return (
     <IntakeFormTrigger
@@ -1312,7 +1316,7 @@ function SectionEmpty({
       clientId={clientId}
       section={section}
       rules={rules}
-      composition={composition}
+      metrics={metrics}
       className="inline-flex h-10 items-center gap-2 rounded-full border border-dashed border-input px-4 text-label text-muted-foreground transition-colors hover:border-solid hover:border-primary hover:bg-secondary hover:text-secondary-foreground"
     >
       <Icon name="add" className="size-4" />

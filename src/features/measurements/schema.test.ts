@@ -38,8 +38,6 @@ function formPayload(overrides: Record<string, string> = {}) {
     waistCm: '',
     hipCm: '',
     note: '',
-    applyToCurrentWeight: 'on',
-    applyHeightToClient: null,
     deviceLabel: null,
     deviceSubjectId: null,
     parserVersion: null,
@@ -57,7 +55,6 @@ describe('saveMeasurementSchema against what the form posts', () => {
 
     expect(parsed.data.weightKg).toBe(72.2);
     expect(parsed.data.measuredAtMinute).toBe(0);
-    expect(parsed.data.applyToCurrentWeight).toBe(true);
 
     // The rule the whole feature runs on: an empty box is "not measured", never
     // zero. `z.coerce.number` reads '' as 0, which is why the preprocessor is
@@ -102,15 +99,28 @@ describe('saveMeasurementSchema against what the form posts', () => {
         visceralFatRating: '4.5',
         basalMetabolicRateKcal: '1446',
         metabolicAge: '33',
-        applyHeightToClient: 'on',
         deviceLabel: 'Tanita MC-780',
       }),
     );
 
     expect(parsed.success).toBe(true);
     if (!parsed.success) return;
-    expect(parsed.data.applyHeightToClient).toBe(true);
     expect(parsed.data.heightCm).toBe(157);
+  });
+
+  /**
+   * ⚠ The two decision checkboxes are gone, and this is what keeps them gone.
+   *
+   * `applyToCurrentWeight` asked whether this reading should become the
+   * client's current weight; `applyHeightToClient` asked whether to correct
+   * `clients.height_cm` from it. Both existed because the intake dialog carried
+   * boxes of its own — one fact, two writers — and neither has anything to ask
+   * about now: the newest measurement *is* the weight, and this form is the
+   * only place a height is typed.
+   */
+  it('carries no decision checkboxes', () => {
+    expect('applyToCurrentWeight' in saveMeasurementSchema.shape).toBe(false);
+    expect('applyHeightToClient' in saveMeasurementSchema.shape).toBe(false);
   });
 
   /*

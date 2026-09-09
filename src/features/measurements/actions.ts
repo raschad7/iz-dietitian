@@ -12,7 +12,6 @@ import { normalizeForSearch } from '@/features/clients/search';
 import { type MeasurementFormEcho, type MeasurementFormState } from './form-state';
 import {
   applyHeightToClient,
-  applyWeightToProfile,
   createMeasurement,
   createMeasurementWithFile,
   deleteMeasurement,
@@ -80,32 +79,6 @@ function echoForm(formData: FormData, shape: Record<string, unknown>): Measureme
   }
 
   return echo;
-}
-
-/**
- * Applies the weight to the nutrition profile, when the box was ticked, and
- * reports which of the three things happened.
- *
- * Shared by create and update so the two cannot drift on the one decision in
- * this feature that changes a figure outside it.
- */
-async function applyCurrentWeight(
-  clinicId: string,
-  clientId: string,
-  weightKg: number,
-  requested: boolean,
-): Promise<'untouched' | 'applied'> {
-  if (!requested) return 'untouched';
-
-  /*
-    Two outcomes now, not three. `noProfile` was the case where the box was
-    ticked and nothing happened, because the client had no nutrition profile
-    yet — `applyWeightToProfile` creates one, so the box always does what it
-    says. Its `false` means the client is not in this clinic, which cannot be
-    true here: the measurement was written for them a line ago.
-  */
-  await applyWeightToProfile(clinicId, clientId, weightKg);
-  return 'applied';
 }
 
 /**
@@ -202,8 +175,6 @@ export async function saveMeasurementAction(
 
     const {
       clientId,
-      applyToCurrentWeight,
-      applyHeightToClient: correctHeight,
       deviceLabel,
       deviceSubjectId,
       parserVersion,
@@ -258,32 +229,31 @@ export async function saveMeasurementAction(
       : await createMeasurement(clinicId, clientId, record);
 
     /*
-      Only when the box was ticked, and only for the weight — see
-      `applyWeightToProfile`. A client with no nutrition profile yet has nothing
-      to update, which is reported rather than treated as a failure: the
-      measurement is recorded either way, and a dietitian who ticked a box has
-      to be told when the box did nothing.
-    */
-    const currentWeight = await applyCurrentWeight(
-      clinicId,
-      clientId,
-      input.weightKg,
-      applyToCurrentWeight,
-    );
+      The one write that reaches outside this feature, and it is no longer a
+      choice.
 
-    /*
-      The other box that reaches outside this feature, and the smaller one: the
-      height mismatch the upload found, settled from the screen that found it.
-      Only when it was ticked, and only when this form actually carries a
-      height to write.
+      `clients.height_cm` is the authority on height — `measurementHeightCm`
+      says so, and both tabs' BMI reads it — and this form is now the only place
+      a height is typed. It used to be a ticked box offered only when an upload
+      found the report and the record disagreeing, which was right while the
+      intake dialog also carried a height box: two writers, so the second one
+      had to ask. There is one writer now, and a box that must be ticked before
+      a height is saved would mean a client scanned on their first visit ending
+      up with no height at all, and a blank BMI on both tabs to go with it.
+
+      The disagreement is still *reported* — `heightMismatch` puts both numbers
+      on the confirm screen — and the field above is editable, so a dietitian
+      who trusts the record over the machine corrects it there and saves what
+      she corrected. Which is the honest shape of the decision: it is about
+      which number is right, not about whether to write one.
     */
-    if (correctHeight && input.heightCm != null) {
+    if (input.heightCm != null) {
       await applyHeightToClient(clinicId, clientId, input.heightCm);
     }
 
     revalidateClient(locale, clientId);
 
-    return { status: 'success', measurementId, currentWeight, weightKg: input.weightKg };
+    return { status: 'success', measurementId, weightKg: input.weightKg };
   } catch (error) {
     console.error('saveMeasurementAction failed', error);
     return {
@@ -327,14 +297,6 @@ export async function updateMeasurementAction(
     const {
       clientId,
       measurementId,
-      applyToCurrentWeight,
-      /*
-        Dropped, not applied. The height-correction box belongs to the confirm
-        screen for an upload — it exists because the *report* disagreed with
-        the record — and the edit form never shows it. Naming it here keeps it
-        out of `input`, which is spread onto the row.
-      */
-      applyHeightToClient: _applyHeightToClient,
       deviceLabel: _deviceLabel,
       deviceSubjectId: _deviceSubjectId,
       parserVersion: _parserVersion,
@@ -373,16 +335,19 @@ export async function updateMeasurementAction(
       };
     }
 
-    const currentWeight = await applyCurrentWeight(
-      clinicId,
-      clientId,
-      input.weightKg,
-      applyToCurrentWeight,
-    );
+    /*
+      Corrections write the height too — the same one writer as the create path
+      above, and for the same reason. A dietitian fixing a mistyped height on a
+      past reading is fixing the record's height; leaving the client row on the
+      old value would put the correction in the history and nowhere else.
+    */
+    if (input.heightCm != null) {
+      await applyHeightToClient(clinicId, clientId, input.heightCm);
+    }
 
     revalidateClient(locale, clientId);
 
-    return { status: 'success', measurementId, currentWeight, weightKg: input.weightKg };
+    return { status: 'success', measurementId, weightKg: input.weightKg };
   } catch (error) {
     console.error('updateMeasurementAction failed', error);
     return {

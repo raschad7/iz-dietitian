@@ -6,7 +6,6 @@ import { useFormStatus } from 'react-dom';
 
 import { Button } from '@/components/ui/button';
 import { Callout } from '@/components/ui/callout';
-import { Checkbox } from '@/components/ui/checkbox';
 import { DatePicker } from '@/components/ui/date-picker';
 import { DialogBody, DialogFooter } from '@/components/ui/dialog';
 import { Field, FieldError } from '@/components/ui/field';
@@ -151,7 +150,6 @@ type MeasurementFormProps = {
   locale: Locale;
   today: IsoDate;
   /** `client_nutrition_profiles.weight_kg` — what the checkbox would replace. */
-  currentWeightKg: number | null;
   /**
    * When this client's existing readings were taken — every one of them.
    *
@@ -201,7 +199,6 @@ export function MeasurementForm({
   clientId,
   locale,
   today,
-  currentWeightKg,
   takenSlots,
   measurement,
   report,
@@ -304,16 +301,6 @@ export function MeasurementForm({
     measurement?.measuredAtMinute ?? report?.parsed.measuredAtMinute ?? 0;
 
   /*
-    The height disagreement, if the upload found one. `RecordWarning` is the
-    only warning kind this form turns into a control rather than a sentence —
-    see the checkbox below for why this one earns it.
-  */
-  const heightMismatch = report?.warnings.find(
-    (warning): warning is Extract<RecordWarning, { kind: 'heightMismatch' }> =>
-      'kind' in warning && warning.kind === 'heightMismatch',
-  );
-
-  /*
     The collision, said before Save rather than after it.
 
     Exactly the question `measurementExistsAt` asks on the server — same date,
@@ -367,7 +354,7 @@ export function MeasurementForm({
         </>
       ) : null}
 
-      <DialogBody className="min-h-0 flex-1 space-y-6 overflow-y-auto p-4 sm:p-5">
+      <DialogBody className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4 sm:p-5">
         {report ? (
           <div className="space-y-3">
             <ReportSummary
@@ -395,31 +382,38 @@ export function MeasurementForm({
         */}
         {report ? <Callout tone="neutral">{t('upload.checkHint')}</Callout> : null}
 
-        {/* ── When ─────────────────────────────────────────────────── */}
-        <FormSection icon="calendar" title={t('form.when')}>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <Field>
-              <Label htmlFor="measuredOn" required>
-                {t('form.measuredOn')}
-              </Label>
-              <DatePicker
-                id="measuredOn"
-                name="measuredOn"
-                value={measuredOn}
-                onChange={setMeasuredOn}
-                locale={locale}
-                max={today}
-                aria-invalid={Boolean(dateError)}
-              />
-              <FieldError>{dateError}</FieldError>
-            </Field>
-          </div>
-        </FormSection>
-
-        {/* ── The figures ──────────────────────────────────────────── */}
+        {/* ── The figures, with the date leading the first row ─────── */}
         {GROUPS.map((group) => (
           <FormSection key={group.key} icon={group.icon} title={t(`form.${group.key}`)}>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+              {/*
+                The date sits in this row rather than in a section of its own.
+
+                It had one — "متى", a heading and a single box in a three-column
+                grid, so two thirds of that row was empty and the two rows below
+                it repeated the same shape. The date, the weight and the height
+                are what every visit records and they fill one row exactly; the
+                heading that used to introduce the date on its own bought
+                nothing but a third vertical step before the first field.
+              */}
+              {group.key === 'core' ? (
+                <Field>
+                  <Label htmlFor="measuredOn" required>
+                    {t('form.measuredOn')}
+                  </Label>
+                  <DatePicker
+                    id="measuredOn"
+                    name="measuredOn"
+                    value={measuredOn}
+                    onChange={setMeasuredOn}
+                    locale={locale}
+                    max={today}
+                    aria-invalid={Boolean(dateError)}
+                  />
+                  <FieldError>{dateError}</FieldError>
+                </Field>
+              ) : null}
+
               {group.fields.map((field) => (
                 <NumberField
                   key={field.name}
@@ -468,50 +462,6 @@ export function MeasurementForm({
           </Field>
         </FormSection>
 
-        {/* ── The decisions that reach outside this feature ─────────── */}
-        <div className="space-y-3">
-          <DecisionCheckbox
-            name="applyToCurrentWeight"
-            defaultChecked={!measurement}
-            label={t('form.applyToCurrentWeight')}
-            hint={`${t('form.applyHint')} ${
-              currentWeightKg === null
-                ? t('form.applyHintUnset')
-                : t('form.applyHintCurrent', { weight: currentWeightKg.toFixed(1) })
-            }`}
-          />
-
-          {/*
-            Offered only when the upload found the two heights disagreeing.
-
-            The warning above already says so; this is the control that settles
-            it. One of the two numbers is wrong and the moment somebody has both
-            in front of them is the moment to fix it — sending them to another
-            tab to retype a height they can already see is how a warning becomes
-            something people learn to scroll past.
-
-            **Ticked by default, like the weight box.** The report is the
-            measurement of record: the figures on it were taken today, on
-            calibrated equipment, and the height beside them is the one the
-            machine's own BMI and body-fat estimates were computed from. A
-            record disagreeing with it is a record holding a stale or mistyped
-            number. Untick it when the machine is the one that is wrong — the
-            box in the form above still carries whichever height is about to be
-            written.
-          */}
-          {heightMismatch ? (
-            <DecisionCheckbox
-              name="applyHeightToClient"
-              defaultChecked
-              label={t('form.applyHeightToClient', { height: heightMismatch.onReport })}
-              hint={t('form.applyHeightHint', {
-                current: heightMismatch.onRecord,
-                height: heightMismatch.onReport,
-              })}
-            />
-          ) : null}
-        </div>
-
         <FormMessage state={state} />
       </DialogBody>
 
@@ -534,37 +484,6 @@ export function MeasurementForm({
 }
 
 /**
- * A decision that changes something outside this measurement.
- *
- * Both of them are checkboxes rather than automatic writes, and for the same
- * reason: each moves a figure another screen is computing from — the calorie
- * target, the BMI on two tabs — so a dietitian should be able to see
- * themselves doing it. The shared `Checkbox` renders its native input inside,
- * so this posts `name=on` and still works wrapped in a label.
- */
-function DecisionCheckbox({
-  name,
-  defaultChecked,
-  label,
-  hint,
-}: {
-  name: string;
-  defaultChecked: boolean;
-  label: string;
-  hint: string;
-}) {
-  return (
-    <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-secondary/50 p-4">
-      <Checkbox name={name} defaultChecked={defaultChecked} className="mt-0.5" />
-      <span className="space-y-1">
-        <span className="block text-body-md font-medium">{label}</span>
-        <span className="block text-caption text-muted-foreground">{hint}</span>
-      </span>
-    </label>
-  );
-}
-
-/**
  * One titled group of fields.
  *
  * `fieldset`/`legend`, because these really are groups of controls and saying
@@ -583,8 +502,17 @@ function FormSection({
   children: ReactNode;
 }) {
   return (
-    <fieldset className="space-y-3">
-      <legend className="mb-2 flex items-center gap-2 text-label font-semibold text-muted-foreground">
+    /*
+      `space-y-2` and no `mb` on the legend: 8px from the heading to the first
+      label, not the 20px the two of them used to add up to.
+
+      A legend and the label under it are both small text, and 20px between them
+      read as two unrelated things rather than a group and its first member —
+      the gap was wider than the one between the label and its own box, which
+      inverted the grouping the heading exists to make.
+    */
+    <fieldset className="space-y-2">
+      <legend className="flex items-center gap-2 text-label font-semibold text-muted-foreground">
         <Icon name={icon} className="size-4 shrink-0" />
         {title}
       </legend>

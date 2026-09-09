@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test';
 
 import {
   bmiDisagreement,
-  latestBodyComposition,
+  bodyMetricsFrom,
   changeFor,
   compareMeasurements,
   daysBetween,
@@ -17,6 +17,7 @@ import {
   type ComparableMeasurement,
   type MeasurementSubject,
 } from './compare';
+import { type IsoDate } from '@/lib/iso-date';
 
 /** A measurement with every figure absent, to be spread over. */
 function measurement(overrides: Partial<ComparableMeasurement> = {}): ComparableMeasurement {
@@ -350,32 +351,67 @@ describe('clockDrift', () => {
   });
 });
 
-describe('latestBodyComposition', () => {
+describe('bodyMetricsFrom', () => {
   const row = (
+    weightKg: number,
+    measuredOn: string,
     basalMetabolicRateKcal: number | null,
     fatFreeMassKg: number | null,
-  ) => ({ basalMetabolicRateKcal, fatFreeMassKg });
-
-  it('takes each figure from the newest visit that carried it', () => {
-    /*
-      ⚠ The reason this is not "read the latest measurement". A bare weigh-in
-      recorded between two scans is a row with neither figure on it, and a rule
-      that read only the newest row would blank both — moving a client's calorie
-      target and their protein target on a visit that measured nothing new.
-    */
-    expect(
-      latestBodyComposition([row(null, null), row(1400, null), row(1350, 54.6)]),
-    ).toEqual({ basalMetabolicRateKcal: 1400, fatFreeMassKg: 54.6 });
+  ) => ({
+    weightKg,
+    measuredOn: measuredOn as IsoDate,
+    basalMetabolicRateKcal,
+    fatFreeMassKg,
   });
 
-  it('is null for a client the analyser has never seen', () => {
-    // Not an error and not a gap: the formula and the adjusted weight are what
-    // both of these fall back to.
-    expect(latestBodyComposition([row(null, null)])).toEqual({
+  it('takes each analyser figure from the newest visit that carried it', () => {
+    /*
+      ⚠ The reason this is not simply "read the latest measurement". A bare
+      weigh-in recorded between two scans is a row with neither figure on it,
+      and a rule that read only the newest row would blank both — moving a
+      client's calorie target and their protein target on a visit that measured
+      nothing new.
+    */
+    expect(
+      bodyMetricsFrom([
+        row(72.2, '2026-08-26', null, null),
+        row(74.1, '2026-07-12', 1400, null),
+        row(76, '2026-06-03', 1350, 54.6),
+      ]),
+    ).toMatchObject({ basalMetabolicRateKcal: 1400, fatFreeMassKg: 54.6 });
+  });
+
+  /**
+   * The weight is the exception, and it is the whole point of this function.
+   *
+   * `weight_kg` is the one NOT NULL column on the table, so the newest row
+   * always carries one — and a bare weigh-in *is* a new answer about the weight
+   * even when it says nothing else. Falling back to an older row here would put
+   * a stale weight behind the calorie target, which is the bug that removed
+   * `client_nutrition_profiles.weight_kg`.
+   */
+  it('takes the weight from the newest row, even a bare weigh-in', () => {
+    expect(
+      bodyMetricsFrom([
+        row(72.2, '2026-08-26', null, null),
+        row(74.1, '2026-07-12', 1400, 54.6),
+      ]),
+    ).toMatchObject({ weightKg: 72.2, measuredOn: '2026-08-26' });
+  });
+
+  it('is null for a client nobody has measured', () => {
+    // Not an error and not a gap: a record can be opened before the first visit.
+    expect(bodyMetricsFrom([])).toEqual({
+      weightKg: null,
+      measuredOn: null,
       basalMetabolicRateKcal: null,
       fatFreeMassKg: null,
     });
-    expect(latestBodyComposition([])).toEqual({
+  });
+
+  it('is null for the analyser figures on a client it has never seen', () => {
+    // The formula and the adjusted weight are what both of these fall back to.
+    expect(bodyMetricsFrom([row(72.2, '2026-08-26', null, null)])).toMatchObject({
       basalMetabolicRateKcal: null,
       fatFreeMassKg: null,
     });

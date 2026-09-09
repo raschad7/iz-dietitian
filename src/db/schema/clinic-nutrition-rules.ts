@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { check, pgTable, real, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { check, jsonb, pgTable, real, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 import { clinics } from './clinics';
 
@@ -49,7 +49,7 @@ export const clinicNutritionRules = pgTable(
      * changes nobody's target. The clinic moves it the first time it opens the
      * dialog.
      */
-    proteinPerKg: real('protein_per_kg').notNull().default(1.6),
+    proteinPerKg: real('protein_per_kg').notNull().default(0.8),
 
     /**
      * Which weight the rate above multiplies — `actual`, `adjusted` or `lean`.
@@ -65,7 +65,7 @@ export const clinicNutritionRules = pgTable(
      * no report, which is the whole reason the fallback exists rather than a
      * blank target.
      */
-    proteinBasis: text('protein_basis').notNull().default('adjusted'),
+    proteinBasis: text('protein_basis').notNull().default('actual'),
 
     /**
      * Whose basal metabolic rate the calorie suggestion is built on — `device`
@@ -85,6 +85,34 @@ export const clinicNutritionRules = pgTable(
      * client, and a client with no report falls back to the formula whatever
      * this says.
      */
+    /**
+     * A protein rate for the kinds of client that are not ordinary, keyed by
+     * goal or by condition — `{"sports": 1.7, "kidney_disease": 0.6}`.
+     *
+     * ## Why a map and not three more columns
+     *
+     * The set is going to grow. Pregnancy, lactation, sarcopenia and recovery
+     * from surgery all move a protein requirement, and every one of them would
+     * otherwise be a migration to add a number a dietitian could have typed. A
+     * key here is a `ProteinRateCase` — see `nutrition-rules.ts`, which owns the
+     * list and validates against it both on write and on read.
+     *
+     * ## What is deliberately NOT in here
+     *
+     * **Whether a rate is a ceiling or a target.** 0.6 g/kg for a renal client
+     * is the most they may eat and 1.0 for a dialysis client is the least, and
+     * the two read as the same kind of number. That direction is a property of
+     * the condition rather than of a clinic's preference — a renal restriction
+     * is a ceiling everywhere — so it lives in `CONDITION_RATE_KINDS` in code,
+     * where no settings screen can invert it by accident.
+     *
+     * Defaults to `{}`, not to the shipped rates: an empty map means this clinic
+     * has no special cases and `protein_per_kg` applies to everybody, which is a
+     * real answer and the one a clinic reaches by clearing the boxes. Only a
+     * clinic with no row at all gets `DEFAULT_NUTRITION_RULES`.
+     */
+    proteinRates: jsonb('protein_rates').$type<Record<string, number>>().notNull().default({}),
+
     bmrSource: text('bmr_source').notNull().default('device'),
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

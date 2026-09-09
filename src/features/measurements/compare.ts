@@ -508,30 +508,83 @@ export function clockDrift(
 }
 
 /**
- * The analyser's last word on this body: the BMR it printed and the fat-free
- * mass it estimated, each from the most recent visit that carried it.
+ * What a client's body currently is, as far as anything has measured it.
  *
- * ⚠ **Each figure is found independently, and they need not come from the same
- * row.** A dietitian who records a bare weigh-in between scans leaves a newest
- * row holding neither — and a rule of "read the latest measurement" would then
- * blank both and move the client's calorie target on a visit that measured
- * nothing new.
+ * The shape both readers answer in — {@link latestBodyMetrics} in SQL for the
+ * planner and the record page, {@link bodyMetricsFrom} over rows already
+ * loaded. Every screen that needs a weight, a BMR or a lean mass takes this,
+ * so no two of them can be looking at different figures.
+ */
+export type BodyMetrics = {
+  /**
+   * The current weight — the newest measurement, and the only answer there is.
+   *
+   * `client_nutrition_profiles.weight_kg` used to hold a second copy of this,
+   * typed into the intake dialog, and the two drifted. Null means nobody has
+   * ever weighed this client, which is an ordinary state for a record opened
+   * before the first visit and not an error.
+   */
+  weightKg: number | null;
+  /**
+   * The day that weight was taken.
+   *
+   * Carried with the figure because a weight without its date is not a fact —
+   * and because it is the whole of the record dialog's explanation for a number
+   * the dietitian can no longer type into it.
+   */
+  measuredOn: IsoDate | null;
+  basalMetabolicRateKcal: number | null;
+  fatFreeMassKg: number | null;
+};
+
+/**
+ * A body nothing has measured.
+ *
+ * The default every component that takes {@link BodyMetrics} optionally falls
+ * back to, so "not measured" is one shared value rather than an object literal
+ * repeated at four call sites — where a field added to the type later would be
+ * missed at three of them.
+ */
+export const EMPTY_BODY_METRICS: BodyMetrics = {
+  weightKg: null,
+  measuredOn: null,
+  basalMetabolicRateKcal: null,
+  fatFreeMassKg: null,
+};
+
+/**
+ * The same answer, read from rows the caller already has.
+ *
+ * ⚠ **Every figure but the weight is found independently, and they need not
+ * come from the same row.** A dietitian who records a bare weigh-in between
+ * scans leaves a newest row holding neither BMR nor lean mass — and a rule of
+ * "read the latest measurement" would then blank both and move the client's
+ * calorie target on a visit that measured nothing new.
+ *
+ * The weight is the exception, and takes the newest row unconditionally.
+ * `weight_kg` is the one NOT NULL column on the table, so the newest row always
+ * carries one, and a bare weigh-in *is* a new answer about the weight even when
+ * it says nothing else about the body.
  *
  * `rows` must be newest first, which is the order `listMeasurements` returns
  * and every caller on the record page already holds.
  *
- * ⚠ This is the same rule `latestBodyComposition` runs in SQL for the planner,
+ * ⚠ This is the same rule `latestBodyMetrics` runs in SQL for the planner,
  * which cannot afford to load a client's whole history to answer it. **Change
  * one and change the other**, or the week will be generated against a different
- * BMR from the one the record prints.
+ * weight from the one the record prints.
  */
-export function latestBodyComposition(
+export function bodyMetricsFrom(
   rows: readonly Pick<
     ComparableMeasurement,
-    'basalMetabolicRateKcal' | 'fatFreeMassKg'
+    'weightKg' | 'measuredOn' | 'basalMetabolicRateKcal' | 'fatFreeMassKg'
   >[],
-): { basalMetabolicRateKcal: number | null; fatFreeMassKg: number | null } {
+): BodyMetrics {
+  const newest = rows[0] ?? null;
+
   return {
+    weightKg: newest?.weightKg ?? null,
+    measuredOn: newest?.measuredOn ?? null,
     basalMetabolicRateKcal:
       rows.find((row) => row.basalMetabolicRateKcal !== null)?.basalMetabolicRateKcal ?? null,
     fatFreeMassKg: rows.find((row) => row.fatFreeMassKg !== null)?.fatFreeMassKg ?? null,

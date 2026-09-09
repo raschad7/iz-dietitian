@@ -50,7 +50,6 @@ export function MeasurementFormTrigger({
   clientId,
   locale,
   today,
-  currentWeightKg,
   takenSlots,
   label,
   measurement,
@@ -61,7 +60,6 @@ export function MeasurementFormTrigger({
   clientId: string;
   locale: Locale;
   today: IsoDate;
-  currentWeightKg: number | null;
   /**
    * When every existing reading for this client was taken. Handed straight to
    * the form, which drops the row it is editing by id — so callers pass the same
@@ -114,19 +112,19 @@ export function MeasurementFormTrigger({
   );
 
   const handleSaved = useCallback(
-    (state: { currentWeight: 'untouched' | 'applied'; weightKg: number }) => {
+    (state: { weightKg: number }) => {
       close();
 
       /*
-        Two outcomes. The confirmation names the weight when the box moved it,
-        because that figure is what the calorie target and the next plan are
-        built from and a dietitian should see it land.
+        The confirmation names the weight, always.
+
+        It used to say so only when a ticked box had copied the figure onto the
+        nutrition profile. There is no box and no copy now — the newest reading
+        *is* the current weight — so every save moves what the calorie target
+        and the next plan are built from, and the dietitian should see the
+        figure that just landed.
       */
-      if (state.currentWeight === 'applied') {
-        toast.success(t('flash.savedAndApplied', { weight: state.weightKg.toFixed(1) }));
-      } else {
-        toast.success(t('flash.saved'));
-      }
+      toast.success(t('flash.saved', { weight: state.weightKg.toFixed(1) }));
 
       // The panel is a server component; the new row and every delta on the
       // screen come from a fresh read rather than from client state.
@@ -198,7 +196,6 @@ export function MeasurementFormTrigger({
                   clientId={clientId}
                   locale={locale}
                   today={today}
-                  currentWeightKg={currentWeightKg}
                   takenSlots={takenSlots}
                   measurement={measurement}
                   report={

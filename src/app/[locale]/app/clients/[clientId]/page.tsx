@@ -213,7 +213,6 @@ export default async function ClientInfoPage({ params, searchParams }: ClientInf
         // in hand rather than re-queried — see `MeasurementSubject`, which is
         // deliberately not a client row.
         subject: { goal: client.goal, heightCm: client.heightCm },
-        currentWeightKg: intake.weightKg ?? null,
         range,
         reportIds: measurementReportIds,
         sharing: measurementSharingState,

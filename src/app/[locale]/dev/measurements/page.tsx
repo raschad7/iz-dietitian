@@ -69,7 +69,6 @@ export default async function DevMeasurementsPage({
         today={'2026-09-04' as IsoDate}
         measurements={measurements}
         subject={{ goal: query.goal ?? 'weight_loss', heightCm: 156 }}
-        currentWeightKg={72.2}
         range={range}
         reportIds={FIXTURE_REPORT_IDS}
         sharing

@@ -1,4 +1,6 @@
 import { type ClientIntakeValues } from '@/features/clients/types';
+import { EMPTY_BODY_METRICS, type BodyMetrics } from '@/features/measurements/compare';
+import { type IsoDate } from '@/lib/iso-date';
 
 /**
  * One client's nutrition record, for `/dev/nutrition`.
@@ -22,11 +24,10 @@ export const FIXTURE_INTAKE: ClientIntakeValues = {
   dateOfBirth: '1988-04-12',
   sex: 'female',
 
-  heightCm: 160,
   goal: 'weight_loss',
   activityLevel: 'light',
 
-  weightKg: 78,
+  heightCm: 160,
 
   allergenTags: ['lactose'],
   customAllergens: [],
@@ -95,7 +96,16 @@ export const FIXTURE_INTAKE: ClientIntakeValues = {
  * `?scan=none` takes both figures away — the fallback every screen has to
  * handle and the one nobody looks at.
  */
-export const FIXTURE_COMPOSITION = {
+export const FIXTURE_METRICS: BodyMetrics = {
+  weightKg: 78,
+  measuredOn: '2026-09-08' as IsoDate,
   basalMetabolicRateKcal: 1300,
   fatFreeMassKg: 54.6,
+};
+
+/** The same body, never measured — what every fallback in the tab reads. */
+export const FIXTURE_UNSCANNED: BodyMetrics = {
+  ...EMPTY_BODY_METRICS,
+  weightKg: FIXTURE_METRICS.weightKg,
+  measuredOn: FIXTURE_METRICS.measuredOn,
 };

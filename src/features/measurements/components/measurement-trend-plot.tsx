@@ -4,11 +4,17 @@ import { useEffect, useState } from 'react';
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 
 import { ChartContainer, ChartTooltip, type ChartConfig } from '@/components/ui/chart';
-import { Segmented } from '@/components/ui/segmented';
 import { cn } from '@/lib/utils';
 
 /**
- * One figure plotted across a client's visits, with a picker for which figure.
+ * One figure plotted across a client's visits.
+ *
+ * **The picker is not in here.** It sits in the card's header beside the title,
+ * which is where `MeasurementTrendCard` keeps it and where the selected metric
+ * is held — so the chips render with the heading instead of arriving whenever
+ * Recharts finishes loading, and a reader can change metric before the plot has
+ * drawn at all. This file is behind a dynamic import; the picker is not, and
+ * should not be.
  *
  * Recharts, on the narrow terms `client-progress-plot.tsx` documents: only this
  * file is a client component, colour comes from `viz-brand` through
@@ -82,12 +88,12 @@ function useReducedMotion(): boolean {
 
 export function MeasurementTrendChart({
   series,
-  pickLabel,
+  metric,
 }: {
   series: TrendMetricSeries[];
-  pickLabel: string;
+  /** Which series to draw. Owned by `MeasurementTrendCard`, with the picker. */
+  metric: string;
 }) {
-  const [metric, setMetric] = useState(series[0]?.metric ?? '');
   const reducedMotion = useReducedMotion();
 
   const active = series.find((entry) => entry.metric === metric) ?? series[0];
@@ -118,53 +124,7 @@ export function MeasurementTrendChart({
     });
 
   return (
-    <div className="space-y-3">
-      {/*
-        The picker scrolls sideways; it does not wrap.
-
-        `flex-wrap` on a `size="sm"` track is a contradiction: the height is set
-        on the track (40px, to match a `Button size="sm"` beside it) and a second
-        row of chips has nowhere to go inside it. On a 375px phone the last two
-        Arabic labels — نسبة الدهون and مؤشر كتلة الجسم — fell straight out of
-        the rounded box and landed on top of the chart.
-
-        Scrolling is what the design system asks for here: "horizontal tab sets
-        scroll on narrow screens instead of wrapping into two ambiguous rows".
-        The bar's own scrollbar is hidden globally, and the cue is the chip cut
-        off at the edge.
-      */}
-      <div className="-mx-0.5 overflow-x-auto px-0.5">
-        <Segmented
-          role="radiogroup"
-          /*
-            `contained` — the recessed track with a raised white thumb that the
-            record's tab bar and the comparison switch above both wear. It was
-            the `default` shape, which fills the selected chip with solid brand
-            green: three segmented controls on one screen, one of them shouting.
-            Elevation carries the selection here, so the green is left to the
-            things that are actually actions.
-          */
-          shape="contained"
-          label={pickLabel}
-          value={active.metric}
-          onChange={setMetric}
-          options={series.map((entry) => ({ value: entry.metric, label: entry.label }))}
-          /*
-            `min-w-max`, and it is what makes the scroll work. `contained` is an
-            `inline-grid` of `minmax(0, 1fr)` columns, so inside a narrower box
-            the columns shrink and the labels clip instead of the track
-            overflowing. Sized to its content, the track keeps its five equal
-            columns — which the travelling thumb depends on — and the wrapper
-            scrolls.
-
-            A width, not a `display` utility: see the warning on `Segmented`
-            about what happens to the thumb when a call site changes the layout
-            mode.
-          */
-          className="min-w-max"
-        />
-      </div>
-
+    <>
       <ChartContainer config={config} className={cn(PLOT_HEIGHT, Y_TICKS_LTR)}>
         <AreaChart
           accessibilityLayer
@@ -232,6 +192,6 @@ export function MeasurementTrendChart({
           />
         </AreaChart>
       </ChartContainer>
-    </div>
+    </>
   );
 }

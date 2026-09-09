@@ -96,9 +96,7 @@ export function ContextPanel({
   const blank = notes.filter((note) => !note.body?.trim());
 
   const measurements = [
-    profile?.weightKg !== null && profile?.weightKg !== undefined
-      ? t('kg', { value: profile.weightKg })
-      : null,
+    context.metrics.weightKg !== null ? t('kg', { value: context.metrics.weightKg }) : null,
     context.heightCm !== null ? t('cm', { value: context.heightCm }) : null,
     context.age !== null ? t('years', { value: context.age }) : null,
   ].filter((entry): entry is string => entry !== null);
@@ -438,7 +436,7 @@ export function ContextPanel({
                showing, so it has to use the rules they were computed from —
                see `ClientContext.rules`. */
             rules={context.rules}
-            composition={context.composition}
+            metrics={context.metrics}
             aria-label={profile ? t('editProfile') : t('createProfile')}
             className={cn(buttonVariants({ variant: 'neutral', size: 'sm' }), 'size-10 px-0')}
           >

@@ -7,7 +7,6 @@ import {
   gte,
   ilike,
   inArray,
-  isNotNull,
   isNull,
   lt,
   ne,
@@ -19,7 +18,6 @@ import {
 
 import { db } from '@/db';
 import {
-  clientMeasurements,
   clientNutritionProfiles,
   clinicNutritionRules,
   clients,
@@ -41,6 +39,8 @@ import {
 import { wallClockIn, type WallClock } from '@/features/booking/completed';
 import { calculateAge } from '@/features/clients/age';
 import { clientSeq } from '@/features/clients/seq';
+import type { BodyMetrics } from '@/features/measurements/compare';
+import { latestBodyMetrics } from '@/features/measurements/queries';
 import { DISPLAY_TIME_ZONE } from '@/lib/format';
 
 import { normalizeArabic } from './arabic-normalize';
@@ -1344,9 +1344,16 @@ export type ClientContext = {
   activityLevel: string | null;
   allergies: string | null;
   medicalNotes: string | null;
-  /** Null until the dietitian saves the form once. */
+  /**
+   * Null until the dietitian saves the form once.
+   *
+   * ⚠ **The weight is deliberately not in here.** It used to be, because it was
+   * a column on `client_nutrition_profiles` — which also meant a client with no
+   * saved intake had no weight even after standing on the analyser. It is a
+   * fact about the body, read from `metrics` below, and it is available whether
+   * or not anybody has filled in a questionnaire.
+   */
   profile: {
-    weightKg: number | null;
     dailyKcalTarget: number | null;
     proteinTargetGrams: number | null;
     allergenTags: string[];
@@ -1360,8 +1367,8 @@ export type ClientContext = {
   } | null;
   targets: SuggestedTargets;
   /**
-   * The clinic's dosing rules and this client's body composition — the two
-   * inputs `targets` and `effectiveProteinGrams` above were computed from.
+   * The clinic's dosing rules and what has been measured of this client's body
+   * — the inputs `targets` and `effectiveProteinGrams` above were computed from.
    *
    * Carried on the context rather than left for the panel to re-read, because
    * the panel mounts the intake dialog and that dialog previews these same
@@ -1370,7 +1377,11 @@ export type ClientContext = {
    * having.
    */
   rules: NutritionRules;
-  composition: { basalMetabolicRateKcal: number | null; fatFreeMassKg: number | null };
+  /**
+   * What this body currently is — the current weight and the day it was taken,
+   * plus the two figures an analyser adds. See {@link latestBodyMetrics}.
+   */
+  metrics: BodyMetrics;
   /** The target actually in force: the override, else the suggestion. */
   effectiveKcal: number | null;
   effectiveProteinGrams: number | null;
@@ -1409,7 +1420,6 @@ export async function getClientContext(clinicId: string, clientId: string): Prom
       allergies: clients.allergies,
       medicalNotes: clients.medicalNotes,
       profileId: clientNutritionProfiles.id,
-      weightKg: clientNutritionProfiles.weightKg,
       dailyKcalTarget: clientNutritionProfiles.dailyKcalTarget,
       proteinTargetGrams: clientNutritionProfiles.proteinTargetGrams,
       allergenTags: clientNutritionProfiles.allergenTags,
@@ -1428,26 +1438,26 @@ export async function getClientContext(clinicId: string, clientId: string): Prom
   if (!row) return null;
 
   const age = row.dateOfBirth ? calculateAge(row.dateOfBirth) : null;
-  const weightKg = row.weightKg ?? null;
 
   /*
-    The clinic's dosing rules and the analyser's last word on this body, read
-    together because neither is useful without the other: a `device` BMR source
-    needs the printed figure, and a `lean` protein basis needs the fat-free
-    mass. Both fall back on their own when a client has never been scanned.
+    The clinic's dosing rules and what has actually been measured, read together
+    because neither is useful without the other: a `device` BMR source needs the
+    printed figure, a `lean` protein basis needs the fat-free mass, and every
+    one of them needs the weight. All three fall back on their own when a client
+    has never been scanned.
 
     ⚠ **The planner has to read the same two as the Nutrition tab.** The figure
     printed on the record and the figure the week is generated against are the
     same promise to the client, and the day they were computed from different
     rules is the day neither can be trusted.
   */
-  const [rules, composition] = await Promise.all([
+  const [rules, metrics] = await Promise.all([
     nutritionRules(clinicId),
-    latestBodyComposition(clinicId, clientId),
+    latestBodyMetrics(clinicId, clientId),
   ]);
 
   const targets = suggestTargets({
-    weightKg,
+    weightKg: metrics.weightKg,
     heightCm: row.heightCm,
     age,
     sex: row.sex,
@@ -1457,7 +1467,7 @@ export async function getClientContext(clinicId: string, clientId: string): Prom
        `LIFE_STAGE_KCAL`. The override, where the dietitian has set one, still
        wins below. */
     clinicalTags: row.clinicalTags ?? [],
-    measuredBmrKcal: composition.basalMetabolicRateKcal,
+    measuredBmrKcal: metrics.basalMetabolicRateKcal,
     bmrSource: rules.bmrSource,
   });
 
@@ -1476,7 +1486,6 @@ export async function getClientContext(clinicId: string, clientId: string): Prom
     medicalNotes: row.medicalNotes,
     profile: row.profileId
       ? {
-          weightKg,
           dailyKcalTarget: row.dailyKcalTarget,
           proteinTargetGrams: row.proteinTargetGrams,
           allergenTags: row.allergenTags ?? [],
@@ -1490,21 +1499,21 @@ export async function getClientContext(clinicId: string, clientId: string): Prom
       : null,
     targets,
     rules,
-    composition,
+    metrics,
     effectiveKcal,
     /* Conditions narrow the rate and the calorie target caps it — a renal client
        must not be handed 1.6 g/kg, and no client should be measured against a
        figure their day has no room for. See `suggestProteinGrams`. */
     effectiveProteinGrams:
       row.proteinTargetGrams ??
-      suggestProteinGrams(weightKg, {
+      suggestProteinGrams(metrics.weightKg, {
+        activityLevel: row.activityLevel,
         clinicalTags: row.clinicalTags ?? [],
         dailyKcalTarget: effectiveKcal,
         heightCm: row.heightCm,
         sex: row.sex,
-        perKg: rules.proteinPerKg,
-        basis: rules.proteinBasis,
-        fatFreeMassKg: composition.fatFreeMassKg,
+        rules,
+        fatFreeMassKg: metrics.fatFreeMassKg,
       }),
     budgets: effectiveKcal === null ? [] : slotBudgets(effectiveKcal, schedule),
   };
@@ -2293,7 +2302,7 @@ export async function getPlanNotificationTarget(
 }
 
 // ---------------------------------------------------------------------------
-// The clinic's dosing rules, and the body composition they are read against
+// The clinic's dosing rules, and the measured body they are read against
 // ---------------------------------------------------------------------------
 
 /**
@@ -2308,6 +2317,7 @@ export async function nutritionRules(clinicId: string): Promise<NutritionRules> 
     .select({
       proteinPerKg: clinicNutritionRules.proteinPerKg,
       proteinBasis: clinicNutritionRules.proteinBasis,
+      proteinRates: clinicNutritionRules.proteinRates,
       bmrSource: clinicNutritionRules.bmrSource,
     })
     .from(clinicNutritionRules)
@@ -2317,54 +2327,3 @@ export async function nutritionRules(clinicId: string): Promise<NutritionRules> 
   return readNutritionRules(row ?? null);
 }
 
-/**
- * What the analyser last said about this client's body, for the two figures the
- * targets read: the BMR it printed and the fat-free mass it estimated.
- *
- * ⚠ **Each figure comes from the most recent report that carried it, and they
- * need not be the same report.** A dietitian who records a bare weigh-in
- * between scans would otherwise blank both — the newest row has neither — and
- * the target would jump on a visit that measured nothing new. Two ordered
- * scans, not one row: `DISTINCT ON` would be one query, but Drizzle has no
- * portable form of it and the alternative reads worse than the extra round
- * trip costs at one clinic's scale.
- *
- * Nulls are the ordinary case, not an error. A client who has never been
- * scanned falls back to Mifflin-St Jeor and to the adjusted weight, which is
- * what {@link suggestTargets} and {@link proteinDosingWeightKg} are built to do.
- */
-export async function latestBodyComposition(
-  clinicId: string,
-  clientId: string,
-): Promise<{ basalMetabolicRateKcal: number | null; fatFreeMassKg: number | null }> {
-  const scope = and(
-    eq(clientMeasurements.clinicId, clinicId),
-    eq(clientMeasurements.clientId, clientId),
-  );
-  /* Newest first, and by the same pair `listMeasurements` orders on so a second
-     reading taken later the same day wins over the morning's. */
-  const newestFirst = [
-    desc(clientMeasurements.measuredOn),
-    desc(clientMeasurements.measuredAtMinute),
-  ];
-
-  const [[bmrRow], [leanRow]] = await Promise.all([
-    db
-      .select({ value: clientMeasurements.basalMetabolicRateKcal })
-      .from(clientMeasurements)
-      .where(and(scope, isNotNull(clientMeasurements.basalMetabolicRateKcal)))
-      .orderBy(...newestFirst)
-      .limit(1),
-    db
-      .select({ value: clientMeasurements.fatFreeMassKg })
-      .from(clientMeasurements)
-      .where(and(scope, isNotNull(clientMeasurements.fatFreeMassKg)))
-      .orderBy(...newestFirst)
-      .limit(1),
-  ]);
-
-  return {
-    basalMetabolicRateKcal: bmrRow?.value ?? null,
-    fatFreeMassKg: leanRow?.value ?? null,
-  };
-}

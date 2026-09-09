@@ -52,18 +52,27 @@ export const clientNutritionProfiles = pgTable(
       .notNull()
       .references(() => clients.id, { onDelete: 'cascade' }),
 
-    /**
-     * Current weight. Nullable, because a client can exist before they have been
-     * weighed — but BMI and the calorie suggestion are both unanswerable without
-     * it, so the UI blocks generation until it is filled in.
+    /*
+     * ⚠ **There is no `weight_kg` here any more.** It was the current weight,
+     * and it was a second copy of something `client_measurements` already
+     * holds — so the two drifted, exactly as a duplicated fact does. A record
+     * read 70 kg because somebody typed it during an intake months earlier
+     * while the analyser's own history said 72.2, and every figure built on
+     * the weight — BMI, the calorie target, the protein suggestion, the next
+     * generated week — was built on the stale one.
      *
-     * One value, not a history: a weight log with a trend chart is a feature of
-     * its own and nobody has asked for it yet.
+     * The current weight is now the newest row in `client_measurements`, read
+     * by `latestBodyMetrics`. That table was always the history behind this
+     * column; making it the answer as well is what removes the drift, because
+     * there is no longer a second place for a weight to live.
+     *
+     * Every weight is a measurement. The intake dialog no longer asks for one
+     * — `تسجيل قياس` is the single door, whether the figure comes off a Tanita
+     * report or off an ordinary clinic scale typed in by hand.
      */
-    weightKg: real('weight_kg'),
 
     /**
-     * Whether the client may see the weight above in their own portal.
+     * Whether the client may see their weight in their own portal.
      *
      * §11 of the design system, "Sensitive data": weight and measurements can
      * be hidden per client at the account level, and hidden means hidden

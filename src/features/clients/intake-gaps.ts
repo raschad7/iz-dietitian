@@ -34,8 +34,19 @@ import { type ClientIntakeValues } from './types';
  * assessment is history the dietitian reads, not an input a plan waits on.
  */
 export const INTAKE_GAP_FIELDS = [
-  'heightCm',
-  'weightKg',
+  /*
+    ⚠ **`heightCm` and `weightKg` were the first two entries and had to go.**
+
+    The body is recorded on the measurement card now, not in this dialog. A gap
+    the meter counts is a gap whose chip opens the intake at the panel that
+    holds the field — and there is no such field any more, so counting them
+    would send a dietitian to a screen that cannot close what it just reported.
+    That is precisely the failure named above, reintroduced one level up.
+
+    A client nobody has weighed is still reported, and by the screen that can do
+    something about it: `SuggestedTargets.missing` names the weight, the readout
+    prints it in words, and the Measurements tab is where it gets filled in.
+  */
   'goal',
   'activityLevel',
   'allergies',

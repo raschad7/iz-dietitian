@@ -14,6 +14,7 @@ import { type ClientIntakeValues } from '@/features/clients/types';
 import { useRouter } from '@/i18n/navigation';
 import { getLocaleDirection, type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
+import { type BodyMetrics } from '@/features/measurements/compare';
 
 /**
  * The intake dialog, and the control that opens it.
@@ -34,7 +35,7 @@ export function IntakeFormTrigger({
   clientId,
   section,
   rules,
-  composition,
+  metrics,
   children,
   className,
   'aria-label': ariaLabel,
@@ -55,7 +56,7 @@ export function IntakeFormTrigger({
    * for the one that does not yet.
    */
   rules?: NutritionRules;
-  composition?: { basalMetabolicRateKcal: number | null; fatFreeMassKg: number | null };
+  metrics?: BodyMetrics;
   children: React.ReactNode;
   className?: string;
   'aria-label'?: string;
@@ -167,7 +168,7 @@ export function IntakeFormTrigger({
                 locale={locale}
                 section={section}
                 rules={rules}
-                composition={composition}
+                metrics={metrics}
                 onCancel={close}
                 onSaved={closeSaved}
               />

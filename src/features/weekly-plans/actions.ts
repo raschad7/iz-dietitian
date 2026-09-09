@@ -56,7 +56,7 @@ import {
   swapMealSchema,
   type GenerationScope,
 } from './schema';
-import { nutritionRulesSchema } from './nutrition-rules';
+import { nutritionRulesSchema, PROTEIN_RATE_CASES } from './nutrition-rules';
 import { saveNutritionRules } from './mutations';
 import { proteinIsRestricted, slotBudgets } from './targets';
 import type { GenerateState, PlanActionState, ReviewState } from './form-state';
@@ -197,7 +197,7 @@ function promptInput({
       age: context.age,
       sex: context.sex,
       heightCm: context.heightCm,
-      weightKg: profile.weightKg,
+      weightKg: context.metrics.weightKg,
       bmi: context.targets.bmi,
       bmiCategory: context.targets.bmiCategory,
       activityLevel: context.activityLevel,
@@ -295,7 +295,10 @@ export async function generateWeekAction(
       sides: toPromptSides(ready.catalog, ready.profile.dietPattern),
       kcalTarget: ready.kcalTarget,
       proteinTargetGrams: ready.proteinTargetGrams,
-      proteinIsRestriction: proteinIsRestricted(ready.profile.clinicalTags),
+      /* The clinic's own table decides which conditions are ceilings — see
+         `CONDITION_RATE_KINDS`. Passing the rules keeps this in step with the
+         figure the target was actually computed from. */
+      proteinIsRestriction: proteinIsRestricted(ready.profile.clinicalTags, ready.context.rules),
     });
   } catch (error) {
     // The audit row is written for failures too — those are the interesting ones.
@@ -824,9 +827,23 @@ export async function saveNutritionRulesAction(
   const locale = localeSchema.parse(formData.get('locale'));
   const { clinicId } = await requireStaffClinic(locale);
 
+  /*
+    The per-case rates arrive as one field per case, named `rate.<case>` — a
+    flat form posting into a map. An empty box is not zero and not an error: it
+    means this clinic has no special rate for that kind of client, so the key is
+    left out and the ordinary rate applies. That is how an athlete rate gets
+    *removed*, which a required field could not express.
+  */
+  const proteinRates = Object.fromEntries(
+    PROTEIN_RATE_CASES.map((key) => [key, formData.get(`rate.${key}`)]).filter(
+      ([, value]) => typeof value === 'string' && value.trim() !== '',
+    ),
+  );
+
   const parsed = nutritionRulesSchema.safeParse({
     proteinPerKg: formData.get('proteinPerKg'),
     proteinBasis: formData.get('proteinBasis'),
+    proteinRates,
     bmrSource: formData.get('bmrSource'),
   });
   if (!parsed.success) return { status: 'invalid', validationKey: 'required' };

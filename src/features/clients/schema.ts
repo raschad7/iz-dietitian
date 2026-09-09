@@ -6,14 +6,7 @@ import { isIsoDate, toIsoDate } from '@/lib/iso-date';
 import { splitPhone } from '@/lib/phone-format';
 
 import { calculateAge } from './age';
-import {
-  HEIGHT_CM_RANGE,
-  MAX_AGE,
-  MAX_NAME_PART_LENGTH,
-  MAX_PHONE_DIGITS,
-  MIN_AGE,
-  WEIGHT_KG_RANGE,
-} from './form-rules';
+import { MAX_AGE, MAX_NAME_PART_LENGTH, MAX_PHONE_DIGITS, MIN_AGE } from './form-rules';
 import { joinName } from './name';
 import {
   ALLERGENS,
@@ -275,51 +268,35 @@ export const intakeSchema = z.object({
   clientId: clientIdSchema,
 
   /*
-    ── Measurements, from `clients` ─────────────────────────────────────────
+    ── The plan's shape, from `clients` ─────────────────────────────────────
 
-    ⚠ **These four are the exception to "the intake is optional to the last
+    ⚠ **These two are the exception to "the intake is optional to the last
     field"** — see the note on the schema above, which still holds for every
-    other field here. They are required because they are the four inputs
-    Mifflin-St Jeor needs alongside the card's date of birth and sex, so an
-    intake missing any of them cannot produce the calorie target that gates
-    plan generation.
+    other field here. Both are decisions rather than measurements, both are
+    inputs to the calorie target that gates plan generation, and neither has
+    anywhere else to be recorded.
+
+    ⚠ **There is no `heightCm` and no `weightKg` here any more, and adding
+    either back would restore the bug this removed.** Both were required boxes
+    on this form and both were also on the measurement card, so the same fact
+    had two writers and the two drifted — a record reading 70 kg from an intake
+    typed months earlier while the analyser's history said 72.2. Every weight is
+    a measurement now, typed by hand or read off a report, and the height is
+    settled beside the report that so often reveals it is wrong.
+
+    A field named here is a field `readIntakeForm` submits and `saveIntake`
+    writes, which is exactly why the height cannot come back: writing it from
+    this form would clear a height recorded on the analyser every time somebody
+    saved an unrelated field.
 
     ⚠ It is **one form with one submit** across five panels. A required field
     here therefore blocks a save made from the Allergies panel too — the
-    dietitian is switched to Measurements and told what is missing (see the
+    dietitian is switched to the first panel and told what is missing (see the
     section-switching note below). That is the cost of the rule, and it is why
     the rest of the intake must not follow.
-
-    `blankToUndefined` rather than `blankToEmpty` for the numbers: `z.coerce.number`
-    reads `''` as `0`, which would fail the lower bound and report a range error
-    for a field nobody had touched. Mapped to `undefined` instead, the coercion
-    fails outright and says `required`.
   */
-  heightCm: z.preprocess(
-    blankToUndefined,
-    z.coerce
-      .number({ error: 'required' })
-      .int('heightOutOfRange')
-      .min(HEIGHT_CM_RANGE.min, 'heightOutOfRange')
-      .max(HEIGHT_CM_RANGE.max, 'heightOutOfRange'),
-  ),
   goal: z.preprocess(blankToEmpty, z.enum(CLIENT_GOALS, { error: 'required' })),
   activityLevel: z.preprocess(blankToEmpty, z.enum(CLIENT_ACTIVITY_LEVELS, { error: 'required' })),
-
-  /**
-   * Current weight, from `client_nutrition_profiles`.
-   *
-   * The generous range still catches a slipped decimal: 500 kg is not a client,
-   * it is a typo. One value and not a history — a weight log with a trend chart
-   * is a feature of its own and nobody has asked for it yet.
-   */
-  weightKg: z.preprocess(
-    blankToUndefined,
-    z.coerce
-      .number({ error: 'required' })
-      .min(WEIGHT_KG_RANGE.min, 'weightOutOfRange')
-      .max(WEIGHT_KG_RANGE.max, 'weightOutOfRange'),
-  ),
 
   // ── Allergies: the tags filter, the prose does not ───────────────────────
   /**

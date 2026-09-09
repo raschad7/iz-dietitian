@@ -29,7 +29,9 @@ import type {
   ClientContext,
   PlannableClient,
 } from '@/features/weekly-plans/queries';
+import { EMPTY_BODY_METRICS } from '@/features/measurements/compare';
 import type { Locale } from '@/i18n/routing';
+import { type IsoDate } from '@/lib/iso-date';
 
 /**
  * A dev-only harness for the weekly-plan board — see `page.tsx` for why it
@@ -387,8 +389,9 @@ export function BoardHarness({ locale }: { locale: Locale }) {
       activityLevel: 'moderate',
       allergies: null,
       medicalNotes: emptyProfile ? null : 'ارتفاع طفيف في ضغط الدم — تقليل الصوديوم.',
+      /* The body, which is no longer part of the profile — see `BodyMetrics`. */
+      metrics: { ...EMPTY_BODY_METRICS, weightKg: 82, measuredOn: '2026-08-29' as IsoDate },
       profile: {
-        weightKg: 80,
         dailyKcalTarget: 2178,
         proteinTargetGrams: 128,
         allergenTags: [],
@@ -425,7 +428,6 @@ export function BoardHarness({ locale }: { locale: Locale }) {
          draw either, but `ClientContext` carries them for the intake dialog the
          context panel mounts. */
       rules: DEFAULT_NUTRITION_RULES,
-      composition: { basalMetabolicRateKcal: null, fatFreeMassKg: null },
       effectiveKcal: 2178,
       effectiveProteinGrams: 128,
       budgets: SLOTS.map((slot) => ({

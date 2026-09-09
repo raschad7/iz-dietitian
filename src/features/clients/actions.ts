@@ -101,10 +101,12 @@ function readIntakeForm(formData: FormData) {
 
   return {
     clientId: formData.get('clientId'),
-    heightCm: formData.get('heightCm'),
+    /* No `heightCm` and no `weightKg`. The body is recorded on the measurement
+       card now — see the ⚠ on `ClientIntakeValues`. `readForm` reads the
+       schema's own keys, so a field this object stops carrying is a field the
+       save stops writing, and the columns keep what they hold. */
     goal: formData.get('goal'),
     activityLevel: formData.get('activityLevel'),
-    weightKg: formData.get('weightKg'),
     allergenTags: formData.getAll('allergenTags'),
     customAllergens: formData.getAll('customAllergens'),
     allergies: formData.get('allergies'),
@@ -382,7 +384,7 @@ export async function saveIntakeAction(
   formData: FormData,
 ): Promise<IntakeFormState> {
   const locale = readLocale(formData);
-  const { clinicId, session } = await requireStaffClinic(locale);
+  const { clinicId } = await requireStaffClinic(locale);
 
   const parsed = intakeSchema.safeParse(readIntakeForm(formData));
 
@@ -395,7 +397,7 @@ export async function saveIntakeAction(
   }
 
   try {
-    const saved = await saveIntake(clinicId, parsed.data, session.user.id);
+    const saved = await saveIntake(clinicId, parsed.data);
     if (!saved) return { status: 'error', messageKey: 'errors.clientNotFound' };
   } catch (error) {
     console.error('[clients] intake save failed', error);

@@ -53,11 +53,22 @@ export type ClientIntakeValues = {
   dateOfBirth: string | null;
   sex: string | null;
 
-  heightCm: number | null;
   goal: string | null;
   activityLevel: string | null;
 
-  weightKg: number | null;
+  /**
+   * Read-only here, like `dateOfBirth` and `sex` above — written by the
+   * measurement card, which is the one place a height is typed now.
+   *
+   * ⚠ **There is no `weightKg` beside it, deliberately.** The weight is not a
+   * property of an intake: it is the newest row in `client_measurements`, and
+   * it reaches every screen as `BodyMetrics`. Carrying a copy on this type
+   * would put two weights back in front of one dialog — which is the whole
+   * failure this change removed — and the harness at `/dev/nutrition` proved
+   * it immediately, showing a body block that ignored the metrics it was
+   * handed. The height stays because it really is a `clients` column.
+   */
+  heightCm: number | null;
 
   allergenTags: string[];
   /** Typed by hand; recorded and sent to the model, but never a catalog filter. */

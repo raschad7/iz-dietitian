@@ -7,11 +7,13 @@ import {
   goalKcal,
   MIN_SUGGESTED_KCAL,
   mifflinStJeorBmr,
+  proteinPerKgFor,
   slotBudgets,
   suggestProteinGrams,
   suggestTargets,
   tdee,
 } from './targets';
+import { DEFAULT_NUTRITION_RULES, type NutritionRules } from './nutrition-rules';
 
 describe('bmi', () => {
   test('computes weight over height in metres squared', () => {
@@ -212,34 +214,78 @@ describe('suggestTargets', () => {
 });
 
 describe('suggestProteinGrams', () => {
-  test('chronic kidney disease lowers the rate, dialysis raises it back', () => {
-    // 1.6 g/kg is roughly double what a non-dialysis CKD client should eat, and
-    // the plan that exposed this was marked short of protein on all seven days
-    // while delivering a clinically correct amount.
-    expect(suggestProteinGrams(80, { clinicalTags: ['kidney_disease'] })).toBe(56);
-    expect(suggestProteinGrams(80, { clinicalTags: ['dialysis'] })).toBe(96);
-    expect(suggestProteinGrams(80)).toBe(128);
+  /*
+    The defaults are the dietitian's own table, in her words: an ordinary client
+    is `weight × 0.8`, an athlete 1.7, a renal client 0.6 and a dialysis client
+    1.0 — all against the weight on the scale. See `DEFAULT_NUTRITION_RULES`.
+  */
+  test('an ordinary client is 0.8 g per kilogram of scale weight', () => {
+    expect(suggestProteinGrams(70)).toBe(56);
+    expect(suggestProteinGrams(80)).toBe(64);
   });
 
-  test('a record carrying both kidney conditions takes the lower rate', () => {
-    expect(suggestProteinGrams(80, { clinicalTags: ['kidney_disease', 'dialysis'] })).toBe(56);
+  test('an athlete is dosed as an athlete, read off how they train', () => {
+    expect(suggestProteinGrams(80, { activityLevel: 'active' })).toBe(136);
+    expect(suggestProteinGrams(80, { activityLevel: 'very_active' })).toBe(136);
+    // The levels below it take the ordinary rate.
+    expect(suggestProteinGrams(80, { activityLevel: 'moderate' })).toBe(64);
+    expect(suggestProteinGrams(80, { activityLevel: 'sedentary' })).toBe(64);
   });
 
-  test('the calorie target caps a figure the day has no room for', () => {
-    // 88 kg at 1.6 is 141 g, which is 37% of a 1,522 kcal day — a number no
-    // ordinary week reaches, so every day was reported short of it.
-    expect(suggestProteinGrams(88, { dailyKcalTarget: 1522 })).toBe(127);
-    // Where the day is roomy the cap does not bind.
-    expect(suggestProteinGrams(88, { dailyKcalTarget: 2600 })).toBe(141);
+  /**
+   * ⚠ The reason the athlete rate is not keyed on `clients.goal`.
+   *
+   * It was, and the goal is what a client *wants*. A woman lifting four times a
+   * week who wants to lose eight kilos is `weight_loss` + `active`, and she is
+   * exactly the client the higher rate exists for — the old keying dosed her at
+   * 0.8 like somebody sedentary.
+   */
+  test('a training client is dosed as one whatever their goal', () => {
+    expect(suggestProteinGrams(80, { activityLevel: 'active' })).toBe(136);
   });
 
-  test('is 1.6 g per kilogram, rounded', () => {
-    expect(suggestProteinGrams(70)).toBe(112);
-    expect(suggestProteinGrams(84)).toBe(134);
+  test('chronic kidney disease lowers the rate, dialysis raises it', () => {
+    expect(suggestProteinGrams(80, { clinicalTags: ['kidney_disease'] })).toBe(48);
+    expect(suggestProteinGrams(80, { clinicalTags: ['dialysis'] })).toBe(80);
+    expect(suggestProteinGrams(80)).toBe(64);
+  });
+
+  /**
+   * ⚠ The regression that made `CONDITION_RATE_KINDS` necessary.
+   *
+   * A dialysis rate sits *above* the ordinary one now — 1.0 against 0.8 — where
+   * it used to sit below it (1.2 against 1.6). The old code applied every
+   * condition with `min(clinicRate, conditionRate)`, which reads as "a condition
+   * can only lower a target" and happened to be right while every published
+   * figure was below the hard-coded 1.6. Under her table that `min()` would
+   * return 0.8 and discard the raised requirement in silence.
+   */
+  test('a dialysis client is raised above the ordinary rate, not capped to it', () => {
+    expect(suggestProteinGrams(80, { clinicalTags: ['dialysis'] })).toBeGreaterThan(
+      suggestProteinGrams(80) ?? 0,
+    );
+  });
+
+  test('a ceiling still wins over a raise, because lower is safe for a kidney', () => {
+    // A record carrying both is mid-correction; erring downward is the safe
+    // direction, and the ceiling is applied after everything that could raise it.
+    expect(suggestProteinGrams(80, { clinicalTags: ['kidney_disease', 'dialysis'] })).toBe(48);
+    // Nor can a goal raise a restricted client above their ceiling.
+    expect(
+      suggestProteinGrams(80, { activityLevel: 'active', clinicalTags: ['kidney_disease'] }),
+    ).toBe(48);
   });
 
   test('is null without a weight', () => {
     expect(suggestProteinGrams(null)).toBeNull();
+  });
+
+  test('the calorie target caps a figure the day has no room for', () => {
+    // 88 kg at the athlete rate is 150 g, which is 39% of a 1,522 kcal day — a
+    // number no ordinary week reaches, so every day was reported short of it.
+    expect(suggestProteinGrams(88, { activityLevel: 'active', dailyKcalTarget: 1522 })).toBe(127);
+    // Where the day is roomy the cap does not bind.
+    expect(suggestProteinGrams(88, { activityLevel: 'active', dailyKcalTarget: 2600 })).toBe(150);
   });
 
   /*
@@ -253,46 +299,95 @@ describe('suggestProteinGrams', () => {
        58.8 kg. The analyser put her fat-free mass at 54.6 kg. */
     const client = { heightCm: 160, sex: 'female', fatFreeMassKg: 54.6 };
 
-    test('one rate against three bases is three different targets', () => {
-      expect(suggestProteinGrams(78, { ...client, perKg: 1, basis: 'actual' })).toBe(78);
-      expect(suggestProteinGrams(78, { ...client, perKg: 1, basis: 'adjusted' })).toBe(59);
-      expect(suggestProteinGrams(78, { ...client, perKg: 1, basis: 'lean' })).toBe(55);
+    const at = (perKg: number, proteinBasis: NutritionRules['proteinBasis']): NutritionRules => ({
+      ...DEFAULT_NUTRITION_RULES,
+      proteinPerKg: perKg,
+      proteinBasis,
     });
 
-    test('the rate is the one the clinic set, not 1.6', () => {
-      expect(suggestProteinGrams(80, { perKg: 1 })).toBe(80);
-      expect(suggestProteinGrams(80, { perKg: 2.2 })).toBe(176);
+    test('one rate against three bases is three different targets', () => {
+      expect(suggestProteinGrams(78, { ...client, rules: at(1, 'actual') })).toBe(78);
+      expect(suggestProteinGrams(78, { ...client, rules: at(1, 'adjusted') })).toBe(59);
+      expect(suggestProteinGrams(78, { ...client, rules: at(1, 'lean') })).toBe(55);
+    });
+
+    test('the rate is the one the clinic set', () => {
+      expect(suggestProteinGrams(80, { rules: at(1, 'actual') })).toBe(80);
+      expect(suggestProteinGrams(80, { rules: at(2.2, 'actual') })).toBe(176);
     });
 
     test('lean falls back to the adjusted weight for a client never scanned', () => {
       // Not null, and not the scale: a clinic dosing on measured lean mass still
       // has clients who have never stood on the analyser.
-      expect(suggestProteinGrams(78, { ...client, fatFreeMassKg: null, perKg: 1, basis: 'lean' }))
-        .toBe(59);
+      expect(
+        suggestProteinGrams(78, { ...client, fatFreeMassKg: null, rules: at(1, 'lean') }),
+      ).toBe(59);
     });
 
-    test('a kidney keeps its own basis when the clinic doses on lean mass', () => {
-      /*
-        ⚠ The regression this pair exists for. Applying 0.7 g/kg to 54.6 kg of
-        lean mass is 38 g for a renal client whose published ceiling is 41 —
-        silently under, on the one condition where under is dangerous. The
-        clinical figure is computed on the adjusted weight it is published
-        against, and the lower of the two wins.
-      */
-      expect(
-        suggestProteinGrams(78, { ...client, perKg: 2, basis: 'lean', clinicalTags: ['kidney_disease'] }),
-      ).toBe(41);
+    /**
+     * ⚠ **Every rate multiplies the weight the basis names — including a
+     * ceiling.** This used to be untrue: a condition's figure was computed
+     * against the adjusted weight whatever the clinic had chosen, on the
+     * grounds that renal guidance is published that way.
+     *
+     * It is gone because two weights on one screen is the failure this area
+     * keeps having. The dietitian describes her rule as "the weight times the
+     * rate"; a version that quietly used a different weight for one kind of
+     * client could not be checked by the person responsible for it. A clinic
+     * that doses on lean mass has decided lean mass is its denominator, and
+     * that decision is visible on the same dialog as the rate.
+     *
+     * The protection that matters is untouched: a ceiling is applied last, so
+     * nothing can raise a restricted client above it.
+     */
+    test('a ceiling uses the clinic basis like every other rate', () => {
+      const renal = { ...client, clinicalTags: ['kidney_disease'] };
 
-      // And a clinic cannot raise a restricted client's target by editing a rate.
-      expect(
-        suggestProteinGrams(78, { ...client, perKg: 3, basis: 'actual', clinicalTags: ['kidney_disease'] }),
-      ).toBe(41);
+      expect(suggestProteinGrams(78, { ...renal, rules: at(2, 'actual') })).toBe(47);
+      expect(suggestProteinGrams(78, { ...renal, rules: at(2, 'adjusted') })).toBe(35);
+      expect(suggestProteinGrams(78, { ...renal, rules: at(2, 'lean') })).toBe(33);
     });
 
-    test('a rate below the clinical one still wins, because lower is the safe direction', () => {
+    test('a clinic rate below the ceiling still wins', () => {
+      // 0.5 is under the 0.6 ceiling, and lower is the safe direction.
       expect(
-        suggestProteinGrams(80, { perKg: 0.5, clinicalTags: ['dialysis'] }),
+        suggestProteinGrams(80, { rules: at(0.5, 'actual'), clinicalTags: ['kidney_disease'] }),
       ).toBe(40);
+    });
+  });
+});
+
+describe('proteinPerKgFor', () => {
+  test('reports a ceiling as restricted and a raise as not', () => {
+    expect(proteinPerKgFor(null, ['kidney_disease'], DEFAULT_NUTRITION_RULES)).toEqual({
+      perKg: 0.6,
+      restricted: true,
+    });
+    /*
+      ⚠ 1.0 is above the clinic's 0.8, and it must not read as a restriction.
+      "Restricted" used to be computed by comparing the rate against the clinic
+      default, which made this answer depend on a number that has nothing to do
+      with the kidney.
+    */
+    expect(proteinPerKgFor(null, ['dialysis'], DEFAULT_NUTRITION_RULES)).toEqual({
+      perKg: 1,
+      restricted: false,
+    });
+  });
+
+  test('a ceiling outranks a training rate, a raise does not', () => {
+    // A dialysis client who trains keeps the higher of the two, because both
+    // are raises; a renal client who trains is still capped.
+    expect(proteinPerKgFor('active', ['dialysis'], DEFAULT_NUTRITION_RULES).perKg).toBe(1.7);
+    expect(proteinPerKgFor('active', ['kidney_disease'], DEFAULT_NUTRITION_RULES).perKg).toBe(0.6);
+  });
+
+  test('a clinic that cleared its cases doses everybody at the ordinary rate', () => {
+    const flat = { ...DEFAULT_NUTRITION_RULES, proteinRates: {} };
+
+    expect(proteinPerKgFor('active', ['kidney_disease'], flat)).toEqual({
+      perKg: flat.proteinPerKg,
+      restricted: false,
     });
   });
 });
