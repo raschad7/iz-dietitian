@@ -16,7 +16,8 @@ import {
   type SettingsSectionDef,
 } from '@/features/settings/components/settings-workspace';
 import { NutritionRulesSettings } from '@/features/weekly-plans/components/nutrition-rules-settings';
-import { nutritionRules } from '@/features/weekly-plans/queries';
+import { PortionGuideSettings } from '@/features/weekly-plans/components/portion-guide-settings';
+import { nutritionRules, portionGuideEntries } from '@/features/weekly-plans/queries';
 import { WhatsappSettings } from '@/features/whatsapp/components/whatsapp-settings';
 import { readConnection } from '@/features/whatsapp/connection';
 import { resolveLocale } from '@/i18n/params';
@@ -46,7 +47,7 @@ export default async function SettingsPage({ params, searchParams }: SettingsPag
   const { clinicId, session } = await requireStaffClinic(locale);
   const requestHeaders = await headers();
 
-  const [profile, services, connection, forms, passkeys, accounts, rules] = await Promise.all([
+  const [profile, services, connection, forms, passkeys, accounts, rules, portions] = await Promise.all([
     getClinicProfile(clinicId, session.user.id),
     clinicServices(clinicId),
     readConnection(clinicId),
@@ -54,6 +55,7 @@ export default async function SettingsPage({ params, searchParams }: SettingsPag
     auth.api.listPasskeys({ headers: requestHeaders }),
     auth.api.listUserAccounts({ headers: requestHeaders }),
     nutritionRules(clinicId),
+    portionGuideEntries(clinicId),
   ]);
 
   /*
@@ -108,6 +110,13 @@ export default async function SettingsPage({ params, searchParams }: SettingsPag
             revisits when its practice changes.
           */}
           <NutritionRulesSettings locale={locale} rules={rules} />
+          {/*
+            Last under this tab, and read-only: it is the one section here that
+            states a fact rather than setting one. It answers "what is the app
+            counting when I write a spoon", which is the question the rules above
+            raise and nothing else on this page could answer.
+          */}
+          <PortionGuideSettings locale={locale} entries={portions} />
         </>
       ),
     },

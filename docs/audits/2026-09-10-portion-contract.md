@@ -223,3 +223,39 @@ These need the dietitian, and the pilot cards are the way to ask them.
 `bun run scripts/audit-portions.ts` prints the current queue, ranked by recipe
 lines affected. It is the list to work down, and it will grow teeth on its own as
 foods are added: the seed refuses a heaped spoon nobody has reviewed.
+
+
+## What the approved weights changed, 10 September 2026
+
+The clinic supplied and approved a reference table of Levantine clinical
+portions, and its **"المعتمد سريرياً"** column was applied. It is recorded as
+`evidence.kind: 'published_table'` naming the table — not as a local weighing,
+because it was not one. The stated ±3 g ranges are stored beside each weight, so
+a heaped spoon never reads as more precise than it is.
+
+**108 of 295 dishes changed; about 7,520 kcal moved** — 84 dishes up, 24 down.
+The رغيف at 60 g → 90 g is most of it. لبنة gained a 30 g heaped spoon and its
+eleven recipe lines moved onto it. The corrections downward are the American
+produce sizes USDA ships: خيار 301 → 110 g, بطاطا 213 → 150 g.
+
+أرز stayed at 25 g. The table's *levelled* figure of 15 g is what the popular
+Arabic sources quoted in the section above were describing, which settles that
+disagreement in favour of the number the clinic already had.
+
+### `countedAs` is a stronger claim than it looks
+
+Making the heaped spoon the counted unit for bulgur, lentils and oats broke
+twenty-nine recipes, and the seed was right to refuse them. `counted_as` means a
+food is **always** written in that unit — true of an egg and a رغيف, false of
+bulgur, where a cup in a pilaf and a spoonful on a plate are both real
+quantities. Only labaneh genuinely has one unit, and its recipes were naming the
+wrong spoon rather than the wrong unit.
+
+### The correction revealed a real gap
+
+The 250–400 kcal breakfast band now holds **10 dishes where `MIN_PER_CELL` wants
+12**, with thirteen more sitting at 401–460. Nothing was lost. Those breakfasts
+were never light; the catalog had been advertising them as light because the
+bread inside them was under-counted by a third of a loaf. The honest reading is
+that this clinic's catalog needs two more genuinely light breakfasts, and that
+is a question for the dietitian rather than a threshold to lower.

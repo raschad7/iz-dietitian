@@ -49,6 +49,8 @@ import { carbBase, proteinSource } from './dish-composition';
 import type { ReviewFinding } from './review';
 import type { CatalogDish } from './generate';
 import type { FoodPortion } from './ingredient-units';
+import type { ReviewStatus } from './portion-contract';
+import type { PortionGuideEntry } from './portion-guide';
 import {
   hasOwnAmounts,
   mealIngredientLines,
@@ -1204,6 +1206,59 @@ export async function searchFoods(
  * Symmetric with `searchFoods`: same columns, same visibility rule, but by id —
  * what the editor needs after a pick, without guessing at text search.
  */
+/**
+ * Every measurement the clinic writes in, for the settings guide.
+ *
+ * One row per food: the portion it is *written* in — `is_default`, which
+ * `promoteCountedUnit` has already moved onto `counted_as` where a food declares
+ * one — and nothing else. A food offers several portions and is written in one,
+ * and the written one is the only thing a reference table should state.
+ *
+ * Reads the same `catalogVisibleTo` scope as the ingredient picker, so a clinic
+ * sees the shared catalog plus its own foods and never another practice's.
+ */
+export async function portionGuideEntries(clinicId: string): Promise<PortionGuideEntry[]> {
+  const rows = await db
+    .select({
+      foodId: catalogFoods.id,
+      nameAr: catalogFoods.nameAr,
+      nameEn: catalogFoods.nameEn,
+      key: catalogFoodPortions.key,
+      labelAr: catalogFoodPortions.labelAr,
+      labelEn: catalogFoodPortions.labelEn,
+      grams: catalogFoodPortions.grams,
+      reviewStatus: catalogFoodPortions.reviewStatus,
+      minGrams: catalogFoodPortions.evidenceMinGrams,
+      maxGrams: catalogFoodPortions.evidenceMaxGrams,
+    })
+    .from(catalogFoodPortions)
+    .innerJoin(catalogFoods, eq(catalogFoods.id, catalogFoodPortions.foodId))
+    .where(
+      and(
+        catalogVisibleTo(clinicId),
+        eq(catalogFoods.isActive, true),
+        eq(catalogFoodPortions.isDefault, true),
+      ),
+    );
+
+  return rows.map((row) => ({
+    foodId: row.foodId,
+    nameAr: row.nameAr,
+    nameEn: row.nameEn,
+    key: row.key,
+    labelAr: row.labelAr,
+    labelEn: row.labelEn,
+    grams: row.grams,
+    reviewStatus: (row.reviewStatus ?? 'needs_review') as ReviewStatus,
+    // Both ends or neither: half a range is not a range, and rendering "22 - "
+    // is worse than rendering nothing.
+    rangeGrams:
+      typeof row.minGrams === 'number' && typeof row.maxGrams === 'number'
+        ? ([row.minGrams, row.maxGrams] as const)
+        : null,
+  }));
+}
+
 export async function searchFoodsById(clinicId: string, foodId: string): Promise<FoodSearchResult[]> {
   const rows = await db
     .select(foodColumns)

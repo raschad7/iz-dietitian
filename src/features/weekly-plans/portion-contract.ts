@@ -206,6 +206,16 @@ export function requiresReview(key: PortionKey): boolean {
 export type PortionRule = {
   /** Overrides the derived weight. How a corrected loaf or a heaped spoon lands. */
   grams?: number;
+  /**
+   * Overrides the wording, in either language.
+   *
+   * Safe precisely because identity is the key: `ملعقة كبيرة` becomes
+   * `ملعقة ممسوحة` on a food that also carries a heaped spoon, and nothing that
+   * reads the portion notices. Under the old label-as-identity this edit would
+   * have broken the step, the ceiling and every recipe line at once.
+   */
+  labelAr?: string;
+  labelEn?: string;
   /** Overrides {@link defaultStepOf} where a food genuinely needs its own grid. */
   step?: number;
   /** The most of this food, in this unit, one meal may hold. */

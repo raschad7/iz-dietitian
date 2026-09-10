@@ -198,18 +198,19 @@ describe('portions', () => {
     const rice = bySlug.get('rice-white-cooked')!;
 
     expect(rice.portions.length).toBeGreaterThan(1);
-    expect(rice.portions.map((portion) => portion.labelEn)).toEqual([
-      'Cup',
-      'Half cup',
-      'Quarter cup',
-      // Curated, not derived: USDA publishes no spoon for cooked rice.
-      'Tablespoon',
+    expect(rice.portions.map((portion) => portion.key)).toEqual([
+      'cup',
+      'half-cup',
+      'quarter-cup',
+      // Curated, not derived: USDA publishes no heaped eating spoon.
+      'heaped-spoon',
     ]);
     expect(rice.portions.map((portion) => portion.labelAr)).toEqual([
       'كوب',
       'نصف كوب',
       'ربع كوب',
-      'ملعقة كبيرة',
+      // Says which spoon it is, which is the whole reason the key exists.
+      'ملعقة ممتلئة',
     ]);
 
     for (const portion of rice.portions) {
@@ -235,7 +236,7 @@ describe('portions', () => {
   test('the clinic spoon for cooked rice is curated, says so, and is what rice starts in', () => {
     const spoon = bySlug
       .get('rice-white-cooked')!
-      .portions.find((portion) => portion.labelEn === 'Tablespoon')!;
+      .portions.find((portion) => portion.key === 'heaped-spoon')!;
 
     expect(spoon.grams).toBe(25);
     expect(spoon.isDefault).toBe(true);
@@ -265,7 +266,7 @@ describe('portions', () => {
     // A large egg, not a medium one: eggs are graded, and 50 g is the reference
     // unit — the same weight the boiled egg carries, so one حبة cannot mean two
     // different things depending on whether it was cooked.
-    expect(bySlug.get('egg-raw')!.portions[0]).toEqual({
+    expect(bySlug.get('egg-raw')!.portions[0]).toMatchObject({
       key: 'piece',
       labelAr: 'حبة',
       labelEn: 'Piece',
@@ -277,7 +278,7 @@ describe('portions', () => {
 
     // Oil is written in spoons and in nothing else. USDA publishes a 216 g cup;
     // it is a bottle measure, not a serving.
-    expect(bySlug.get('olive-oil')!.portions).toEqual([
+    expect(bySlug.get('olive-oil')!.portions).toMatchObject([
       {
         key: 'level-tablespoon',
         labelAr: 'ملعقة كبيرة',
@@ -299,7 +300,7 @@ describe('portions', () => {
     // `isDefault: false` on a first row is not a slip: cooked rice declares the
     // spoon (`countedAs`), and the declaration takes the default off whatever
     // the derivation put it on. The cup is still the first unit offered.
-    expect(bySlug.get('rice-white-cooked')!.portions[0]).toEqual({
+    expect(bySlug.get('rice-white-cooked')!.portions[0]).toMatchObject({
       key: 'cup',
       labelAr: 'كوب',
       labelEn: 'Cup',

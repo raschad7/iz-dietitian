@@ -231,6 +231,8 @@ export function applyPortionRules(
     return {
       ...portion,
       grams: rule.grams ?? portion.grams,
+      labelAr: rule.labelAr ?? portion.labelAr,
+      labelEn: rule.labelEn ?? portion.labelEn,
       step: rule.step ?? portion.step,
       maxPerMeal: rule.maxPerMeal ?? portion.maxPerMeal,
       evidence: rule.evidence ?? portion.evidence,

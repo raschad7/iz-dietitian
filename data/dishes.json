@@ -177,7 +177,7 @@
       "ingredients": [
         {
           "fdcId": 170026,
-          "grams": 213,
+          "grams": 150,
           "note": "Potatoes, flesh and skin, raw",
           "primary": true,
           "unit": "piece",
@@ -328,7 +328,7 @@
         },
         {
           "fdcId": 173904,
-          "grams": 20.2,
+          "grams": 20.3,
           "note": "Cereals, oats, regular and quick, not fortified, dry",
           "unit": "cup",
           "count": 0.25
@@ -390,7 +390,7 @@
       "ingredients": [
         {
           "fdcId": 170026,
-          "grams": 159.8,
+          "grams": 112.5,
           "note": "Potatoes, flesh and skin, raw",
           "primary": true,
           "unit": "piece",
@@ -678,7 +678,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
           "unit": "loaf",
@@ -741,7 +741,7 @@
         },
         {
           "fdcId": 172688,
-          "grams": 32,
+          "grams": 28,
           "note": "Bread, whole-wheat, commercially prepared",
           "primary": true,
           "unit": "slice",
@@ -783,7 +783,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "unit": "loaf",
           "count": 1,
@@ -868,10 +868,10 @@
       "ingredients": [
         {
           "fdcId": 900001,
-          "grams": 45,
+          "grams": 90,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
-          "unit": "level-tablespoon",
+          "unit": "heaped-spoon",
           "count": 3
         },
         {
@@ -889,7 +889,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "unit": "loaf",
           "count": 1
@@ -1000,7 +1000,7 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "unit": "loaf",
           "count": 1
@@ -1146,7 +1146,7 @@
         },
         {
           "fdcId": 173800,
-          "grams": 63.2,
+          "grams": 60,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
           "unit": "container",
@@ -1175,7 +1175,7 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 90,
+          "grams": 135,
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
@@ -1337,10 +1337,10 @@
         },
         {
           "fdcId": 900001,
-          "grams": 30,
+          "grams": 60,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
-          "unit": "level-tablespoon",
+          "unit": "heaped-spoon",
           "count": 2
         }
       ]
@@ -1369,7 +1369,7 @@
         },
         {
           "fdcId": 173800,
-          "grams": 63.2,
+          "grams": 60,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
           "unit": "container",
@@ -1508,7 +1508,7 @@
       "ingredients": [
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
           "unit": "loaf",
@@ -1557,7 +1557,7 @@
       "ingredients": [
         {
           "fdcId": 172688,
-          "grams": 72,
+          "grams": 63,
           "note": "Bread, whole-wheat, commercially prepared",
           "primary": true,
           "unit": "slice",
@@ -1656,7 +1656,7 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
@@ -1716,7 +1716,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "unit": "loaf",
           "count": 1
@@ -1799,7 +1799,7 @@
       "ingredients": [
         {
           "fdcId": 172688,
-          "grams": 48,
+          "grams": 42,
           "note": "Bread, whole-wheat, commercially prepared",
           "primary": true,
           "unit": "slice",
@@ -1982,7 +1982,7 @@
         },
         {
           "fdcId": 169700,
-          "grams": 196.2,
+          "grams": 196.3,
           "note": "Couscous, cooked",
           "primary": true,
           "unit": "cup",
@@ -2402,7 +2402,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
           "unit": "loaf",
@@ -2452,7 +2452,7 @@
       "ingredients": [
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
           "unit": "loaf",
@@ -2507,7 +2507,7 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "unit": "loaf",
           "count": 1,
@@ -2642,7 +2642,7 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
@@ -2691,7 +2691,7 @@
       "ingredients": [
         {
           "fdcId": 173800,
-          "grams": 189.8,
+          "grams": 180,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
           "unit": "container",
@@ -2751,7 +2751,7 @@
         },
         {
           "fdcId": 174915,
-          "grams": 90,
+          "grams": 135,
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
@@ -2987,7 +2987,7 @@
         },
         {
           "fdcId": 170026,
-          "grams": 159.8,
+          "grams": 112.5,
           "note": "Potatoes, flesh and skin, raw",
           "primary": true,
           "unit": "piece",
@@ -3032,10 +3032,10 @@
         },
         {
           "fdcId": 900001,
-          "grams": 30,
+          "grams": 60,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
-          "unit": "level-tablespoon",
+          "unit": "heaped-spoon",
           "count": 2
         }
       ]
@@ -3205,7 +3205,7 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
@@ -3258,7 +3258,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "unit": "loaf",
           "count": 1
@@ -3310,7 +3310,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "unit": "loaf",
           "count": 1
@@ -3362,15 +3362,15 @@
         },
         {
           "fdcId": 900001,
-          "grams": 45,
+          "grams": 90,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
-          "unit": "level-tablespoon",
+          "unit": "heaped-spoon",
           "count": 3
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "unit": "loaf",
           "count": 1
@@ -3427,7 +3427,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 32,
+          "grams": 45,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
           "unit": "loaf",
@@ -3469,7 +3469,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "unit": "loaf",
           "count": 1
@@ -3515,7 +3515,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "unit": "loaf",
           "count": 1,
@@ -3572,7 +3572,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "unit": "loaf",
           "count": 1,
@@ -3606,7 +3606,7 @@
         },
         {
           "fdcId": 174915,
-          "grams": 90,
+          "grams": 135,
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
@@ -3664,7 +3664,7 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "unit": "loaf",
           "count": 1,
@@ -3751,7 +3751,7 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
@@ -3959,7 +3959,7 @@
       "ingredients": [
         {
           "fdcId": 173800,
-          "grams": 126.5,
+          "grams": 120,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
           "unit": "container",
@@ -3975,7 +3975,7 @@
         },
         {
           "fdcId": 174915,
-          "grams": 30,
+          "grams": 45,
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
@@ -4028,7 +4028,7 @@
         },
         {
           "fdcId": 174915,
-          "grams": 30,
+          "grams": 45,
           "note": "Bread, pita, white, enriched",
           "unit": "loaf",
           "count": 0.5,
@@ -4087,7 +4087,7 @@
         },
         {
           "fdcId": 174915,
-          "grams": 30,
+          "grams": 45,
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
@@ -4131,7 +4131,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
           "unit": "loaf",
@@ -4212,7 +4212,7 @@
         },
         {
           "fdcId": 174683,
-          "grams": 113.2,
+          "grams": 113.3,
           "note": "Grapes, red or green (European type, such as Thompson seedless), raw",
           "unit": "cup",
           "count": 0.75
@@ -4711,7 +4711,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "unit": "loaf",
           "count": 1
@@ -4760,7 +4760,7 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "unit": "loaf",
           "count": 1
@@ -4803,7 +4803,7 @@
         },
         {
           "fdcId": 173800,
-          "grams": 126.5,
+          "grams": 120,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
           "unit": "container",
@@ -4811,7 +4811,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "unit": "loaf",
           "count": 1
@@ -4874,7 +4874,7 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "unit": "loaf",
           "count": 1,
@@ -4907,7 +4907,7 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
@@ -5505,7 +5505,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
           "unit": "loaf",
@@ -5578,7 +5578,7 @@
         },
         {
           "fdcId": 174915,
-          "grams": 30,
+          "grams": 45,
           "note": "Bread, pita, white, enriched",
           "unit": "loaf",
           "count": 0.5
@@ -5635,7 +5635,7 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
@@ -5706,7 +5706,7 @@
       "ingredients": [
         {
           "fdcId": 173800,
-          "grams": 126.5,
+          "grams": 120,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
           "unit": "container",
@@ -5720,7 +5720,7 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "unit": "loaf",
           "count": 1
@@ -5757,7 +5757,7 @@
       "ingredients": [
         {
           "fdcId": 173800,
-          "grams": 189.8,
+          "grams": 180,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
           "unit": "container",
@@ -5780,7 +5780,7 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
@@ -5823,7 +5823,7 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "unit": "loaf",
           "count": 1
@@ -5861,7 +5861,7 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
@@ -5869,7 +5869,7 @@
         },
         {
           "fdcId": 173800,
-          "grams": 126.5,
+          "grams": 120,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
           "unit": "container",
@@ -5913,7 +5913,7 @@
       "ingredients": [
         {
           "fdcId": 173800,
-          "grams": 126.5,
+          "grams": 120,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
           "unit": "container",
@@ -5936,7 +5936,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "unit": "loaf",
           "count": 1,
@@ -6024,7 +6024,7 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 90,
+          "grams": 135,
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
@@ -6219,7 +6219,7 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 90,
+          "grams": 135,
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
@@ -6405,7 +6405,7 @@
       "ingredients": [
         {
           "fdcId": 168153,
-          "grams": 155.2,
+          "grams": 155.3,
           "note": "Kiwifruit, green, raw",
           "primary": true,
           "unit": "piece",
@@ -6478,7 +6478,7 @@
         },
         {
           "fdcId": 170026,
-          "grams": 106.5,
+          "grams": 75,
           "note": "Potatoes, flesh and skin, raw",
           "primary": true,
           "unit": "piece",
@@ -6587,7 +6587,7 @@
         },
         {
           "fdcId": 170026,
-          "grams": 106.5,
+          "grams": 75,
           "note": "Potatoes, flesh and skin, raw",
           "primary": true,
           "unit": "piece",
@@ -6663,10 +6663,10 @@
       "ingredients": [
         {
           "fdcId": 900001,
-          "grams": 45,
+          "grams": 90,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
-          "unit": "level-tablespoon",
+          "unit": "heaped-spoon",
           "count": 3
         },
         {
@@ -6681,7 +6681,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 32,
+          "grams": 45,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
           "unit": "loaf",
@@ -6708,10 +6708,10 @@
       "ingredients": [
         {
           "fdcId": 900001,
-          "grams": 30,
+          "grams": 60,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
-          "unit": "level-tablespoon",
+          "unit": "heaped-spoon",
           "count": 2
         },
         {
@@ -6742,10 +6742,10 @@
       "ingredients": [
         {
           "fdcId": 900001,
-          "grams": 45,
+          "grams": 90,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
-          "unit": "level-tablespoon",
+          "unit": "heaped-spoon",
           "count": 3
         },
         {
@@ -6762,7 +6762,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "unit": "loaf",
           "count": 1,
@@ -6791,10 +6791,10 @@
       "ingredients": [
         {
           "fdcId": 900001,
-          "grams": 45,
+          "grams": 90,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
-          "unit": "level-tablespoon",
+          "unit": "heaped-spoon",
           "count": 3
         },
         {
@@ -6804,7 +6804,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "unit": "loaf",
           "count": 1,
@@ -6838,7 +6838,7 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
@@ -6846,10 +6846,10 @@
         },
         {
           "fdcId": 900001,
-          "grams": 45,
+          "grams": 90,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
-          "unit": "level-tablespoon",
+          "unit": "heaped-spoon",
           "count": 3
         },
         {
@@ -6890,10 +6890,10 @@
       "ingredients": [
         {
           "fdcId": 900001,
-          "grams": 60,
+          "grams": 120,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
-          "unit": "level-tablespoon",
+          "unit": "heaped-spoon",
           "count": 4
         },
         {
@@ -7242,7 +7242,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
           "unit": "loaf",
@@ -7326,7 +7326,7 @@
         },
         {
           "fdcId": 173800,
-          "grams": 63.2,
+          "grams": 60,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
           "unit": "container",
@@ -7506,7 +7506,7 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 90,
+          "grams": 135,
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
@@ -7627,7 +7627,7 @@
         },
         {
           "fdcId": 173904,
-          "grams": 20.2,
+          "grams": 20.3,
           "note": "Cereals, oats, regular and quick, not fortified, dry",
           "unit": "cup",
           "count": 0.25
@@ -7676,7 +7676,7 @@
         },
         {
           "fdcId": 174915,
-          "grams": 30,
+          "grams": 45,
           "note": "Bread, pita, white, enriched",
           "unit": "loaf",
           "count": 0.5
@@ -7982,7 +7982,7 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
@@ -8045,7 +8045,7 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "unit": "loaf",
           "count": 1
@@ -8267,7 +8267,7 @@
         },
         {
           "fdcId": 171284,
-          "grams": 61.2,
+          "grams": 61.3,
           "note": "Yogurt, plain, whole milk",
           "primary": true,
           "unit": "cup",
@@ -8280,7 +8280,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
           "unit": "loaf",
@@ -8324,7 +8324,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "unit": "loaf",
           "count": 1,
@@ -8463,7 +8463,7 @@
         },
         {
           "fdcId": 174915,
-          "grams": 90,
+          "grams": 135,
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
@@ -8512,7 +8512,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 128,
+          "grams": 180,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
           "unit": "loaf",
@@ -8884,7 +8884,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "unit": "loaf",
           "count": 1,
@@ -8934,7 +8934,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "unit": "loaf",
           "count": 1
@@ -9527,7 +9527,7 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 90,
+          "grams": 135,
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
@@ -9773,7 +9773,7 @@
         },
         {
           "fdcId": 173800,
-          "grams": 63.2,
+          "grams": 60,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
           "unit": "container",
@@ -9910,7 +9910,7 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
@@ -9971,7 +9971,7 @@
         },
         {
           "fdcId": 174915,
-          "grams": 30,
+          "grams": 45,
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
@@ -10084,7 +10084,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 32,
+          "grams": 45,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
           "unit": "loaf",
@@ -10372,10 +10372,10 @@
       "ingredients": [
         {
           "fdcId": 900001,
-          "grams": 60,
+          "grams": 120,
           "note": "Labneh, strained yogurt, full fat (manufacturer label)",
           "primary": true,
-          "unit": "level-tablespoon",
+          "unit": "heaped-spoon",
           "count": 4
         },
         {
@@ -10387,7 +10387,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "unit": "loaf",
           "count": 1
@@ -10567,7 +10567,7 @@
         },
         {
           "fdcId": 172688,
-          "grams": 72,
+          "grams": 63,
           "note": "Bread, whole-wheat, commercially prepared",
           "primary": true,
           "unit": "slice",
@@ -10612,7 +10612,7 @@
         },
         {
           "fdcId": 169700,
-          "grams": 196.2,
+          "grams": 196.3,
           "note": "Couscous, cooked",
           "primary": true,
           "unit": "cup",
@@ -10656,7 +10656,7 @@
         },
         {
           "fdcId": 170026,
-          "grams": 159.8,
+          "grams": 112.5,
           "note": "Potatoes, flesh and skin, raw",
           "primary": true,
           "unit": "piece",
@@ -10793,7 +10793,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
           "unit": "loaf",
@@ -10864,7 +10864,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 32,
+          "grams": 45,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
           "unit": "loaf",
@@ -10898,7 +10898,7 @@
         },
         {
           "fdcId": 172688,
-          "grams": 72,
+          "grams": 63,
           "note": "Bread, whole-wheat, commercially prepared",
           "primary": true,
           "unit": "slice",
@@ -11031,7 +11031,7 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 90,
+          "grams": 135,
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
@@ -11131,7 +11131,7 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
@@ -11209,7 +11209,7 @@
         },
         {
           "fdcId": 174915,
-          "grams": 30,
+          "grams": 45,
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
@@ -11252,7 +11252,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "unit": "loaf",
           "count": 1
@@ -11309,7 +11309,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "unit": "loaf",
           "count": 1
@@ -11341,7 +11341,7 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 120,
+          "grams": 180,
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
@@ -11395,7 +11395,7 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 90,
+          "grams": 135,
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
@@ -11455,7 +11455,7 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 90,
+          "grams": 135,
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
@@ -11574,7 +11574,7 @@
         },
         {
           "fdcId": 171284,
-          "grams": 61.2,
+          "grams": 61.3,
           "note": "Yogurt, plain, whole milk",
           "primary": true,
           "unit": "cup",
@@ -11660,7 +11660,7 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 90,
+          "grams": 135,
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
@@ -11771,7 +11771,7 @@
         },
         {
           "fdcId": 174915,
-          "grams": 30,
+          "grams": 45,
           "note": "Bread, pita, white, enriched",
           "unit": "loaf",
           "count": 0.5
@@ -12082,7 +12082,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "unit": "loaf",
           "count": 1,
@@ -12110,7 +12110,7 @@
       "ingredients": [
         {
           "fdcId": 172688,
-          "grams": 72,
+          "grams": 63,
           "note": "Bread, whole-wheat, commercially prepared",
           "primary": true,
           "unit": "slice",
@@ -12211,7 +12211,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "unit": "loaf",
           "count": 1
@@ -12400,7 +12400,7 @@
         },
         {
           "fdcId": 170026,
-          "grams": 159.8,
+          "grams": 112.5,
           "note": "Potatoes, flesh and skin, raw",
           "primary": true,
           "unit": "piece",
@@ -12462,7 +12462,7 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
@@ -12509,7 +12509,7 @@
       "ingredients": [
         {
           "fdcId": 174924,
-          "grams": 58,
+          "grams": 56,
           "note": "Bread, white, commercially prepared (includes soft bread crumbs)",
           "primary": true,
           "unit": "slice",
@@ -12561,7 +12561,7 @@
       "ingredients": [
         {
           "fdcId": 172688,
-          "grams": 72,
+          "grams": 63,
           "note": "Bread, whole-wheat, commercially prepared",
           "primary": true,
           "unit": "slice",
@@ -12663,7 +12663,7 @@
       "ingredients": [
         {
           "fdcId": 172688,
-          "grams": 64,
+          "grams": 56,
           "note": "Bread, whole-wheat, commercially prepared",
           "primary": true,
           "unit": "slice",
@@ -12715,7 +12715,7 @@
       "ingredients": [
         {
           "fdcId": 172688,
-          "grams": 72,
+          "grams": 63,
           "note": "Bread, whole-wheat, commercially prepared",
           "primary": true,
           "unit": "slice",
@@ -12822,7 +12822,7 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
@@ -12902,7 +12902,7 @@
         },
         {
           "fdcId": 170026,
-          "grams": 106.5,
+          "grams": 75,
           "note": "Potatoes, flesh and skin, raw",
           "primary": true,
           "unit": "piece",
@@ -12951,7 +12951,7 @@
         },
         {
           "fdcId": 170026,
-          "grams": 53.2,
+          "grams": 37.5,
           "note": "Potatoes, flesh and skin, raw",
           "unit": "piece",
           "count": 0.25
@@ -13247,7 +13247,7 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "unit": "loaf",
           "count": 1,
@@ -13361,7 +13361,7 @@
         },
         {
           "fdcId": 173904,
-          "grams": 20.2,
+          "grams": 20.3,
           "note": "Cereals, oats, regular and quick, not fortified, dry",
           "primary": true,
           "unit": "cup",

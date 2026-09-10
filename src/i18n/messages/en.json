@@ -3721,5 +3721,28 @@
       "kidney_disease": "Kidney — no dialysis",
       "dialysis": "Kidney — on dialysis"
     }
+  },
+  "portionGuide": {
+    "title": "Measurements",
+    "description": "What each measure weighs in this clinic's plans. These are the same numbers the calories are worked out from, so this table cannot disagree with them.",
+    "columns": {
+      "food": "Food",
+      "unit": "Unit",
+      "weight": "Weight"
+    },
+    "grams": "{value} g",
+    "range": "({min}–{max})",
+    "empty": "No measurements yet.",
+    "groups": {
+      "heaped_spoon": "Heaped spoons",
+      "level_spoon": "Level spoons",
+      "loaf": "Bread",
+      "slice": "Slices",
+      "piece": "Pieces",
+      "cup": "Cups",
+      "container": "Containers",
+      "serving": "Dish servings",
+      "leaf": "Leaves"
+    }
   }
 }
