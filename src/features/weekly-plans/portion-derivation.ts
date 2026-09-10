@@ -93,10 +93,12 @@ export const WEIGHED_CATEGORIES = new Set(['meat', 'poultry', 'fish']);
 /**
  * The families a weighed category may still carry: things you can count.
  *
- * `piece` and `slice` only. A cup, a spoon and a loaf all describe a volume or a
- * shape that meat does not come in.
+ * A cup, a spoon and a loaf describe a volume or a shape that meat does not come
+ * in. A piece, a slice and a **tin** are objects a client is handed — علبة تونا
+ * is written in every one of the clinic's weekly plans, and it is no more a
+ * volume than a drumstick is.
  */
-const COUNTABLE_FAMILIES = new Set<Family>(['piece', 'slice']);
+const COUNTABLE_FAMILIES = new Set<Family>(['piece', 'slice', 'container']);
 
 /** The household families a measured portion can resolve to. */
 type Family = 'cup' | 'tbsp' | 'tsp' | 'slice' | 'piece' | 'loaf' | 'leaf' | 'container' | 'none';

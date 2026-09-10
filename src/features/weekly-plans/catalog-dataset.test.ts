@@ -367,15 +367,16 @@ describe('portions', () => {
    * Meat, poultry and fish go by grams — a product choice, not a data gap.
    *
    * Countable cuts are the exception the dietitian asked for: a دبوس دجاج is a
-   * thing a client is handed and USDA measures it. A cup of chicken is still not
-   * a serving, so the volume families stay out.
+   * thing a client is handed and USDA measures it, and so is the علبة تونا her
+   * plans write. A cup of chicken is still not a serving, so the volume families
+   * stay out.
    */
   test('never carry a volume portion in the categories a dietitian weighs', () => {
     for (const food of foods) {
       if (!WEIGHED_CATEGORIES.has(food.category)) continue;
 
       for (const portion of food.portions) {
-        expect(['piece', 'slice']).toContain(portion.key);
+        expect(['piece', 'slice', 'container']).toContain(portion.key);
       }
     }
   });
