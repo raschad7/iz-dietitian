@@ -82,10 +82,18 @@ describe('a weight that cannot be what its key claims', () => {
     expect(implausibleWeight({ key: 'heaped-spoon', grams: 8.4 })).toContain('below');
   });
 
+  test('a cup of something mostly air is not an error', () => {
+    // A cup of popcorn is 8 g and a cup of جرجير is 20. The floor was set from
+    // the lightest food anyone had entered rather than the lightest there is,
+    // and it refused both.
+    expect(implausibleWeight({ key: 'cup', grams: 8 })).toBeNull();
+    expect(implausibleWeight({ key: 'cup', grams: 20 })).toBeNull();
+  });
+
   test('bounds scale with the fraction the key names', () => {
-    // 15 g is a correct half cup of spinach and an impossible whole cup of it.
-    expect(implausibleWeight({ key: 'half-cup', grams: 15 })).toBeNull();
-    expect(implausibleWeight({ key: 'cup', grams: 15 })).toContain('below');
+    // 4 g is a fine quarter cup of something puffed and an impossible whole cup.
+    expect(implausibleWeight({ key: 'quarter-cup', grams: 4 })).toBeNull();
+    expect(implausibleWeight({ key: 'cup', grams: 4 })).toContain('below');
   });
 
   /*

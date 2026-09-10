@@ -240,10 +240,17 @@ export type ContractPortion = {
  * called a correct 15 g half-cup of spinach an error.
  *
  * Where a unit names a volume the range is that volume across the density of food
- * — roughly 0.1 g/ml for leaves and 1.5 g/ml for honey or oil-soaked grain. That
- * is a real physical bound rather than a guess, and it is wide on purpose: the
- * point is to catch a portion that is the wrong *kind* of thing, not to
- * second-guess a measured number.
+ * — roughly 0.025 g/ml for air-puffed food and 1.5 g/ml for honey or oil-soaked
+ * grain. That is a real physical bound rather than a guess, and it is wide on
+ * purpose: the point is to catch a portion that is the wrong *kind* of thing, not
+ * to second-guess a measured number.
+ *
+ * The cup's floor was 0.1 g/ml until popcorn and جرجير arrived and were refused
+ * at 8 g and 20 g a cup. Both are correct: a cup of popcorn is mostly air, and a
+ * cup of loose leaves barely more. The floor had been set from the lightest food
+ * anyone had entered rather than from the lightest food there is, which is how a
+ * plausibility check comes to reject reality. It still catches what it is for —
+ * a cup recorded at a teaspoon's weight.
  *
  * Units that name an *object* are mostly left unbounded, because their spread is
  * genuinely enormous — a mint leaf is 0.15 g and a cabbage leaf 23 g, a radish
@@ -257,9 +264,9 @@ export type ContractPortion = {
  */
 const PLAUSIBLE_GRAMS: Partial<Record<PortionKey, readonly [number, number]>> = {
   /* 240 ml. */
-  cup: [24, 360],
-  'half-cup': [12, 180],
-  'quarter-cup': [6, 90],
+  cup: [6, 360],
+  'half-cup': [3, 180],
+  'quarter-cup': [1.5, 90],
 
   /* 15 ml levelled, and 5 ml for its third. */
   'level-tablespoon': [1.5, 22],

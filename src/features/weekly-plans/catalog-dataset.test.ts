@@ -11,7 +11,7 @@ import {
 import { readCatalogDataset, validateCuratedFoods } from '../../../scripts/seed-catalog-foods';
 
 import { normalizeArabic } from './arabic-normalize';
-import { derivePortions, GRAMS_ONLY_CATEGORIES } from './portion-derivation';
+import { derivePortions, WEIGHED_CATEGORIES } from './portion-derivation';
 import { NUTRIENT_KEYS } from './nutrition';
 
 /**
@@ -114,6 +114,11 @@ describe('preparation states', () => {
    * Raw, dry and cooked carry different nutrition per 100 g. Keeping them as
    * separate entries is only half the job: their *names* have to say which is
    * which, or a dietitian reading a result list cannot tell them apart.
+   *
+   * The pairs here are grains, vegetables and eggs. **Meat, poultry and fish have
+   * no raw entry at all**: every plan is written in cooked amounts, none of the
+   * raw rows was ever used by a recipe, and their only effect was to put a second
+   * "صدر دجاج" in the search for a dietitian to pick wrong.
    */
   test('raw/dry and cooked counterparts are separate entries with distinct names', () => {
     const pairs = [
@@ -123,7 +128,7 @@ describe('preparation states', () => {
       ['couscous-dry', 'couscous-cooked'],
       ['pasta-dry', 'pasta-cooked'],
       ['potato-raw', 'potato-boiled'],
-      ['chicken-breast-raw', 'chicken-breast-roasted'],
+      ['sweet-potato-raw', 'sweet-potato-baked'],
       ['egg-raw', 'egg-boiled'],
     ] as const;
 
@@ -180,7 +185,7 @@ describe('generic aliases', () => {
 
     for (const [term, expectedSlug] of [
       ['رز', 'rice-white-dry'],
-      ['دجاج', 'chicken-breast-raw'],
+      ['دجاج', 'chicken-breast-roasted'],
       ['طماطم', 'tomato-raw'],
       ['بندورة', 'tomato-raw'],
       ['لبن', 'yogurt-whole'],
@@ -343,10 +348,20 @@ describe('portions', () => {
     }
   });
 
-  /** Meat, poultry and fish go by grams — a product choice, not a data gap. */
-  test('are absent from the categories a dietitian weighs', () => {
+  /**
+   * Meat, poultry and fish go by grams — a product choice, not a data gap.
+   *
+   * Countable cuts are the exception the dietitian asked for: a دبوس دجاج is a
+   * thing a client is handed and USDA measures it. A cup of chicken is still not
+   * a serving, so the volume families stay out.
+   */
+  test('never carry a volume portion in the categories a dietitian weighs', () => {
     for (const food of foods) {
-      if (GRAMS_ONLY_CATEGORIES.has(food.category)) expect(food.portions).toEqual([]);
+      if (!WEIGHED_CATEGORIES.has(food.category)) continue;
+
+      for (const portion of food.portions) {
+        expect(['piece', 'slice']).toContain(portion.key);
+      }
     }
   });
 

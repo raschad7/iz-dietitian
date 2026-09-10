@@ -71,14 +71,32 @@ export type PortionSeed = {
 };
 
 /**
- * Categories a dietitian weighs rather than portions.
+ * Categories a dietitian weighs rather than measures by volume.
  *
  * The source data does carry "1 cup, chopped or diced" for cooked chicken, but "a
  * cup of chicken" is not how a plan is written — meat, poultry and fish go by
- * grams. A deliberate product choice, carried over from Phase 1 unchanged, and the
- * reason those foods simply have no portion rows.
+ * grams. A deliberate product choice, carried over from Phase 1.
+ *
+ * It used to mean *no portions at all*, which went further than the reason for
+ * it. A cup of chicken is not a serving; a drumstick is, and so is a slice of
+ * deli turkey — those are countable objects a client is handed, and USDA
+ * measures them. The dietitian asked for chicken by the piece, and the argument
+ * against it was only ever an argument against the volume units.
+ *
+ * So the categories keep their ban on volume and keep whatever countable
+ * portions the source actually measured. A cut with no measured piece — a
+ * boneless breast, a stewing cube — still has none, because its weight is
+ * whatever was put on the scale.
  */
-export const GRAMS_ONLY_CATEGORIES = new Set(['meat', 'poultry', 'fish']);
+export const WEIGHED_CATEGORIES = new Set(['meat', 'poultry', 'fish']);
+
+/**
+ * The families a weighed category may still carry: things you can count.
+ *
+ * `piece` and `slice` only. A cup, a spoon and a loaf all describe a volume or a
+ * shape that meat does not come in.
+ */
+const COUNTABLE_FAMILIES = new Set<Family>(['piece', 'slice']);
 
 /** The household families a measured portion can resolve to. */
 type Family = 'cup' | 'tbsp' | 'tsp' | 'slice' | 'piece' | 'loaf' | 'leaf' | 'container' | 'none';
@@ -92,6 +110,9 @@ export const PIECE_WORDS = new Set([
   'large', 'medium', 'small', 'extra', 'unit', 'piece', 'each', 'whole', 'fillet',
   'link', 'patty', 'stick', 'clove', 'ear', 'fruit', 'pod', 'strip',
   'ball', 'bar', 'cookie', 'cracker', 'chip', 'date',
+  // Cuts a client is handed whole: دبوس، ورك، جناح. USDA measures each of them,
+  // and `MAX_PIECE_GRAMS` is what stops "1 leg of lamb" joining them.
+  'drumstick', 'thigh', 'wing', 'leg', 'breast', 'chop',
 ]);
 
 /**
@@ -413,6 +434,22 @@ function isServable(label: string, unit: string, family: Family, grams: number):
   if (WHOLE_PLANT_WORDS.has(unit)) return false;
   if (lower.includes('yields') && (family === 'piece' || family === 'slice')) return false;
 
+  /*
+    "yield from" is a cooking loss, never a serving — and it is refused for every
+    family, unlike the `yields` rule above.
+
+    USDA publishes meat as `1 unit, cooked (yield from 1 lb raw meat) = 272 g`:
+    what a pound of raw lamb cooks down to. Read as a countable unit it becomes
+    **one حبة لحم غنم of 272 g**, and 313 g of ground lamb as a single piece. It
+    is the watermelon-wedge error in its most expensive form, and it appeared the
+    moment meat was allowed to carry countable portions at all.
+
+    The right number is always on the next line: `1 thigh without skin`,
+    `1 wing, bone and skin removed`, `0.5 breast, bone and skin removed`. Refusing
+    the yield is what lets the derivation find it.
+  */
+  if (lower.includes('yield from')) return false;
+
   return grams <= MAX_SERVABLE_GRAMS;
 }
 
@@ -517,7 +554,6 @@ export function derivePortions(source: {
   nameEn?: string;
   portions: readonly MeasuredPortion[] | null | undefined;
 }): PortionSeed[] {
-  if (GRAMS_ONLY_CATEGORIES.has(source.category)) return [];
   if (!source.portions?.length) return [];
 
   /** The best measured base for one of each family. */
@@ -542,6 +578,8 @@ export function derivePortions(source: {
       if (one > MAX_PIECE_GRAMS || one < MIN_PIECE_GRAMS) continue;
     }
     if (SPOON_ONLY_CATEGORIES.has(source.category) && !SPOON_FAMILIES.has(family)) continue;
+    // Meat by the piece, never by the cup — see `WEIGHED_CATEGORIES`.
+    if (WEIGHED_CATEGORIES.has(source.category) && !COUNTABLE_FAMILIES.has(family)) continue;
 
     // "0.5 cup, diced = 75 g" means a whole cup is 150 g. The label's own count is
     // what makes the base recoverable.
