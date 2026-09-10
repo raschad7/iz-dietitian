@@ -47,6 +47,7 @@
  */
 
 import { GRAMS_STEP, unitStep } from './ingredient-units';
+import type { PortionKey } from './portion-contract';
 import { countLimit } from './portion-limits';
 import type { FoodNutrients } from './nutrition';
 import { isSimilar, MAX_SERVINGS, MIN_SERVINGS, SERVING_STEP } from './similar';
@@ -70,7 +71,7 @@ export type PortionableLine = {
     FoodNutrients,
     'kcal'
   >;
-  portion?: { labelEn: string; grams: number } | null;
+  portion?: { key: PortionKey; grams: number; step?: number | null; maxPerMeal?: number | null } | null;
   /** How many of that portion one base serving is. */
   portionQuantity?: number | null;
   isPrimary?: boolean;
@@ -193,17 +194,25 @@ export function lineCeiling(line: PortionableLine): number | null {
   const counted: number[] = [];
 
   /*
-    The per-food limit first, because it is the one somebody decided. A category
-    cannot tell a grape from an almond, and the weight ceiling alone let a
-    forty-gram allowance become fifty-seven pistachios.
+    The ceiling carried by the portion row itself first, because it is the one
+    somebody decided about this exact food in this exact unit. A category cannot
+    tell a grape from an almond, and the weight ceiling alone let a forty-gram
+    allowance become fifty-seven pistachios.
+
+    `countLimit` is the same decision still living in `portion-limits.ts` for the
+    foods whose ceiling has not been moved onto its row yet. It is consulted
+    second and both are minimised, so migrating one food changes nothing until
+    someone deliberately writes a different number.
   */
-  const perFood = countLimit(line.food.slug, line.portion.labelEn);
+  if (typeof line.portion.maxPerMeal === 'number') counted.push(line.portion.maxPerMeal);
+
+  const perFood = countLimit(line.food.slug, line.portion.key);
   if (perFood !== null) counted.push(perFood);
 
-  if (line.portion.labelEn === 'Piece' && PIECE_CEILINGS[category] !== undefined) {
+  if (line.portion.key === 'piece' && PIECE_CEILINGS[category] !== undefined) {
     counted.push(PIECE_CEILINGS[category]!);
   }
-  if (line.portion.labelEn === 'Container') counted.push(CONTAINER_CEILING);
+  if (line.portion.key === 'container') counted.push(CONTAINER_CEILING);
 
   // A weight ceiling becomes a count ceiling through the line's own
   // grams-per-count, which is the stored relationship rather than the portion's
@@ -258,7 +267,10 @@ export function stepFromBase(base: number, target: number, step: number, ceiling
 /** Whether a line's portion can carry its amount. */
 function usablePortion(
   line: PortionableLine,
-): line is PortionableLine & { portion: { labelEn: string; grams: number }; portionQuantity: number } {
+): line is PortionableLine & {
+  portion: { key: PortionKey; grams: number };
+  portionQuantity: number;
+} {
   return Boolean(
     line.portion &&
       line.portion.grams > 0 &&

@@ -43,6 +43,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { NUTRIENT_KEYS } from '@/features/weekly-plans/nutrition';
+import { portionSetProblems, type PortionRule } from '@/features/weekly-plans/portion-contract';
 import { derivePortions, type PortionSeed } from '@/features/weekly-plans/portion-derivation';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -90,6 +91,16 @@ type CuratedFood = {
    * Curated: read here, appended after the derived rows, never rewritten.
    */
   extraPortions?: PortionSeed[];
+  /**
+   * The curated facts about this food's portions, keyed by portion key.
+   *
+   * The half of the portion contract USDA must not be able to overwrite: a
+   * corrected weight, the step a dietitian's `-`/`+` moves by, the ceiling one
+   * meal may hold, where the number came from, and who reviewed it.
+   *
+   * Curated: read here, folded onto the derived rows by key, never rewritten.
+   */
+  portionRules?: Record<string, PortionRule>;
   aliasesAr: string[];
   aliasesEn: string[];
 };
@@ -126,9 +137,11 @@ export function catalogChecksum(foods: readonly unknown[]): string {
  * what it should start in, so appending leaves `isDefault` where the derivation
  * put it. A curated row only ever adds a unit the dietitian can choose.
  *
- * A curated label that collides with a derived one is dropped rather than
- * overwriting it - the seed upserts portions on `(food_id, label_en)`, so two rows
- * claiming the same label would be one row with whichever weight was written last.
+ * A curated key that collides with a derived one is dropped rather than
+ * overwriting it - the seed upserts portions on `(food_id, key)`, so two rows
+ * claiming the same identity would be one row with whichever weight was written
+ * last. To *change* a derived weight, write a `portionRules` entry for its key;
+ * that is a stated override rather than a collision resolved by ordering.
  */
 export function withExtras(
   derived: readonly PortionSeed[],
@@ -136,12 +149,12 @@ export function withExtras(
 ): PortionSeed[] {
   if (!extras?.length) return [...derived];
 
-  const taken = new Set(derived.map((portion) => portion.labelEn));
+  const taken = new Set(derived.map((portion) => portion.key));
   const rows = [...derived];
 
   for (const extra of extras) {
-    if (taken.has(extra.labelEn) || !(extra.grams > 0)) continue;
-    taken.add(extra.labelEn);
+    if (taken.has(extra.key) || !(extra.grams > 0)) continue;
+    taken.add(extra.key);
 
     rows.push({
       ...extra,
@@ -174,11 +187,60 @@ export function promoteCountedUnit(
   portions: readonly PortionSeed[],
   countedAs: string | undefined,
 ): PortionSeed[] {
-  if (!countedAs || !portions.some((portion) => portion.labelEn === countedAs)) {
+  if (!countedAs || !portions.some((portion) => portion.key === countedAs)) {
     return [...portions];
   }
 
-  return portions.map((portion) => ({ ...portion, isDefault: portion.labelEn === countedAs }));
+  return portions.map((portion) => ({ ...portion, isDefault: portion.key === countedAs }));
+}
+
+/**
+ * Folds a food's curated portion facts onto the rows they describe, by key.
+ *
+ * This is the half of the contract the USDA build must not be able to erase.
+ * `derivePortions` regenerates weights from the source dataset on every run, so a
+ * correction typed into the generated output would be reverted the next time
+ * anyone ran it - which is exactly why the catalog still ships a 60 g رغيف and a
+ * bulgur spoon a third of the size a dietitian means.
+ *
+ * A rule may override the weight; the rest of it - step, ceiling, evidence,
+ * review - is carried through untouched. A rule naming a key the food has no
+ * portion for is a build error rather than a silent no-op, which is the same
+ * check `LIMITED_FOODS` already gets and for the same reason: a rule that stops
+ * matching stops applying, and nobody hears about it.
+ */
+export function applyPortionRules(
+  portions: readonly PortionSeed[],
+  rules: Record<string, PortionRule> | undefined,
+): { portions: PortionSeed[]; problems: string[] } {
+  if (!rules) return { portions: [...portions], problems: [] };
+
+  const problems: string[] = [];
+  const byKey = new Set(portions.map((portion) => portion.key));
+
+  for (const key of Object.keys(rules)) {
+    if (!byKey.has(key as PortionSeed['key'])) {
+      problems.push(`portionRules names "${key}", which is not one of its portions`);
+    }
+  }
+
+  const merged = portions.map((portion) => {
+    const rule = rules[portion.key];
+    if (!rule) return { ...portion };
+
+    return {
+      ...portion,
+      grams: rule.grams ?? portion.grams,
+      step: rule.step ?? portion.step,
+      maxPerMeal: rule.maxPerMeal ?? portion.maxPerMeal,
+      evidence: rule.evidence ?? portion.evidence,
+      reviewStatus: rule.reviewStatus ?? portion.reviewStatus,
+      reviewedBy: rule.reviewedBy ?? portion.reviewedBy,
+      reviewedAt: rule.reviewedAt ?? portion.reviewedAt,
+    };
+  });
+
+  return { portions: merged, problems };
 }
 
 function build(): void {
@@ -210,6 +272,25 @@ function build(): void {
         problems.push(`${curated.slug}: a non-USDA food needs a sourceRef of 900000 or above`);
       }
 
+      /*
+        A non-USDA food's portions are hand-written rather than derived, so they
+        take none of the derivation's keys and none of its checks. They still have
+        to satisfy the contract — this path is exactly how labaneh came to ship
+        two portions with no identity at all, which the seed would have refused
+        and the build had happily written.
+      */
+      for (const portion of curated.portions ?? []) {
+        if (!portion.key) {
+          problems.push(`${curated.slug}: hand-written portion "${portion.labelEn}" has no key`);
+        }
+      }
+
+      for (const problem of portionSetProblems(
+        (curated.portions ?? []).filter((portion) => portion.key),
+      )) {
+        problems.push(`${curated.slug}: ${problem}`);
+      }
+
       return curated;
     }
 
@@ -234,6 +315,30 @@ function build(): void {
       if (nutrition[key] === null) problems.push(`${curated.slug}: source has no ${key} value`);
     }
 
+    const ruled = applyPortionRules(
+      withExtras(
+        derivePortions({
+          category: curated.category,
+          nameEn: curated.nameEn,
+          portions: source.portions ?? [],
+        }),
+        curated.extraPortions,
+      ),
+      curated.portionRules,
+    );
+
+    for (const problem of ruled.problems) problems.push(`${curated.slug}: ${problem}`);
+
+    /*
+      A weight that cannot be what its key claims, or a set of weights that
+      contradicts itself. Checked here as well as in the seed because the build is
+      where a `portionRules` override lands: a corrected رغيف that made the half
+      loaf wrong should fail the run that wrote it, not the seed a week later.
+    */
+    for (const problem of portionSetProblems(ruled.portions)) {
+      problems.push(`${curated.slug}: ${problem}`);
+    }
+
     return {
       ...curated,
       // The description this fdcId carried when the file was generated. The seed
@@ -241,17 +346,7 @@ function build(): void {
       // different food is caught before any nutrition is trusted.
       note: source.description,
       nutrition,
-      portions: promoteCountedUnit(
-        withExtras(
-          derivePortions({
-            category: curated.category,
-            nameEn: curated.nameEn,
-            portions: source.portions ?? [],
-          }),
-          curated.extraPortions,
-        ),
-        curated.countedAs,
-      ),
+      portions: promoteCountedUnit(ruled.portions, curated.countedAs),
     };
   });
 

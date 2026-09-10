@@ -36,7 +36,7 @@
           "grams": 14.4,
           "note": "Nuts, almonds",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12
         }
       ]
@@ -62,7 +62,7 @@
           "fdcId": 171688,
           "grams": 182,
           "note": "Apples, raw, with skin",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1,
           "primary": true
         },
@@ -70,7 +70,7 @@
           "fdcId": 170567,
           "grams": 14.4,
           "note": "Nuts, almonds",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12
         }
       ]
@@ -97,7 +97,7 @@
           "grams": 182,
           "note": "Apples, raw, with skin (Includes foods for USDA's Food Distribution Program)",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1
         },
         {
@@ -177,11 +177,11 @@
       "ingredients": [
         {
           "fdcId": 170026,
-          "grams": 213.0,
+          "grams": 213,
           "note": "Potatoes, flesh and skin, raw",
           "primary": true,
-          "unit": "Piece",
-          "count": 1.0
+          "unit": "piece",
+          "count": 1
         },
         {
           "fdcId": 173420,
@@ -241,7 +241,7 @@
           "fdcId": 168878,
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6,
           "primary": true
         }
@@ -273,7 +273,7 @@
           "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 9
         },
         {
@@ -315,22 +315,22 @@
           "grams": 118,
           "note": "Bananas, raw",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1
         },
         {
           "fdcId": 171267,
-          "grams": 244.0,
+          "grams": 244,
           "note": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.0
+          "unit": "cup",
+          "count": 1
         },
         {
           "fdcId": 173904,
           "grams": 20.2,
           "note": "Cereals, oats, regular and quick, not fortified, dry",
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.25
         },
         {
@@ -361,7 +361,7 @@
           "fdcId": 173944,
           "grams": 118,
           "note": "Bananas, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1,
           "primary": true
         },
@@ -393,7 +393,7 @@
           "grams": 159.8,
           "note": "Potatoes, flesh and skin, raw",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 0.75
         },
         {
@@ -442,7 +442,7 @@
           "fdcId": 168878,
           "grams": 125,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 5,
           "primary": true
         },
@@ -494,7 +494,7 @@
           "fdcId": 168878,
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6,
           "primary": true
         },
@@ -537,7 +537,7 @@
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6
         },
         {
@@ -583,7 +583,7 @@
           "grams": 208.8,
           "note": "Potatoes, boiled, cooked without skin, flesh, without salt",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1.25
         },
         {
@@ -632,7 +632,7 @@
           "grams": 183.8,
           "note": "Yogurt, plain, whole milk",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.75
         }
       ]
@@ -678,11 +678,11 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64.0,
+          "grams": 64,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
-          "unit": "Loaf",
-          "count": 1.0
+          "unit": "loaf",
+          "count": 1
         }
       ]
     },
@@ -708,7 +708,7 @@
           "grams": 50,
           "note": "Egg, whole, cooked, hard-boiled",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1
         }
       ]
@@ -736,16 +736,16 @@
           "grams": 50,
           "note": "Egg, whole, cooked, hard-boiled",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1
         },
         {
           "fdcId": 172688,
-          "grams": 32.0,
+          "grams": 32,
           "note": "Bread, whole-wheat, commercially prepared",
           "primary": true,
-          "unit": "Slice",
-          "count": 1.0
+          "unit": "slice",
+          "count": 1
         },
         {
           "fdcId": 168409,
@@ -777,7 +777,7 @@
           "fdcId": 173424,
           "grams": 100,
           "note": "Egg, whole, cooked, hard-boiled",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2,
           "primary": true
         },
@@ -785,7 +785,7 @@
           "fdcId": 174916,
           "grams": 64,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1,
           "primary": true
         },
@@ -825,7 +825,7 @@
           "fdcId": 173424,
           "grams": 100,
           "note": "Egg, whole, cooked, hard-boiled",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2,
           "primary": true
         },
@@ -868,11 +868,11 @@
       "ingredients": [
         {
           "fdcId": 900001,
-          "grams": 45.0,
+          "grams": 45,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
-          "unit": "Tablespoon",
-          "count": 3.0
+          "unit": "level-tablespoon",
+          "count": 3
         },
         {
           "fdcId": 173420,
@@ -884,14 +884,14 @@
           "fdcId": 169096,
           "grams": 29.7,
           "note": "Olives, pickled, canned or bottled, green",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 11
         },
         {
           "fdcId": 174916,
           "grams": 64,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -1002,7 +1002,7 @@
           "fdcId": 174915,
           "grams": 60,
           "note": "Bread, pita, white, enriched",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -1031,10 +1031,10 @@
       "ingredients": [
         {
           "fdcId": 170287,
-          "grams": 273.0,
+          "grams": 273,
           "note": "Bulgur, cooked",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.5
         },
         {
@@ -1077,7 +1077,7 @@
           "grams": 227.5,
           "note": "Bulgur, cooked",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.25
         },
         {
@@ -1126,7 +1126,7 @@
           "grams": 227.5,
           "note": "Bulgur, cooked",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.25
         },
         {
@@ -1149,7 +1149,7 @@
           "grams": 63.2,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
-          "unit": "Container",
+          "unit": "container",
           "count": 0.25
         }
       ]
@@ -1175,10 +1175,10 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 90.0,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1.5
         },
         {
@@ -1337,11 +1337,11 @@
         },
         {
           "fdcId": 900001,
-          "grams": 30.0,
+          "grams": 30,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
-          "unit": "Tablespoon",
-          "count": 2.0
+          "unit": "level-tablespoon",
+          "count": 2
         }
       ]
     },
@@ -1372,7 +1372,7 @@
           "grams": 63.2,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
-          "unit": "Container",
+          "unit": "container",
           "count": 0.25
         },
         {
@@ -1404,7 +1404,7 @@
           "grams": 19.2,
           "note": "Nuts, cashew nuts, raw",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12
         },
         {
@@ -1412,7 +1412,7 @@
           "grams": 48,
           "note": "Dates, medjool",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2
         }
       ]
@@ -1439,7 +1439,7 @@
           "grams": 19.2,
           "note": "Nuts, cashew nuts, raw",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12
         }
       ]
@@ -1476,7 +1476,7 @@
           "fdcId": 168878,
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6,
           "primary": true
         },
@@ -1511,7 +1511,7 @@
           "grams": 64,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -1524,7 +1524,7 @@
           "fdcId": 169096,
           "grams": 24.3,
           "note": "Olives, pickled, canned or bottled, green",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 9
         },
         {
@@ -1557,10 +1557,10 @@
       "ingredients": [
         {
           "fdcId": 172688,
-          "grams": 72.0,
+          "grams": 72,
           "note": "Bread, whole-wheat, commercially prepared",
           "primary": true,
-          "unit": "Slice",
+          "unit": "slice",
           "count": 2.25
         },
         {
@@ -1568,7 +1568,7 @@
           "grams": 50,
           "note": "Egg, whole, cooked, hard-boiled",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1
         },
         {
@@ -1608,7 +1608,7 @@
           "grams": 150,
           "note": "Egg, whole, raw, fresh",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 3
         },
         {
@@ -1619,10 +1619,10 @@
         },
         {
           "fdcId": 170440,
-          "grams": 167.0,
+          "grams": 167,
           "note": "Potatoes, boiled, cooked without skin, flesh, without salt",
-          "unit": "Piece",
-          "count": 1.0
+          "unit": "piece",
+          "count": 1
         },
         {
           "fdcId": 170427,
@@ -1659,7 +1659,7 @@
           "grams": 60,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -1704,21 +1704,21 @@
           "grams": 100,
           "note": "Egg, whole, cooked, hard-boiled",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2
         },
         {
           "fdcId": 169096,
           "grams": 29.7,
           "note": "Olives, pickled, canned or bottled, green",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 11
         },
         {
           "fdcId": 174916,
           "grams": 64,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -1749,10 +1749,10 @@
       "ingredients": [
         {
           "fdcId": 169737,
-          "grams": 186.0,
+          "grams": 186,
           "note": "Pasta, cooked, enriched, without added salt",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.5
         },
         {
@@ -1799,10 +1799,10 @@
       "ingredients": [
         {
           "fdcId": 172688,
-          "grams": 48.0,
+          "grams": 48,
           "note": "Bread, whole-wheat, commercially prepared",
           "primary": true,
-          "unit": "Slice",
+          "unit": "slice",
           "count": 1.5
         },
         {
@@ -1845,7 +1845,7 @@
           "grams": 200,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 8
         },
         {
@@ -1888,7 +1888,7 @@
           "grams": 227.5,
           "note": "Bulgur, cooked",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.25
         },
         {
@@ -1985,7 +1985,7 @@
           "grams": 196.2,
           "note": "Couscous, cooked",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.25
         },
         {
@@ -2027,7 +2027,7 @@
           "grams": 235.5,
           "note": "Couscous, cooked",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.5
         },
         {
@@ -2073,10 +2073,10 @@
       "ingredients": [
         {
           "fdcId": 900002,
-          "grams": 90.0,
+          "grams": 90,
           "note": "Freekeh, roasted green wheat, dry (manufacturer panels)",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
@@ -2099,7 +2099,7 @@
           "fdcId": 170567,
           "grams": 14.4,
           "note": "Nuts, almonds",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12
         }
       ]
@@ -2130,17 +2130,17 @@
         },
         {
           "fdcId": 900002,
-          "grams": 90.0,
+          "grams": 90,
           "note": "Freekeh, roasted green wheat, dry (manufacturer panels)",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
           "fdcId": 171284,
           "grams": 122.5,
           "note": "Yogurt, plain, whole milk",
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
@@ -2257,11 +2257,11 @@
       "ingredients": [
         {
           "fdcId": 169737,
-          "grams": 248.0,
+          "grams": 248,
           "note": "Pasta, cooked, enriched, without added salt",
           "primary": true,
-          "unit": "Cup",
-          "count": 2.0
+          "unit": "cup",
+          "count": 2
         },
         {
           "fdcId": 171477,
@@ -2312,7 +2312,7 @@
           "grams": 175,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 7
         },
         {
@@ -2354,7 +2354,7 @@
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6
         },
         {
@@ -2405,7 +2405,7 @@
           "grams": 64,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -2455,7 +2455,7 @@
           "grams": 64,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -2509,7 +2509,7 @@
           "fdcId": 174915,
           "grams": 60,
           "note": "Bread, pita, white, enriched",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1,
           "primary": true
         },
@@ -2598,11 +2598,11 @@
         },
         {
           "fdcId": 170440,
-          "grams": 167.0,
+          "grams": 167,
           "note": "Potatoes, boiled, cooked without skin, flesh, without salt",
           "primary": true,
-          "unit": "Piece",
-          "count": 1.0
+          "unit": "piece",
+          "count": 1
         },
         {
           "fdcId": 170393,
@@ -2645,7 +2645,7 @@
           "grams": 60,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -2694,7 +2694,7 @@
           "grams": 189.8,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
-          "unit": "Container",
+          "unit": "container",
           "count": 0.75
         },
         {
@@ -2716,7 +2716,7 @@
           "fdcId": 168878,
           "grams": 125,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 5,
           "primary": true
         }
@@ -2743,18 +2743,18 @@
       "ingredients": [
         {
           "fdcId": 173757,
-          "grams": 205.0,
+          "grams": 205,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.25
         },
         {
           "fdcId": 174915,
-          "grams": 90.0,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1.5
         },
         {
@@ -2766,7 +2766,7 @@
           "fdcId": 171284,
           "grams": 122.5,
           "note": "Yogurt, plain, whole milk",
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
@@ -2801,10 +2801,10 @@
         },
         {
           "fdcId": 171267,
-          "grams": 183.0,
+          "grams": 183,
           "note": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.75
         }
       ]
@@ -2866,24 +2866,24 @@
         },
         {
           "fdcId": 171267,
-          "grams": 244.0,
+          "grams": 244,
           "note": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.0
+          "unit": "cup",
+          "count": 1
         },
         {
           "fdcId": 173944,
           "grams": 118,
           "note": "Bananas, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1
         },
         {
           "fdcId": 170567,
           "grams": 14.4,
           "note": "Nuts, almonds",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12
         }
       ]
@@ -2943,7 +2943,7 @@
           "grams": 122.5,
           "note": "Yogurt, plain, whole milk",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
@@ -2990,7 +2990,7 @@
           "grams": 159.8,
           "note": "Potatoes, flesh and skin, raw",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 0.75
         },
         {
@@ -3027,16 +3027,16 @@
           "grams": 48,
           "note": "Dates, medjool",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2
         },
         {
           "fdcId": 900001,
-          "grams": 30.0,
+          "grams": 30,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
-          "unit": "Tablespoon",
-          "count": 2.0
+          "unit": "level-tablespoon",
+          "count": 2
         }
       ]
     },
@@ -3061,7 +3061,7 @@
           "fdcId": 168191,
           "grams": 36,
           "note": "Dates, medjool",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1.5,
           "primary": true
         },
@@ -3069,7 +3069,7 @@
           "fdcId": 170187,
           "grams": 16,
           "note": "Nuts, walnuts, english",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 4
         }
       ]
@@ -3097,7 +3097,7 @@
           "grams": 150,
           "note": "Egg, whole, raw, fresh",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 3
         },
         {
@@ -3105,7 +3105,7 @@
           "grams": 175,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 7
         },
         {
@@ -3148,7 +3148,7 @@
           "grams": 150,
           "note": "Egg, whole, raw, fresh",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 3
         },
         {
@@ -3156,7 +3156,7 @@
           "grams": 208.8,
           "note": "Potatoes, boiled, cooked without skin, flesh, without salt",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1.25
         },
         {
@@ -3199,17 +3199,17 @@
           "fdcId": 171287,
           "grams": 100,
           "note": "Egg, whole, raw, fresh",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2,
           "primary": true
         },
         {
           "fdcId": 174915,
-          "grams": 60.0,
+          "grams": 60,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
-          "count": 1.0
+          "unit": "loaf",
+          "count": 1
         },
         {
           "fdcId": 170457,
@@ -3247,7 +3247,7 @@
           "grams": 150,
           "note": "Egg, whole, raw, fresh",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 3
         },
         {
@@ -3260,7 +3260,7 @@
           "fdcId": 174916,
           "grams": 64,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -3299,7 +3299,7 @@
           "grams": 100,
           "note": "Egg, whole, raw, fresh",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2
         },
         {
@@ -3312,7 +3312,7 @@
           "fdcId": 174916,
           "grams": 64,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -3357,22 +3357,22 @@
           "grams": 100,
           "note": "Egg, whole, raw, fresh",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2
         },
         {
           "fdcId": 900001,
-          "grams": 45.0,
+          "grams": 45,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
-          "unit": "Tablespoon",
-          "count": 3.0
+          "unit": "level-tablespoon",
+          "count": 3
         },
         {
           "fdcId": 174916,
           "grams": 64,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -3412,7 +3412,7 @@
           "grams": 100,
           "note": "Egg, whole, raw, fresh",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2
         },
         {
@@ -3427,10 +3427,10 @@
         },
         {
           "fdcId": 174916,
-          "grams": 32.0,
+          "grams": 32,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 0.5
         }
       ]
@@ -3458,7 +3458,7 @@
           "grams": 150,
           "note": "Egg, whole, raw, fresh",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 3
         },
         {
@@ -3471,7 +3471,7 @@
           "fdcId": 174916,
           "grams": 64,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -3509,7 +3509,7 @@
           "fdcId": 171287,
           "grams": 100,
           "note": "Egg, whole, raw, fresh",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2,
           "primary": true
         },
@@ -3517,7 +3517,7 @@
           "fdcId": 174916,
           "grams": 64,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1,
           "primary": true
         },
@@ -3556,7 +3556,7 @@
           "fdcId": 171287,
           "grams": 100,
           "note": "Egg, whole, raw, fresh",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2,
           "primary": true
         },
@@ -3574,7 +3574,7 @@
           "fdcId": 174916,
           "grams": 64,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1,
           "primary": true
         }
@@ -3606,10 +3606,10 @@
         },
         {
           "fdcId": 174915,
-          "grams": 90.0,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1.5
         },
         {
@@ -3658,7 +3658,7 @@
           "fdcId": 172455,
           "grams": 102,
           "note": "Falafel, home-prepared",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 6,
           "primary": true
         },
@@ -3666,7 +3666,7 @@
           "fdcId": 174915,
           "grams": 60,
           "note": "Bread, pita, white, enriched",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1,
           "primary": true
         },
@@ -3754,7 +3754,7 @@
           "grams": 60,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -3836,7 +3836,7 @@
           "fdcId": 168878,
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6,
           "primary": true
         }
@@ -3874,7 +3874,7 @@
           "grams": 200,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 8
         },
         {
@@ -3920,7 +3920,7 @@
           "fdcId": 168878,
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6,
           "primary": true
         },
@@ -3962,7 +3962,7 @@
           "grams": 126.5,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
-          "unit": "Container",
+          "unit": "container",
           "count": 0.5
         },
         {
@@ -3970,15 +3970,15 @@
           "grams": 122.5,
           "note": "Yogurt, plain, whole milk",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
           "fdcId": 174915,
-          "grams": 30.0,
+          "grams": 30,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 0.5
         },
         {
@@ -4030,7 +4030,7 @@
           "fdcId": 174915,
           "grams": 30,
           "note": "Bread, pita, white, enriched",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 0.5,
           "primary": true
         },
@@ -4087,10 +4087,10 @@
         },
         {
           "fdcId": 174915,
-          "grams": 30.0,
+          "grams": 30,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 0.5
         },
         {
@@ -4134,7 +4134,7 @@
           "grams": 64,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -4207,21 +4207,21 @@
           "grams": 143,
           "note": "Watermelon, raw",
           "primary": true,
-          "unit": "Slice",
+          "unit": "slice",
           "count": 0.5
         },
         {
           "fdcId": 174683,
           "grams": 113.2,
           "note": "Grapes, red or green (European type, such as Thompson seedless), raw",
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.75
         },
         {
           "fdcId": 171688,
-          "grams": 91.0,
+          "grams": 91,
           "note": "Apples, raw, with skin (Includes foods for USDA's Food Distribution Program)",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 0.5
         }
       ]
@@ -4297,14 +4297,14 @@
           "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 9
         },
         {
           "fdcId": 170567,
           "grams": 14.4,
           "note": "Nuts, almonds",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12
         },
         {
@@ -4316,7 +4316,7 @@
           "fdcId": 171284,
           "grams": 122.5,
           "note": "Yogurt, plain, whole milk",
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         }
       ]
@@ -4350,7 +4350,7 @@
           "grams": 24,
           "note": "Nuts, walnuts, english",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 6
         },
         {
@@ -4384,24 +4384,24 @@
       "ingredients": [
         {
           "fdcId": 170184,
-          "grams": 14.0,
+          "grams": 14,
           "note": "Nuts, pistachio nuts, raw",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 20
         },
         {
           "fdcId": 170162,
           "grams": 19.2,
           "note": "Nuts, cashew nuts, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12
         },
         {
           "fdcId": 170567,
           "grams": 14.4,
           "note": "Nuts, almonds",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12
         }
       ]
@@ -4429,15 +4429,15 @@
           "grams": 100,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 4
         },
         {
           "fdcId": 171265,
-          "grams": 183.0,
+          "grams": 183,
           "note": "Milk, whole, 3.25% milkfat, with added vitamin D",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.75
         },
         {
@@ -4449,7 +4449,7 @@
           "fdcId": 170184,
           "grams": 7.7,
           "note": "Nuts, pistachio nuts, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 11
         }
       ]
@@ -4482,14 +4482,14 @@
           "grams": 200,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 8
         },
         {
           "fdcId": 170567,
           "grams": 14.4,
           "note": "Nuts, almonds",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12
         },
         {
@@ -4523,7 +4523,7 @@
           "fdcId": 173021,
           "grams": 150,
           "note": "Figs, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 3,
           "primary": true
         }
@@ -4558,7 +4558,7 @@
           "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 9
         },
         {
@@ -4606,7 +4606,7 @@
           "grams": 250.5,
           "note": "Potatoes, boiled, cooked without skin, flesh, without salt",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1.5
         },
         {
@@ -4656,7 +4656,7 @@
           "grams": 175,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 7
         },
         {
@@ -4706,14 +4706,14 @@
           "grams": 100,
           "note": "Egg, whole, cooked, hard-boiled",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2
         },
         {
           "fdcId": 174916,
           "grams": 64,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -4762,7 +4762,7 @@
           "fdcId": 174915,
           "grams": 60,
           "note": "Bread, pita, white, enriched",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -4806,14 +4806,14 @@
           "grams": 126.5,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
-          "unit": "Container",
+          "unit": "container",
           "count": 0.5
         },
         {
           "fdcId": 174916,
           "grams": 64,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -4876,7 +4876,7 @@
           "fdcId": 174915,
           "grams": 60,
           "note": "Bread, pita, white, enriched",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1,
           "primary": true
         }
@@ -4910,7 +4910,7 @@
           "grams": 60,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -4951,10 +4951,10 @@
       "ingredients": [
         {
           "fdcId": 900002,
-          "grams": 90.0,
+          "grams": 90,
           "note": "Freekeh, roasted green wheat, dry (manufacturer panels)",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
@@ -5000,10 +5000,10 @@
       "ingredients": [
         {
           "fdcId": 900002,
-          "grams": 45.0,
+          "grams": 45,
           "note": "Freekeh, roasted green wheat, dry (manufacturer panels)",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.25
         },
         {
@@ -5043,10 +5043,10 @@
       "ingredients": [
         {
           "fdcId": 900002,
-          "grams": 90.0,
+          "grams": 90,
           "note": "Freekeh, roasted green wheat, dry (manufacturer panels)",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
@@ -5094,21 +5094,21 @@
           "grams": 122.5,
           "note": "Yogurt, plain, whole milk",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
           "fdcId": 171688,
-          "grams": 91.0,
+          "grams": 91,
           "note": "Apples, raw, with skin",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 0.5
         },
         {
           "fdcId": 173944,
           "grams": 59,
           "note": "Bananas, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 0.5,
           "primary": true
         },
@@ -5116,7 +5116,7 @@
           "fdcId": 167762,
           "grams": 48,
           "note": "Strawberries, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 4
         }
       ]
@@ -5138,11 +5138,11 @@
       "ingredients": [
         {
           "fdcId": 174683,
-          "grams": 151.0,
+          "grams": 151,
           "note": "Grapes, red or green (European type, such as Thompson seedless), raw",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.0
+          "unit": "cup",
+          "count": 1
         }
       ]
     },
@@ -5175,7 +5175,7 @@
           "fdcId": 173944,
           "grams": 59,
           "note": "Bananas, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 0.5,
           "primary": true
         },
@@ -5183,7 +5183,7 @@
           "fdcId": 170187,
           "grams": 16,
           "note": "Nuts, walnuts, english",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 4
         },
         {
@@ -5233,7 +5233,7 @@
           "fdcId": 168878,
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6,
           "primary": true
         }
@@ -5321,7 +5321,7 @@
           "grams": 200,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 8
         },
         {
@@ -5362,7 +5362,7 @@
           "fdcId": 168878,
           "grams": 175,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 7,
           "primary": true
         },
@@ -5412,7 +5412,7 @@
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6
         },
         {
@@ -5508,7 +5508,7 @@
           "grams": 64,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -5563,7 +5563,7 @@
           "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 9
         },
         {
@@ -5578,9 +5578,9 @@
         },
         {
           "fdcId": 174915,
-          "grams": 30.0,
+          "grams": 30,
           "note": "Bread, pita, white, enriched",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 0.5
         },
         {
@@ -5610,7 +5610,7 @@
           "fdcId": 173044,
           "grams": 110,
           "note": "Guavas, common, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2,
           "primary": true
         }
@@ -5638,7 +5638,7 @@
           "grams": 60,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -5681,7 +5681,7 @@
           "grams": 16.8,
           "note": "Nuts, hazelnuts or filberts",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12
         }
       ]
@@ -5709,7 +5709,7 @@
           "grams": 126.5,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
-          "unit": "Container",
+          "unit": "container",
           "count": 0.5
         },
         {
@@ -5722,7 +5722,7 @@
           "fdcId": 174915,
           "grams": 60,
           "note": "Bread, pita, white, enriched",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -5760,7 +5760,7 @@
           "grams": 189.8,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
-          "unit": "Container",
+          "unit": "container",
           "count": 0.75
         },
         {
@@ -5780,11 +5780,11 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60.0,
+          "grams": 60,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
-          "count": 1.0
+          "unit": "loaf",
+          "count": 1
         }
       ]
     },
@@ -5809,11 +5809,11 @@
       "ingredients": [
         {
           "fdcId": 173757,
-          "grams": 164.0,
+          "grams": 164,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.0
+          "unit": "cup",
+          "count": 1
         },
         {
           "fdcId": 168604,
@@ -5825,7 +5825,7 @@
           "fdcId": 174915,
           "grams": 60,
           "note": "Bread, pita, white, enriched",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -5864,7 +5864,7 @@
           "grams": 60,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -5872,7 +5872,7 @@
           "grams": 126.5,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
-          "unit": "Container",
+          "unit": "container",
           "count": 0.5
         },
         {
@@ -5916,7 +5916,7 @@
           "grams": 126.5,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
-          "unit": "Container",
+          "unit": "container",
           "count": 0.5
         },
         {
@@ -5938,7 +5938,7 @@
           "fdcId": 174916,
           "grams": 64,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1,
           "primary": true
         }
@@ -5991,15 +5991,15 @@
           "grams": 72,
           "note": "Dates, medjool",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 3
         },
         {
           "fdcId": 171267,
-          "grams": 183.0,
+          "grams": 183,
           "note": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.75
         }
       ]
@@ -6024,10 +6024,10 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 90.0,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1.5
         },
         {
@@ -6035,7 +6035,7 @@
           "grams": 100,
           "note": "Egg, whole, cooked, hard-boiled",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2
         },
         {
@@ -6077,7 +6077,7 @@
           "grams": 200,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 8
         },
         {
@@ -6128,7 +6128,7 @@
           "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 9
         },
         {
@@ -6179,7 +6179,7 @@
           "grams": 200,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 8
         },
         {
@@ -6219,10 +6219,10 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 90.0,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1.5
         },
         {
@@ -6272,7 +6272,7 @@
           "grams": 227.5,
           "note": "Bulgur, cooked",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.25
         },
         {
@@ -6318,11 +6318,11 @@
       "ingredients": [
         {
           "fdcId": 170287,
-          "grams": 182.0,
+          "grams": 182,
           "note": "Bulgur, cooked",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.0
+          "unit": "cup",
+          "count": 1
         },
         {
           "fdcId": 171792,
@@ -6372,7 +6372,7 @@
           "fdcId": 168878,
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6,
           "primary": true
         },
@@ -6408,7 +6408,7 @@
           "grams": 155.2,
           "note": "Kiwifruit, green, raw",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2.25
         }
       ]
@@ -6481,7 +6481,7 @@
           "grams": 106.5,
           "note": "Potatoes, flesh and skin, raw",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 0.5
         },
         {
@@ -6527,7 +6527,7 @@
           "grams": 175,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 7
         },
         {
@@ -6590,7 +6590,7 @@
           "grams": 106.5,
           "note": "Potatoes, flesh and skin, raw",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 0.5
         }
       ]
@@ -6623,7 +6623,7 @@
           "grams": 250.5,
           "note": "Potatoes, boiled, cooked without skin, flesh, without salt",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1.5
         },
         {
@@ -6663,11 +6663,11 @@
       "ingredients": [
         {
           "fdcId": 900001,
-          "grams": 45.0,
+          "grams": 45,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
-          "unit": "Tablespoon",
-          "count": 3.0
+          "unit": "level-tablespoon",
+          "count": 3
         },
         {
           "fdcId": 168409,
@@ -6681,10 +6681,10 @@
         },
         {
           "fdcId": 174916,
-          "grams": 32.0,
+          "grams": 32,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 0.5
         }
       ]
@@ -6708,11 +6708,11 @@
       "ingredients": [
         {
           "fdcId": 900001,
-          "grams": 30.0,
+          "grams": 30,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
-          "unit": "Tablespoon",
-          "count": 2.0
+          "unit": "level-tablespoon",
+          "count": 2
         },
         {
           "fdcId": 168409,
@@ -6742,17 +6742,17 @@
       "ingredients": [
         {
           "fdcId": 900001,
-          "grams": 45.0,
+          "grams": 45,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
-          "unit": "Tablespoon",
-          "count": 3.0
+          "unit": "level-tablespoon",
+          "count": 3
         },
         {
           "fdcId": 170187,
           "grams": 16,
           "note": "Nuts, walnuts, english",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 4
         },
         {
@@ -6764,7 +6764,7 @@
           "fdcId": 174916,
           "grams": 64,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1,
           "primary": true
         }
@@ -6791,11 +6791,11 @@
       "ingredients": [
         {
           "fdcId": 900001,
-          "grams": 45.0,
+          "grams": 45,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
-          "unit": "Tablespoon",
-          "count": 3.0
+          "unit": "level-tablespoon",
+          "count": 3
         },
         {
           "fdcId": 171413,
@@ -6806,7 +6806,7 @@
           "fdcId": 174916,
           "grams": 64,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1,
           "primary": true
         },
@@ -6841,16 +6841,16 @@
           "grams": 60,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
           "fdcId": 900001,
-          "grams": 45.0,
+          "grams": 45,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
-          "unit": "Tablespoon",
-          "count": 3.0
+          "unit": "level-tablespoon",
+          "count": 3
         },
         {
           "fdcId": 171413,
@@ -6890,11 +6890,11 @@
       "ingredients": [
         {
           "fdcId": 900001,
-          "grams": 60.0,
+          "grams": 60,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
-          "unit": "Tablespoon",
-          "count": 4.0
+          "unit": "level-tablespoon",
+          "count": 4
         },
         {
           "fdcId": 171413,
@@ -6931,7 +6931,7 @@
           "fdcId": 168878,
           "grams": 175,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 7,
           "primary": true
         },
@@ -6940,7 +6940,7 @@
           "grams": 122.5,
           "note": "Yogurt, plain, whole milk",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
@@ -6969,18 +6969,18 @@
       "ingredients": [
         {
           "fdcId": 172421,
-          "grams": 198.0,
+          "grams": 198,
           "note": "Lentils, mature seeds, cooked, boiled, without salt",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.0
+          "unit": "cup",
+          "count": 1
         },
         {
           "fdcId": 168878,
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6
         },
         {
@@ -6988,7 +6988,7 @@
           "grams": 100,
           "note": "Egg, whole, cooked, hard-boiled",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2
         },
         {
@@ -7032,7 +7032,7 @@
           "grams": 136.5,
           "note": "Bulgur, cooked",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.75
         },
         {
@@ -7070,10 +7070,10 @@
       "ingredients": [
         {
           "fdcId": 172421,
-          "grams": 99.0,
+          "grams": 99,
           "note": "Lentils, mature seeds, cooked, boiled, without salt",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
@@ -7245,7 +7245,7 @@
           "grams": 64,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         }
       ]
@@ -7278,7 +7278,7 @@
           "grams": 72,
           "note": "Dates, medjool",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 3
         },
         {
@@ -7315,7 +7315,7 @@
           "grams": 235.5,
           "note": "Couscous, cooked",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.5
         },
         {
@@ -7329,7 +7329,7 @@
           "grams": 63.2,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
-          "unit": "Container",
+          "unit": "container",
           "count": 0.25
         },
         {
@@ -7372,14 +7372,14 @@
           "grams": 274.8,
           "note": "Couscous, cooked",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.75
         },
         {
           "fdcId": 173757,
-          "grams": 82.0,
+          "grams": 82,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt",
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
@@ -7418,7 +7418,7 @@
           "fdcId": 168878,
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6,
           "primary": true
         },
@@ -7464,7 +7464,7 @@
           "fdcId": 168878,
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6,
           "primary": true
         },
@@ -7506,10 +7506,10 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 90.0,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1.5
         },
         {
@@ -7619,17 +7619,17 @@
         },
         {
           "fdcId": 171267,
-          "grams": 183.0,
+          "grams": 183,
           "note": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.75
         },
         {
           "fdcId": 173904,
           "grams": 20.2,
           "note": "Cereals, oats, regular and quick, not fortified, dry",
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.25
         }
       ]
@@ -7664,21 +7664,21 @@
           "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 9
         },
         {
           "fdcId": 171284,
-          "grams": 245.0,
+          "grams": 245,
           "note": "Yogurt, plain, whole milk",
-          "unit": "Cup",
-          "count": 1.0
+          "unit": "cup",
+          "count": 1
         },
         {
           "fdcId": 174915,
-          "grams": 30.0,
+          "grams": 30,
           "note": "Bread, pita, white, enriched",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 0.5
         },
         {
@@ -7714,7 +7714,7 @@
           "fdcId": 168878,
           "grams": 200,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 8,
           "primary": true
         },
@@ -7774,7 +7774,7 @@
           "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 9
         },
         {
@@ -7827,7 +7827,7 @@
           "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 9
         },
         {
@@ -7842,9 +7842,9 @@
         },
         {
           "fdcId": 170567,
-          "grams": 12.0,
+          "grams": 12,
           "note": "Nuts, almonds",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 10
         }
       ]
@@ -7870,7 +7870,7 @@
           "fdcId": 168878,
           "grams": 200,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 8,
           "primary": true
         },
@@ -7924,7 +7924,7 @@
           "grams": 227.5,
           "note": "Bulgur, cooked",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.25
         },
         {
@@ -7985,7 +7985,7 @@
           "grams": 60,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -8026,10 +8026,10 @@
       "ingredients": [
         {
           "fdcId": 173757,
-          "grams": 123.0,
+          "grams": 123,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.75
         },
         {
@@ -8047,7 +8047,7 @@
           "fdcId": 174915,
           "grams": 60,
           "note": "Bread, pita, white, enriched",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -8079,21 +8079,21 @@
           "grams": 14.4,
           "note": "Nuts, almonds",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12
         },
         {
           "fdcId": 170187,
           "grams": 16,
           "note": "Nuts, walnuts, english",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 4
         },
         {
           "fdcId": 168191,
           "grams": 48,
           "note": "Dates, medjool",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2
         }
       ]
@@ -8128,7 +8128,7 @@
           "fdcId": 168878,
           "grams": 175,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 7,
           "primary": true
         },
@@ -8170,7 +8170,7 @@
           "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 9
         },
         {
@@ -8220,7 +8220,7 @@
           "fdcId": 168878,
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6,
           "primary": true
         },
@@ -8270,7 +8270,7 @@
           "grams": 61.2,
           "note": "Yogurt, plain, whole milk",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.25
         },
         {
@@ -8280,11 +8280,11 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64.0,
+          "grams": 64,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
-          "unit": "Loaf",
-          "count": 1.0
+          "unit": "loaf",
+          "count": 1
         }
       ]
     },
@@ -8326,7 +8326,7 @@
           "fdcId": 174916,
           "grams": 64,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1,
           "primary": true
         }
@@ -8352,18 +8352,18 @@
       "ingredients": [
         {
           "fdcId": 172421,
-          "grams": 198.0,
+          "grams": 198,
           "note": "Lentils, mature seeds, cooked, boiled, without salt",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.0
+          "unit": "cup",
+          "count": 1
         },
         {
           "fdcId": 170287,
           "grams": 227.5,
           "note": "Bulgur, cooked",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.25
         },
         {
@@ -8396,17 +8396,17 @@
       "ingredients": [
         {
           "fdcId": 172421,
-          "grams": 198.0,
+          "grams": 198,
           "note": "Lentils, mature seeds, cooked, boiled, without salt",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.0
+          "unit": "cup",
+          "count": 1
         },
         {
           "fdcId": 168878,
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6,
           "primary": true
         },
@@ -8463,10 +8463,10 @@
         },
         {
           "fdcId": 174915,
-          "grams": 90.0,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1.5
         },
         {
@@ -8515,7 +8515,7 @@
           "grams": 128,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 2
         },
         {
@@ -8556,21 +8556,21 @@
           "fdcId": 170567,
           "grams": 14.4,
           "note": "Nuts, almonds",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12
         },
         {
           "fdcId": 170187,
           "grams": 16,
           "note": "Nuts, walnuts, english",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 4
         },
         {
           "fdcId": 168191,
           "grams": 24,
           "note": "Dates, medjool",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1,
           "primary": true
         }
@@ -8598,7 +8598,7 @@
           "grams": 14.4,
           "note": "Nuts, almonds",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12
         },
         {
@@ -8606,14 +8606,14 @@
           "grams": 14.4,
           "note": "Nuts, cashew nuts, raw",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 9
         },
         {
           "fdcId": 170184,
           "grams": 9.8,
           "note": "Nuts, pistachio nuts, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 14
         }
       ]
@@ -8641,22 +8641,22 @@
           "grams": 40.5,
           "note": "Cereals, oats, regular and quick, not fortified, dry",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
           "fdcId": 171265,
-          "grams": 183.0,
+          "grams": 183,
           "note": "Milk, whole, 3.25% milkfat, with added vitamin D",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.75
         },
         {
           "fdcId": 171688,
           "grams": 91,
           "note": "Apples, raw, with skin",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 0.5
         }
       ]
@@ -8684,22 +8684,22 @@
           "grams": 40.5,
           "note": "Cereals, oats, regular and quick, not fortified, dry",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
           "fdcId": 171265,
-          "grams": 183.0,
+          "grams": 183,
           "note": "Milk, whole, 3.25% milkfat, with added vitamin D",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.75
         },
         {
           "fdcId": 173944,
           "grams": 118,
           "note": "Bananas, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1,
           "primary": true
         }
@@ -8728,22 +8728,22 @@
           "grams": 60.8,
           "note": "Cereals, oats, regular and quick, not fortified, dry",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.75
         },
         {
           "fdcId": 171267,
-          "grams": 244.0,
+          "grams": 244,
           "note": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.0
+          "unit": "cup",
+          "count": 1
         },
         {
           "fdcId": 170187,
           "grams": 20,
           "note": "Nuts, walnuts, english",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 5
         },
         {
@@ -8755,7 +8755,7 @@
           "fdcId": 173944,
           "grams": 118,
           "note": "Bananas, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1
         }
       ]
@@ -8783,7 +8783,7 @@
           "grams": 40.5,
           "note": "Cereals, oats, regular and quick, not fortified, dry",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
@@ -8794,16 +8794,16 @@
         },
         {
           "fdcId": 173944,
-          "grams": 59.0,
+          "grams": 59,
           "note": "Bananas, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 0.5
         },
         {
           "fdcId": 171267,
-          "grams": 122.0,
+          "grams": 122,
           "note": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D",
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         }
       ]
@@ -8831,7 +8831,7 @@
           "grams": 40.5,
           "note": "Cereals, oats, regular and quick, not fortified, dry",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
@@ -8839,14 +8839,14 @@
           "grams": 122.5,
           "note": "Yogurt, plain, whole milk",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
           "fdcId": 168191,
           "grams": 24,
           "note": "Dates, medjool",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1,
           "primary": true
         }
@@ -8886,7 +8886,7 @@
           "fdcId": 174916,
           "grams": 64,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1,
           "primary": true
         },
@@ -8923,7 +8923,7 @@
           "grams": 150,
           "note": "Egg, whole, raw, fresh",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 3
         },
         {
@@ -8936,7 +8936,7 @@
           "fdcId": 174916,
           "grams": 64,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -8975,7 +8975,7 @@
           "grams": 100,
           "note": "Egg, whole, raw, fresh",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2
         },
         {
@@ -9019,7 +9019,7 @@
           "fdcId": 169097,
           "grams": 196.5,
           "note": "Oranges, raw, all commercial varieties",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1.5,
           "primary": true
         }
@@ -9053,7 +9053,7 @@
           "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 9
         },
         {
@@ -9073,9 +9073,9 @@
         },
         {
           "fdcId": 170567,
-          "grams": 12.0,
+          "grams": 12,
           "note": "Nuts, almonds",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 10
         }
       ]
@@ -9109,14 +9109,14 @@
           "fdcId": 171287,
           "grams": 50,
           "note": "Egg, whole, raw, fresh",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1
         },
         {
           "fdcId": 171267,
-          "grams": 122.0,
+          "grams": 122,
           "note": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D",
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
@@ -9157,11 +9157,11 @@
       "ingredients": [
         {
           "fdcId": 169737,
-          "grams": 248.0,
+          "grams": 248,
           "note": "Pasta, cooked, enriched, without added salt",
           "primary": true,
-          "unit": "Cup",
-          "count": 2.0
+          "unit": "cup",
+          "count": 2
         },
         {
           "fdcId": 171792,
@@ -9206,10 +9206,10 @@
       "ingredients": [
         {
           "fdcId": 169737,
-          "grams": 217.0,
+          "grams": 217,
           "note": "Pasta, cooked, enriched, without added salt",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.75
         },
         {
@@ -9255,10 +9255,10 @@
       "ingredients": [
         {
           "fdcId": 169737,
-          "grams": 186.0,
+          "grams": 186,
           "note": "Pasta, cooked, enriched, without added salt",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.5
         },
         {
@@ -9305,10 +9305,10 @@
       "ingredients": [
         {
           "fdcId": 169737,
-          "grams": 186.0,
+          "grams": 186,
           "note": "Pasta, cooked, enriched, without added salt",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.5
         },
         {
@@ -9354,10 +9354,10 @@
       "ingredients": [
         {
           "fdcId": 169737,
-          "grams": 217.0,
+          "grams": 217,
           "note": "Pasta, cooked, enriched, without added salt",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.75
         },
         {
@@ -9401,7 +9401,7 @@
           "fdcId": 169118,
           "grams": 178,
           "note": "Pears, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1,
           "primary": true
         }
@@ -9436,7 +9436,7 @@
           "fdcId": 168878,
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6,
           "primary": true
         },
@@ -9474,7 +9474,7 @@
           "grams": 24.3,
           "note": "Olives, pickled, canned or bottled, green",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 9
         }
       ]
@@ -9498,10 +9498,10 @@
       "ingredients": [
         {
           "fdcId": 170184,
-          "grams": 14.0,
+          "grams": 14,
           "note": "Nuts, pistachio nuts, raw",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 20
         }
       ]
@@ -9527,10 +9527,10 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 90.0,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1.5
         },
         {
@@ -9575,7 +9575,7 @@
           "fdcId": 169949,
           "grams": 99,
           "note": "Plums, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1.5,
           "primary": true
         },
@@ -9604,10 +9604,10 @@
       "ingredients": [
         {
           "fdcId": 169134,
-          "grams": 141.0,
+          "grams": 141,
           "note": "Pomegranates, raw",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 0.5
         }
       ]
@@ -9634,7 +9634,7 @@
           "grams": 250.5,
           "note": "Potatoes, boiled, cooked without skin, flesh, without salt",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1.5
         },
         {
@@ -9690,10 +9690,10 @@
         },
         {
           "fdcId": 171265,
-          "grams": 61.0,
+          "grams": 61,
           "note": "Milk, whole, 3.25% milkfat, with added vitamin D",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.25
         }
       ]
@@ -9727,7 +9727,7 @@
           "grams": 24,
           "note": "Nuts, walnuts, english",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 6
         },
         {
@@ -9761,7 +9761,7 @@
           "fdcId": 168878,
           "grams": 200,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 8,
           "primary": true
         },
@@ -9776,7 +9776,7 @@
           "grams": 63.2,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
-          "unit": "Container",
+          "unit": "container",
           "count": 0.25
         },
         {
@@ -9817,14 +9817,14 @@
           "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 9
         },
         {
           "fdcId": 173757,
-          "grams": 82.0,
+          "grams": 82,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt",
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
@@ -9902,25 +9902,25 @@
       "ingredients": [
         {
           "fdcId": 173757,
-          "grams": 164.0,
+          "grams": 164,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.0
+          "unit": "cup",
+          "count": 1
         },
         {
           "fdcId": 174915,
           "grams": 60,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
           "fdcId": 171284,
           "grams": 183.8,
           "note": "Yogurt, plain, whole milk",
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.75
         },
         {
@@ -9971,10 +9971,10 @@
         },
         {
           "fdcId": 174915,
-          "grams": 30.0,
+          "grams": 30,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 0.5
         },
         {
@@ -10011,7 +10011,7 @@
           "grams": 72,
           "note": "Dates, medjool",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 3
         },
         {
@@ -10019,7 +10019,7 @@
           "grams": 14.4,
           "note": "Nuts, almonds",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12
         }
       ]
@@ -10046,7 +10046,7 @@
           "grams": 72,
           "note": "Dates, medjool",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 3
         },
         {
@@ -10054,7 +10054,7 @@
           "grams": 183.8,
           "note": "Yogurt, plain, whole milk",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.75
         }
       ]
@@ -10084,10 +10084,10 @@
         },
         {
           "fdcId": 174916,
-          "grams": 32.0,
+          "grams": 32,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 0.5
         },
         {
@@ -10129,7 +10129,7 @@
           "grams": 200,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 8
         },
         {
@@ -10214,7 +10214,7 @@
           "grams": 175,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 7
         },
         {
@@ -10226,7 +10226,7 @@
           "fdcId": 170567,
           "grams": 9.6,
           "note": "Nuts, almonds",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 8
         }
       ]
@@ -10372,41 +10372,41 @@
       "ingredients": [
         {
           "fdcId": 900001,
-          "grams": 60.0,
+          "grams": 60,
           "note": "Labneh, strained yogurt, full fat (manufacturer label)",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "level-tablespoon",
           "count": 4
         },
         {
           "fdcId": 171284,
-          "grams": 245.0,
+          "grams": 245,
           "note": "Yogurt, plain, whole milk",
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1
         },
         {
           "fdcId": 174916,
-          "grams": 64.0,
+          "grams": 64,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
           "fdcId": 171413,
-          "grams": 8.0,
+          "grams": 8,
           "note": "Oil, olive, salad or cooking"
         },
         {
           "fdcId": 169096,
           "grams": 21.6,
           "note": "Olives, pickled, canned or bottled, green",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 8
         },
         {
           "fdcId": 168409,
-          "grams": 80.0,
+          "grams": 80,
           "note": "Cucumber, with peel, raw"
         }
       ]
@@ -10433,7 +10433,7 @@
           "fdcId": 168878,
           "grams": 175,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 7,
           "primary": true
         },
@@ -10567,10 +10567,10 @@
         },
         {
           "fdcId": 172688,
-          "grams": 72.0,
+          "grams": 72,
           "note": "Bread, whole-wheat, commercially prepared",
           "primary": true,
-          "unit": "Slice",
+          "unit": "slice",
           "count": 2.25
         },
         {
@@ -10615,7 +10615,7 @@
           "grams": 196.2,
           "note": "Couscous, cooked",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.25
         },
         {
@@ -10659,7 +10659,7 @@
           "grams": 159.8,
           "note": "Potatoes, flesh and skin, raw",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 0.75
         },
         {
@@ -10700,11 +10700,11 @@
         },
         {
           "fdcId": 169704,
-          "grams": 202.0,
+          "grams": 202,
           "note": "Rice, brown, long-grain, cooked (Includes foods for USDA's Food Distribution Program)",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.0
+          "unit": "cup",
+          "count": 1
         },
         {
           "fdcId": 170379,
@@ -10746,7 +10746,7 @@
           "fdcId": 168878,
           "grams": 175,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 7,
           "primary": true
         },
@@ -10796,7 +10796,7 @@
           "grams": 64,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -10864,10 +10864,10 @@
         },
         {
           "fdcId": 174916,
-          "grams": 32.0,
+          "grams": 32,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 0.5
         }
       ]
@@ -10898,10 +10898,10 @@
         },
         {
           "fdcId": 172688,
-          "grams": 72.0,
+          "grams": 72,
           "note": "Bread, whole-wheat, commercially prepared",
           "primary": true,
-          "unit": "Slice",
+          "unit": "slice",
           "count": 2.25
         },
         {
@@ -10949,7 +10949,7 @@
           "fdcId": 168878,
           "grams": 175,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 7,
           "primary": true
         },
@@ -10987,7 +10987,7 @@
           "fdcId": 171287,
           "grams": 100,
           "note": "Egg, whole, raw, fresh",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2,
           "primary": true
         },
@@ -11031,10 +11031,10 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 90.0,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1.5
         },
         {
@@ -11134,7 +11134,7 @@
           "grams": 60,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -11183,7 +11183,7 @@
           "fdcId": 171287,
           "grams": 100,
           "note": "Egg, whole, raw, fresh",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2,
           "primary": true
         },
@@ -11209,10 +11209,10 @@
         },
         {
           "fdcId": 174915,
-          "grams": 30.0,
+          "grams": 30,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 0.5
         }
       ]
@@ -11241,7 +11241,7 @@
           "grams": 150,
           "note": "Egg, whole, raw, fresh",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 3
         },
         {
@@ -11254,7 +11254,7 @@
           "fdcId": 174916,
           "grams": 64,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -11293,7 +11293,7 @@
           "grams": 150,
           "note": "Egg, whole, raw, fresh",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 3
         },
         {
@@ -11311,7 +11311,7 @@
           "fdcId": 174916,
           "grams": 64,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -11344,7 +11344,7 @@
           "grams": 120,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 2
         },
         {
@@ -11395,10 +11395,10 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 90.0,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1.5
         },
         {
@@ -11455,10 +11455,10 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 90.0,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1.5
         },
         {
@@ -11515,7 +11515,7 @@
           "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 9
         },
         {
@@ -11569,7 +11569,7 @@
           "grams": 227.5,
           "note": "Bulgur, cooked",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.25
         },
         {
@@ -11577,7 +11577,7 @@
           "grams": 61.2,
           "note": "Yogurt, plain, whole milk",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.25
         },
         {
@@ -11619,7 +11619,7 @@
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6
         },
         {
@@ -11660,10 +11660,10 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 90.0,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1.5
         },
         {
@@ -11724,7 +11724,7 @@
           "grams": 175,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 7
         },
         {
@@ -11763,17 +11763,17 @@
       "ingredients": [
         {
           "fdcId": 172421,
-          "grams": 198.0,
+          "grams": 198,
           "note": "Lentils, mature seeds, cooked, boiled, without salt",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.0
+          "unit": "cup",
+          "count": 1
         },
         {
           "fdcId": 174915,
-          "grams": 30.0,
+          "grams": 30,
           "note": "Bread, pita, white, enriched",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 0.5
         },
         {
@@ -11815,7 +11815,7 @@
           "grams": 122.5,
           "note": "Yogurt, plain, whole milk",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
@@ -11851,7 +11851,7 @@
           "fdcId": 167762,
           "grams": 144,
           "note": "Strawberries, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12,
           "primary": true
         },
@@ -11860,7 +11860,7 @@
           "grams": 122.5,
           "note": "Yogurt, plain, whole milk",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         }
       ]
@@ -11891,7 +11891,7 @@
           "grams": 200,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 8
         },
         {
@@ -11958,7 +11958,7 @@
           "grams": 136.5,
           "note": "Bulgur, cooked",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.75
         },
         {
@@ -12027,7 +12027,7 @@
           "fdcId": 170287,
           "grams": 45.5,
           "note": "Bulgur, cooked",
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.25
         },
         {
@@ -12084,7 +12084,7 @@
           "fdcId": 174916,
           "grams": 64,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1,
           "primary": true
         }
@@ -12110,10 +12110,10 @@
       "ingredients": [
         {
           "fdcId": 172688,
-          "grams": 72.0,
+          "grams": 72,
           "note": "Bread, whole-wheat, commercially prepared",
           "primary": true,
-          "unit": "Slice",
+          "unit": "slice",
           "count": 2.25
         },
         {
@@ -12126,7 +12126,7 @@
           "fdcId": 173944,
           "grams": 118,
           "note": "Bananas, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1
         },
         {
@@ -12206,14 +12206,14 @@
           "grams": 100,
           "note": "Egg, whole, cooked, hard-boiled",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2
         },
         {
           "fdcId": 174916,
           "grams": 64,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -12296,10 +12296,10 @@
       "ingredients": [
         {
           "fdcId": 169737,
-          "grams": 186.0,
+          "grams": 186,
           "note": "Pasta, cooked, enriched, without added salt",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.5
         },
         {
@@ -12345,10 +12345,10 @@
       "ingredients": [
         {
           "fdcId": 169737,
-          "grams": 155.0,
+          "grams": 155,
           "note": "Pasta, cooked, enriched, without added salt",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.25
         },
         {
@@ -12403,7 +12403,7 @@
           "grams": 159.8,
           "note": "Potatoes, flesh and skin, raw",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 0.75
         },
         {
@@ -12462,11 +12462,11 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60.0,
+          "grams": 60,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
-          "count": 1.0
+          "unit": "loaf",
+          "count": 1
         },
         {
           "fdcId": 169247,
@@ -12509,11 +12509,11 @@
       "ingredients": [
         {
           "fdcId": 174924,
-          "grams": 58.0,
+          "grams": 58,
           "note": "Bread, white, commercially prepared (includes soft bread crumbs)",
           "primary": true,
-          "unit": "Slice",
-          "count": 2.0
+          "unit": "slice",
+          "count": 2
         },
         {
           "fdcId": 171986,
@@ -12561,10 +12561,10 @@
       "ingredients": [
         {
           "fdcId": 172688,
-          "grams": 72.0,
+          "grams": 72,
           "note": "Bread, whole-wheat, commercially prepared",
           "primary": true,
-          "unit": "Slice",
+          "unit": "slice",
           "count": 2.25
         },
         {
@@ -12615,7 +12615,7 @@
           "grams": 227.5,
           "note": "Bulgur, cooked",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.25
         },
         {
@@ -12663,11 +12663,11 @@
       "ingredients": [
         {
           "fdcId": 172688,
-          "grams": 64.0,
+          "grams": 64,
           "note": "Bread, whole-wheat, commercially prepared",
           "primary": true,
-          "unit": "Slice",
-          "count": 2.0
+          "unit": "slice",
+          "count": 2
         },
         {
           "fdcId": 171496,
@@ -12715,10 +12715,10 @@
       "ingredients": [
         {
           "fdcId": 172688,
-          "grams": 72.0,
+          "grams": 72,
           "note": "Bread, whole-wheat, commercially prepared",
           "primary": true,
-          "unit": "Slice",
+          "unit": "slice",
           "count": 2.25
         },
         {
@@ -12731,7 +12731,7 @@
           "fdcId": 173424,
           "grams": 100,
           "note": "Egg, whole, cooked, hard-boiled",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2
         },
         {
@@ -12767,10 +12767,10 @@
       "ingredients": [
         {
           "fdcId": 169737,
-          "grams": 217.0,
+          "grams": 217,
           "note": "Pasta, cooked, enriched, without added salt",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.75
         },
         {
@@ -12822,11 +12822,11 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60.0,
+          "grams": 60,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
-          "count": 1.0
+          "unit": "loaf",
+          "count": 1
         },
         {
           "fdcId": 169247,
@@ -12905,7 +12905,7 @@
           "grams": 106.5,
           "note": "Potatoes, flesh and skin, raw",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 0.5
         },
         {
@@ -12953,7 +12953,7 @@
           "fdcId": 170026,
           "grams": 53.2,
           "note": "Potatoes, flesh and skin, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 0.25
         },
         {
@@ -13027,10 +13027,10 @@
       "ingredients": [
         {
           "fdcId": 170187,
-          "grams": 20.0,
+          "grams": 20,
           "note": "Nuts, walnuts, english",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 5
         }
       ]
@@ -13059,7 +13059,7 @@
           "fdcId": 168878,
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6,
           "primary": true
         },
@@ -13107,7 +13107,7 @@
           "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 9
         },
         {
@@ -13152,7 +13152,7 @@
           "fdcId": 168878,
           "grams": 175,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 7,
           "primary": true
         },
@@ -13197,7 +13197,7 @@
           "fdcId": 167765,
           "grams": 286,
           "note": "Watermelon, raw",
-          "unit": "Slice",
+          "unit": "slice",
           "count": 1,
           "primary": true
         }
@@ -13249,7 +13249,7 @@
           "fdcId": 174916,
           "grams": 64,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1,
           "primary": true
         }
@@ -13281,17 +13281,17 @@
         },
         {
           "fdcId": 171284,
-          "grams": 245.0,
+          "grams": 245,
           "note": "Yogurt, plain, whole milk",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.0
+          "unit": "cup",
+          "count": 1
         },
         {
           "fdcId": 168878,
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6
         },
         {
@@ -13330,7 +13330,7 @@
           "grams": 183.8,
           "note": "Yogurt, plain, whole milk",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.75
         }
       ]
@@ -13364,14 +13364,14 @@
           "grams": 20.2,
           "note": "Cereals, oats, regular and quick, not fortified, dry",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.25
         },
         {
           "fdcId": 170567,
           "grams": 14.4,
           "note": "Nuts, almonds",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12
         },
         {
@@ -13414,7 +13414,7 @@
           "fdcId": 170187,
           "grams": 16,
           "note": "Nuts, walnuts, english",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 4
         }
       ]
@@ -13446,14 +13446,14 @@
           "grams": 122.5,
           "note": "Yogurt, plain, whole milk",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
           "fdcId": 168878,
           "grams": 125,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 5,
           "primary": true
         },

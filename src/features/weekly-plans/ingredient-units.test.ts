@@ -12,6 +12,7 @@ import {
   unitOptions,
   type FoodPortion,
 } from './ingredient-units';
+import type { PortionKey } from './portion-contract';
 
 /**
  * The measurement menu, and the single multiplication behind it.
@@ -24,22 +25,23 @@ import {
 
 function portion(
   id: string,
+  key: PortionKey,
   labelAr: string,
   labelEn: string,
   grams: number,
   extra: Partial<FoodPortion> = {},
 ): FoodPortion {
-  return { id, labelAr, labelEn, grams, isDefault: false, sortOrder: 0, ...extra };
+  return { id, key, labelAr, labelEn, grams, isDefault: false, sortOrder: 0, ...extra };
 }
 
-const EGG_PIECE = portion('egg-piece', 'حبة', 'Piece', 50, { isDefault: true });
+const EGG_PIECE = portion('egg-piece', 'piece', 'حبة', 'Piece', 50, { isDefault: true });
 
-const OIL_TBSP = portion('oil-tbsp', 'ملعقة كبيرة', 'Tablespoon', 13.5, { isDefault: true, sortOrder: 0 });
-const OIL_TSP = portion('oil-tsp', 'ملعقة صغيرة', 'Teaspoon', 4.5, { sortOrder: 1 });
+const OIL_TBSP = portion('oil-tbsp', 'level-tablespoon', 'ملعقة كبيرة', 'Tablespoon', 13.5, { isDefault: true, sortOrder: 0 });
+const OIL_TSP = portion('oil-tsp', 'teaspoon', 'ملعقة صغيرة', 'Teaspoon', 4.5, { sortOrder: 1 });
 
-const RICE_CUP = portion('rice-cup', 'كوب', 'Cup', 158, { isDefault: true, sortOrder: 0 });
-const RICE_HALF = portion('rice-half', 'نصف كوب', 'Half cup', 79, { sortOrder: 1 });
-const RICE_QUARTER = portion('rice-quarter', 'ربع كوب', 'Quarter cup', 39.5, { sortOrder: 2 });
+const RICE_CUP = portion('rice-cup', 'cup', 'كوب', 'Cup', 158, { isDefault: true, sortOrder: 0 });
+const RICE_HALF = portion('rice-half', 'half-cup', 'نصف كوب', 'Half cup', 79, { sortOrder: 1 });
+const RICE_QUARTER = portion('rice-quarter', 'quarter-cup', 'ربع كوب', 'Quarter cup', 39.5, { sortOrder: 2 });
 
 describe('changing a recipe unit', () => {
   test('keeps two eggs at 100 grams when changing to grams and back', () => {

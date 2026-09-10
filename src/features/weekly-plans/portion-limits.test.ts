@@ -2,11 +2,12 @@ import { readFileSync } from 'node:fs';
 
 import { describe, expect, test } from 'bun:test';
 
+import type { PortionKey } from './portion-contract';
 import { countLimit, exceedsCountLimit, LIMITED_FOODS } from './portion-limits';
 
 const datasetFoods = (
   JSON.parse(readFileSync('data/catalog-foods.json', 'utf8')) as {
-    foods: { slug: string; portions?: { labelEn: string }[] }[];
+    foods: { slug: string; portions?: { key: PortionKey }[] }[];
   }
 ).foods;
 
@@ -39,8 +40,8 @@ describe('countLimit', () => {
     // Nine spoons, not "convert it to cups": one serving of cooked rice is a
     // third of a cup or five to six tablespoons, and the spoon is how every plan
     // in the region is written.
-    expect(countLimit('rice-white-cooked', 'Tablespoon')).toBe(9);
-    expect(countLimit('labaneh', 'Tablespoon')).toBe(4);
+    expect(countLimit('rice-white-cooked', 'heaped-spoon')).toBe(9);
+    expect(countLimit('labaneh', 'level-tablespoon')).toBe(4);
   });
 
   /*
@@ -61,8 +62,8 @@ describe('countLimit', () => {
       expect(food, `portion-limits.ts caps "${slug}", which is not a food`).toBeDefined();
 
       if (unit) {
-        const labels = (food?.portions ?? []).map((portion) => portion.labelEn);
-        expect(labels, `"${slug}" has no ${unit} portion`).toContain(unit);
+        const keys = (food?.portions ?? []).map((portion) => portion.key);
+        expect(keys, `"${slug}" has no ${unit} portion`).toContain(unit);
       }
     }
   });

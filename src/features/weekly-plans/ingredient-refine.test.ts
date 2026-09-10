@@ -4,6 +4,7 @@ import { refineIngredientResults, type AliasIndex } from './ingredient-refine';
 import { normalizeArabic } from './arabic-normalize';
 import type { FoodPortion } from './ingredient-units';
 import type { FoodSearchResult } from './queries';
+import type { PortionKey } from './portion-contract';
 
 /**
  * Ranking for the ingredient picker.
@@ -37,8 +38,14 @@ function aliasIndex(entries: Record<string, [string, 'ar' | 'en'][]>): AliasInde
   );
 }
 
-function portion(id: string, labelAr: string, labelEn: string, grams: number): FoodPortion {
-  return { id, labelAr, labelEn, grams, isDefault: true, sortOrder: 0 };
+function portion(
+  id: string,
+  key: PortionKey,
+  labelAr: string,
+  labelEn: string,
+  grams: number,
+): FoodPortion {
+  return { id, key, labelAr, labelEn, grams, isDefault: true, sortOrder: 0 };
 }
 
 function food(overrides: Partial<FoodSearchResult> & { id: string }): FoodSearchResult {
@@ -88,7 +95,7 @@ const pita = food({
   nameAr: 'خبز عربي أبيض',
   nameEn: 'White pita bread',
   category: 'grains',
-  portions: [portion('pita-loaf', 'رغيف', 'Loaf', 60)],
+  portions: [portion('pita-loaf', 'loaf', 'رغيف', 'Loaf', 60)],
 });
 
 const flour = food({
@@ -141,7 +148,7 @@ describe('refineIngredientResults', () => {
       id: 'with-portion',
       nameAr: 'خبز',
       nameEn: 'Bread',
-      portions: [portion('p', 'رغيف', 'Loaf', 60)],
+      portions: [portion('p', 'loaf', 'رغيف', 'Loaf', 60)],
     });
 
     const results = refineIngredientResults([noPortion, withPortion], 'خبز', AR);

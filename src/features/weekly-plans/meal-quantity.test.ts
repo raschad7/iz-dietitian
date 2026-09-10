@@ -38,10 +38,10 @@ const NUTRIENTS: FoodNutrients = {
 
 const food = (id: string, nameAr: string, nameEn: string) => ({ id, nameAr, nameEn, ...NUTRIENTS });
 
-const loaf = { labelAr: 'رغيف', labelEn: 'Loaf', grams: 60 };
-const piece = { labelAr: 'حبة', labelEn: 'Piece', grams: 50 };
-const cup = { labelAr: 'كوب', labelEn: 'Cup', grams: 158 };
-const teaspoon = { labelAr: 'ملعقة صغيرة', labelEn: 'Teaspoon', grams: 4.5 };
+const loaf = { key: 'loaf', labelAr: 'رغيف', labelEn: 'Loaf', grams: 60 } as const;
+const piece = { key: 'piece', labelAr: 'حبة', labelEn: 'Piece', grams: 50 } as const;
+const cup = { key: 'cup', labelAr: 'كوب', labelEn: 'Cup', grams: 158 } as const;
+const teaspoon = { key: 'teaspoon', labelAr: 'ملعقة صغيرة', labelEn: 'Teaspoon', grams: 4.5 } as const;
 
 describe('formatQuantity', () => {
   test('a whole number is written plainly', () => {
@@ -192,7 +192,7 @@ describe('ingredientAmount', () => {
  * different matter: "three quarters of a half cup" is exact and unreadable.
  */
 describe('a fraction of an already-fractional portion', () => {
-  const halfCup = { labelAr: 'نصف كوب', labelEn: 'Half cup', grams: 82 };
+  const halfCup = { key: 'half-cup', labelAr: 'نصف كوب', labelEn: 'Half cup', grams: 82 } as const;
 
   test('a whole number of half cups still reads as half cups', () => {
     expect(
@@ -207,7 +207,7 @@ describe('a fraction of an already-fractional portion', () => {
   });
 
   test('a plain cup keeps its fractions — this is not a rule about fractions', () => {
-    const cup2 = { labelAr: 'كوب', labelEn: 'Cup', grams: 158 };
+    const cup2 = { key: 'cup', labelAr: 'كوب', labelEn: 'Cup', grams: 158 } as const;
 
     expect(
       ingredientAmount({ quantityGrams: 79, portion: cup2, portionQuantity: 0.5 }, 'ar'),
@@ -225,7 +225,7 @@ describe('a fraction of an already-fractional portion', () => {
  * The catalogue says which foods those are in `counted_as`.
  */
 describe('a count too large to be written', () => {
-  const strawberry = { labelAr: 'حبة', labelEn: 'Piece', grams: 12 };
+  const strawberry = { key: 'piece', labelAr: 'حبة', labelEn: 'Piece', grams: 12 } as const;
 
   test('falls back to grams for a portion that merely happens to be a piece', () => {
     expect(
@@ -249,9 +249,9 @@ describe('a count too large to be written', () => {
       ingredientAmount(
         {
           quantityGrams: 20.4,
-          portion: { labelAr: 'حبة', labelEn: 'Piece', grams: 1.2 },
+          portion: { key: 'piece', labelAr: 'حبة', labelEn: 'Piece', grams: 1.2 } as const,
           portionQuantity: 17,
-          food: { countedAs: 'Piece' },
+          food: { countedAs: 'piece' } as const,
         },
         'ar',
       ),
@@ -268,9 +268,9 @@ describe('a count too large to be written', () => {
       ingredientAmount(
         {
           quantityGrams: 44,
-          portion: { labelAr: 'ربع كوب', labelEn: 'Quarter cup', grams: 35.8 },
+          portion: { key: 'quarter-cup', labelAr: 'ربع كوب', labelEn: 'Quarter cup', grams: 35.8 } as const,
           portionQuantity: 1.25,
-          food: { countedAs: 'Piece' },
+          food: { countedAs: 'piece' } as const,
         },
         'ar',
       ),

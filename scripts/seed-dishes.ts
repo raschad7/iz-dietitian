@@ -37,6 +37,7 @@ import {
   DISH_SOURCES,
   MEAL_TYPES,
 } from '@/features/weekly-plans/schema';
+import type { PortionKey } from '@/features/weekly-plans/portion-contract';
 import { countLimit } from '@/features/weekly-plans/portion-limits';
 import { isMember } from '@/lib/enum';
 
@@ -79,7 +80,7 @@ type IngredientRecord = {
    */
   free?: boolean;
   /**
-   * The household unit this amount is counted in, by its English portion label
+   * The household unit this amount is counted in, by its portion key
    * (`Loaf`, `Piece`, `Cup`).
    *
    * Optional, and absent for most lines: the catalog is authored in grams, and
@@ -87,7 +88,7 @@ type IngredientRecord = {
    * line, because it is the unit the `−/+` steps in — bread by the loaf, eggs by
    * the piece, meat by weight because that is how meat is prescribed.
    */
-  unit?: string;
+  unit?: PortionKey;
   /** How many of `unit`. Required with it, meaningless without it. */
   count?: number;
 };
@@ -312,7 +313,7 @@ export function validateRecipeCounts(
       const food = byRef.get(String(ingredient.fdcId));
       if (!food || ingredient.count === undefined) continue;
 
-      const limit = countLimit(food.slug, ingredient.unit);
+      const limit = countLimit(food.slug, ingredient.unit as PortionKey | undefined);
       if (limit !== null && ingredient.count > limit) {
         problems.push(
           `${dish.slug}: ${ingredient.count} × ${food.slug} is past the ${limit} a meal may hold`,
@@ -470,7 +471,7 @@ export async function seedDishes(): Promise<{ dishes: number; ingredients: numbe
   }
 
   /**
-   * Every portion of every referenced food, keyed by `foodId:labelEn`.
+   * Every portion of every referenced food, keyed by `foodId:key`.
    *
    * Loaded before anything is written so a unit the food does not offer aborts the
    * seed rather than silently landing as `portion_id = null` — which would look
@@ -480,12 +481,12 @@ export async function seedDishes(): Promise<{ dishes: number; ingredients: numbe
     .select({
       id: catalogFoodPortions.id,
       foodId: catalogFoodPortions.foodId,
-      labelEn: catalogFoodPortions.labelEn,
+      key: catalogFoodPortions.key,
       grams: catalogFoodPortions.grams,
     })
     .from(catalogFoodPortions);
 
-  const portionByKey = new Map(portionRows.map((row) => [`${row.foodId}:${row.labelEn}`, row]));
+  const portionByKey = new Map(portionRows.map((row) => [`${row.foodId}:${row.key}`, row]));
   const portionIdFor = (foodId: string, unit: string) =>
     portionByKey.get(`${foodId}:${unit}`)?.id ?? null;
 

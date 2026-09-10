@@ -15,6 +15,7 @@ import {
   type MealIngredientLine,
 } from '@/features/weekly-plans/meal-ingredients';
 import type { BoardMeal } from '@/features/weekly-plans/queries';
+import type { PortionKey } from '@/features/weekly-plans/portion-contract';
 
 /**
  * A dev-only harness for the meal-quantity interface.
@@ -51,7 +52,7 @@ type Line = {
   nameEn: string;
   grams: number;
   kcal: number;
-  portion?: { labelAr: string; labelEn: string; grams: number };
+  portion?: { key: PortionKey; labelAr: string; labelEn: string; grams: number };
   portionQuantity?: number;
   /** Marks a line that gets a −/+ — `dish_ingredients.is_primary`. */
   primary?: boolean;
@@ -87,7 +88,7 @@ const MIXED: Line[] = [
     nameEn: 'Arabic bread',
     grams: 60,
     kcal: 275,
-    portion: { labelAr: 'رغيف', labelEn: 'Loaf', grams: 60 },
+    portion: { key: 'loaf', labelAr: 'رغيف', labelEn: 'Loaf', grams: 60 },
     portionQuantity: 1,
     primary: true,
   },
@@ -97,7 +98,7 @@ const MIXED: Line[] = [
     nameEn: 'Egg, boiled',
     grams: 100,
     kcal: 155,
-    portion: { labelAr: 'حبة', labelEn: 'Piece', grams: 50 },
+    portion: { key: 'piece', labelAr: 'حبة', labelEn: 'Piece', grams: 50 },
     portionQuantity: 2,
     primary: true,
   },
@@ -107,7 +108,7 @@ const MIXED: Line[] = [
     nameEn: 'White rice, cooked',
     grams: 158,
     kcal: 130,
-    portion: { labelAr: 'كوب', labelEn: 'Cup', grams: 158 },
+    portion: { key: 'cup', labelAr: 'كوب', labelEn: 'Cup', grams: 158 },
     portionQuantity: 1,
   },
   {
@@ -116,7 +117,7 @@ const MIXED: Line[] = [
     nameEn: 'Olive oil',
     grams: 4.5,
     kcal: 884,
-    portion: { labelAr: 'ملعقة صغيرة', labelEn: 'Teaspoon', grams: 4.5 },
+    portion: { key: 'teaspoon', labelAr: 'ملعقة صغيرة', labelEn: 'Teaspoon', grams: 4.5 },
     portionQuantity: 1,
   },
 ];
@@ -133,9 +134,9 @@ const LONG: Line[] = [
   ...MIXED,
   { id: 'l1', nameAr: 'فلفل أحمر حلو مقطّع شرائح رفيعة', nameEn: 'Sweet red pepper, thinly sliced', grams: 70, kcal: 31 },
   { id: 'l2', nameAr: 'بقدونس مفروم ناعم', nameEn: 'Flat-leaf parsley, finely chopped', grams: 15, kcal: 36 },
-  { id: 'l3', nameAr: 'عصير ليمون طازج', nameEn: 'Fresh lemon juice', grams: 20, kcal: 22, portion: { labelAr: 'ملعقة كبيرة', labelEn: 'Tablespoon', grams: 15 }, portionQuantity: 1.5 },
-  { id: 'l4', nameAr: 'طحينة', nameEn: 'Tahini', grams: 30, kcal: 595, portion: { labelAr: 'ملعقة كبيرة', labelEn: 'Tablespoon', grams: 15 }, portionQuantity: 2 },
-  { id: 'l5', nameAr: 'حمص مسلوق', nameEn: 'Chickpeas, boiled', grams: 120, kcal: 164, portion: { labelAr: 'نصف كوب', labelEn: 'Half cup', grams: 82 }, portionQuantity: 1.5 },
+  { id: 'l3', nameAr: 'عصير ليمون طازج', nameEn: 'Fresh lemon juice', grams: 20, kcal: 22, portion: { key: 'level-tablespoon', labelAr: 'ملعقة كبيرة', labelEn: 'Tablespoon', grams: 15 }, portionQuantity: 1.5 },
+  { id: 'l4', nameAr: 'طحينة', nameEn: 'Tahini', grams: 30, kcal: 595, portion: { key: 'level-tablespoon', labelAr: 'ملعقة كبيرة', labelEn: 'Tablespoon', grams: 15 }, portionQuantity: 2 },
+  { id: 'l5', nameAr: 'حمص مسلوق', nameEn: 'Chickpeas, boiled', grams: 120, kcal: 164, portion: { key: 'half-cup', labelAr: 'نصف كوب', labelEn: 'Half cup', grams: 82 }, portionQuantity: 1.5 },
   { id: 'l6', nameAr: 'ثوم', nameEn: 'Garlic', grams: 6, kcal: 149 },
   { id: 'l7', nameAr: 'كمون مطحون', nameEn: 'Ground cumin', grams: 2, kcal: 375 },
   { id: 'l8', nameAr: 'ملح', nameEn: 'Salt', grams: 1, kcal: 0 },

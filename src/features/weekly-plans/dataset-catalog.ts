@@ -23,7 +23,7 @@ function lineFor(
   index: number,
 ): DishIngredientDetail {
   const portion = ingredient.unit
-    ? food.portions.find((one) => one.labelEn === ingredient.unit)
+    ? food.portions.find((one) => one.key === ingredient.unit)
     : undefined;
 
   return {
@@ -38,10 +38,13 @@ function lineFor(
     },
     portion: portion
       ? {
-          id: `${food.slug}:${portion.labelEn}`,
+          id: `${food.slug}:${portion.key}`,
+          key: portion.key,
           labelAr: portion.labelAr,
           labelEn: portion.labelEn,
           grams: portion.grams,
+          step: portion.step ?? null,
+          maxPerMeal: portion.maxPerMeal ?? null,
         }
       : null,
     portionQuantity: ingredient.count ?? null,

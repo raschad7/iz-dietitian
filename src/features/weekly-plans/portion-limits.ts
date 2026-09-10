@@ -38,6 +38,8 @@
  * number in front of it.
  */
 
+import type { PortionKey } from './portion-contract';
+
 /** How many of a counted food a meal may hold, keyed by the food's slug. */
 const COUNT_LIMITS: Record<string, number> = {
   /* Nuts. Counted, and counted small — a handful is ten to twenty pieces
@@ -81,9 +83,19 @@ const COUNT_LIMITS: Record<string, number> = {
  * the audited weeks and ten twice, where the dietitian writes six and seven. The
  * unit is right and the count was not, so this caps the count.
  */
-const UNIT_LIMITS: Record<string, Record<string, number>> = {
-  Tablespoon: {
+const UNIT_LIMITS: Partial<Record<PortionKey, Record<string, number>>> = {
+  'heaped-spoon': {
     'rice-white-cooked': 9,
+  },
+  /*
+    The level measuring spoon, which is a different object from the one above and
+    now says so. Bulgur, labaneh, tahini and oil are all written against USDA's
+    15 ml spoon today; for oil and tahini that is what a dietitian means, and for
+    bulgur and labaneh it is a third of it. Those two are the first entries the
+    calibration pass has to settle, and until it does, their ceiling stays where
+    it was rather than being quietly re-scaled onto a spoon nobody has weighed.
+  */
+  'level-tablespoon': {
     'bulgur-cooked': 9,
     labaneh: 4,
     tahini: 2,
@@ -97,7 +109,7 @@ const UNIT_LIMITS: Record<string, Record<string, number>> = {
     to about that much of the same food. Freekeh and oats are weighed **dry** and
     a cup of either is most of a day, which is why theirs are the small numbers.
   */
-  Cup: {
+  cup: {
     'rice-brown-cooked': 1.25,
     'bulgur-cooked': 1.5,
     'couscous-cooked': 1.75,
@@ -111,10 +123,10 @@ const UNIT_LIMITS: Record<string, Record<string, number>> = {
     'milk-whole': 2,
     'yogurt-whole': 1.5,
   },
-  Loaf: { 'pita-white': 2, 'pita-wholewheat': 2 },
-  Slice: { 'bread-toast-wholewheat': 3, 'bread-toast-white': 3 },
-  Container: { 'chickpeas-canned': 1 },
-  Piece: { 'kiwi-raw': 3, 'pomegranate-raw': 1, 'potato-raw': 2, 'potato-boiled': 2 },
+  loaf: { 'pita-white': 2, 'pita-wholewheat': 2 },
+  slice: { 'bread-toast-wholewheat': 3, 'bread-toast-white': 3 },
+  container: { 'chickpeas-canned': 1 },
+  piece: { 'kiwi-raw': 3, 'pomegranate-raw': 1, 'potato-raw': 2, 'potato-boiled': 2 },
 };
 
 /**
@@ -127,10 +139,10 @@ const UNIT_LIMITS: Record<string, Record<string, number>> = {
  * reached a client asking for forty-three pistachios while a table said twenty,
  * and how four spoon limits sat against foods measured only by the cup.
  */
-export const LIMITED_FOODS: readonly { slug: string; unit: string | null }[] = [
+export const LIMITED_FOODS: readonly { slug: string; unit: PortionKey | null }[] = [
   ...Object.keys(COUNT_LIMITS).map((slug) => ({ slug, unit: null })),
   ...Object.entries(UNIT_LIMITS).flatMap(([unit, byFood]) =>
-    Object.keys(byFood).map((slug) => ({ slug, unit })),
+    Object.keys(byFood).map((slug) => ({ slug, unit: unit as PortionKey })),
   ),
 ];
 
@@ -144,11 +156,14 @@ export const LIMITED_FOODS: readonly { slug: string; unit: string | null }[] = [
  * `seed-catalog-foods.ts` checks that on every seed, because a typo here is
  * silent: the limit simply never applies and the plan keeps the amount.
  */
-export function countLimit(foodSlug: string | null | undefined, unitLabelEn?: string | null): number | null {
+export function countLimit(
+  foodSlug: string | null | undefined,
+  unitKey?: PortionKey | null,
+): number | null {
   if (!foodSlug) return null;
 
-  if (unitLabelEn) {
-    const byUnit = UNIT_LIMITS[unitLabelEn]?.[foodSlug];
+  if (unitKey) {
+    const byUnit = UNIT_LIMITS[unitKey]?.[foodSlug];
     if (byUnit !== undefined) return byUnit;
   }
 
@@ -166,8 +181,8 @@ export function countLimit(foodSlug: string | null | undefined, unitLabelEn?: st
 export function exceedsCountLimit(
   foodSlug: string | null | undefined,
   count: number,
-  unitLabelEn?: string | null,
+  unitKey?: PortionKey | null,
 ): boolean {
-  const limit = countLimit(foodSlug, unitLabelEn);
+  const limit = countLimit(foodSlug, unitKey);
   return limit !== null && count > limit;
 }

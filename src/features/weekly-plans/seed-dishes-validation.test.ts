@@ -87,7 +87,7 @@ describe('validateDishRecords primary ingredients', () => {
 
   test('a unit without a count is refused, and so is the reverse', () => {
     const unitOnly = validateDishRecords([
-      { ...base, ingredients: [{ fdcId: 171077, grams: 60, note: 'Bread', unit: 'Loaf' }] },
+      { ...base, ingredients: [{ fdcId: 171077, grams: 60, note: 'Bread', unit: 'loaf' }] },
     ]);
     const countOnly = validateDishRecords([
       { ...base, ingredients: [{ fdcId: 171077, grams: 60, note: 'Bread', count: 1 }] },
@@ -101,7 +101,7 @@ describe('validateDishRecords primary ingredients', () => {
     const problems = validateDishRecords([
       {
         ...base,
-        ingredients: [{ fdcId: 171077, grams: 60, note: 'Bread', unit: 'Loaf', count: 0 }],
+        ingredients: [{ fdcId: 171077, grams: 60, note: 'Bread', unit: 'loaf', count: 0 }],
       },
     ]);
 

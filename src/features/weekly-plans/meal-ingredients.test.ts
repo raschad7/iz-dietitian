@@ -15,7 +15,7 @@ import {
   type RecipeLine,
   type SideRecipe,
 } from './meal-ingredients';
-import type { FoodNutrients } from './nutrition';
+import type { FoodNutrients, IngredientPortion } from './nutrition';
 
 /**
  * The rule this module exists for: **a meal's own amounts win over its dish.**
@@ -43,9 +43,9 @@ const NUTRIENTS: FoodNutrients = {
   potassium: null,
 };
 
-const loaf = { id: 'loaf', labelAr: 'رغيف', labelEn: 'Loaf', grams: 60 };
-const piece = { id: 'piece', labelAr: 'حبة', labelEn: 'Piece', grams: 50 };
-const cup = { id: 'cup', labelAr: 'كوب', labelEn: 'Cup', grams: 158 };
+const loaf = { id: 'loaf', key: 'loaf', labelAr: 'رغيف', labelEn: 'Loaf', grams: 60 } satisfies IngredientPortion;
+const piece = { id: 'piece', key: 'piece', labelAr: 'حبة', labelEn: 'Piece', grams: 50 } satisfies IngredientPortion;
+const cup = { id: 'cup', key: 'cup', labelAr: 'كوب', labelEn: 'Cup', grams: 158 } satisfies IngredientPortion;
 
 function line(
   id: string,

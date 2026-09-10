@@ -66,6 +66,7 @@ import {
   nutritionCategory,
   type DishDetail,
   type FoodNutrients,
+  type IngredientPortion,
   type NutrientTotals,
   type NutritionCategory,
 } from './nutrition';
@@ -232,9 +233,12 @@ const foodColumns = {
 /** The portion columns, joined onto a recipe line to say how its amount was typed. */
 const portionColumns = {
   id: catalogFoodPortions.id,
+  key: catalogFoodPortions.key,
   labelAr: catalogFoodPortions.labelAr,
   labelEn: catalogFoodPortions.labelEn,
   grams: catalogFoodPortions.grams,
+  step: catalogFoodPortions.step,
+  maxPerMeal: catalogFoodPortions.maxPerMeal,
 } as const;
 
 /**
@@ -258,11 +262,14 @@ async function portionsByFood(
     .select({
       foodId: catalogFoodPortions.foodId,
       id: catalogFoodPortions.id,
+      key: catalogFoodPortions.key,
       labelAr: catalogFoodPortions.labelAr,
       labelEn: catalogFoodPortions.labelEn,
       grams: catalogFoodPortions.grams,
       isDefault: catalogFoodPortions.isDefault,
       sortOrder: catalogFoodPortions.sortOrder,
+      step: catalogFoodPortions.step,
+      maxPerMeal: catalogFoodPortions.maxPerMeal,
     })
     .from(catalogFoodPortions)
     .where(inArray(catalogFoodPortions.foodId, [...foodIds]))
@@ -304,7 +311,7 @@ type RecipeRow = {
    * and the `left join` then finds nothing. Both cases mean the same thing to a
    * reader: show the grams.
    */
-  portion: { id: string; labelAr: string; labelEn: string; grams: number } | null;
+  portion: IngredientPortion | null;
   food: Omit<FoodSearchResult, 'portions'>;
 };
 

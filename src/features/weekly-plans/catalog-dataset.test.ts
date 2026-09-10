@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 
 import {
+  applyPortionRules,
   catalogChecksum,
   promoteCountedUnit,
   readUsdaReference,
@@ -252,7 +253,7 @@ describe('portions', () => {
     for (const food of foods) {
       if (!food.countedAs) continue;
 
-      const declared = food.portions.filter((portion) => portion.labelEn === food.countedAs);
+      const declared = food.portions.filter((portion) => portion.key === food.countedAs);
       if (declared.length === 0) continue;
 
       expect(food.portions.filter((portion) => portion.isDefault)).toEqual(declared);
@@ -265,6 +266,7 @@ describe('portions', () => {
     // unit — the same weight the boiled egg carries, so one حبة cannot mean two
     // different things depending on whether it was cooked.
     expect(bySlug.get('egg-raw')!.portions[0]).toEqual({
+      key: 'piece',
       labelAr: 'حبة',
       labelEn: 'Piece',
       grams: 50,
@@ -276,14 +278,29 @@ describe('portions', () => {
     // Oil is written in spoons and in nothing else. USDA publishes a 216 g cup;
     // it is a bottle measure, not a serving.
     expect(bySlug.get('olive-oil')!.portions).toEqual([
-      { labelAr: 'ملعقة كبيرة', labelEn: 'Tablespoon', grams: 13.5, isDefault: true, sortOrder: 0 },
-      { labelAr: 'ملعقة صغيرة', labelEn: 'Teaspoon', grams: 4.5, isDefault: false, sortOrder: 1 },
+      {
+        key: 'level-tablespoon',
+        labelAr: 'ملعقة كبيرة',
+        labelEn: 'Tablespoon',
+        grams: 13.5,
+        isDefault: true,
+        sortOrder: 0,
+      },
+      {
+        key: 'teaspoon',
+        labelAr: 'ملعقة صغيرة',
+        labelEn: 'Teaspoon',
+        grams: 4.5,
+        isDefault: false,
+        sortOrder: 1,
+      },
     ]);
 
     // `isDefault: false` on a first row is not a slip: cooked rice declares the
     // spoon (`countedAs`), and the declaration takes the default off whatever
     // the derivation put it on. The cup is still the first unit offered.
     expect(bySlug.get('rice-white-cooked')!.portions[0]).toEqual({
+      key: 'cup',
       labelAr: 'كوب',
       labelEn: 'Cup',
       grams: 158,
@@ -346,17 +363,22 @@ describe('portions', () => {
       const source = usda.get(Number(food.sourceRef));
       expect(source).toBeDefined();
 
-      // `withExtras` and `promoteCountedUnit` are part of the build, so they are
-      // part of the reproduction: a curated portion and a declared unit are both
-      // data a person wrote, and the check is that the derived rows beside them
-      // are still exactly what the source produces.
-      const rebuilt = promoteCountedUnit(
+      // `withExtras`, `applyPortionRules` and `promoteCountedUnit` are part of the
+      // build, so they are part of the reproduction: a curated portion, a curated
+      // rule and a declared unit are all data a person wrote, and the check is
+      // that the derived rows beside them are still exactly what the source
+      // produces.
+      const ruled = applyPortionRules(
         withExtras(
           derivePortions({ category: food.category, nameEn: food.nameEn, portions: source!.portions ?? [] }),
           food.extraPortions,
         ),
-        food.countedAs,
+        food.portionRules,
       );
+
+      expect(ruled.problems).toEqual([]);
+
+      const rebuilt = promoteCountedUnit(ruled.portions, food.countedAs);
 
       expect(food.portions).toEqual(rebuilt);
     }

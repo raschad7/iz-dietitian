@@ -247,7 +247,7 @@ Six rules in `portion-derivation.ts` keep that class of error out:
 
 **Nuts are counted, not weighed**, and that is now written into the data rather
 than left to whoever types a recipe: لوز، بندق، جوز، كاجو، فستق and زيتون
-all declare `countedAs: "Piece"`, so every recipe line for them states a count
+all declare `countedAs: "piece"`, so every recipe line for them states a count
 and `db:seed:dishes` refuses one written in grams. A plan says `١٧ حبة لوز`,
 which is what the dietitian writes on paper.
 
@@ -264,6 +264,58 @@ this file can make about a food's unit:
   count — but an almond weighs 1.2 g, so *every* honest amount of one is a
   two-digit count. A declared unit is a decision somebody made, and no count is
   large enough to overrule it.
+
+### A portion is identified by a key, never by its label
+
+Every portion carries a `key` from the closed vocabulary in
+`src/features/weekly-plans/portion-contract.ts` — `cup`, `heaped-spoon`, `loaf`,
+`piece` — and **everything a portion does is keyed on that**: the step one press
+of `-`/`+` moves it by, the ceiling a meal may hold, `countedAs`, the `unit` on a
+recipe line in `data/dishes.json`, and the seed's own upsert.
+
+Labels are text a human reads. Rename one freely; nothing breaks. That was not
+true before: identity lived in `label_en`, so renaming `Tablespoon` silently
+changed the step size, dropped the serving ceiling and broke every recipe line
+that named it, all with no error.
+
+The key also says **which object** a label names, which prose cannot. `ملعقة كبيرة`
+is `level-tablespoon` on olive oil (USDA's levelled 15 ml spoon, which is what a
+dietitian means for oil) and `heaped-spoon` on cooked rice (an eating spoon,
+filled — about three times the weight). Both are correct; before the key, the data
+could not tell them apart, and a plan writing six of them meant one thing and
+computed another.
+
+Two rules follow, and both are enforced by `db:build-catalog` and `db:seed:catalog`:
+
+- **A weight must be possible for the object its key names.** A `heaped-spoon` at
+  8.4 g is a build failure. Bounds are per key and derived from the volume the
+  unit names, so a 15 g `half-cup` of spinach passes and a 15 g `cup` does not.
+  Keys naming an object of genuinely variable size — `slice`, `leaf`, `piece`,
+  `container` — carry no bound, because a mint leaf is 0.15 g and a cabbage leaf
+  23 g, and a number invented to look strict there only rejects correct data.
+- **A food's portions must agree with each other.** A heaped spoon outweighs the
+  same food's level spoon; a half cup is half of that food's cup.
+
+### Where a weight came from, and whether anyone checked
+
+Each portion records `evidence` (`local_measurement` | `published_table` |
+`usda_measure` | `estimate`, with a source and a date) and a `reviewStatus`
+(`candidate` | `needs_review` | `reviewed`).
+
+`usda_measure` is the honest label for most of what ships: real measurements of
+real objects, just not always the object a dietitian means. Marking them says so
+without deleting them.
+
+The gate is drawn at whether a published source can settle the number at all.
+A cup and a medium apple are objects USDA measured, so an unreviewed one may be a
+food's `countedAs` with its status visible. A **`heaped-spoon`** and a **`serving`**
+of a finished dish are conventions of one kitchen — no table anywhere settles
+them — so an unreviewed one may not be a food's counted unit, and the seed
+refuses it. Corrections and curated weights go in the food's `portionRules` block,
+which `db:build-catalog` folds on by key and never overwrites.
+
+`bun run scripts/audit-portions.ts` prints what still needs review, ranked by how
+many recipe lines actually depend on it.
 
 A measure that only *yields* the food is refused too, but only for a countable
 unit: "1 wedge yields 5.9 g" is the juice out of a lemon wedge and is not a

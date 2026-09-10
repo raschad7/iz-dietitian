@@ -452,6 +452,18 @@ export async function createCustomFood(clinicId: string, input: CustomFoodInput)
         // No upstream reference: the weight is the dietitian's own, and claiming a
         // source would be attributing their number to somebody else.
         sourceRef: null,
+        /*
+          Her own measurement of her own food, and therefore already reviewed by
+          the only person whose review this row wants. Leaving it at the column
+          default would file every food she adds herself into a queue asking her
+          to check a number she just typed.
+        */
+        evidenceKind: 'local_measurement',
+        evidenceSource: 'Entered by the clinic',
+        evidenceDate: new Date().toISOString().slice(0, 10),
+        reviewStatus: 'reviewed',
+        reviewedBy: 'clinic',
+        reviewedAt: new Date(),
       });
     }
 

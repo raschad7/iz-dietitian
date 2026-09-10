@@ -27,8 +27,18 @@
  * and `7 ملاعق أرز`, not `1.2 cups of apple`.
  */
 
+import type { PortionEvidence, PortionKey, ReviewStatus } from './portion-contract';
+
 /** A portion as the dataset stores it, before it becomes a `catalog_food_portions` row. */
 export type PortionSeed = {
+  /**
+   * The portion's stable identity — see `portion-contract.ts`.
+   *
+   * Everything that used to key on `labelEn` keys on this: the step size, the
+   * serving ceiling, the food's counted unit, and the seed's own upsert. A label
+   * is text a human reads, and renaming one is no longer a behaviour change.
+   */
+  key: PortionKey;
   labelAr: string;
   labelEn: string;
   /** What one of this portion weighs. Always > 0. */
@@ -44,6 +54,20 @@ export type PortionSeed = {
    * a row that cannot say where it came from should not be in a prescription.
    */
   sourceRef?: string;
+
+  /* --- the portion contract, all curated and all optional -------------------
+     Merged onto a derived row by key at build time, never derived. See
+     `portion-contract.ts` for what each one means and why it is data. */
+
+  /** Overrides `defaultStepOf(key)` where a food genuinely needs its own grid. */
+  step?: number;
+  /** The most of this food, in this unit, one meal may hold. */
+  maxPerMeal?: number;
+  evidence?: PortionEvidence;
+  reviewStatus?: ReviewStatus;
+  reviewedBy?: string;
+  /** ISO date. */
+  reviewedAt?: string;
 };
 
 /**
@@ -178,13 +202,13 @@ export function classifyUnit(unit: string): Family {
  * one added after are indistinguishable afterwards.
  */
 export const CUSTOM_UNIT_LABELS = {
-  loaf: { labelAr: 'رغيف', labelEn: 'Loaf' },
-  piece: { labelAr: 'حبة', labelEn: 'Piece' },
-  slice: { labelAr: 'شريحة', labelEn: 'Slice' },
-  cup: { labelAr: 'كوب', labelEn: 'Cup' },
-  tbsp: { labelAr: 'ملعقة كبيرة', labelEn: 'Tablespoon' },
-  tsp: { labelAr: 'ملعقة صغيرة', labelEn: 'Teaspoon' },
-} as const satisfies Record<string, { labelAr: string; labelEn: string }>;
+  loaf: { key: 'loaf', labelAr: 'رغيف', labelEn: 'Loaf' },
+  piece: { key: 'piece', labelAr: 'حبة', labelEn: 'Piece' },
+  slice: { key: 'slice', labelAr: 'شريحة', labelEn: 'Slice' },
+  cup: { key: 'cup', labelAr: 'كوب', labelEn: 'Cup' },
+  tbsp: { key: 'level-tablespoon', labelAr: 'ملعقة كبيرة', labelEn: 'Tablespoon' },
+  tsp: { key: 'teaspoon', labelAr: 'ملعقة صغيرة', labelEn: 'Teaspoon' },
+} as const satisfies Record<string, { key: PortionKey; labelAr: string; labelEn: string }>;
 
 export type CustomUnitKey = keyof typeof CUSTOM_UNIT_LABELS;
 
@@ -214,27 +238,38 @@ function g(value: number): number {
   return Math.round(value * 10) / 10;
 }
 
-/** Every family's rows, as multiples of the measured base. `[labelAr, labelEn, factor]`. */
-const FAMILY_ROWS: Record<Exclude<Family, 'none'>, readonly (readonly [string, string, number])[]> = {
+/**
+ * Every family's rows, as multiples of the measured base.
+ * `[key, labelAr, labelEn, factor]`.
+ *
+ * The key leads because it is the identity; the two labels are how it is read in
+ * each language. Note that the tablespoon derives as `level-tablespoon`: what USDA
+ * measured is a levelled 15 ml spoon, and saying so is what leaves room for the
+ * dietitian's heaped `ملعقة` to exist on the same food as its own row.
+ */
+const FAMILY_ROWS: Record<
+  Exclude<Family, 'none'>,
+  readonly (readonly [PortionKey, string, string, number])[]
+> = {
   cup: [
-    ['كوب', 'Cup', 1],
-    ['نصف كوب', 'Half cup', 1 / 2],
-    ['ربع كوب', 'Quarter cup', 1 / 4],
+    ['cup', 'كوب', 'Cup', 1],
+    ['half-cup', 'نصف كوب', 'Half cup', 1 / 2],
+    ['quarter-cup', 'ربع كوب', 'Quarter cup', 1 / 4],
   ],
   tbsp: [
-    ['ملعقة كبيرة', 'Tablespoon', 1],
+    ['level-tablespoon', 'ملعقة كبيرة', 'Tablespoon', 1],
     // A teaspoon is a third of a tablespoon by definition, not by estimate.
-    ['ملعقة صغيرة', 'Teaspoon', 1 / 3],
+    ['teaspoon', 'ملعقة صغيرة', 'Teaspoon', 1 / 3],
   ],
-  tsp: [['ملعقة صغيرة', 'Teaspoon', 1]],
-  slice: [['شريحة', 'Slice', 1]],
-  piece: [['حبة', 'Piece', 1]],
+  tsp: [['teaspoon', 'ملعقة صغيرة', 'Teaspoon', 1]],
+  slice: [['slice', 'شريحة', 'Slice', 1]],
+  piece: [['piece', 'حبة', 'Piece', 1]],
   loaf: [
-    ['رغيف', 'Loaf', 1],
-    ['نصف رغيف', 'Half loaf', 1 / 2],
+    ['loaf', 'رغيف', 'Loaf', 1],
+    ['half-loaf', 'نصف رغيف', 'Half loaf', 1 / 2],
   ],
-  leaf: [['ورقة', 'Leaf', 1]],
-  container: [['علبة', 'Container', 1]],
+  leaf: [['leaf', 'ورقة', 'Leaf', 1]],
+  container: [['container', 'علبة', 'Container', 1]],
 };
 
 /**
@@ -524,18 +559,18 @@ export function derivePortions(source: {
   const rows: PortionSeed[] = [];
   /*
    * Two families can name the same unit: a tablespoon family derives its own
-   * teaspoon, and a food that measured both would emit "Teaspoon" twice. The seed
-   * upserts portions on `(food_id, label_en)`, so a duplicate is not an error - it
-   * is one row silently taking whichever weight was written last. The first
-   * family wins, because families are walked in priority order.
+   * teaspoon, and a food that measured both would emit `teaspoon` twice. The seed
+   * upserts portions on `(food_id, key)`, so a duplicate is not an error - it is
+   * one row silently taking whichever weight was written last. The first family
+   * wins, because families are walked in priority order.
    */
-  const taken = new Set<string>();
+  const taken = new Set<PortionKey>();
 
   for (const family of families) {
     const { base } = best.get(family)!;
 
-    for (const [labelAr, labelEn, factor] of FAMILY_ROWS[family]) {
-      if (taken.has(labelEn)) continue;
+    for (const [key, labelAr, labelEn, factor] of FAMILY_ROWS[family]) {
+      if (taken.has(key)) continue;
 
       const grams = g(base * factor);
       // A fraction that rounds away to nothing is not a portion. Only reachable
@@ -543,9 +578,10 @@ export function derivePortions(source: {
       // offering "quarter cup = 0 g".
       if (grams <= 0) continue;
 
-      taken.add(labelEn);
+      taken.add(key);
 
       rows.push({
+        key,
         labelAr,
         labelEn,
         grams,

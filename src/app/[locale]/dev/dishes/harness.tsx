@@ -24,8 +24,8 @@ type Fixture = FoodSearchResult & { tags: string[] };
 /** Builds a portion list the way `db:build-catalog` does — a measure and its fractions. */
 function cup(id: string, grams: number): FoodPortion[] {
   return [
-    { id: `${id}-cup`, labelAr: 'كوب', labelEn: 'Cup', grams, isDefault: true, sortOrder: 0 },
-    { id: `${id}-half`, labelAr: 'نصف كوب', labelEn: 'Half cup', grams: grams / 2, isDefault: false, sortOrder: 1 },
+    { id: `${id}-cup`, key: 'cup', labelAr: 'كوب', labelEn: 'Cup', grams, isDefault: true, sortOrder: 0 },
+    { id: `${id}-half`, key: 'half-cup', labelAr: 'نصف كوب', labelEn: 'Half cup', grams: grams / 2, isDefault: false, sortOrder: 1 },
   ];
 }
 
@@ -97,8 +97,8 @@ const FIXTURES: Fixture[] = [
     category: 'grains',
     state: 'prepared',
     portions: [
-      { id: 'b1-loaf', labelAr: 'رغيف', labelEn: 'Loaf', grams: 60, isDefault: true, sortOrder: 0 },
-      { id: 'b1-half', labelAr: 'نصف رغيف', labelEn: 'Half loaf', grams: 30, isDefault: false, sortOrder: 1 },
+      { id: 'b1-loaf', key: 'loaf', labelAr: 'رغيف', labelEn: 'Loaf', grams: 60, isDefault: true, sortOrder: 0 },
+      { id: 'b1-half', key: 'half-loaf', labelAr: 'نصف رغيف', labelEn: 'Half loaf', grams: 30, isDefault: false, sortOrder: 1 },
     ],
     kcal: 275,
     protein: 9,
@@ -119,8 +119,8 @@ const FIXTURES: Fixture[] = [
   row('o1', 'زيت زيتون', 'Olive oil', ['زيت', 'زيت زيتون'], {
     category: 'fats_oils',
     portions: [
-      { id: 'o1-tbsp', labelAr: 'ملعقة كبيرة', labelEn: 'Tablespoon', grams: 13.5, isDefault: true, sortOrder: 0 },
-      { id: 'o1-tsp', labelAr: 'ملعقة صغيرة', labelEn: 'Teaspoon', grams: 4.5, isDefault: false, sortOrder: 1 },
+      { id: 'o1-tbsp', key: 'level-tablespoon', labelAr: 'ملعقة كبيرة', labelEn: 'Tablespoon', grams: 13.5, isDefault: true, sortOrder: 0 },
+      { id: 'o1-tsp', key: 'teaspoon', labelAr: 'ملعقة صغيرة', labelEn: 'Teaspoon', grams: 4.5, isDefault: false, sortOrder: 1 },
     ],
     kcal: 884,
     fat: 100,
@@ -129,7 +129,7 @@ const FIXTURES: Fixture[] = [
   row('e1', 'بيض ني', 'Egg, whole, raw', ['بيض'], {
     category: 'dairy_eggs',
     portions: [
-      { id: 'e1-piece', labelAr: 'حبة', labelEn: 'Piece', grams: 50, isDefault: true, sortOrder: 0 },
+      { id: 'e1-piece', key: 'piece', labelAr: 'حبة', labelEn: 'Piece', grams: 50, isDefault: true, sortOrder: 0 },
     ],
     kcal: 143,
     protein: 13,

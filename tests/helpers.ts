@@ -6,6 +6,7 @@ import { db } from '@/db';
 import { catalogFoodAliases, catalogFoodPortions, catalogFoods, clients, clinics, clinicWorkingHours, practitioners, pushSubscriptions, whatsappSettings, type WhatsappSettings } from '@/db/schema';
 import { seedDefaultServices } from '@/features/billing/mutations';
 import { normalizeArabic } from '@/features/weekly-plans/arabic-normalize';
+import type { PortionKey } from '@/features/weekly-plans/portion-contract';
 import { defaultClinicScheduleRows } from '@/features/clinic-profile/default-schedule';
 import { normalizeForSearch } from '@/features/clients/search';
 import { sessionNameForClinic } from '@/features/whatsapp/config';
@@ -296,6 +297,31 @@ export async function createTestCatalogFood(
   return row.id;
 }
 
+/** The label-to-key mapping `FAMILY_ROWS` and `CUSTOM_UNIT_LABELS` produce. */
+const PORTION_KEY_BY_LABEL: Record<string, PortionKey> = {
+  Cup: 'cup',
+  'Half cup': 'half-cup',
+  'Quarter cup': 'quarter-cup',
+  Tablespoon: 'level-tablespoon',
+  Teaspoon: 'teaspoon',
+  Loaf: 'loaf',
+  'Half loaf': 'half-loaf',
+  Slice: 'slice',
+  Piece: 'piece',
+  Container: 'container',
+  Leaf: 'leaf',
+};
+
+function keyForLabel(labelEn: string): PortionKey {
+  const key = PORTION_KEY_BY_LABEL[labelEn];
+  if (!key) {
+    throw new Error(
+      `createTestCatalogPortion: no portion key for label "${labelEn}". Pass \`key\` explicitly.`,
+    );
+  }
+  return key;
+}
+
 /**
  * A household measure for a catalog food, and what one of it weighs.
  *
@@ -304,12 +330,25 @@ export async function createTestCatalogFood(
  */
 export async function createTestCatalogPortion(
   foodId: string,
-  portion: { labelAr: string; labelEn: string; grams: number; isDefault?: boolean; sortOrder?: number },
+  portion: {
+    /**
+     * The portion's stable identity. Derived from `labelEn` when not given, the
+     * same mapping the real pipeline uses — a fixed default would collide on
+     * `(food_id, key)` the moment a fixture gave one food two portions.
+     */
+    key?: PortionKey;
+    labelAr: string;
+    labelEn: string;
+    grams: number;
+    isDefault?: boolean;
+    sortOrder?: number;
+  },
 ): Promise<string> {
   const [row] = await db
     .insert(catalogFoodPortions)
     .values({
       foodId,
+      key: portion.key ?? keyForLabel(portion.labelEn),
       labelAr: portion.labelAr,
       labelEn: portion.labelEn,
       grams: portion.grams,

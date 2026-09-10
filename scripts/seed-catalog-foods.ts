@@ -40,6 +40,16 @@ import {
 } from '@/db/schema/catalog-foods';
 import { normalizeArabic } from '@/features/weekly-plans/arabic-normalize';
 import { NUTRIENT_KEYS, type NutrientKey } from '@/features/weekly-plans/nutrition';
+import {
+  isPortionKey,
+  isReviewed,
+  portionSetProblems,
+  requiresReview,
+  REVIEW_STATUSES,
+  type PortionRule,
+  type ReviewStatus,
+} from '@/features/weekly-plans/portion-contract';
+import type { PortionSeed } from '@/features/weekly-plans/portion-derivation';
 import { LIMITED_FOODS } from '@/features/weekly-plans/portion-limits';
 import { isMember } from '@/lib/enum';
 import { catalogChecksum } from './build-catalog-dataset';
@@ -49,20 +59,14 @@ const DATASET_PATH = join(dirname(fileURLToPath(import.meta.url)), '../data/cata
 /** The nutrients that must carry a number. The rest may be null — "never measured". */
 const REQUIRED_NUTRIENTS = ['kcal', 'protein', 'fat', 'carbs'] as const;
 
-type CuratedPortion = {
-  labelAr: string;
-  labelEn: string;
-  grams: number;
-  isDefault: boolean;
-  sortOrder: number;
-  /**
-   * Where this weight came from, when it is not the food's own USDA measure.
-   *
-   * Only a curated portion carries one — a unit a dietitian uses that USDA does
-   * not publish. Matches `PortionSeed` so the build and the seed hold one shape.
-   */
-  sourceRef?: string;
-};
+/**
+ * One shape, imported rather than restated.
+ *
+ * The build and the seed each used to declare their own portion type, which is how
+ * they could drift: a field added to one was simply absent from the other, and a
+ * portion contract spread over two definitions is not a contract.
+ */
+type CuratedPortion = PortionSeed;
 
 export type CuratedFood = {
   slug: string;
@@ -88,6 +92,13 @@ export type CuratedFood = {
    * can tell a clinic's unit from a USDA measure. Never read by the seed.
    */
   extraPortions?: CuratedPortion[];
+  /**
+   * The curated facts folded onto this food's portions by key — a corrected
+   * weight, a step, a ceiling, evidence, a review. Already applied by
+   * `db:build-catalog`, so the seed never reads it either; it is here so the two
+   * scripts hold one shape of the file rather than two that can drift.
+   */
+  portionRules?: Record<string, PortionRule>;
   aliasesAr: string[];
   aliasesEn: string[];
 };
@@ -137,11 +148,36 @@ export function validateCuratedFoods(records: readonly CuratedFood[]): string[] 
     // A counting unit that names no portion of this food is a unit nothing can be
     // counted in — every recipe line using it would then be unwritable.
     if (food.countedAs !== undefined) {
-      const labels = (food.portions ?? []).map((portion) => portion.labelEn);
-      if (!labels.includes(food.countedAs)) {
+      const keys: string[] = (food.portions ?? []).map((portion) => portion.key);
+      if (!keys.includes(food.countedAs)) {
         problems.push(
-          `${food.slug}: countedAs "${food.countedAs}" is not one of its portions (${labels.join(', ') || 'none'})`,
+          `${food.slug}: countedAs "${food.countedAs}" is not one of its portions (${keys.join(', ') || 'none'})`,
         );
+      } else {
+        /*
+          The counted unit is the one a *generated* plan writes without anyone
+          choosing it, so it is where an unreviewed weight becomes a prescription
+          on its own.
+
+          The gate is drawn at whether the number is knowable from a published
+          source at all, rather than at "has a person looked at it" — which would
+          reject the entire shipped catalog on the day the contract lands and
+          teach everyone to bypass it.
+
+          A cup, a medium apple and a levelled 15 ml spoon are measurements USDA
+          published; unreviewed, they are defensible defaults and their status is
+          visible. A *heaped* spoon and a *serving* of a finished dish are local
+          conventions by definition — there is no source to defer to, so an
+          unreviewed one is not a weak number, it is a number nobody has made yet.
+        */
+        const counted = (food.portions ?? []).find((portion) => portion.key === food.countedAs);
+        const status = counted?.reviewStatus ?? 'needs_review';
+
+        if (counted && requiresReview(counted.key) && !isReviewed(status)) {
+          problems.push(
+            `${food.slug}: countedAs "${counted.key}" is a local convention and is ${status}; it must be reviewed before a plan may write it`,
+          );
+        }
       }
     }
 
@@ -162,7 +198,6 @@ export function validateCuratedFoods(records: readonly CuratedFood[]): string[] 
       }
     }
 
-    const labels = new Set<string>();
     let defaults = 0;
 
     for (const portion of food.portions ?? []) {
@@ -170,13 +205,30 @@ export function validateCuratedFoods(records: readonly CuratedFood[]): string[] 
         problems.push(`${food.slug}: a portion is missing a label`);
       }
       if (!Number.isFinite(portion.grams) || portion.grams <= 0) {
-        problems.push(`${food.slug}: portion "${portion.labelEn}" has a non-positive weight`);
+        problems.push(`${food.slug}: portion "${portion.key}" has a non-positive weight`);
       }
-      if (labels.has(portion.labelEn)) {
-        problems.push(`${food.slug}: duplicate portion "${portion.labelEn}"`);
+      if (!portion.key || !isPortionKey(portion.key)) {
+        problems.push(`${food.slug}: portion "${portion.labelEn}" has unknown key "${portion.key}"`);
       }
-      labels.add(portion.labelEn);
+      if (portion.reviewStatus && !isMember(REVIEW_STATUSES, portion.reviewStatus)) {
+        problems.push(
+          `${food.slug}: portion "${portion.key}" has unknown review status "${portion.reviewStatus}"`,
+        );
+      }
       if (portion.isDefault) defaults += 1;
+    }
+
+    /*
+      Duplicate keys, weights that are impossible for the object the key names, and
+      weights that contradict each other — a heaped spoon lighter than the same
+      food's level spoon, a half cup that is not half of its cup. See
+      `portion-contract.ts`; this is the check that makes a mislabelled portion a
+      seed failure instead of a silently wrong prescription.
+    */
+    for (const problem of portionSetProblems(
+      (food.portions ?? []).filter((portion) => isPortionKey(portion.key)),
+    )) {
+      problems.push(`${food.slug}: ${problem}`);
     }
 
     if (defaults > 1) problems.push(`${food.slug}: ${defaults} default portions, expected at most one`);
@@ -195,7 +247,7 @@ export function validateCuratedFoods(records: readonly CuratedFood[]): string[] 
     that tells a client to eat forty-three pistachios.
   */
   const portionsBySlug = new Map(
-    records.map((food) => [food.slug, new Set((food.portions ?? []).map((one) => one.labelEn))]),
+    records.map((food) => [food.slug, new Set<string>((food.portions ?? []).map((one) => one.key))]),
   );
 
   for (const { slug, unit } of LIMITED_FOODS) {
@@ -421,11 +473,23 @@ export async function seedCatalogFoods(options: { apply?: boolean } = {}): Promi
     const portionValues = curated.flatMap((food) =>
       (food.portions ?? []).map((portion) => ({
         foodId: idBySlug.get(food.slug)!,
+        key: portion.key,
         labelAr: portion.labelAr,
         labelEn: portion.labelEn,
         grams: portion.grams,
         isDefault: portion.isDefault,
         sortOrder: portion.sortOrder,
+        step: portion.step ?? null,
+        maxPerMeal: portion.maxPerMeal ?? null,
+        evidenceKind: portion.evidence?.kind ?? null,
+        evidenceSource: portion.evidence?.source ?? null,
+        evidenceDate: portion.evidence?.date ?? null,
+        evidenceSamples: portion.evidence?.samples ?? null,
+        evidenceMinGrams: portion.evidence?.rangeGrams?.[0] ?? null,
+        evidenceMaxGrams: portion.evidence?.rangeGrams?.[1] ?? null,
+        reviewStatus: (portion.reviewStatus ?? 'needs_review') satisfies ReviewStatus,
+        reviewedBy: portion.reviewedBy ?? null,
+        reviewedAt: portion.reviewedAt ? new Date(portion.reviewedAt) : null,
         sourceRef: portion.sourceRef ?? food.sourceRef,
       })),
     );
@@ -452,12 +516,24 @@ export async function seedCatalogFoods(options: { apply?: boolean } = {}): Promi
         .insert(catalogFoodPortions)
         .values(portionValues)
         .onConflictDoUpdate({
-          target: [catalogFoodPortions.foodId, catalogFoodPortions.labelEn],
+          target: [catalogFoodPortions.foodId, catalogFoodPortions.key],
           set: {
             labelAr: sql`excluded.label_ar`,
+            labelEn: sql`excluded.label_en`,
             grams: sql`excluded.grams`,
             isDefault: sql`excluded.is_default`,
             sortOrder: sql`excluded.sort_order`,
+            step: sql`excluded.step`,
+            maxPerMeal: sql`excluded.max_per_meal`,
+            evidenceKind: sql`excluded.evidence_kind`,
+            evidenceSource: sql`excluded.evidence_source`,
+            evidenceDate: sql`excluded.evidence_date`,
+            evidenceSamples: sql`excluded.evidence_samples`,
+            evidenceMinGrams: sql`excluded.evidence_min_grams`,
+            evidenceMaxGrams: sql`excluded.evidence_max_grams`,
+            reviewStatus: sql`excluded.review_status`,
+            reviewedBy: sql`excluded.reviewed_by`,
+            reviewedAt: sql`excluded.reviewed_at`,
             sourceRef: sql`excluded.source_ref`,
             updatedAt: new Date(),
           },
@@ -469,7 +545,7 @@ export async function seedCatalogFoods(options: { apply?: boolean } = {}): Promi
     // it keeps its grams — `dish_ingredients.portion_id` is `on delete set null`.
     for (const food of curated) {
       const foodId = idBySlug.get(food.slug)!;
-      const keep = (food.portions ?? []).map((portion) => portion.labelEn);
+      const keep = (food.portions ?? []).map((portion) => portion.key);
 
       const removed = await tx
         .delete(catalogFoodPortions)
@@ -477,7 +553,7 @@ export async function seedCatalogFoods(options: { apply?: boolean } = {}): Promi
           keep.length
             ? and(
                 eq(catalogFoodPortions.foodId, foodId),
-                notInArray(catalogFoodPortions.labelEn, keep),
+                notInArray(catalogFoodPortions.key, keep),
               )
             : eq(catalogFoodPortions.foodId, foodId),
         )

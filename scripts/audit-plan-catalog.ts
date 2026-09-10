@@ -18,7 +18,9 @@ const weighedWithUnits = catalog.flatMap(dish =>
     return [{
       dish: dish.slug, food: food.slug, grams: line.quantityGrams,
       isPrimary: Boolean(line.isPrimary), isFree: Boolean(line.isFree),
-      availableUnits: food.portions.map(portion => portion.labelEn),
+      // Keys, not labels: this report names the units a recipe line could be
+      // written in, and `data/dishes.json` writes a portion key.
+      availableUnits: food.portions.map(portion => portion.key),
     }];
   }),
 );
