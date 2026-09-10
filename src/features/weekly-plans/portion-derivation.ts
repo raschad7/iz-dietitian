@@ -140,6 +140,20 @@ const LOAF_WORDS = new Set(['pita', 'loaf', 'tortilla', 'flatbread', 'naan', 'bu
  */
 const CONTAINER_WORDS = new Set(['can', 'container', 'jar', 'package', 'packet', 'tin', 'bottle']);
 
+/**
+ * The lightest thing a علبة may be.
+ *
+ * USDA measures single-serve sachets with the same words as real packaging:
+ * `1 container, individual` is an 11 g coffee creamer pod, `1 packet` is a 10 g
+ * mayonnaise sachet and a 9 g ketchup one. Read as a علبة they told a dietitian
+ * that a tub of cooking cream weighs 11 grams.
+ *
+ * The word cannot separate them — a 85 g `1 package, small (3 oz)` of cream
+ * cheese is a real علبة and uses the same noun. The weight can: every genuine
+ * one in the catalog is 85 g or more, and every sachet is under 12.
+ */
+const MIN_CONTAINER_GRAMS = 50;
+
 /** Singular only: "2 leaves" of mint is 0.15 g a leaf, which is not a portion anyone uses. */
 const LEAF_WORDS = new Set(['leaf']);
 
@@ -323,6 +337,22 @@ const FAMILY_PRIORITY: readonly Exclude<Family, 'none'>[] = [
 ];
 
 /**
+ * Categories whose **small** spoon leads.
+ *
+ * A dietitian prescribes oil by the teaspoon. One is about 45 kcal, which is a
+ * number she can put against a target; a tablespoon of olive oil is 120 and lands
+ * on the plate as "نصف ملعقة كبيرة" — a fraction nobody measures and nobody
+ * serves. The clinic said so directly about زيت زيتون، سمنة and زبدة.
+ *
+ * Only the fats. طحينة and زبدة الفول السوداني are spread by the tablespoon and
+ * written that way, and they are `nuts_seeds`.
+ *
+ * Both spoons still exist on the food either way; this decides which one a fresh
+ * line opens in and which one the settings guide prints.
+ */
+const TEASPOON_FIRST_CATEGORIES = new Set(['fats_oils']);
+
+/**
  * How many unit families one food offers.
  *
  * Two. The one it is served in and one to fall back on - an apple in حبة and in
@@ -342,8 +372,13 @@ const SIZE_WORDS = ['medium', 'large', 'small'];
  * lists honey by the 14 g packet, which is a sachet rather than an amount anyone
  * prescribes. Both are written in spoons and always were - this keeps them there
  * now that a food can offer more than one family.
+ *
+ * `sauces_condiments` joined them when the 10 g "1 packet" of mayonnaise was
+ * refused as a علبة and a 220 g **cup** of it inherited the default. That is the
+ * category whose own definition is "small amounts that season a dish rather than
+ * compose it", so the spoon was always the only unit it should have offered.
  */
-const SPOON_ONLY_CATEGORIES = new Set(['fats_oils', 'sweets']);
+const SPOON_ONLY_CATEGORIES = new Set(['fats_oils', 'sweets', 'sauces_condiments']);
 
 /** The only families those categories may offer. */
 const SPOON_FAMILIES = new Set<Family>(['tbsp', 'tsp']);
@@ -577,6 +612,8 @@ export function derivePortions(source: {
       const one = portion.grams / parsed.amount;
       if (one > MAX_PIECE_GRAMS || one < MIN_PIECE_GRAMS) continue;
     }
+    // A sachet is not a علبة — see `MIN_CONTAINER_GRAMS`.
+    if (family === 'container' && portion.grams / parsed.amount < MIN_CONTAINER_GRAMS) continue;
     if (SPOON_ONLY_CATEGORIES.has(source.category) && !SPOON_FAMILIES.has(family)) continue;
     // Meat by the piece, never by the cup — see `WEIGHED_CATEGORIES`.
     if (WEIGHED_CATEGORIES.has(source.category) && !COUNTABLE_FAMILIES.has(family)) continue;
@@ -607,7 +644,17 @@ export function derivePortions(source: {
   for (const family of families) {
     const { base } = best.get(family)!;
 
-    for (const [key, labelAr, labelEn, factor] of FAMILY_ROWS[family]) {
+    /*
+      Smallest first for the fats, so the teaspoon is the row that leads and
+      `isDefault` lands on it. Sorting by the factor rather than naming the key
+      says the intent once and needs no second list to keep in step.
+    */
+    const definition =
+      family === 'tbsp' && TEASPOON_FIRST_CATEGORIES.has(source.category)
+        ? [...FAMILY_ROWS[family]].sort((a, b) => a[3] - b[3])
+        : FAMILY_ROWS[family];
+
+    for (const [key, labelAr, labelEn, factor] of definition) {
       if (taken.has(key)) continue;
 
       const grams = g(base * factor);

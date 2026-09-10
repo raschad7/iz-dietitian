@@ -113,9 +113,11 @@ describe('a fresh database', () => {
       .where(eq(catalogFoods.slug, 'olive-oil'))
       .orderBy(catalogFoodPortions.sortOrder);
 
+    // The small spoon leads for the fats — one teaspoon of oil is about 45 kcal,
+    // which is a number a dietitian can put against a target.
     expect(portions).toEqual([
-      { labelAr: 'ملعقة كبيرة', labelEn: 'Tablespoon', grams: 13.5 },
       { labelAr: 'ملعقة صغيرة', labelEn: 'Teaspoon', grams: 4.5 },
+      { labelAr: 'ملعقة كبيرة', labelEn: 'Tablespoon', grams: 13.5 },
     ]);
   });
 });

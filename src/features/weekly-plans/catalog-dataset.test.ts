@@ -281,26 +281,41 @@ describe('portions', () => {
     });
     expect(bySlug.get('egg-boiled')!.portions[0]!.grams).toBe(50);
 
-    // Oil is written in spoons and in nothing else. USDA publishes a 216 g cup;
-    // it is a bottle measure, not a serving.
+    /*
+      Oil is written in spoons and in nothing else — USDA publishes a 216 g cup,
+      which is a bottle measure rather than a serving.
+
+      **The small spoon leads.** One teaspoon of olive oil is about 45 kcal,
+      which is a number a dietitian can put against a target; a tablespoon is
+      120 and reaches the plate as "نصف ملعقة كبيرة", a fraction nobody measures.
+      The clinic asked for this directly about زيت زيتون، سمنة and زبدة.
+    */
     expect(bySlug.get('olive-oil')!.portions).toMatchObject([
-      {
-        key: 'level-tablespoon',
-        labelAr: 'ملعقة كبيرة',
-        labelEn: 'Tablespoon',
-        grams: 13.5,
-        isDefault: true,
-        sortOrder: 0,
-      },
       {
         key: 'teaspoon',
         labelAr: 'ملعقة صغيرة',
         labelEn: 'Teaspoon',
         grams: 4.5,
+        isDefault: true,
+        sortOrder: 0,
+      },
+      {
+        key: 'level-tablespoon',
+        labelAr: 'ملعقة كبيرة',
+        labelEn: 'Tablespoon',
+        grams: 13.5,
         isDefault: false,
         sortOrder: 1,
       },
     ]);
+
+    // A sachet is not a علبة. USDA measures an 11 g "1 container, individual"
+    // creamer pod, and read as one it said a tub of cooking cream weighs 11 g.
+    for (const food of foods) {
+      for (const portion of food.portions) {
+        if (portion.key === 'container') expect(portion.grams).toBeGreaterThanOrEqual(50);
+      }
+    }
 
     // `isDefault: false` on a first row is not a slip: cooked rice declares the
     // spoon (`countedAs`), and the declaration takes the default off whatever
