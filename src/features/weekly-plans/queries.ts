@@ -85,6 +85,11 @@ import {
   type MealScheduleInput,
 } from './schema';
 import { narrowToPattern } from './clinical';
+import {
+  evaluateDishEligibility,
+  type EligibilityDecision,
+  type PlanConstraints,
+} from './eligibility';
 import { readNutritionRules, type NutritionRules } from './nutrition-rules';
 import { slotBudgets, suggestProteinGrams, suggestTargets, type SlotBudget, type SuggestedTargets } from './targets';
 import { weekDates } from './week';
@@ -107,6 +112,63 @@ import { weekDates } from './week';
  * `editor-mutations.ts`.
  */
 export type DbExecutor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/** The structured client constraints attached to one clinic-owned plan. */
+export async function getPlanConstraints(
+  clinicId: string,
+  planId: string,
+  executor: DbExecutor = db,
+): Promise<PlanConstraints | null> {
+  const [row] = await executor
+    .select({
+      allergens: clientNutritionProfiles.allergenTags,
+      dietPattern: clientNutritionProfiles.dietPattern,
+      unmappedExclusions: clientNutritionProfiles.customAllergens,
+    })
+    .from(weeklyPlans)
+    .innerJoin(
+      clientNutritionProfiles,
+      and(
+        eq(clientNutritionProfiles.clientId, weeklyPlans.clientId),
+        eq(clientNutritionProfiles.clinicId, clinicId),
+      ),
+    )
+    .where(and(eq(weeklyPlans.id, planId), eq(weeklyPlans.clinicId, clinicId)))
+    .limit(1);
+
+  return row ?? null;
+}
+
+/** Structured constraints for a clinic-owned client before a plan exists. */
+export async function getClientPlanConstraints(
+  clinicId: string,
+  clientId: string,
+  executor: DbExecutor = db,
+): Promise<PlanConstraints | null> {
+  const [row] = await executor
+    .select({
+      allergens: clientNutritionProfiles.allergenTags,
+      dietPattern: clientNutritionProfiles.dietPattern,
+      unmappedExclusions: clientNutritionProfiles.customAllergens,
+    })
+    .from(clientNutritionProfiles)
+    .innerJoin(
+      clients,
+      and(
+        eq(clients.id, clientNutritionProfiles.clientId),
+        eq(clients.clinicId, clinicId),
+      ),
+    )
+    .where(
+      and(
+        eq(clientNutritionProfiles.clientId, clientId),
+        eq(clientNutritionProfiles.clinicId, clinicId),
+      ),
+    )
+    .limit(1);
+
+  return row ?? null;
+}
 
 /**
  * A `text[]` literal with each element bound as a parameter.
@@ -270,6 +332,7 @@ export async function ownAmountsByMeal(
       quantityGrams: weeklyPlanMealIngredients.quantityGrams,
       portionQuantity: weeklyPlanMealIngredients.portionQuantity,
       isPrimary: weeklyPlanMealIngredients.isPrimary,
+      isFree: weeklyPlanMealIngredients.isFree,
       sortOrder: weeklyPlanMealIngredients.sortOrder,
       portion: portionColumns,
       food: foodColumns,
@@ -437,9 +500,10 @@ async function withPortions(
 export async function loadCatalog(
   clinicId: string,
   allergens: readonly string[] = [],
+  executor: DbExecutor = db,
 ): Promise<DishDetail[]> {
   // Dishes hidden by this clinic — read first so the main query can exclude them.
-  const hidden = await db
+  const hidden = await executor
     .select({ dishId: clinicHiddenDishes.dishId })
     .from(clinicHiddenDishes)
     .where(eq(clinicHiddenDishes.clinicId, clinicId));
@@ -461,7 +525,7 @@ export async function loadCatalog(
     conditions.push(sql`not (${dishes.allergenTags} && ${textArray(allergens)})`);
   }
 
-  const dishRows = await db
+  const dishRows = await executor
     .select({
       id: dishes.id,
       clinicId: dishes.clinicId,
@@ -484,7 +548,7 @@ export async function loadCatalog(
 
   if (!dishRows.length) return [];
 
-  const ingredientRows = await db
+  const ingredientRows = await executor
     .select(recipeColumns)
     .from(dishIngredients)
     .innerJoin(catalogFoods, eq(catalogFoods.id, dishIngredients.catalogFoodId))
@@ -577,8 +641,11 @@ export function toPromptCatalog(
   catalog: readonly DishDetail[],
   /** A prescribed pattern narrows what may be chosen — see `narrowToPattern`. */
   dietPattern: string | null = null,
+  allergens: readonly string[] = [],
 ): CatalogDish[] {
-  return narrowToPattern(catalog.filter((dish) => !dish.isSide).map(toCatalogDish), dietPattern);
+  const constraints = { allergens, dietPattern };
+  return narrowToPattern(catalog.filter((dish) => !dish.isSide).map(toCatalogDish), dietPattern)
+    .filter((dish) => evaluateDishEligibility(dish, constraints).eligible);
 }
 
 /**
@@ -591,8 +658,11 @@ export function toPromptCatalog(
 export function toPromptSides(
   catalog: readonly DishDetail[],
   dietPattern: string | null = null,
+  allergens: readonly string[] = [],
 ): CatalogDish[] {
-  return narrowToPattern(catalog.filter((dish) => dish.isSide).map(toCatalogDish), dietPattern);
+  const constraints = { allergens, dietPattern };
+  return narrowToPattern(catalog.filter((dish) => dish.isSide).map(toCatalogDish), dietPattern)
+    .filter((dish) => evaluateDishEligibility(dish, constraints).eligible);
 }
 
 function toCatalogDish(dish: DishDetail): CatalogDish {
@@ -600,6 +670,7 @@ function toCatalogDish(dish: DishDetail): CatalogDish {
     id: dish.id,
     slug: dish.slug,
     nameAr: dish.nameAr,
+    nameEn: dish.nameEn,
     mealTypes: dish.mealTypes,
     source: dish.source,
     effort: dish.effort,
@@ -644,6 +715,8 @@ export type CatalogEntry = DishDetail & {
    * refuses it regardless, because `loadCatalog(allergens)` never offered it.
    */
   blockedBy: string[];
+  /** Full shared decision; optional only for static development-harness fixtures. */
+  eligibility?: EligibilityDecision;
 };
 
 /**
@@ -655,18 +728,21 @@ export type CatalogEntry = DishDetail & {
  */
 export async function listCatalogForBoard(
   clinicId: string,
-  allergens: readonly string[],
+  constraints: PlanConstraints,
 ): Promise<CatalogEntry[]> {
   const catalog = await loadCatalog(clinicId);
-  const blocked = new Set(allergens);
 
   return catalog
-    .map((dish) => ({
-      ...dish,
-      baseKcal: baseServingKcal(dish.ingredients),
-      nutritionCategory: nutritionCategory(dishTotals(dish.ingredients, 1)),
-      blockedBy: dish.allergenTags.filter((tag) => blocked.has(tag)),
-    }))
+    .map((dish) => {
+      const eligibility = evaluateDishEligibility(dish, constraints);
+      return {
+        ...dish,
+        baseKcal: baseServingKcal(dish.ingredients),
+        nutritionCategory: nutritionCategory(dishTotals(dish.ingredients, 1)),
+        blockedBy: eligibility.blockedBy,
+        eligibility,
+      };
+    })
     .sort((a, b) => a.nameAr.localeCompare(b.nameAr, 'ar'));
 }
 
@@ -1363,6 +1439,8 @@ export type ClientContext = {
     dailyKcalTarget: number | null;
     proteinTargetGrams: number | null;
     allergenTags: string[];
+    /** Free-text exclusions cannot be verified against the structured catalog. */
+    customAllergens: string[];
     /** Ticked conditions and the prescribed pattern — see `clinical.ts`. */
     clinicalTags: string[];
     dietPattern: string | null;
@@ -1429,6 +1507,7 @@ export async function getClientContext(clinicId: string, clientId: string): Prom
       dailyKcalTarget: clientNutritionProfiles.dailyKcalTarget,
       proteinTargetGrams: clientNutritionProfiles.proteinTargetGrams,
       allergenTags: clientNutritionProfiles.allergenTags,
+      customAllergens: clientNutritionProfiles.customAllergens,
       clinicalTags: clientNutritionProfiles.clinicalTags,
       dietPattern: clientNutritionProfiles.dietPattern,
       preferences: clientNutritionProfiles.preferences,
@@ -1495,6 +1574,7 @@ export async function getClientContext(clinicId: string, clientId: string): Prom
           dailyKcalTarget: row.dailyKcalTarget,
           proteinTargetGrams: row.proteinTargetGrams,
           allergenTags: row.allergenTags ?? [],
+          customAllergens: row.customAllergens ?? [],
           clinicalTags: row.clinicalTags ?? [],
           dietPattern: row.dietPattern,
           preferences: row.preferences,

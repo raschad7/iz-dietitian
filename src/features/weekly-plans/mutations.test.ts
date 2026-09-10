@@ -7,11 +7,13 @@ import { normalizeArabic } from '@/features/weekly-plans/arabic-normalize';
 import { pgConstraintName, pgErrorCode, UNIQUE_VIOLATION } from '@/db/errors';
 import {
   catalogFoods,
+  clientNutritionProfiles,
   clientPlanAdherence,
   clients,
   dishIngredients,
   dishes,
   weeklyPlanMealCompletions,
+  weeklyPlanMealOptions,
   weeklyPlanMeals,
   weeklyPlans,
 } from '@/db/schema';
@@ -25,6 +27,7 @@ import {
   createPlanFromGeneration,
   deletePlan,
   publishPlan,
+  removeMealOption,
   replaceMeals,
   swapMealDish,
   unpublishPlan,
@@ -75,7 +78,7 @@ async function seedDishes(): Promise<string[]> {
         slug: 'test-lunch-a',
         nameAr: 'طبق أ',
         nameEn: 'Dish A',
-        mealTypes: ['lunch'],
+        mealTypes: ['breakfast', 'lunch', 'dinner'],
         allergenTags: [],
         baseServingLabel: 'حصة',
       },
@@ -83,7 +86,7 @@ async function seedDishes(): Promise<string[]> {
         slug: 'test-lunch-b',
         nameAr: 'طبق ب',
         nameEn: 'Dish B',
-        mealTypes: ['lunch'],
+        mealTypes: ['breakfast', 'lunch', 'dinner'],
         allergenTags: ['nuts'],
         baseServingLabel: 'حصة',
       },
@@ -125,6 +128,14 @@ function outcome(meals: ReconciledMeal[]) {
     model: 'test-model',
     usage: { promptTokens: 10, completionTokens: 20 },
     durationMs: 5,
+    passes: [{
+      pass: 'single' as const,
+      model: 'test-model',
+      usage: { promptTokens: 10, completionTokens: 20 },
+      durationMs: 5,
+      status: 'ok' as const,
+      error: null,
+    }],
   };
 }
 
@@ -183,6 +194,11 @@ async function createPlan(
   meals: ReconciledMeal[] = [meal()],
   weekStartDate = PLAN_WEEK,
 ): Promise<string> {
+  await db
+    .insert(clientNutritionProfiles)
+    .values({ clinicId, clientId, mealSchedule: DEFAULT_MEAL_SCHEDULE })
+    .onConflictDoNothing({ target: clientNutritionProfiles.clientId });
+
   const planId = await createPlanFromGeneration({
     clinicId,
     clientId,
@@ -458,6 +474,36 @@ describe('swapMealDish', () => {
 
     expect(
       await swapMealDish(otherClinicId, planId, board!.days[0]!.meals[0]!.id, dishIds[1]!, 1),
+    ).toBe(false);
+  });
+});
+
+describe('removeMealOption', () => {
+  test('lets a dietitian remove a saved alternative from a draft', async () => {
+    const planId = await createPlan();
+    const board = await getBoard(clinicId, planId);
+    const mealId = board!.days[0]!.meals[0]!.id;
+
+    expect(await removeMealOption(clinicId, planId, mealId, dishIds[1]!)).toBe(true);
+    expect(
+      await db
+        .select()
+        .from(weeklyPlanMealOptions)
+        .where(eq(weeklyPlanMealOptions.mealId, mealId)),
+    ).toHaveLength(0);
+  });
+
+  test('cannot remove an alternative through another clinic', async () => {
+    const planId = await createPlan();
+    const board = await getBoard(clinicId, planId);
+
+    expect(
+      await removeMealOption(
+        otherClinicId,
+        planId,
+        board!.days[0]!.meals[0]!.id,
+        dishIds[1]!,
+      ),
     ).toBe(false);
   });
 });

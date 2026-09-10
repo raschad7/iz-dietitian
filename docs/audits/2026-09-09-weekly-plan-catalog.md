@@ -255,4 +255,15 @@ are in the three `.plan-lab/audit-*` directories. The catalog JSON report is
 `.plan-lab/audit-current.json`; the initial failing regression and check logs are
 also in `.plan-lab/`. These are ignored local artifacts, not client data.
 
-Required verification: `bun run lint`, `bun run typecheck`, `bun run test`.
+Verification completed:
+
+- `bun run lint` — passed.
+- `bun run typecheck` — passed.
+- `bun run test` — **2,515 passed, 0 failed**, across 159 files.
+- Arabic/English editor rendering checked at desktop and 390-pixel mobile width.
+- Unit conversion checked in the browser: two eggs → 100 g, with unchanged calories.
+- Incomplete ingredient checked in the browser: adding chicken without an amount
+  disables Next even when another ingredient is complete; entering 100 g enables it.
+
+The dev harness uses synthetic search data and cannot submit a real clinic dish;
+save/reopen persistence was verified in the integration test database instead.

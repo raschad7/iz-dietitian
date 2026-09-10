@@ -49,7 +49,7 @@
 import { GRAMS_STEP, unitStep } from './ingredient-units';
 import { countLimit } from './portion-limits';
 import type { FoodNutrients } from './nutrition';
-import { MAX_SERVINGS, MIN_SERVINGS, SERVING_STEP } from './similar';
+import { isSimilar, MAX_SERVINGS, MIN_SERVINGS, SERVING_STEP } from './similar';
 
 /** What portioning needs of a recipe line. A subset of `DishIngredientDetail`. */
 export type PortionableLine = {
@@ -92,17 +92,6 @@ export type PortionedAmount = {
   portionQuantity: number | null;
 };
 
-/**
- * How much one press of a unit is worth, in that unit.
- *
- * The same increments as `unitStep` in `ingredient-units.ts`, which is what the
- * dietitian's `−`/`+` moves by — deliberately, so a generated amount sits on the
- * grid her buttons walk. A unit whose label already names a fraction (`نصف كوب`)
- * moves by whole ones: a quarter of a half cup is arithmetic nobody serves.
- *
- * An egg moves by a whole egg. Half a رغيف is a real instruction and half an egg
- * is not, which is the distinction the table encodes.
- */
 /**
  * The most of one food a single meal may grow to.
  *
@@ -391,6 +380,18 @@ export function chooseServings(
   }
 
   return best;
+}
+
+/** A practical multiplier only when its actual snapped plate fits the slot. */
+export function similarServings(
+  recipe: readonly PortionableLine[],
+  budgetKcal: number,
+  options: ServingOptions = {},
+): number | null {
+  const servings = chooseServings(recipe, budgetKcal, options);
+  if (servings === null) return null;
+
+  return isSimilar(portionedKcal(recipe, servings), budgetKcal) ? servings : null;
 }
 
 /**

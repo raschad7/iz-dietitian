@@ -71,6 +71,16 @@ describe('clinicDishInputSchema', () => {
     expect(() => clinicDishInputSchema.parse({ ...validDish, ingredients: [] })).toThrow();
   });
 
+  test('rejects the same food twice in one dish', () => {
+    const ingredient = validDish.ingredients[0]!;
+    const result = clinicDishInputSchema.safeParse({
+      ...validDish,
+      ingredients: [ingredient, { ...ingredient, quantityGrams: 50 }],
+    });
+
+    expect(result.success).toBe(false);
+  });
+
   test('requires at least one meal type', () => {
     expect(() => clinicDishInputSchema.parse({ ...validDish, mealTypes: [] })).toThrow();
   });

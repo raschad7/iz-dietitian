@@ -395,8 +395,9 @@ export function BoardHarness({ locale }: { locale: Locale }) {
         dailyKcalTarget: 2178,
         proteinTargetGrams: 128,
         allergenTags: [],
-      clinicalTags: [],
-      dietPattern: null,
+        customAllergens: [],
+        clinicalTags: [],
+        dietPattern: null,
         preferences: emptyProfile ? null : 'يفضّل الدجاج والسمك على اللحوم الحمراء.',
         dislikes: emptyProfile ? null : 'الباذنجان، الكبدة.',
         permanentInstructions: emptyProfile

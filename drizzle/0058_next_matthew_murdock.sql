@@ -1,0 +1,2 @@
+ALTER TABLE "weekly_plan_generations" ADD COLUMN "pass" text DEFAULT 'single' NOT NULL;--> statement-breakpoint
+ALTER TABLE "weekly_plan_meal_ingredients" ADD COLUMN "is_free" boolean DEFAULT false NOT NULL;

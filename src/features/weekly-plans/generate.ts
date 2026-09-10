@@ -29,10 +29,13 @@ import type { DishIngredientDetail } from './nutrition';
 import { chooseServings, nextServings, portionedKcal } from './portioning';
 import { bestServings, isSimilar, snapServings } from './similar';
 import type { SlotBudget } from './targets';
+import { evaluateDishEligibility, type PlanConstraints } from './eligibility';
 
 /** A catalog dish, as reconciliation needs it. */
 export type CatalogDish = PromptDish & {
   id: string;
+  /** Kept server-side for bilingual board/harness output; the prompt serializer omits it. */
+  nameEn?: string;
   allergenTags: readonly string[];
   /**
    * The recipe, carried so the portion can be chosen against what a multiplier
@@ -78,6 +81,7 @@ export type ReconciledMeal = {
 export type ReconcileWarning =
   | { kind: 'unknown_dish'; slug: string; dayOfWeek: number; slotKey: string }
   | { kind: 'allergen_violation'; slug: string; dayOfWeek: number; slotKey: string }
+  | { kind: 'constraint_violation'; slug: string; dayOfWeek: number; slotKey: string }
   | { kind: 'wrong_meal_type'; slug: string; dayOfWeek: number; slotKey: string }
   | { kind: 'missing_meal'; dayOfWeek: number; slotKey: string }
   | { kind: 'duplicate_meal'; dayOfWeek: number; slotKey: string };
@@ -111,7 +115,9 @@ export function reconcile({
   catalog,
   sides = [],
   allergens,
+  dietPattern = null,
   proteinTargetGrams = null,
+  proteinIsRestriction = false,
 }: {
   plan: GeneratedPlan;
   days: readonly number[];
@@ -120,13 +126,15 @@ export function reconcile({
   /** What may stand beside a main. Empty means sides are simply never attached. */
   sides?: readonly CatalogDish[];
   allergens: readonly string[];
+  dietPattern?: string | null;
   /** The daily protein target, so the variety repair can weigh what a swap costs. */
   proteinTargetGrams?: number | null;
+  proteinIsRestriction?: boolean;
 }): ReconcileResult {
   const bySlug = new Map(catalog.map((dish) => [dish.slug, dish]));
   const sideBySlug = new Map(sides.map((dish) => [dish.slug, dish]));
   const sideById = new Map(sides.map((dish) => [dish.id, dish]));
-  const blocked = new Set(allergens);
+  const constraints: PlanConstraints = { allergens, dietPattern };
   const warnings: ReconcileWarning[] = [];
 
   // Index the response so a missing day or slot is an absent lookup rather than a
@@ -164,7 +172,12 @@ export function reconcile({
       return null;
     }
 
-    if (dish.allergenTags.some((tag) => blocked.has(tag))) {
+    const eligibility = evaluateDishEligibility(dish, constraints);
+    if (!eligibility.eligible) {
+      if (eligibility.blockedBy.length === 0) {
+        warnings.push({ kind: 'constraint_violation', slug, dayOfWeek, slotKey });
+        return null;
+      }
       warnings.push({ kind: 'allergen_violation', slug, dayOfWeek, slotKey });
       return null;
     }
@@ -249,7 +262,7 @@ export function reconcile({
         mealType,
         budgetKcal: budget.kcal,
         catalog,
-        blocked,
+        constraints,
         rotation: dayOfWeek + index,
       });
 
@@ -259,7 +272,7 @@ export function reconcile({
         servings,
         rationaleAr: truncate(returnedMeal.rationaleAr, MAX_RATIONALE_LENGTH),
         options,
-        sideDishIds: resolveSides(returnedMeal.sides, sideBySlug, blocked),
+        sideDishIds: resolveSides(returnedMeal.sides, sideBySlug, constraints),
       };
 
       meals.push(meal);
@@ -281,13 +294,23 @@ export function reconcile({
 
   // Variety last: it swaps dishes, and a swapped dish is portioned by the same
   // chooser, so it must run after every meal has one to swap away from.
-  const variety = repairVariety({ meals, catalog, allergens, proteinTargetGrams });
+  const variety = repairVariety({
+    meals,
+    catalog,
+    allergens,
+    dietPattern,
+    proteinTargetGrams,
+    proteinIsRestriction,
+  });
 
   return {
     meals,
     warnings,
     unfilled,
-    summaryAr: truncate(plan.summaryAr, MAX_SUMMARY_LENGTH),
+    // A deterministic repair changed meals the model described. Suppressing the
+    // stale prose is safer than showing an explanation for a dish no longer in
+    // the plan; the board itself remains the source of truth.
+    summaryAr: variety.repaired > 0 ? null : truncate(plan.summaryAr, MAX_SUMMARY_LENGTH),
     variety,
   };
 }
@@ -329,14 +352,14 @@ function alternativesFor({
   mealType,
   budgetKcal,
   catalog,
-  blocked,
+  constraints,
   rotation,
 }: {
   dish: CatalogDish;
   mealType: string;
   budgetKcal: number;
   catalog: readonly CatalogDish[];
-  blocked: ReadonlySet<string>;
+  constraints: PlanConstraints;
   rotation: number;
 }): ReconciledOption[] {
   const ranked: { option: ReconciledOption; gap: number }[] = [];
@@ -344,7 +367,7 @@ function alternativesFor({
   for (const candidate of catalog) {
     if (candidate.id === dish.id) continue;
     if (!candidate.mealTypes.includes(mealType)) continue;
-    if (candidate.allergenTags.some((tag) => blocked.has(tag))) continue;
+    if (!evaluateDishEligibility(candidate, constraints).eligible) continue;
 
     const servings =
       chooseServings(candidate.recipe, budgetKcal, {
@@ -355,15 +378,14 @@ function alternativesFor({
 
     const kcal = portionedKcal(candidate.recipe, servings) || candidate.baseKcal * servings;
 
+    if (!isSimilar(kcal, budgetKcal)) continue;
+
     ranked.push({
       option: {
         dishId: candidate.id,
         slug: candidate.slug,
         servings,
-        // Recorded rather than filtered: an alternative that is 40% lighter is
-        // still a dish the dietitian might want, it just is not a like-for-like
-        // swap, and the panel says so.
-        isSimilar: isSimilar(kcal, budgetKcal),
+        isSimilar: true,
       },
       gap: Math.abs(kcal - budgetKcal),
     });
@@ -395,7 +417,7 @@ function alternativesFor({
 function resolveSides(
   slugs: readonly string[],
   sideBySlug: ReadonlyMap<string, CatalogDish>,
-  blocked: ReadonlySet<string>,
+  constraints: PlanConstraints,
 ): string[] {
   const ids: string[] = [];
 
@@ -404,7 +426,7 @@ function resolveSides(
 
     const side = sideBySlug.get(slug);
     if (!side) continue;
-    if (side.allergenTags.some((tag) => blocked.has(tag))) continue;
+    if (!evaluateDishEligibility(side, constraints).eligible) continue;
     if (ids.includes(side.id)) continue;
 
     ids.push(side.id);
@@ -536,6 +558,9 @@ export class GenerationFailedError extends Error {
   constructor(
     message: string,
     override readonly cause?: unknown,
+    readonly durationMs = 0,
+    readonly usage: LlmResult['usage'] = { promptTokens: null, completionTokens: null },
+    readonly model = process.env.OPENAI_MODEL ?? 'unknown',
   ) {
     super(message);
     this.name = 'GenerationFailedError';
@@ -546,6 +571,17 @@ export type GenerationOutcome = ReconcileResult & {
   model: string;
   usage: LlmResult['usage'];
   durationMs: number;
+  /** One entry per provider call, including a refinement that was discarded. */
+  passes: GenerationPass[];
+};
+
+export type GenerationPass = {
+  pass: 'single' | 'initial' | 'refinement';
+  model: string;
+  usage: LlmResult['usage'];
+  durationMs: number;
+  status: 'ok' | 'failed';
+  error: string | null;
 };
 
 /**
@@ -563,16 +599,24 @@ export async function runGeneration(
   input: PromptInput,
   catalog: readonly CatalogDish[],
   allergens: readonly string[],
-  /** What may stand beside a main. Last, and optional, so every existing caller reads unchanged. */
+  /** What may stand beside a main. */
   sides: readonly CatalogDish[] = [],
-  /** Cuts this call short of the transport's own timeout — see {@link runReviewedGeneration}. */
-  signal?: AbortSignal,
+  options: {
+    /** Cuts this call short of the transport's own timeout. */
+    signal?: AbortSignal;
+    dietPattern?: string | null;
+    proteinTargetGrams?: number | null;
+    proteinIsRestriction?: boolean;
+    pass?: GenerationPass['pass'];
+  } = {},
 ): Promise<GenerationOutcome> {
   const transport = getLlmTransport();
   const payload = buildPrompt(input);
   const startedAt = Date.now();
 
   let lastError: unknown;
+  let totalUsage: LlmResult['usage'] = { promptTokens: null, completionTokens: null };
+  let lastModel = process.env.OPENAI_MODEL ?? 'unknown';
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const attemptPayload =
@@ -586,14 +630,23 @@ export async function runGeneration(
     let result: LlmResult;
 
     try {
-      result = await transport.complete(attemptPayload, signal);
+      result = await transport.complete(attemptPayload, options.signal);
     } catch (cause) {
       // Surface transport failures immediately, with nothing written.
       throw new GenerationFailedError(
         cause instanceof LlmTransportError ? cause.message : 'The model could not be reached',
         cause,
+        Date.now() - startedAt,
+        totalUsage,
+        lastModel,
       );
     }
+
+    lastModel = result.model;
+    totalUsage = {
+      promptTokens: addTokens(totalUsage.promptTokens, result.usage.promptTokens),
+      completionTokens: addTokens(totalUsage.completionTokens, result.usage.completionTokens),
+    };
 
     let parsed: GeneratedPlan;
 
@@ -607,6 +660,7 @@ export async function runGeneration(
       continue;
     }
 
+    const durationMs = Date.now() - startedAt;
     return {
       ...reconcile({
         plan: parsed,
@@ -615,16 +669,30 @@ export async function runGeneration(
         catalog,
         sides,
         allergens,
+        dietPattern: options.dietPattern,
+        proteinTargetGrams: options.proteinTargetGrams,
+        proteinIsRestriction: options.proteinIsRestriction,
       }),
       model: result.model,
-      usage: result.usage,
-      durationMs: Date.now() - startedAt,
+      usage: totalUsage,
+      durationMs,
+      passes: [{
+        pass: options.pass ?? 'single',
+        model: result.model,
+        usage: totalUsage,
+        durationMs,
+        status: 'ok',
+        error: null,
+      }],
     };
   }
 
   throw new GenerationFailedError(
     `The model returned a response we could not use: ${describeError(lastError)}`,
     lastError,
+    Date.now() - startedAt,
+    totalUsage,
+    lastModel,
   );
 }
 
@@ -682,6 +750,7 @@ export async function runReviewedGeneration({
   kcalTarget,
   proteinTargetGrams,
   proteinIsRestriction = false,
+  dietPattern = null,
 }: {
   input: PromptInput;
   catalog: readonly CatalogDish[];
@@ -690,8 +759,13 @@ export async function runReviewedGeneration({
   kcalTarget: number;
   proteinTargetGrams: number | null;
   proteinIsRestriction?: boolean;
+  dietPattern?: string | null;
 }): Promise<GenerationOutcome> {
-  const first = await runGeneration(input, catalog, allergens, sides);
+  const reconciliation = { dietPattern, proteinTargetGrams, proteinIsRestriction };
+  const first = await runGeneration(input, catalog, allergens, sides, {
+    ...reconciliation,
+    pass: 'initial',
+  });
 
   // A first pass that could not fill the week is not worth a second reading — the
   // gaps are what the dietitian needs to see, and a refinement would hide the fact
@@ -716,10 +790,19 @@ export async function runReviewedGeneration({
       catalog,
       allergens,
       sides,
-      AbortSignal.timeout(REVIEW_TIMEOUT_MS),
+      {
+        ...reconciliation,
+        pass: 'refinement',
+        signal: AbortSignal.timeout(REVIEW_TIMEOUT_MS),
+      },
     );
 
-    if (second.unfilled > 0) return first;
+    if (second.unfilled > 0) {
+      return aggregatePasses(first, second, {
+        keep: first,
+        failedRefinement: 'Refinement was discarded because it left unfilled slots.',
+      });
+    }
 
     return {
       ...second,
@@ -729,11 +812,52 @@ export async function runReviewedGeneration({
         completionTokens: addTokens(first.usage.completionTokens, second.usage.completionTokens),
       },
       durationMs: first.durationMs + second.durationMs,
+      passes: [...first.passes, ...second.passes],
     };
   } catch (error) {
     console.warn('[weekly-plans] the second pass did not land; keeping the draft', error);
-    return first;
+    return {
+      ...first,
+      passes: [
+        ...first.passes,
+        {
+          pass: 'refinement',
+          model: error instanceof GenerationFailedError
+            ? error.model
+            : process.env.OPENAI_MODEL ?? 'unknown',
+          usage: error instanceof GenerationFailedError
+            ? error.usage
+            : { promptTokens: null, completionTokens: null },
+          durationMs: error instanceof GenerationFailedError ? error.durationMs : 0,
+          status: 'failed',
+          error: describeError(error),
+        },
+      ],
+    };
   }
+}
+
+function aggregatePasses(
+  first: GenerationOutcome,
+  second: GenerationOutcome,
+  input: { keep: GenerationOutcome; failedRefinement: string },
+): GenerationOutcome {
+  return {
+    ...input.keep,
+    usage: {
+      promptTokens: addTokens(first.usage.promptTokens, second.usage.promptTokens),
+      completionTokens: addTokens(first.usage.completionTokens, second.usage.completionTokens),
+    },
+    durationMs: first.durationMs + second.durationMs,
+    passes: [
+      ...first.passes,
+      ...second.passes.map((pass) => ({
+        ...pass,
+        status: 'failed' as const,
+        error: input.failedRefinement,
+      })),
+    ],
+  };
 }
 
 /** Two counts, either of which the provider may not have reported. */

@@ -17,12 +17,27 @@ import { z } from 'zod';
 /**
  * The structured allergen list — the only thing the dish catalog filters on.
  *
- * Deliberately six closed values rather than prose. `clients.allergies` carries
+ * Deliberately closed values rather than prose. `clients.allergies` carries
  * the detail a dietitian writes in their own words; filtering a catalog by
  * keyword-matching that prose is the kind of nearly-right that puts a client in
  * hospital.
  */
-export const ALLERGENS = ['nuts', 'lactose', 'gluten', 'egg', 'fish', 'sesame'] as const;
+export const ALLERGENS = [
+  // `nuts` and `lactose` remain for records written before the more precise
+  // vocabulary existed. Eligibility treats them as compatibility umbrellas;
+  // new records can distinguish peanut/tree-nut and milk/lactose concerns.
+  'nuts',
+  'peanut',
+  'tree_nuts',
+  'lactose',
+  'milk',
+  'gluten',
+  'egg',
+  'fish',
+  'shellfish',
+  'sesame',
+  'soy',
+] as const;
 
 export type Allergen = (typeof ALLERGENS)[number];
 
@@ -84,6 +99,8 @@ export type ClinicalCondition = (typeof CLINICAL_CONDITIONS)[number];
  * this existed.
  */
 export const DIET_PATTERNS = [
+  'vegetarian',
+  'vegan',
   'low_carb',
   'keto',
   'high_protein',

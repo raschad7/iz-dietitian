@@ -45,6 +45,8 @@ const scenarios: { name: string; allergens: string[]; pattern: string | null }[]
   { name: 'nuts-egg-sesame-excluded', allergens: ['nuts', 'egg', 'sesame'], pattern: null },
   { name: 'nuts-lactose-sesame-excluded', allergens: ['nuts', 'lactose', 'sesame'], pattern: null },
   { name: 'gluten-excluded', allergens: ['gluten'], pattern: null },
+  { name: 'vegetarian', allergens: [], pattern: 'vegetarian' },
+  { name: 'vegan', allergens: [], pattern: 'vegan' },
   { name: 'keto', allergens: [], pattern: 'keto' },
   { name: 'low-carb', allergens: [], pattern: 'low_carb' },
 ];
@@ -68,9 +70,8 @@ console.log(JSON.stringify({
       : [];
   })),
   scenarios: scenarios.map(scenario => {
-    const visible = catalog.filter(dish => !dish.allergenTags.some(tag => scenario.allergens.includes(tag)));
-    const offered = toPromptCatalog(visible, scenario.pattern);
-    const sides = toPromptSides(visible, scenario.pattern);
+    const offered = toPromptCatalog(catalog, scenario.pattern, scenario.allergens);
+    const sides = toPromptSides(catalog, scenario.pattern, scenario.allergens);
     const carbThreshold = scenario.pattern === 'keto' ? 10 : scenario.pattern === 'low_carb' ? 25 : null;
     return {
       name: scenario.name, mains: offered.length, sides: sides.length,

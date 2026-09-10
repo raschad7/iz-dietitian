@@ -466,7 +466,8 @@ export function DishCatalog({
                 bestServings(dish.baseKcal, slot.budgetKcal) ??
                 1)
               : 1;
-            const allowed = editable && dish.blockedBy.length === 0;
+            const allowed =
+              editable && (dish.eligibility?.eligible ?? dish.blockedBy.length === 0);
 
             return (
               <li key={dish.id} className="border-b border-border last:border-b-0">
@@ -599,7 +600,7 @@ function CatalogRow({
     data: { kind: 'dish', dish, servings, kcal },
   });
 
-  const blocked = dish.blockedBy.length > 0;
+  const blocked = !(dish.eligibility?.eligible ?? dish.blockedBy.length === 0);
   const delta = budgetKcal === null ? null : kcal - budgetKcal;
   const deltaLabel = delta === null ? null : `${delta > 0 ? '+' : ''}${delta}`;
 
@@ -651,7 +652,7 @@ function CatalogRow({
           </span>
         </span>
         <span className="mt-0.5 block text-caption text-muted-foreground">
-          {blocked ? (
+          {dish.blockedBy.length > 0 ? (
             <span className="text-status-medical-fg">
               {t('blockedByAllergen', {
                 // Narrowed against the enum rather than interpolated as a string:
@@ -662,6 +663,8 @@ function CatalogRow({
                   .join('، '),
               })}
             </span>
+          ) : blocked ? (
+            <span className="text-status-medical-fg">{t('blockedByConstraint')}</span>
           ) : (
             <>
               <span className="tabular-nums">

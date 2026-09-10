@@ -32,7 +32,7 @@ import { reconcile, type CatalogDish } from '@/features/weekly-plans/generate';
 import { getLlmTransport } from '@/features/weekly-plans/llm';
 import { mealIngredientLines, mealTotals } from '@/features/weekly-plans/meal-ingredients';
 import { combineTotals, emptyTotals } from '@/features/weekly-plans/nutrition';
-import { chooseServings, portionLine } from '@/features/weekly-plans/portioning';
+import { chooseServings, portionedKcal, portionLine } from '@/features/weekly-plans/portioning';
 import { buildPrompt, type PromptInput } from '@/features/weekly-plans/prompt';
 import { draftFromMeals } from '@/features/weekly-plans/refine';
 import { toPromptCatalog, toPromptSides, type Board } from '@/features/weekly-plans/queries';
@@ -45,6 +45,7 @@ import {
   suggestTargets,
 } from '@/features/weekly-plans/targets';
 import { DEFAULT_MEAL_SCHEDULE } from '@/features/clients/nutrition';
+import { unsupportedPattern } from '@/features/weekly-plans/eligibility';
 
 /**
  * One client, described the way the intake form describes one.
@@ -250,6 +251,7 @@ const PROFILES: Profile[] = [
     weightKg: 72,
     activityLevel: 'moderate',
     goal: 'maintenance',
+    dietPattern: 'vegetarian',
     dislikes: 'نباتي — لا لحوم ولا دجاج ولا سمك إطلاقاً',
     permanentInstructions: 'العميل نباتي. مصادر البروتين: بقوليات، بيض، ألبان، مكسرات.',
   },
@@ -306,10 +308,9 @@ const PROFILES: Profile[] = [
   },
 ];
 
-/** The catalog a client with these allergens is planned from — the `loadCatalog` rule. */
-function catalogFor(allergens: readonly string[]) {
-  const blocked = new Set(allergens);
-  return datasetCatalog().filter((dish) => !dish.allergenTags.some((tag) => blocked.has(tag)));
+/** The visible dataset shelf; shared eligibility performs client-specific filtering. */
+function catalogFor() {
+  return datasetCatalog();
 }
 
 /** A board, assembled in memory from what `reconcile` produced. */
@@ -331,7 +332,7 @@ function boardFrom(
         const sides = meal.sideDishIds.flatMap((id) => {
           const side = byId.get(id);
           return side
-            ? [{ id: side.id, nameAr: side.nameAr, nameEn: side.nameAr, recipe: side.recipe }]
+            ? [{ id: side.id, nameAr: side.nameAr, nameEn: side.nameEn ?? side.nameAr, recipe: side.recipe }]
             : [];
         });
         const lines = dish
@@ -349,7 +350,7 @@ function boardFrom(
                 clinicId: null,
                 slug: dish.slug,
                 nameAr: dish.nameAr,
-                nameEn: dish.nameAr,
+                nameEn: dish.nameEn ?? dish.nameAr,
                 mealTypes: [...dish.mealTypes],
                 source: dish.source,
                 effort: dish.effort,
@@ -377,10 +378,10 @@ function boardFrom(
               dishId: option.dishId,
               slug: option.slug,
               nameAr: alt?.nameAr ?? option.slug,
-              nameEn: alt?.nameAr ?? option.slug,
+              nameEn: alt?.nameEn ?? alt?.nameAr ?? option.slug,
               servings: option.servings,
               isSimilar: option.isSimilar,
-              kcal: 0,
+              kcal: alt ? portionedKcal(alt.recipe, option.servings) : 0,
             };
           }),
         };
@@ -431,6 +432,8 @@ function boardFrom(
 async function planFor(profile: Profile, options: { replay?: string; refine?: boolean } = {}) {
   const schedule = profile.schedule ?? DEFAULT_MEAL_SCHEDULE;
   const allergens = profile.allergens ?? [];
+  const unsupported = unsupportedPattern(profile.dietPattern ?? null);
+  if (unsupported) throw new Error(`unsupported prescribed pattern: ${unsupported}`);
 
   const targets = suggestTargets({
     weightKg: profile.weightKg,
@@ -451,9 +454,9 @@ async function planFor(profile: Profile, options: { replay?: string; refine?: bo
   });
   const budgets = slotBudgets(kcalTarget, schedule);
 
-  const dishes = catalogFor(allergens);
-  const catalog = toPromptCatalog(dishes, profile.dietPattern ?? null);
-  const sides = toPromptSides(dishes, profile.dietPattern ?? null);
+  const dishes = catalogFor();
+  const catalog = toPromptCatalog(dishes, profile.dietPattern ?? null, allergens);
+  const sides = toPromptSides(dishes, profile.dietPattern ?? null, allergens);
 
   const promptInput = {
     client: {
@@ -503,6 +506,9 @@ async function planFor(profile: Profile, options: { replay?: string; refine?: bo
       catalog,
       sides,
       allergens,
+      dietPattern: profile.dietPattern ?? null,
+      proteinTargetGrams: proteinTarget,
+      proteinIsRestriction: proteinIsRestricted(profile.clinicalTags ?? []),
     }),
     model: raw.model,
     usage: raw.usage,
@@ -510,6 +516,7 @@ async function planFor(profile: Profile, options: { replay?: string; refine?: bo
   };
 
   let refined: typeof outcome | null = null;
+  let refineRaw: typeof raw | null = null;
 
   if (options.refine) {
     /*
@@ -530,7 +537,7 @@ async function planFor(profile: Profile, options: { replay?: string; refine?: bo
 
     const refinePayload = buildPrompt({ ...promptInput, draft });
     const refineStart = Date.now();
-    const refineRaw = await getLlmTransport().complete(refinePayload);
+    refineRaw = await getLlmTransport().complete(refinePayload);
 
     refined = {
       ...reconcile({
@@ -543,7 +550,9 @@ async function planFor(profile: Profile, options: { replay?: string; refine?: bo
         catalog,
         sides,
         allergens,
+        dietPattern: profile.dietPattern ?? null,
         proteinTargetGrams: proteinTarget,
+        proteinIsRestriction: proteinIsRestricted(profile.clinicalTags ?? []),
       }),
       model: refineRaw.model,
       usage: refineRaw.usage,
@@ -572,6 +581,8 @@ async function planFor(profile: Profile, options: { replay?: string; refine?: bo
     kcalTarget,
     proteinTarget,
     raw,
+    refineRaw,
+    finalRaw: refineRaw ?? raw,
   };
 }
 
@@ -660,9 +671,26 @@ function varietyDiff(
   ];
 }
 
+function sumTokens(a: number | null, b: number | null | undefined): number | string {
+  if (a === null && (b === null || b === undefined)) return 'unknown';
+  return (a ?? 0) + (b ?? 0);
+}
+
 /** The report for one profile: the client, the week, and every check that ran. */
 function report(profile: Profile, run: Awaited<ReturnType<typeof planFor>>): string {
-  const { board, outcome, targets, budgets, catalog, sides, kcalTarget, proteinTarget, raw } = run;
+  const {
+    board,
+    outcome,
+    firstPass,
+    refined,
+    targets,
+    budgets,
+    catalog,
+    sides,
+    kcalTarget,
+    proteinTarget,
+    finalRaw,
+  } = run;
   const caveats = plannerCaveats(profile.clinicalTags ?? [], profile.dietPattern ?? null);
 
   const out: string[] = [
@@ -684,7 +712,13 @@ function report(profile: Profile, run: Awaited<ReturnType<typeof planFor>>): str
     ...budgets.map((slot) => `- ${slot.slotKey} (${slot.timeOfDay}): ${slot.kcal} kcal`),
     '',
     '## Generation',
-    `- model ${outcome.model} · ${Math.round(outcome.durationMs / 1000)}s · ${outcome.usage.promptTokens} in / ${outcome.usage.completionTokens} out`,
+    `- initial: ${firstPass.model} · ${Math.round(firstPass.durationMs / 1000)}s · ${firstPass.usage.promptTokens} in / ${firstPass.usage.completionTokens} out`,
+    ...(refined
+      ? [
+          `- refinement: ${refined.model} · ${Math.round(refined.durationMs / 1000)}s · ${refined.usage.promptTokens} in / ${refined.usage.completionTokens} out`,
+        ]
+      : []),
+    `- total provider usage: ${sumTokens(firstPass.usage.promptTokens, refined?.usage.promptTokens)} in / ${sumTokens(firstPass.usage.completionTokens, refined?.usage.completionTokens)} out`,
     `- catalog offered: ${catalog.length} mains, ${sides.length} sides`,
     `- unfilled slots: ${outcome.unfilled} · variety repaired: ${outcome.variety.repaired}, unresolved: ${outcome.variety.unresolved}`,
     `- warnings: ${outcome.warnings.length ? outcome.warnings.map((w) => `${w.kind}@${w.dayOfWeek}/${w.slotKey}`).join(', ') : '—'}`,
@@ -696,7 +730,7 @@ function report(profile: Profile, run: Awaited<ReturnType<typeof planFor>>): str
     ...(arithmeticFindings(board).map((line) => `- ${line}`) || []),
     '',
     '## What the variety repair changed',
-    ...varietyDiff(raw, board, catalog),
+    ...varietyDiff(finalRaw, board, catalog),
     '',
     '## Per-day totals',
     ...board.days.map(
@@ -758,6 +792,21 @@ if (import.meta.main) {
 
       const started = Date.now();
       try {
+        const unsupported = unsupportedPattern(profile.dietPattern ?? null);
+        if (unsupported) {
+          const note = [
+            `# ${profile.titleEn} — ${profile.titleAr}`,
+            '',
+            '## Not generated',
+            '',
+            `Prescribed pattern \`${unsupported}\` is outside the validated pilot scope because final quantities cannot yet prove compliance.`,
+            '',
+          ].join('\n');
+          await writeFile(join(outDir, `${profile.key}.md`), note, 'utf8');
+          console.info(`${profile.key.padEnd(26)} SKIPPED: unsupported prescribed pattern ${unsupported}`);
+          continue;
+        }
+
         // A replay reconciles the answer already on disk, so iterating on
         // portioning or variety costs nothing and compares like with like.
         const replay = fromDisk
@@ -773,6 +822,13 @@ if (import.meta.main) {
 
         if (!fromDisk) {
           await writeFile(join(outDir, `${profile.key}.response.json`), run.raw.content, 'utf8');
+          if (run.refineRaw) {
+            await writeFile(
+              join(outDir, `${profile.key}.refinement.response.json`),
+              run.refineRaw.content,
+              'utf8',
+            );
+          }
         }
         await writeFile(join(outDir, `${profile.key}.md`), report(profile, run), 'utf8');
 

@@ -22,7 +22,7 @@ import {
 import { localizedName, secondaryName } from '../food-display';
 import { dishAccentClass } from '../meal-tag-tone';
 
-import { swapMealAction } from '../actions';
+import { removeMealOptionAction, swapMealAction } from '../actions';
 import { initialPlanActionState } from '../form-state';
 import type { BoardMeal, CatalogEntry, SwapCandidate } from '../queries';
 import type { RecentUse } from '../usage';
@@ -782,25 +782,72 @@ function Alternatives({ meal, planId, locale }: { meal: BoardMeal; planId: strin
   return (
       <div className="grid gap-1">
         {meal.options.slice(0, 3).map((option) => (
-          <SwapButton
-            key={option.id}
-            planId={planId}
-            mealId={meal.id}
-            dishId={option.dishId}
-            servings={option.servings}
-            locale={locale}
-            flagged={!option.isSimilar}
-          >
-            <span className="block font-medium" dir="auto">{localizedName(option, locale)}</span>
-            <span className="mt-0.5 block text-muted-foreground">
-              {t('kcalValue', { value: roundForDisplay('kcal', option.kcal) })}
-              {!option.isSimilar && (
-                <span className="text-status-attention-fg"> · {t('offBudget')}</span>
-              )}
-            </span>
-          </SwapButton>
+          <div key={option.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-1">
+            <SwapButton
+              planId={planId}
+              mealId={meal.id}
+              dishId={option.dishId}
+              servings={option.servings}
+              locale={locale}
+              flagged={!option.isSimilar}
+            >
+              <span className="block font-medium" dir="auto">{localizedName(option, locale)}</span>
+              <span className="mt-0.5 block text-muted-foreground">
+                {t('kcalValue', { value: roundForDisplay('kcal', option.kcal) })}
+                {!option.isSimilar && (
+                  <span className="text-status-attention-fg"> · {t('offBudget')}</span>
+                )}
+              </span>
+            </SwapButton>
+            <RemoveOptionButton
+              planId={planId}
+              mealId={meal.id}
+              dishId={option.dishId}
+              locale={locale}
+              name={localizedName(option, locale)}
+            />
+          </div>
         ))}
       </div>
+  );
+}
+
+function RemoveOptionButton({
+  planId,
+  mealId,
+  dishId,
+  locale,
+  name,
+}: {
+  planId: string;
+  mealId: string;
+  dishId: string;
+  locale: string;
+  name: string;
+}) {
+  const t = useTranslations('weeklyPlans');
+
+  async function formAction(formData: FormData): Promise<void> {
+    const state = await removeMealOptionAction(initialPlanActionState, formData);
+    if (state.status === 'done') toast.success(t('alternativeRemoved'));
+    else if (state.status === 'error') toast.error(t(state.messageKey));
+  }
+
+  return (
+    <form action={formAction}>
+      <input type="hidden" name="locale" value={locale} />
+      <input type="hidden" name="planId" value={planId} />
+      <input type="hidden" name="mealId" value={mealId} />
+      <input type="hidden" name="dishId" value={dishId} />
+      <Button
+        type="submit"
+        variant="neutralGhost"
+        size="icon-sm"
+        aria-label={t('removeAlternative', { name })}
+      >
+        <Icon name="trash" />
+      </Button>
+    </form>
   );
 }
 

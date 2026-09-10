@@ -1,4 +1,4 @@
-import { and, eq, ne, sql } from 'drizzle-orm';
+import { and, eq, ne } from 'drizzle-orm';
 
 import { db } from '@/db';
 import {
@@ -16,10 +16,20 @@ import { recomputeDayAdherence } from '@/features/portal/mutations';
 import type { GenerationOutcome, ReconciledMeal } from './generate';
 import { mealIngredientLines } from './meal-ingredients';
 import { buildMealSnapshot } from './nutrition-snapshot';
-import { loadDishesByIds, ownAmountsByMeal, sidesByMealId } from './queries';
+import {
+  getPlanConstraints,
+  loadCatalog,
+  loadDishesByIds,
+  ownAmountsByMeal,
+  sidesByMealId,
+} from './queries';
 import type { NutritionRulesInput } from './nutrition-rules';
-import type { GenerationScope } from './schema';
+import { isFixedPortion, mealTypeForSlot, type GenerationScope } from './schema';
 import { planWeekDays, weekDateForDay } from './week';
+import { validatePlanForPublication } from './plan-validation';
+import { evaluateDishEligibility } from './eligibility';
+import { similarServings } from './portioning';
+import { snapServings } from './similar';
 
 /**
  * Writes for the weekly-plans feature.
@@ -146,6 +156,7 @@ export async function recordGeneration(input: {
   clinicId: string;
   planId: string | null;
   scope: GenerationScope;
+  pass?: 'single' | 'initial' | 'refinement';
   instruction: string | null;
   model: string;
   promptTokens?: number | null;
@@ -158,6 +169,7 @@ export async function recordGeneration(input: {
     clinicId: input.clinicId,
     planId: input.planId,
     scope: input.scope,
+    pass: input.pass ?? 'single',
     instruction: input.instruction,
     model: input.model,
     promptTokens: input.promptTokens ?? null,
@@ -375,15 +387,34 @@ export async function swapMealDish(
 ): Promise<boolean> {
   const plan = await ownedPlan(clinicId, planId);
   if (!plan || plan.status !== 'draft') return false;
+  const constraints = await getPlanConstraints(clinicId, planId);
+  if (!constraints) return false;
+  const visibleCatalog = await loadCatalog(clinicId);
+  const candidate = visibleCatalog.find((dish) => dish.id === dishId);
+  if (
+    !candidate ||
+    candidate.isSide ||
+    candidate.ingredients.length === 0 ||
+    !evaluateDishEligibility(candidate, constraints).eligible
+  ) return false;
+  const snapped = snapServings(servings);
+  if (isFixedPortion(candidate.source) && !Number.isInteger(snapped)) return false;
 
   return db.transaction(async (tx) => {
     const [meal] = await tx
-      .select({ id: weeklyPlanMeals.id, dishId: weeklyPlanMeals.dishId, servings: weeklyPlanMeals.servings })
+      .select({
+        id: weeklyPlanMeals.id,
+        dishId: weeklyPlanMeals.dishId,
+        servings: weeklyPlanMeals.servings,
+        slotKey: weeklyPlanMeals.slotKey,
+        budgetKcal: weeklyPlanMeals.budgetKcal,
+      })
       .from(weeklyPlanMeals)
       .where(and(eq(weeklyPlanMeals.id, mealId), eq(weeklyPlanMeals.planId, planId)))
       .limit(1);
 
     if (!meal) return false;
+    if (!candidate.mealTypes.includes(mealTypeForSlot(meal.slotKey))) return false;
 
     // The incoming dish must not remain in the options, or the panel would offer
     // the meal as an alternative to itself.
@@ -391,21 +422,69 @@ export async function swapMealDish(
       .delete(weeklyPlanMealOptions)
       .where(and(eq(weeklyPlanMealOptions.mealId, mealId), eq(weeklyPlanMealOptions.dishId, dishId)));
 
-    if (meal.dishId && meal.dishId !== dishId) {
+    const previous = meal.dishId
+      ? visibleCatalog.find((dish) => dish.id === meal.dishId)
+      : undefined;
+    const previousServings = previous
+      ? similarServings(previous.ingredients, meal.budgetKcal, {
+          wholeOnly: isFixedPortion(previous.source),
+        })
+      : null;
+    if (
+      previous &&
+      previousServings !== null &&
+      previous.id !== dishId &&
+      previous.mealTypes.includes(mealTypeForSlot(meal.slotKey)) &&
+      evaluateDishEligibility(previous, constraints).eligible
+    ) {
       await tx
         .insert(weeklyPlanMealOptions)
-        .values({ mealId, dishId: meal.dishId, servings: meal.servings, sortOrder: 0 })
+        .values({ mealId, dishId: previous.id, servings: previousServings, sortOrder: 0 })
         // Already there as an alternative: nothing to add.
         .onConflictDoNothing();
     }
 
     await tx
       .update(weeklyPlanMeals)
-      .set({ dishId, servings, rationaleAr: null, updatedAt: new Date() })
+      .set({ dishId, servings: snapped, rationaleAr: null, updatedAt: new Date() })
       .where(eq(weeklyPlanMeals.id, mealId));
 
     await tx.update(weeklyPlans).set({ updatedAt: new Date() }).where(eq(weeklyPlans.id, planId));
 
+    return true;
+  });
+}
+
+/** Removes one saved alternative from a draft after resolving the meal to this plan. */
+export async function removeMealOption(
+  clinicId: string,
+  planId: string,
+  mealId: string,
+  dishId: string,
+): Promise<boolean> {
+  const plan = await ownedPlan(clinicId, planId);
+  if (!plan || plan.status !== 'draft') return false;
+
+  return db.transaction(async (tx) => {
+    const [meal] = await tx
+      .select({ id: weeklyPlanMeals.id })
+      .from(weeklyPlanMeals)
+      .where(and(eq(weeklyPlanMeals.id, mealId), eq(weeklyPlanMeals.planId, planId)))
+      .limit(1);
+    if (!meal) return false;
+
+    const deleted = await tx
+      .delete(weeklyPlanMealOptions)
+      .where(
+        and(
+          eq(weeklyPlanMealOptions.mealId, mealId),
+          eq(weeklyPlanMealOptions.dishId, dishId),
+        ),
+      )
+      .returning({ id: weeklyPlanMealOptions.id });
+    if (!deleted.length) return false;
+
+    await tx.update(weeklyPlans).set({ updatedAt: new Date() }).where(eq(weeklyPlans.id, planId));
     return true;
   });
 }
@@ -540,28 +619,40 @@ async function snapshotPlanMeals(
  * that produces a published plan with an unfrozen meal.
  */
 export async function publishPlan(clinicId: string, planId: string): Promise<
-  { ok: true } | { ok: false; reason: 'not_found' | 'not_draft' | 'unfilled' | 'snapshot_failed' }
+  { ok: true } | {
+    ok: false;
+    reason: 'not_found' | 'not_draft' | 'unfilled' | 'unsafe' | 'snapshot_failed';
+  }
 > {
-  const plan = await ownedPlan(clinicId, planId);
-  if (!plan) return { ok: false, reason: 'not_found' };
-  if (plan.status !== 'draft') return { ok: false, reason: 'not_draft' };
-
-  const [gaps] = await db
-    .select({ value: sql<number>`count(*)::int` })
-    .from(weeklyPlanMeals)
-    .where(and(eq(weeklyPlanMeals.planId, planId), sql`${weeklyPlanMeals.dishId} is null`));
-
-  if ((gaps?.value ?? 0) > 0) return { ok: false, reason: 'unfilled' };
-
   try {
-    await db.transaction(async (tx) => {
+    return await db.transaction(async (tx) => {
       const [target] = await tx
-        .select({ clientId: weeklyPlans.clientId, weekStartDate: weeklyPlans.weekStartDate })
+        .select({
+          clientId: weeklyPlans.clientId,
+          weekStartDate: weeklyPlans.weekStartDate,
+          status: weeklyPlans.status,
+        })
         .from(weeklyPlans)
-        .where(eq(weeklyPlans.id, planId))
-        .limit(1);
+        .where(and(eq(weeklyPlans.id, planId), eq(weeklyPlans.clinicId, clinicId)))
+        .limit(1)
+        .for('update');
 
-      if (!target) return;
+      if (!target) return { ok: false as const, reason: 'not_found' as const };
+      if (target.status !== 'draft') return { ok: false as const, reason: 'not_draft' as const };
+
+      const issues = await validatePlanForPublication(tx, clinicId, planId);
+      if (issues.length) {
+        const onlyGaps = issues.every((issue) => issue.kind === 'unfilled');
+        const unavailableDish = issues.every((issue) => issue.kind === 'dish_unavailable');
+        return {
+          ok: false as const,
+          reason: onlyGaps
+            ? ('unfilled' as const)
+            : unavailableDish
+              ? ('snapshot_failed' as const)
+              : ('unsafe' as const),
+        };
+      }
 
       // Freeze before the status changes. Ordering is not what makes this atomic —
       // the transaction is — but it keeps the failure case obvious: nothing is
@@ -583,7 +674,9 @@ export async function publishPlan(clinicId: string, planId: string): Promise<
       await tx
         .update(weeklyPlans)
         .set({ status: 'published', publishedAt: new Date(), updatedAt: new Date() })
-        .where(eq(weeklyPlans.id, planId));
+        .where(and(eq(weeklyPlans.id, planId), eq(weeklyPlans.status, 'draft')));
+
+      return { ok: true as const };
     });
   } catch (error) {
     if (error instanceof SnapshotFailedError) {
@@ -593,7 +686,6 @@ export async function publishPlan(clinicId: string, planId: string): Promise<
     throw error;
   }
 
-  return { ok: true };
 }
 
 /**

@@ -16,9 +16,10 @@ import { normalizeArabic } from './arabic-normalize';
  * its canonical name otherwise. That is enough to stop a dietitian shipping a
  * bread dish with no gluten tag because they forgot the field existed; it is not
  * enough to certify a dish safe. Nothing here ever *clears* an allergen the
- * dietitian ticked, and nothing here reaches the allergen filter that guards plan
- * generation — that filter reads `dishes.allergen_tags`, which only a person
- * writes.
+ * dietitian ticked. The shared eligibility gate uses these conservative
+ * suggestions in addition to `dishes.allergen_tags`, so an obvious untagged
+ * ingredient fails closed while the reviewed tags remain the catalog's durable
+ * source of truth.
  *
  * Where the wording is ambiguous it over-proposes rather than under-proposes: an
  * extra chip is removed with one click, a missing one ships.
@@ -29,7 +30,7 @@ export type SuggestibleFood = {
   nameAr: string;
   nameEn: string;
   /** `catalog_foods.category`; `other` for a food a clinic added itself. */
-  category: string;
+  category?: string | null;
 };
 
 /**
@@ -86,6 +87,8 @@ type Rule = {
   words: readonly string[];
   /** Categories that decide on their own, without any word matching. */
   categories?: readonly string[];
+  /** `peanut butter` is not dairy even though `butter` is a whole token. */
+  ignorePeanutButter?: boolean;
 };
 
 /**
@@ -112,6 +115,15 @@ const ALLERGEN_RULES: Record<Allergen, Rule> = {
       'شنينه', 'كفير', 'سمن', 'جميد',
       'milk', 'yogurt', 'yoghurt', 'cheese', 'butter', 'cream', 'labneh', 'kefir', 'ghee',
     ],
+    ignorePeanutButter: true,
+  },
+  milk: {
+    words: [
+      'حليب', 'لبن', 'لبنه', 'زبادي', 'جبن', 'جبنه', 'زبده', 'قشطه', 'كريمه',
+      'شنينه', 'كفير', 'سمن', 'جميد',
+      'milk', 'yogurt', 'yoghurt', 'cheese', 'butter', 'cream', 'labneh', 'kefir', 'ghee',
+    ],
+    ignorePeanutButter: true,
   },
   egg: {
     words: ['بيض', 'بيضه', 'بيضات', 'مايونيز', 'egg', 'mayonnaise'],
@@ -124,15 +136,33 @@ const ALLERGEN_RULES: Record<Allergen, Rule> = {
     // The one category that decides on its own: everything in it is a fish.
     categories: ['fish'],
   },
+  shellfish: {
+    words: [
+      'روبيان', 'جمبري', 'قريدس', 'سلطعون', 'سرطان', 'كركند', 'محار',
+      'shrimp', 'prawn', 'crab', 'lobster', 'oyster', 'mussel', 'clam', 'shellfish',
+    ],
+  },
   nuts: {
     words: [
       'لوز', 'جوز', 'كاجو', 'بندق', 'فستق', 'مكسرات', 'سوداني',
       'almond', 'walnut', 'cashew', 'hazelnut', 'pistachio', 'peanut', 'nuts',
     ],
   },
+  peanut: {
+    words: ['فول سوداني', 'سوداني', 'peanut', 'groundnut'],
+  },
+  tree_nuts: {
+    words: [
+      'لوز', 'جوز', 'كاجو', 'بندق', 'فستق', 'مكسرات',
+      'almond', 'walnut', 'cashew', 'hazelnut', 'pistachio', 'pecan', 'macadamia', 'nuts',
+    ],
+  },
   sesame: {
     // طحينه, not طحين: whole-word matching is what keeps flour out of this list.
     words: ['سمسم', 'طحينه', 'طحينيه', 'sesame', 'tahini', 'tahina'],
+  },
+  soy: {
+    words: ['صويا', 'توفو', 'تمبيه', 'إدامامي', 'soy', 'soya', 'tofu', 'tempeh', 'edamame'],
   },
 };
 
@@ -150,10 +180,20 @@ const ANIMAL_RULE: Rule = {
 };
 
 function matches(food: SuggestibleFood, rule: Rule): boolean {
-  if (rule.categories?.includes(food.category)) return true;
+  if (rule.categories?.includes(food.category ?? '')) return true;
 
   const words = wordsOf(food.nameAr, food.nameEn);
-  return rule.words.some((word) => words.has(fold(word)));
+  const matching = rule.words.filter((word) => words.has(fold(word)));
+
+  if (
+    rule.ignorePeanutButter &&
+    matching.every((word) => ['butter', 'زبده'].includes(fold(word))) &&
+    (words.has('peanut') || words.has('سوداني'))
+  ) {
+    return false;
+  }
+
+  return matching.length > 0;
 }
 
 /**
@@ -171,6 +211,38 @@ export function isAnimalFood(food: SuggestibleFood): boolean {
   return matches(food, ANIMAL_RULE);
 }
 
+export type FoodDietClass = 'plant' | 'dairy' | 'egg' | 'fish' | 'shellfish' | 'meat' | 'unknown';
+
+const PLANT_CATEGORIES = new Set([
+  'grains',
+  'legumes',
+  'vegetables',
+  'fruits',
+  'nuts_seeds',
+  'fats_oils',
+  'herbs_spices',
+]);
+
+/**
+ * Classifies a food only when its category or name makes the answer explicit.
+ * `unknown` is load-bearing: a prepared/custom food is never assumed compatible
+ * with vegetarian or vegan prescriptions merely because no animal word was found.
+ */
+export function foodDietClass(food: SuggestibleFood): FoodDietClass {
+  if (matches(food, ALLERGEN_RULES.shellfish)) return 'shellfish';
+  if (matches(food, ALLERGEN_RULES.fish)) return 'fish';
+  if (matches(food, ALLERGEN_RULES.egg)) return 'egg';
+  if (matches(food, ALLERGEN_RULES.milk)) return 'dairy';
+
+  if (food.category === 'meat' || food.category === 'poultry') return 'meat';
+  if (food.category === 'fish') return 'fish';
+  if (food.category === 'eggs') return 'egg';
+  if (food.category === 'dairy') return 'dairy';
+  if (PLANT_CATEGORIES.has(food.category ?? '')) return 'plant';
+  if (matches(food, ANIMAL_RULE)) return 'meat';
+  return 'unknown';
+}
+
 /**
  * Whether the recipe reads as vegetarian.
  *
@@ -178,5 +250,13 @@ export function isAnimalFood(food: SuggestibleFood): boolean {
  * that has no ingredients.
  */
 export function suggestVegetarian(foods: readonly SuggestibleFood[]): boolean {
-  return foods.length > 0 && !foods.some(isAnimalFood);
+  return (
+    foods.length > 0 &&
+    foods.every((food) => ['plant', 'dairy', 'egg'].includes(foodDietClass(food)))
+  );
+}
+
+/** Whether every food is explicitly plant-derived. */
+export function suggestVegan(foods: readonly SuggestibleFood[]): boolean {
+  return foods.length > 0 && foods.every((food) => foodDietClass(food) === 'plant');
 }

@@ -28,6 +28,7 @@ import type { CatalogDish } from './generate';
 import { chooseServings, portionedKcal, portionLine } from './portioning';
 import { isFixedPortion, mealTypeForSlot } from './schema';
 import { bestServings, isSimilar } from './similar';
+import { evaluateDishEligibility, type PlanConstraints } from './eligibility';
 
 /** The fields a repair reads and writes. A subset of `ReconciledMeal`. */
 export type VarietyMeal = {
@@ -36,6 +37,8 @@ export type VarietyMeal = {
   budgetKcal: number;
   dishId: string | null;
   servings: number;
+  /** Cleared when a deterministic repair replaces the model's dish. */
+  rationaleAr?: string | null;
 };
 
 /**
@@ -215,11 +218,14 @@ export function repairVariety({
   meals,
   catalog,
   allergens,
+  dietPattern = null,
   proteinTargetGrams = null,
+  proteinIsRestriction = false,
 }: {
   meals: VarietyMeal[];
   catalog: readonly CatalogDish[];
   allergens: readonly string[];
+  dietPattern?: string | null;
   /**
    * The day's protein target, so a swap can be judged on more than calories.
    *
@@ -229,9 +235,11 @@ export function repairVariety({
    * 15 g one because both were near 820 kcal.
    */
   proteinTargetGrams?: number | null;
+  /** An upper limit must not penalise a replacement for lowering protein. */
+  proteinIsRestriction?: boolean;
 }): VarietyReport {
   const byId = new Map(catalog.map((dish) => [dish.id, dish]));
-  const blocked = new Set(allergens);
+  const constraints: PlanConstraints = { allergens, dietPattern };
   /* Read before anything moves: the envelope is what the MODEL chose. */
   const envelope = planEnvelope(meals, catalog);
 
@@ -284,7 +292,7 @@ export function repairVariety({
       const replacement = findReplacement({
         meal,
         catalog,
-        blocked,
+        constraints,
         source,
         daySources: day,
         dayDishes: dishes,
@@ -292,12 +300,13 @@ export function repairVariety({
         weekDishes,
         envelope,
         plated,
-        proteinTargetGrams,
+        proteinTargetGrams: proteinIsRestriction ? null : proteinTargetGrams,
       });
 
       if (replacement) {
         meal.dishId = replacement.dish.id;
         meal.servings = replacement.servings;
+        meal.rationaleAr = null;
         report.repaired += 1;
       } else {
         // Nothing fits the budget. The repeat stays, and is counted so a caller can
@@ -353,7 +362,7 @@ function countDish(counts: Map<string, number>, dishId: string): void {
 function findReplacement({
   meal,
   catalog,
-  blocked,
+  constraints,
   source,
   daySources,
   dayDishes,
@@ -365,7 +374,7 @@ function findReplacement({
 }: {
   meal: VarietyMeal;
   catalog: readonly CatalogDish[];
-  blocked: ReadonlySet<string>;
+  constraints: PlanConstraints;
   source: (dish: CatalogDish) => ProteinSource;
   daySources: ReadonlySet<ProteinSource>;
   dayDishes: ReadonlySet<string>;
@@ -386,7 +395,7 @@ function findReplacement({
   for (const candidate of catalog) {
     if (candidate.id === meal.dishId) continue;
     if (!candidate.mealTypes.includes(mealType)) continue;
-    if (candidate.allergenTags.some((tag) => blocked.has(tag))) continue;
+    if (!evaluateDishEligibility(candidate, constraints).eligible) continue;
     if (dayDishes.has(candidate.id)) continue;
     // A replacement that has already carried the week twice is the repeat the
     // repair was called to remove, moved somewhere else.

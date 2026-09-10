@@ -84,6 +84,19 @@ export const clinicDishInputSchema = z.object({
   allergenTags: z.array(z.enum(ALLERGENS)),
   baseServingLabel: z.string().trim().min(1).max(60),
   ingredients: z.array(ingredientInputSchema).min(1),
+}).superRefine((value, context) => {
+  const seen = new Set<string>();
+
+  value.ingredients.forEach((ingredient, index) => {
+    if (seen.has(ingredient.foodId)) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Each food may appear only once in a dish.',
+        path: ['ingredients', index, 'foodId'],
+      });
+    }
+    seen.add(ingredient.foodId);
+  });
 });
 
 export type ClinicDishInput = z.infer<typeof clinicDishInputSchema>;

@@ -14,11 +14,21 @@ import {
 import { recomputeDayAdherence } from '@/features/portal/mutations';
 
 import { MAX_INGREDIENT_GRAMS, mealIngredientLines } from './meal-ingredients';
-import { loadDishesByIds, ownAmountsByMeal, type DbExecutor } from './queries';
-import { DAYS_OF_WEEK, MAX_MEAL_SIDES } from './schema';
+import {
+  getPlanConstraints,
+  getClientPlanConstraints,
+  loadCatalog,
+  loadDishesByIds,
+  ownAmountsByMeal,
+  type DbExecutor,
+} from './queries';
+import { DAYS_OF_WEEK, isFixedPortion, MAX_MEAL_SIDES, mealTypeForSlot } from './schema';
+import { similarServings } from './portioning';
 import { snapServings } from './similar';
 import type { SkeletonMeal } from './skeleton';
 import { planWeekDays, weekDateForDay } from './week';
+import { evaluateDishEligibility, type PlanConstraints } from './eligibility';
+import type { DishDetail } from './nutrition';
 
 /**
  * Writes for the manual side of weekly plans — the plans nobody generated.
@@ -79,10 +89,32 @@ export async function createPlanFromSkeleton(input: {
   if (!input.meals.length) return null;
 
   return db.transaction(async (tx) => {
+    const constraints = await getClientPlanConstraints(input.clinicId, input.clientId, tx);
+    if (!constraints) return null;
+
+    // A copied plan is browser-derived input. Re-resolve every carried dish from
+    // the current, clinic-visible catalog and current client constraints. A dish
+    // that has since been retired, hidden, reclassified, or made incompatible is
+    // left as a visible gap for the dietitian to replace.
+    const catalog = input.meals.some((meal) => meal.dishId)
+      ? await loadCatalog(input.clinicId, [], tx)
+      : [];
+    const dishById = new Map(catalog.map((dish) => [dish.id, dish]));
+    const safeMeals = input.meals.map((meal) => {
+      if (!meal.dishId) return { ...meal, servings: snapServings(meal.servings) };
+
+      const dish = dishById.get(meal.dishId);
+      const servings = snapServings(meal.servings);
+      const safe = validDishPlacement(dish, constraints, meal.slotKey, servings, false);
+
+      return safe ? { ...meal, servings } : { ...meal, dishId: null, servings: 1 };
+    });
+
     await tx
       .delete(weeklyPlans)
       .where(
         and(
+          eq(weeklyPlans.clinicId, input.clinicId),
           eq(weeklyPlans.clientId, input.clientId),
           eq(weeklyPlans.weekStartDate, input.weekStartDate),
           eq(weeklyPlans.status, 'draft'),
@@ -105,7 +137,7 @@ export async function createPlanFromSkeleton(input: {
     if (!plan) return null;
 
     await tx.insert(weeklyPlanMeals).values(
-      input.meals.map((meal) => ({
+      safeMeals.map((meal) => ({
         planId: plan.id,
         dayOfWeek: meal.dayOfWeek,
         slotKey: meal.slotKey,
@@ -134,6 +166,24 @@ export async function createPlanFromSkeleton(input: {
 
     return plan.id;
   });
+}
+
+/** The placement invariant shared by copy, restore, drag-and-drop and direct edits. */
+function validDishPlacement(
+  dish: DishDetail | undefined,
+  constraints: PlanConstraints,
+  slotKey: string,
+  servings: number,
+  expectedSide: boolean,
+): dish is DishDetail {
+  return Boolean(
+    dish &&
+      dish.isSide === expectedSide &&
+      dish.ingredients.length > 0 &&
+      dish.mealTypes.includes(mealTypeForSlot(slotKey)) &&
+      evaluateDishEligibility(dish, constraints).eligible &&
+      (!isFixedPortion(dish.source) || Number.isInteger(servings)),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -224,6 +274,18 @@ export async function placeDish(
 ): Promise<boolean> {
   const plan = await editablePlan(clinicId, planId);
   if (!plan) return false;
+  const constraints = await getPlanConstraints(clinicId, planId);
+  if (!constraints) return false;
+  const visibleCatalog = await loadCatalog(clinicId);
+  const candidate = visibleCatalog.find((dish) => dish.id === dishId);
+  const snappedServings = snapServings(servings);
+  if (
+    !candidate ||
+    candidate.isSide ||
+    candidate.ingredients.length === 0 ||
+    !evaluateDishEligibility(candidate, constraints).eligible ||
+    (isFixedPortion(candidate.source) && !Number.isInteger(snappedServings))
+  ) return false;
 
   return db.transaction(async (tx) => {
     const [meal] = await tx
@@ -231,12 +293,15 @@ export async function placeDish(
         id: weeklyPlanMeals.id,
         dishId: weeklyPlanMeals.dishId,
         servings: weeklyPlanMeals.servings,
+        slotKey: weeklyPlanMeals.slotKey,
+        budgetKcal: weeklyPlanMeals.budgetKcal,
       })
       .from(weeklyPlanMeals)
       .where(and(eq(weeklyPlanMeals.id, mealId), eq(weeklyPlanMeals.planId, planId)))
       .limit(1);
 
     if (!meal) return false;
+    if (!validDishPlacement(candidate, constraints, meal.slotKey, snappedServings, false)) return false;
 
     // The incoming dish must not remain among the options, or the panel would
     // offer the meal as an alternative to itself.
@@ -246,16 +311,30 @@ export async function placeDish(
         and(eq(weeklyPlanMealOptions.mealId, mealId), eq(weeklyPlanMealOptions.dishId, dishId)),
       );
 
-    if (meal.dishId && meal.dishId !== dishId) {
+    const previous = meal.dishId
+      ? visibleCatalog.find((dish) => dish.id === meal.dishId)
+      : undefined;
+    const previousServings = previous
+      ? similarServings(previous.ingredients, meal.budgetKcal, {
+          wholeOnly: isFixedPortion(previous.source),
+        })
+      : null;
+    if (
+      previous &&
+      previousServings !== null &&
+      previous.id !== dishId &&
+      previous.mealTypes.includes(mealTypeForSlot(meal.slotKey)) &&
+      evaluateDishEligibility(previous, constraints).eligible
+    ) {
       await tx
         .insert(weeklyPlanMealOptions)
-        .values({ mealId, dishId: meal.dishId, servings: meal.servings, sortOrder: 0 })
+        .values({ mealId, dishId: previous.id, servings: previousServings, sortOrder: 0 })
         .onConflictDoNothing();
     }
 
     await tx
       .update(weeklyPlanMeals)
-      .set({ dishId, servings: snapServings(servings), rationaleAr: null, updatedAt: new Date() })
+      .set({ dishId, servings: snappedServings, rationaleAr: null, updatedAt: new Date() })
       .where(eq(weeklyPlanMeals.id, mealId));
 
     // A new dish means the hand-set amounts describe food that is no longer here.
@@ -302,31 +381,35 @@ export async function setMealSides(
   const plan = await editablePlan(clinicId, planId);
   if (!plan) return false;
   if (dishIds.length > MAX_MEAL_SIDES) return false;
+  const constraints = await getPlanConstraints(clinicId, planId);
+  if (!constraints) return false;
 
   // Deduplicated before anything else: the table's unique index on (meal, dish)
   // would reject the second copy mid-transaction, and "you already have that"
   // is a worse answer than simply having it once.
   const wanted = [...new Set(dishIds)];
 
-  if (wanted.length) {
-    const rows = await db
-      .select({ id: dishes.id })
-      .from(dishes)
-      .where(
-        and(
-          inArray(dishes.id, wanted),
-          eq(dishes.isSide, true),
-          eq(dishes.isActive, true),
-          or(isNull(dishes.clinicId), eq(dishes.clinicId, clinicId)),
-        ),
+  const catalog = wanted.length ? await loadCatalog(clinicId) : [];
+  const candidateById = new Map(catalog.map((dish) => [dish.id, dish]));
+  if (
+    wanted.some((id) => {
+      const dish = candidateById.get(id);
+      return (
+        !dish ||
+        !dish.isSide ||
+        dish.ingredients.length === 0 ||
+        !evaluateDishEligibility(dish, constraints).eligible
       );
-
-    if (rows.length !== wanted.length) return false;
-  }
+    })
+  ) return false;
 
   return db.transaction(async (tx) => {
     const [meal] = await tx
-      .select({ id: weeklyPlanMeals.id, dishId: weeklyPlanMeals.dishId })
+      .select({
+        id: weeklyPlanMeals.id,
+        dishId: weeklyPlanMeals.dishId,
+        slotKey: weeklyPlanMeals.slotKey,
+      })
       .from(weeklyPlanMeals)
       .where(and(eq(weeklyPlanMeals.id, mealId), eq(weeklyPlanMeals.planId, planId)))
       .limit(1);
@@ -335,6 +418,11 @@ export async function setMealSides(
     // Nothing may stand beside nothing. An empty slot with a salad on it would
     // count toward the day's calories while reading as unfilled.
     if (!meal.dishId && wanted.length) return false;
+    if (
+      wanted.some(
+        (id) => !candidateById.get(id)?.mealTypes.includes(mealTypeForSlot(meal.slotKey)),
+      )
+    ) return false;
 
     await tx.delete(weeklyPlanMealSides).where(eq(weeklyPlanMealSides.mealId, mealId));
 
@@ -361,9 +449,20 @@ export async function setMealServings(
   if (!plan) return false;
 
   return db.transaction(async (tx) => {
+    const [meal] = await tx
+      .select({ id: weeklyPlanMeals.id, dishId: weeklyPlanMeals.dishId })
+      .from(weeklyPlanMeals)
+      .where(and(eq(weeklyPlanMeals.id, mealId), eq(weeklyPlanMeals.planId, planId)))
+      .limit(1);
+    if (!meal?.dishId) return false;
+
+    const [dish] = await loadDishesByIds([meal.dishId], tx);
+    const snapped = snapServings(servings);
+    if (!dish || (isFixedPortion(dish.source) && !Number.isInteger(snapped))) return false;
+
     const updated = await tx
       .update(weeklyPlanMeals)
-      .set({ servings: snapServings(servings), updatedAt: new Date() })
+      .set({ servings: snapped, updatedAt: new Date() })
       .where(and(eq(weeklyPlanMeals.id, mealId), eq(weeklyPlanMeals.planId, planId)))
       .returning({ id: weeklyPlanMeals.id });
 
@@ -633,22 +732,11 @@ export async function restoreMealToWeek(
   const plan = await editablePlan(clinicId, planId);
   if (!plan) return 0;
 
+  const constraints = await getPlanConstraints(clinicId, planId);
+  if (!constraints) return 0;
   const requested = [...new Set(days.map((day) => day.dishId).filter((id) => id !== null))];
-  const allowed = new Set(
-    requested.length === 0
-      ? []
-      : (
-          await db
-            .select({ id: dishes.id })
-            .from(dishes)
-            .where(
-              and(
-                inArray(dishes.id, requested),
-                or(isNull(dishes.clinicId), eq(dishes.clinicId, clinicId)),
-              ),
-            )
-        ).map((row) => row.id),
-  );
+  const catalog = requested.length ? await loadCatalog(clinicId) : [];
+  const dishById = new Map(catalog.map((dish) => [dish.id, dish]));
 
   return db.transaction(async (tx) => {
     const existing = await tx
@@ -671,17 +759,25 @@ export async function restoreMealToWeek(
 
     const values = days
       .filter((day) => !alreadyHas.has(day.dayOfWeek))
-      .map((day) => ({
-        planId,
-        dayOfWeek: day.dayOfWeek,
-        slotKey: slot.slotKey,
-        label: slot.label,
-        timeOfDay: slot.timeOfDay,
-        budgetKcal: day.budgetKcal,
-        sortOrder: nextSortOrder.get(day.dayOfWeek) ?? 0,
-        dishId: day.dishId && allowed.has(day.dishId) ? day.dishId : null,
-        servings: snapServings(day.servings),
-      }));
+      .map((day) => {
+        const servings = snapServings(day.servings);
+        const dish = day.dishId ? dishById.get(day.dishId) : undefined;
+        const safe = day.dishId
+          ? validDishPlacement(dish, constraints, slot.slotKey, servings, false)
+          : false;
+
+        return {
+          planId,
+          dayOfWeek: day.dayOfWeek,
+          slotKey: slot.slotKey,
+          label: slot.label,
+          timeOfDay: slot.timeOfDay,
+          budgetKcal: day.budgetKcal,
+          sortOrder: nextSortOrder.get(day.dayOfWeek) ?? 0,
+          dishId: safe ? day.dishId : null,
+          servings: safe ? servings : 1,
+        };
+      });
 
     if (values.length === 0) return 0;
 
@@ -724,7 +820,11 @@ export async function moveMealDish(
 
   return db.transaction(async (tx) => {
     const [source] = await tx
-      .select({ dishId: weeklyPlanMeals.dishId, servings: weeklyPlanMeals.servings })
+      .select({
+        dishId: weeklyPlanMeals.dishId,
+        servings: weeklyPlanMeals.servings,
+        slotKey: weeklyPlanMeals.slotKey,
+      })
       .from(weeklyPlanMeals)
       .where(and(eq(weeklyPlanMeals.id, fromMealId), eq(weeklyPlanMeals.planId, planId)))
       .limit(1);
@@ -732,12 +832,36 @@ export async function moveMealDish(
     if (!source?.dishId) return false;
 
     const [target] = await tx
-      .select({ dishId: weeklyPlanMeals.dishId, servings: weeklyPlanMeals.servings })
+      .select({
+        dishId: weeklyPlanMeals.dishId,
+        servings: weeklyPlanMeals.servings,
+        slotKey: weeklyPlanMeals.slotKey,
+      })
       .from(weeklyPlanMeals)
       .where(and(eq(weeklyPlanMeals.id, toMealId), eq(weeklyPlanMeals.planId, planId)))
       .limit(1);
 
     if (!target) return false;
+
+    const constraints = await getPlanConstraints(clinicId, planId, tx);
+    if (!constraints) return false;
+    const catalog = await loadCatalog(clinicId, [], tx);
+    const dishById = new Map(catalog.map((dish) => [dish.id, dish]));
+    const sourceDish = dishById.get(source.dishId);
+    if (
+      !validDishPlacement(sourceDish, constraints, target.slotKey, source.servings, false)
+    ) return false;
+    if (
+      mode === 'move' &&
+      target.dishId &&
+      !validDishPlacement(
+        dishById.get(target.dishId),
+        constraints,
+        source.slotKey,
+        target.servings,
+        false,
+      )
+    ) return false;
 
     const updated = await tx
       .update(weeklyPlanMeals)
@@ -806,6 +930,7 @@ async function ownAmountRows(
       portionId: weeklyPlanMealIngredients.portionId,
       portionQuantity: weeklyPlanMealIngredients.portionQuantity,
       isPrimary: weeklyPlanMealIngredients.isPrimary,
+      isFree: weeklyPlanMealIngredients.isFree,
       sortOrder: weeklyPlanMealIngredients.sortOrder,
     })
     .from(weeklyPlanMealIngredients)
@@ -916,6 +1041,7 @@ export async function setMealIngredient(
           portionId: target ? input.portionId : (line.portion?.id ?? null),
           portionQuantity: target ? input.portionQuantity : line.portionQuantity,
           isPrimary: line.isPrimary,
+          isFree: line.isFree ?? false,
           sortOrder: line.sortOrder,
         };
       }),

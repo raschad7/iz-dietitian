@@ -326,6 +326,9 @@ export const weeklyPlanMealIngredients = pgTable(
      */
     isPrimary: boolean('is_primary').notNull().default(false),
 
+    /** Preserved from the recipe: displayed as flexible and never multiplier-scaled. */
+    isFree: boolean('is_free').notNull().default(false),
+
     /** The recipe's own order, preserved so the meal reads as it was written. */
     sortOrder: integer('sort_order').notNull().default(0),
 
@@ -440,6 +443,9 @@ export const weeklyPlanGenerations = pgTable(
 
     /** `week` | `day` | `meal`. */
     scope: text('scope').notNull(),
+
+    /** `single` | `initial` | `refinement`; one row is one provider call. */
+    pass: text('pass').notNull().default('single'),
 
     /** The one-line instruction for this run, if any. */
     instruction: text('instruction'),

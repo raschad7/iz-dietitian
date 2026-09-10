@@ -248,23 +248,24 @@ describe('reconcile — the happy path', () => {
     expect(options.every((option) => option.slug !== 'breakfast-only')).toBe(true);
   });
 
-  test('marks whether each substitute actually fits the budget', () => {
+  test('offers only substitutes that actually fit the budget', () => {
     const result = run([day(0, meal())]);
 
     const options = result.meals[0]!.options;
     // fasolia at its computed 1× is 600 against 620 — within 15%.
     expect(options.find((option) => option.slug === 'fasolia')?.isSimilar).toBe(true);
-    // tiny-lunch cannot reach 620 even at the ceiling, so it is offered where the
-    // pool is thin but never as a like-for-like swap.
-    expect(options.find((option) => option.slug === 'tiny-lunch')?.isSimilar ?? false).toBe(false);
+    // tiny-lunch cannot reach 620 even at the ceiling, so calling it a substitute
+    // would make a client-facing alternative change the day's prescription.
+    expect(options.map((option) => option.slug)).not.toContain('tiny-lunch');
+    expect(options.every((option) => option.isSimilar)).toBe(true);
   });
 
   test('a catalog with no room to rotate offers every dish that fits the slot', () => {
-    // Four lunch dishes, one of them chosen: the three that remain are the pool
-    // and the offer, and rotation has nothing to choose between.
+    // Four lunch dishes, one chosen and one too light: the two real substitutes
+    // are the complete eligible pool.
     const result = run([day(0, meal())]);
 
-    expect(result.meals[0]!.options).toHaveLength(3);
+    expect(result.meals[0]!.options).toHaveLength(2);
   });
 
   test('the same slot on different days is not offered the same three', () => {

@@ -337,6 +337,12 @@ export const swapMealSchema = z.object({
   servings: z.coerce.number().min(MIN_SERVINGS).max(MAX_SERVINGS),
 });
 
+export const removeMealOptionSchema = z.object({
+  planId: planIdSchema,
+  mealId: mealIdSchema,
+  dishId: dishIdSchema,
+});
+
 export const publishPlanSchema = z.object({ planId: planIdSchema });
 
 /**

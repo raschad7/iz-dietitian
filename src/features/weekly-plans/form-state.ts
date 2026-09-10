@@ -21,6 +21,8 @@ export type GenerateState =
       messageKey:
         | 'errors.notConfigured'
         | 'errors.profileIncomplete'
+        | 'errors.unsupportedPattern'
+        | 'errors.unmappedExclusions'
         | 'errors.emptyCatalog'
         | 'errors.modelUnusable'
         | 'errors.unexpected'
@@ -41,6 +43,7 @@ export type PlanActionState =
         | 'errors.planNotFound'
         | 'errors.notDraft'
         | 'errors.unfilled'
+        | 'errors.unsafePlan'
         | 'errors.invalid'
         | 'errors.unexpected';
     };

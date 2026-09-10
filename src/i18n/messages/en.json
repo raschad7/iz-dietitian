@@ -964,11 +964,16 @@
     },
     "allergens": {
       "nuts": "Nuts",
+      "peanut": "Peanut",
+      "tree_nuts": "Tree nuts",
       "lactose": "Lactose",
+      "milk": "Milk",
       "gluten": "Gluten",
       "egg": "Egg",
       "fish": "Fish",
-      "sesame": "Sesame"
+      "shellfish": "Shellfish",
+      "sesame": "Sesame",
+      "soy": "Soy"
     },
     "bmiCategories": {
       "underweight": "Underweight",
@@ -1043,6 +1048,8 @@
       "gout": "Gout"
     },
     "dietPatterns": {
+      "vegetarian": "Vegetarian",
+      "vegan": "Vegan",
       "low_carb": "Low carbohydrate",
       "keto": "Ketogenic",
       "high_protein": "High protein",
@@ -2153,6 +2160,8 @@
     "replaceMeal": "Replace",
     "mealReplaced": "Meal replaced",
     "mealReplacedHint": "The alternative is now saved in this meal slot.",
+    "removeAlternative": "Remove {name} from alternatives",
+    "alternativeRemoved": "Alternative removed",
     "originalPosition": "Original position",
     "swapWith": "Swap with",
     "moveHere": "Move here",
@@ -2195,20 +2204,28 @@
     },
     "allergens": {
       "nuts": "Nuts",
+      "peanut": "Peanut",
+      "tree_nuts": "Tree nuts",
       "lactose": "Lactose",
+      "milk": "Milk",
       "gluten": "Gluten",
       "egg": "Egg",
       "fish": "Fish",
-      "sesame": "Sesame"
+      "shellfish": "Shellfish",
+      "sesame": "Sesame",
+      "soy": "Soy"
     },
     "errors": {
       "notConfigured": "AI is not configured: add OPENAI_API_KEY to the environment file.",
       "profileIncomplete": "Complete the nutrition profile (weight, height, sex, date of birth) before generating.",
+      "unsupportedPattern": "This prescribed pattern cannot yet be checked from final ingredients and quantities, so AI generation is disabled for it. Build and review the plan manually.",
+      "unmappedExclusions": "This client has a typed allergy or ingredient exclusion that is not mapped to the reviewed catalog vocabulary. Map it to a structured allergen before generating or publishing.",
       "emptyCatalog": "No dishes are available once the allergy filter is applied.",
       "modelUnusable": "We could not use the model's response. Try again.",
       "planNotFound": "Plan not found.",
       "notDraft": "A published plan cannot be edited. Unpublish it first.",
       "unfilled": "Cannot publish while meals are unfilled.",
+      "unsafePlan": "This plan has a dish, side, alternative, portion, or client constraint that no longer passes the final safety check. Review the plan and replace the blocked item before publishing.",
       "invalid": "Invalid data.",
       "clientNotFound": "Client not found.",
       "unexpected": "Something went wrong.",
@@ -2272,6 +2289,7 @@
     "usedThisWeek": "this week",
     "usedWeeksAgo": "{count, plural, one {last week} other {# weeks ago}}",
     "blockedByAllergen": "Contains {allergens}",
+    "blockedByConstraint": "Does not meet the client’s prescribed pattern",
     "mealTypes": {
       "breakfast": "Breakfast",
       "snack": "Snack",
@@ -2562,11 +2580,16 @@
     },
     "allergens": {
       "nuts": "Nuts",
+      "peanut": "Peanut",
+      "tree_nuts": "Tree nuts",
       "lactose": "Lactose",
+      "milk": "Milk",
       "gluten": "Gluten",
       "egg": "Egg",
       "fish": "Fish",
-      "sesame": "Sesame"
+      "shellfish": "Shellfish",
+      "sesame": "Sesame",
+      "soy": "Soy"
     },
     "proteinSources": {
       "red_meat": "Red meat",

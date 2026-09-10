@@ -57,7 +57,12 @@ export type NewWeekProps = {
    */
   blocked: boolean;
   /** The generate door's extra requirement: a configured provider. */
-  generateBlocked: 'not_configured' | 'profile_incomplete' | null;
+  generateBlocked:
+    | 'not_configured'
+    | 'profile_incomplete'
+    | 'unsupported_pattern'
+    | 'unmapped_exclusions'
+    | null;
   /** For the placeholders on the generate door's target fields. */
   context: ClientContext;
   /** The instruction the open week was generated with, if any. */
@@ -397,7 +402,12 @@ function GenerateDoor({
   locale: string;
   mode: NewWeekMode;
   weekStartDate: string;
-  blocked: 'not_configured' | 'profile_incomplete' | null;
+  blocked:
+    | 'not_configured'
+    | 'profile_incomplete'
+    | 'unsupported_pattern'
+    | 'unmapped_exclusions'
+    | null;
   context: ClientContext;
   defaultInstruction: string | null;
   onPendingChange: (pending: boolean) => void;
