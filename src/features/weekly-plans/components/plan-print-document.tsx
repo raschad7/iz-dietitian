@@ -6,7 +6,9 @@ import { useFormatter, useTranslations } from 'next-intl';
 
 import { getLocaleDirection, type Locale } from '@/i18n/routing';
 
+import { readableRows, type ReadableRow } from '../dish-components';
 import { localizedName } from '../food-display';
+import type { MealIngredientLine } from '../meal-ingredients';
 import { ingredientAmount } from '../meal-quantity';
 import { NUTRIENT_UNITS } from '../nutrition';
 import { type PrintDay, type PrintMeal, type PrintPlan } from '../plan-print';
@@ -25,6 +27,31 @@ const onServer = () => false;
  * document it already rendered.
  */
 export const PRINT_ROOT_CLASS = 'plan-print';
+
+/**
+ * A meal's printed rows: the main collapsed into what it is served as, then each
+ * side's own lines.
+ *
+ * The collapse is applied to the main alone. A side is a whole dish at one
+ * serving and carries no grouping — and a salad's tomato and a maqluba's tomato
+ * are the same food, so passing them through together would fold two rows into
+ * one and silently drop a line from the sheet a client takes home.
+ */
+function printableRows(
+  lines: readonly MealIngredientLine[],
+): ReadableRow<MealIngredientLine>[] {
+  return [
+    ...readableRows(lines.filter((line) => line.side === null)),
+    ...lines
+      .filter((line) => line.side !== null)
+      .map((line) => ({
+        key: `${line.side?.id}:${line.food.id}`,
+        nameAr: line.food.nameAr,
+        nameEn: line.food.nameEn,
+        line,
+      })),
+  ];
+}
 
 /**
  * The week as the sheet a client takes home, drawn only when the page is
@@ -244,25 +271,35 @@ function PrintMealRow({ meal, locale }: { meal: PrintMeal; locale: Locale }) {
         */}
         {meal.lines.length > 0 && (
           <p className="plan-print-portions">
-            {meal.lines.map((line, index) => {
-              const amount = ingredientAmount(line, locale);
+            {/*
+              The things served, not the recipe.
+
+              A مجدرة is one item on this page, because it is one thing on the
+              plate. Printing its four lines gave a client "عدس ١٩٨ غ · أرز ٦
+              ملاعق · بصل ٥٠ غ · زيت ١٢ غ", which is a description of cooking
+              it. `readableRows` is the same collapse the panel and the client's
+              card use, so the three documents cannot disagree.
+            */}
+            {printableRows(meal.lines).map((row, index, rows) => {
+              const amount = ingredientAmount(row.line, locale);
               // Names the side once, where its first line starts, so a printed
               // plate reads "… · صحن سلطة: خس 60 غ · بندورة 70 غ" rather than
               // trailing loose vegetables nobody can attribute.
-              const opensSide = line.side && line.side.id !== meal.lines[index - 1]?.side?.id;
+              const side = row.line.side;
+              const opensSide = side && side.id !== rows[index - 1]?.line.side?.id;
 
               return (
-                <Fragment key={`${line.side?.id ?? 'main'}:${line.food.id}`}>
+                <Fragment key={`${side?.id ?? 'main'}:${row.key}`}>
                   {/* A literal separator, not a CSS `::before`: Word renders no
                       generated content, and the Word file is this same markup. */}
                   {index > 0 && <span className="plan-print-sep"> · </span>}
                   {opensSide && (
                     <b className="plan-print-side" dir="auto">
-                      {line.side?.nameAr}:{' '}
+                      {side?.nameAr}:{' '}
                     </b>
                   )}
                   <span className="plan-print-portion" dir="auto">
-                    {localizedName(line.food, locale)}{' '}
+                    {localizedName({ nameAr: row.nameAr, nameEn: row.nameEn }, locale)}{' '}
                     <b className="plan-print-amount">
                       {amount.kind === 'grams'
                         ? t('gramsShort', { value: amount.grams })

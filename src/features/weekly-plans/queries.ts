@@ -291,6 +291,9 @@ const recipeColumns = {
   dishId: dishIngredients.dishId,
   quantityGrams: dishIngredients.quantityGrams,
   portionQuantity: dishIngredients.portionQuantity,
+  componentKey: dishIngredients.componentKey,
+  componentNameAr: dishIngredients.componentNameAr,
+  componentNameEn: dishIngredients.componentNameEn,
   isPrimary: dishIngredients.isPrimary,
   isFree: dishIngredients.isFree,
   sortOrder: dishIngredients.sortOrder,
@@ -302,7 +305,11 @@ type RecipeRow = {
   dishId: string;
   quantityGrams: number;
   portionQuantity: number | null;
-  /** Whether this line carries a `−/+` control on the board. */
+  /** The served part this line belongs to, or null when it is its own. */
+  componentKey: string | null;
+  componentNameAr: string | null;
+  componentNameEn: string | null;
+  /** Whether this line's component carries a `−/+` control on the board. */
   isPrimary: boolean;
   /** Written without a number and never scaled — شرائح خضار. */
   isFree: boolean;
@@ -340,6 +347,9 @@ export async function ownAmountsByMeal(
       mealId: weeklyPlanMealIngredients.mealId,
       quantityGrams: weeklyPlanMealIngredients.quantityGrams,
       portionQuantity: weeklyPlanMealIngredients.portionQuantity,
+      componentKey: weeklyPlanMealIngredients.componentKey,
+      componentNameAr: weeklyPlanMealIngredients.componentNameAr,
+      componentNameEn: weeklyPlanMealIngredients.componentNameEn,
       isPrimary: weeklyPlanMealIngredients.isPrimary,
       isFree: weeklyPlanMealIngredients.isFree,
       sortOrder: weeklyPlanMealIngredients.sortOrder,
@@ -420,6 +430,9 @@ function attachRecipes<D extends { id: string }>(
       food: row.food,
       portion: row.portion,
       portionQuantity: row.portionQuantity,
+      componentKey: row.componentKey,
+      componentNameAr: row.componentNameAr,
+      componentNameEn: row.componentNameEn,
       isPrimary: row.isPrimary,
       isFree: row.isFree,
       sortOrder: row.sortOrder,
@@ -781,6 +794,16 @@ export type DishEditData = {
     quantityGrams: number;
     /** The portion the amount was saved in, or null for grams. */
     portionId: string | null;
+    /**
+     * The served part this line belongs to, carried through an edit untouched.
+     *
+     * The editor does not yet let a clinic group lines — that is authored in
+     * `data/dishes.json` for the shipped catalog — but it must not silently
+     * ungroup a dish it opened, so the fields round-trip.
+     */
+    componentKey: string | null;
+    componentNameAr: string | null;
+    componentNameEn: string | null;
     isPrimary: boolean;
     isFree: boolean;
   }[];
@@ -1007,6 +1030,9 @@ export async function getClinicDishForEdit(clinicId: string, dishId: string): Pr
     .select({
       quantityGrams: dishIngredients.quantityGrams,
       portionId: dishIngredients.portionId,
+      componentKey: dishIngredients.componentKey,
+      componentNameAr: dishIngredients.componentNameAr,
+      componentNameEn: dishIngredients.componentNameEn,
       isPrimary: dishIngredients.isPrimary,
       isFree: dishIngredients.isFree,
       food: foodColumns,
@@ -1024,6 +1050,9 @@ export async function getClinicDishForEdit(clinicId: string, dishId: string): Pr
       food: { ...row.food, portions: byFood.get(row.food.id) ?? [] },
       quantityGrams: row.quantityGrams,
       portionId: row.portionId,
+      componentKey: row.componentKey,
+      componentNameAr: row.componentNameAr,
+      componentNameEn: row.componentNameEn,
       isPrimary: row.isPrimary,
       isFree: row.isFree,
     })),

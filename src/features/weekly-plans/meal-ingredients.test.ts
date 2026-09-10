@@ -9,7 +9,6 @@ import {
   mealTotals,
   nextIngredientAmount,
   nextIngredientAmount as step,
-  primaryLines,
   scaleRecipe,
   type MealIngredientLine,
   type RecipeLine,
@@ -76,6 +75,83 @@ const RECIPE: RecipeLine[] = [
   line('eggplant', 100, { sortOrder: 2 }),
   line('oil', 12, { sortOrder: 3 }),
 ];
+
+/**
+ * مجدرة, reduced the same way: four lines out of one pot, and an egg beside it.
+ *
+ * The rice carries a count because that is how the recipe was written; what the
+ * client is served is a plate of mujaddara, and these tests are about the
+ * difference.
+ */
+const MIXED: RecipeLine[] = [
+  line('lentils', 200, {
+    sortOrder: 0,
+    isPrimary: true,
+    componentKey: 'mujaddara',
+    componentNameAr: 'مجدرة',
+    componentNameEn: 'Mujaddara',
+  }),
+  line('rice', 150, {
+    sortOrder: 1,
+    isPrimary: true,
+    componentKey: 'mujaddara',
+    componentNameAr: 'مجدرة',
+    componentNameEn: 'Mujaddara',
+    portion: cup,
+    portionQuantity: 1,
+  }),
+  line('oil', 50, {
+    sortOrder: 2,
+    isPrimary: true,
+    componentKey: 'mujaddara',
+    componentNameAr: 'مجدرة',
+    componentNameEn: 'Mujaddara',
+  }),
+  line('egg', 100, { sortOrder: 3, isPrimary: true }),
+];
+
+describe('a component that was cooked as one thing', () => {
+  test('the recipe is untouched at one serving', () => {
+    const lines = mealIngredientLines({ recipe: MIXED, servings: 1, stored: null });
+
+    expect(lines.map((one) => one.quantityGrams)).toEqual([200, 150, 50, 100]);
+  });
+
+  test('its lines keep their ratio exactly when the meal is scaled', () => {
+    const lines = mealIngredientLines({ recipe: MIXED, servings: 1.5, stored: null });
+    const grouped = lines.filter((one) => one.componentKey === 'mujaddara');
+
+    // 4 : 3 : 1 before, 4 : 3 : 1 after. Snapping each line to its own grid is
+    // what would drift it — the rice would round to a whole cup and the lentils
+    // would not, and the dish would slowly stop being مجدرة.
+    expect(grouped.map((one) => one.quantityGrams)).toEqual([300, 225, 75]);
+  });
+
+  test('the oil inside it scales too, because it was cooked in', () => {
+    // A loose 50 g of oil would be held where the recipe put it. Inside a
+    // component it is part of the thing being served, so half a plate carries
+    // half of it.
+    const lines = mealIngredientLines({ recipe: MIXED, servings: 0.5, stored: null });
+
+    expect(lines.find((one) => one.food.id === 'oil')?.quantityGrams).toBe(25);
+  });
+
+  test('a scaled line inside a group is grams, not a count', () => {
+    const lines = mealIngredientLines({ recipe: MIXED, servings: 2, stored: null });
+    const rice = lines.find((one) => one.food.id === 'rice');
+
+    // «١ كوب أرز» is true of the pot and false of the plate: two servings of
+    // مجدرة is not two cups of rice a client measures out.
+    expect(rice?.portionQuantity).toBeNull();
+    expect(rice?.quantityGrams).toBe(300);
+  });
+
+  test('what is served beside it still moves on its own grid', () => {
+    const lines = mealIngredientLines({ recipe: MIXED, servings: 2, stored: null });
+
+    expect(lines.find((one) => one.food.id === 'egg')?.quantityGrams).toBe(200);
+  });
+});
 
 describe('mealIngredientLines', () => {
   /**
@@ -152,14 +228,6 @@ describe('hasOwnAmounts', () => {
     expect(hasOwnAmounts([])).toBe(false);
     expect(hasOwnAmounts(null)).toBe(false);
     expect(hasOwnAmounts(undefined)).toBe(false);
-  });
-});
-
-describe('primaryLines', () => {
-  test('only the lines a dietitian adjusts, in recipe order', () => {
-    const lines = mealIngredientLines({ recipe: RECIPE, servings: 1, stored: null });
-
-    expect(primaryLines(lines).map((entry) => entry.food.id)).toEqual(['rice', 'chicken']);
   });
 });
 

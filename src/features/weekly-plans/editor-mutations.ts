@@ -928,6 +928,9 @@ async function ownAmountRows(
       quantityGrams: weeklyPlanMealIngredients.quantityGrams,
       portionId: weeklyPlanMealIngredients.portionId,
       portionQuantity: weeklyPlanMealIngredients.portionQuantity,
+      componentKey: weeklyPlanMealIngredients.componentKey,
+      componentNameAr: weeklyPlanMealIngredients.componentNameAr,
+      componentNameEn: weeklyPlanMealIngredients.componentNameEn,
       isPrimary: weeklyPlanMealIngredients.isPrimary,
       isFree: weeklyPlanMealIngredients.isFree,
       sortOrder: weeklyPlanMealIngredients.sortOrder,
@@ -967,7 +970,7 @@ async function clearOwnAmounts(tx: DbExecutor, mealId: string): Promise<void> {
 }
 
 /**
- * Sets one ingredient's amount in one meal.
+ * Sets one component's amount in one meal — one line of it, or all of them.
  *
  * **The first call materialises the meal.** Until a dietitian touches a control, a
  * meal is a dish and a multiplier and nothing is stored here; the moment she moves
@@ -980,7 +983,16 @@ async function clearOwnAmounts(tx: DbExecutor, mealId: string): Promise<void> {
  * would leave "raise the whole dish" and "I pinned the chicken" fighting over the
  * same meal, with no answer for what the chicken should do.
  *
- * The food must already be in the meal. This changes an amount; it does not add an
+ * ## Why a list and not one food
+ *
+ * A مجدرة is one control over four lines. Pressing `+` on it has to move the rice,
+ * the lentils, the onion and the oil in the same write, because the ratio between
+ * them is the thing being preserved — four separate calls would each materialise
+ * the meal again and leave three intermediate states in which the dish held
+ * proportions no recipe ever specified. The caller decides the amounts (see
+ * `scaleComponentLines`); this applies them together or not at all.
+ *
+ * Every food must already be in the meal. This changes amounts; it does not add an
  * ingredient, and a food id that is not on the plate is a stale board or a forged
  * request — neither of which should be able to write a new line.
  */
@@ -989,18 +1001,30 @@ export async function setMealIngredient(
   planId: string,
   mealId: string,
   input: {
-    foodId: string;
-    quantityGrams: number;
-    /** The unit the count is in, or null when the amount is grams. */
-    portionId: string | null;
-    portionQuantity: number | null;
+    /** One entry per line to move. A single-line component sends one. */
+    amounts: readonly {
+      foodId: string;
+      quantityGrams: number;
+      /** The unit the count is in, or null when the amount is grams. */
+      portionId: string | null;
+      portionQuantity: number | null;
+    }[];
   },
 ): Promise<boolean> {
   const plan = await editablePlan(clinicId, planId);
   if (!plan) return false;
 
-  if (!Number.isFinite(input.quantityGrams)) return false;
-  if (input.quantityGrams <= 0 || input.quantityGrams > MAX_INGREDIENT_GRAMS) return false;
+  if (!input.amounts.length) return false;
+
+  for (const amount of input.amounts) {
+    if (!Number.isFinite(amount.quantityGrams)) return false;
+    if (amount.quantityGrams <= 0 || amount.quantityGrams > MAX_INGREDIENT_GRAMS) return false;
+  }
+
+  // Two amounts for one food is a caller that cannot say what it wants, and the
+  // last one would silently win.
+  const byFood = new Map(input.amounts.map((amount) => [amount.foodId, amount]));
+  if (byFood.size !== input.amounts.length) return false;
 
   return db.transaction(async (tx) => {
     const [meal] = await tx
@@ -1025,20 +1049,27 @@ export async function setMealIngredient(
       stored,
     });
 
-    if (!lines.some((line) => line.food.id === input.foodId)) return false;
+    // Every food named must be on the plate. Checked before anything is written,
+    // so a request naming three real lines and one stale one changes nothing
+    // rather than moving three quarters of a component.
+    const onPlate = new Set(lines.map((line) => line.food.id));
+    if ([...byFood.keys()].some((foodId) => !onPlate.has(foodId))) return false;
 
     await replaceOwnAmounts(
       tx,
       mealId,
       lines.map((line) => {
-        const target = line.food.id === input.foodId;
+        const moved = byFood.get(line.food.id);
 
         return {
           mealId,
           catalogFoodId: line.food.id,
-          quantityGrams: target ? input.quantityGrams : line.quantityGrams,
-          portionId: target ? input.portionId : (line.portion?.id ?? null),
-          portionQuantity: target ? input.portionQuantity : line.portionQuantity,
+          quantityGrams: moved ? moved.quantityGrams : line.quantityGrams,
+          portionId: moved ? moved.portionId : (line.portion?.id ?? null),
+          portionQuantity: moved ? moved.portionQuantity : line.portionQuantity,
+          componentKey: line.componentKey ?? null,
+          componentNameAr: line.componentNameAr ?? null,
+          componentNameEn: line.componentNameEn ?? null,
           isPrimary: line.isPrimary,
           isFree: line.isFree ?? false,
           sortOrder: line.sortOrder,

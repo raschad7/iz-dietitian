@@ -2369,6 +2369,7 @@
     "moreIngredient": "زيادة هذا المكوّن",
     "lessIngredient": "تقليل هذا المكوّن",
     "alsoContains": "يحتوي أيضًا",
+    "moreServings": "وحدات أخرى",
     "backToRecipe": "إرجاع الكميات الأصلية",
     "budgetHint": "ميزانية هذه الوجبة {value} kcal",
     "overBudget": "أكبر من الميزانية",

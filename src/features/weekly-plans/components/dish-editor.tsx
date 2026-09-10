@@ -154,6 +154,18 @@ type IngredientRowState = {
   quantity: string;
   /** `'g'`, or the id of one of this food's own portions. Never another food's. */
   unitValue: string;
+  /**
+   * The served part this line belongs to — see `dish-components.ts`.
+   *
+   * Carried, not edited. There is no grouping control in this editor yet; the
+   * shipped catalog is grouped in `data/dishes.json`. What matters here is that
+   * a dish which arrives grouped leaves grouped, because an edit that silently
+   * ungrouped a مجدرة would start telling the client to portion its rice and its
+   * lentils separately.
+   */
+  componentKey: string | null;
+  componentNameAr: string | null;
+  componentNameEn: string | null;
   isPrimary: boolean;
   isFree: boolean;
 };
@@ -178,6 +190,9 @@ function rowFromIngredient(ingredient: DishEditData['ingredients'][number]): Ing
   });
   return {
     key: `row-${rowSeq}`, food: ingredient.food, quantity: formatQuantity(quantity), unitValue,
+    componentKey: ingredient.componentKey,
+    componentNameAr: ingredient.componentNameAr,
+    componentNameEn: ingredient.componentNameEn,
     isPrimary: ingredient.isPrimary, isFree: ingredient.isFree,
   };
 }
@@ -320,6 +335,7 @@ export function DishEditor({
       f: row.food.id,
       q: row.quantity,
       u: row.unitValue,
+      c: row.componentKey,
       p: row.isPrimary,
       free: row.isFree,
     })),
@@ -356,7 +372,11 @@ export function DishEditor({
     const unitValue = defaultUnitValue(food);
     const grams = unitValue === GRAMS_UNIT;
     setRows((prev) => [...prev, {
-      key, food, unitValue, quantity: grams ? '' : '1', isPrimary: false, isFree: false,
+      key, food, unitValue, quantity: grams ? '' : '1',
+      // A new line is its own component until somebody says otherwise, which is
+      // what every ungrouped recipe already is.
+      componentKey: null, componentNameAr: null, componentNameEn: null,
+      isPrimary: false, isFree: false,
     }]);
     setFocusRowKey(grams ? key : null);
     if (!grams) searchRef.current?.focus();
@@ -417,6 +437,9 @@ export function DishEditor({
       JSON.stringify(
         completeRows.map((prepared) => ({
           foodId: prepared.row.food.id,
+          componentKey: prepared.row.componentKey,
+          componentNameAr: prepared.row.componentNameAr,
+          componentNameEn: prepared.row.componentNameEn,
           isPrimary: prepared.row.isPrimary,
           isFree: prepared.row.isFree,
           /*

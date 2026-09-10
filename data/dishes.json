@@ -214,28 +214,37 @@
         {
           "fdcId": 169260,
           "grams": 200,
-          "note": "Okra, raw"
+          "note": "Okra, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171792,
           "grams": 85,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "stew"
         },
         {
           "fdcId": 170459,
           "grams": 20,
-          "note": "Tomato products, canned, paste, without salt added"
+          "note": "Tomato products, canned, paste, without salt added",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 170000,
           "grams": 40,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 10,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 168878,
@@ -244,6 +253,13 @@
           "unit": "heaped-spoon",
           "count": 6,
           "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "stew",
+          "nameAr": "بامية باللحم",
+          "nameEn": "Okra and meat stew"
         }
       ]
     },
@@ -266,7 +282,8 @@
           "fdcId": 171792,
           "grams": 150,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "stew"
         },
         {
           "fdcId": 168878,
@@ -279,17 +296,30 @@
         {
           "fdcId": 169260,
           "grams": 180,
-          "note": "Okra, raw"
+          "note": "Okra, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 170459,
           "grams": 45,
-          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)"
+          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171025,
           "grams": 20,
-          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+          "note": "Oil, sunflower, linoleic, (approx. 65%)",
+          "component": "stew",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "stew",
+          "nameAr": "بامية باللحم",
+          "nameEn": "Okra and meat stew"
         }
       ]
     },
@@ -436,7 +466,9 @@
         {
           "fdcId": 169228,
           "grams": 150,
-          "note": "Eggplant, raw"
+          "note": "Eggplant, raw",
+          "component": "mahshi",
+          "primary": true
         },
         {
           "fdcId": 168878,
@@ -444,23 +476,36 @@
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "unit": "heaped-spoon",
           "count": 5,
-          "primary": true
+          "primary": true,
+          "component": "mahshi"
         },
         {
           "fdcId": 171792,
           "grams": 50,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "mahshi"
         },
         {
           "fdcId": 170459,
           "grams": 10,
-          "note": "Tomato products, canned, paste, without salt added"
+          "note": "Tomato products, canned, paste, without salt added",
+          "component": "mahshi",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "mahshi",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "mahshi",
+          "nameAr": "باذنجان محشي",
+          "nameEn": "Stuffed eggplant"
         }
       ]
     },
@@ -482,13 +527,16 @@
         {
           "fdcId": 170419,
           "grams": 90,
-          "note": "Peas, green, raw"
+          "note": "Peas, green, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171792,
           "grams": 60,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "stew"
         },
         {
           "fdcId": 168878,
@@ -501,12 +549,23 @@
         {
           "fdcId": 170459,
           "grams": 10,
-          "note": "Tomato products, canned, paste, without salt added"
+          "note": "Tomato products, canned, paste, without salt added",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "stew",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "stew",
+          "nameAr": "بازيلا ولحمة",
+          "nameEn": "Peas and meat stew"
         }
       ]
     },
@@ -530,7 +589,8 @@
           "fdcId": 175194,
           "grams": 220,
           "note": "Beans, kidney, red, mature seeds, cooked, boiled, without salt",
-          "primary": true
+          "primary": true,
+          "component": "stew"
         },
         {
           "fdcId": 168878,
@@ -543,17 +603,30 @@
         {
           "fdcId": 170459,
           "grams": 35,
-          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)"
+          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 170000,
           "grams": 40,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 12,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "stew",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "stew",
+          "nameAr": "يخنة فاصولياء حمراء",
+          "nameEn": "Red bean stew"
         }
       ]
     },
@@ -659,22 +732,29 @@
           "fdcId": 173760,
           "grams": 200,
           "note": "Cowpeas, common (blackeyes, crowder, southern), mature seeds, canned, plain",
-          "primary": true
+          "primary": true,
+          "component": "stew"
         },
         {
           "fdcId": 170457,
           "grams": 100,
-          "note": "Tomatoes, red, ripe, raw, year round average"
+          "note": "Tomatoes, red, ripe, raw, year round average",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 170000,
           "grams": 40,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 10,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 174916,
@@ -683,6 +763,13 @@
           "primary": true,
           "unit": "loaf",
           "count": 1
+        }
+      ],
+      "components": [
+        {
+          "key": "stew",
+          "nameAr": "لوبياء بيضاء بالخضار",
+          "nameEn": "Cowpea and vegetable stew"
         }
       ]
     },
@@ -1753,28 +1840,43 @@
           "note": "Pasta, cooked, enriched, without added salt",
           "primary": true,
           "unit": "cup",
-          "count": 1.5
+          "count": 1.5,
+          "component": "pasta"
         },
         {
           "fdcId": 170847,
           "grams": 90,
           "note": "Cheese, mozzarella, part skim milk",
-          "primary": true
+          "primary": true,
+          "component": "pasta"
         },
         {
           "fdcId": 170857,
           "grams": 60,
-          "note": "Cream, fluid, light (coffee cream or table cream)"
+          "note": "Cream, fluid, light (coffee cream or table cream)",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 170459,
           "grams": 30,
-          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)"
+          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "pasta",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "pasta",
+          "nameAr": "مكرونة بالجبنة بالفرن",
+          "nameEn": "Baked cheese pasta"
         }
       ]
     },
@@ -2261,28 +2363,43 @@
           "note": "Pasta, cooked, enriched, without added salt",
           "primary": true,
           "unit": "cup",
-          "count": 2
+          "count": 2,
+          "component": "pasta"
         },
         {
           "fdcId": 171477,
           "grams": 160,
           "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
-          "primary": true
+          "primary": true,
+          "component": "pasta"
         },
         {
           "fdcId": 170857,
           "grams": 100,
-          "note": "Cream, fluid, light (coffee cream or table cream)"
+          "note": "Cream, fluid, light (coffee cream or table cream)",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 173414,
           "grams": 40,
-          "note": "Cheese, cheddar (Includes foods for USDA's Food Distribution Program)"
+          "note": "Cheese, cheddar (Includes foods for USDA's Food Distribution Program)",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 12,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "pasta",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "pasta",
+          "nameAr": "مكرونة بالدجاج",
+          "nameEn": "Chicken pasta"
         }
       ]
     },
@@ -2695,22 +2812,29 @@
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
           "unit": "container",
-          "count": 0.75
+          "count": 0.75,
+          "component": "stew"
         },
         {
           "fdcId": 168462,
           "grams": 120,
-          "note": "Spinach, raw"
+          "note": "Spinach, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 170459,
           "grams": 15,
-          "note": "Tomato products, canned, paste, without salt added"
+          "note": "Tomato products, canned, paste, without salt added",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 10,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 168878,
@@ -2719,6 +2843,13 @@
           "unit": "heaped-spoon",
           "count": 5,
           "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "stew",
+          "nameAr": "يخنة حمص وسبانخ",
+          "nameEn": "Chickpea and spinach stew"
         }
       ]
     },
@@ -2747,7 +2878,8 @@
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt",
           "primary": true,
           "unit": "cup",
-          "count": 1.25
+          "count": 1.25,
+          "component": "fatteh"
         },
         {
           "fdcId": 174915,
@@ -2755,24 +2887,38 @@
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
-          "count": 1.5
+          "count": 1.5,
+          "component": "fatteh"
         },
         {
           "fdcId": 168604,
           "grams": 30,
-          "note": "Seeds, sesame butter, tahini, type of kernels unspecified"
+          "note": "Seeds, sesame butter, tahini, type of kernels unspecified",
+          "component": "fatteh",
+          "primary": true
         },
         {
           "fdcId": 171284,
           "grams": 122.5,
           "note": "Yogurt, plain, whole milk",
           "unit": "cup",
-          "count": 0.5
+          "count": 0.5,
+          "component": "fatteh",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 12,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "fatteh",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "fatteh",
+          "nameAr": "فتة حمص بالطحينة",
+          "nameEn": "Hummus fatteh with tahini"
         }
       ]
     },
@@ -3098,7 +3244,8 @@
           "note": "Egg, whole, raw, fresh",
           "primary": true,
           "unit": "piece",
-          "count": 3
+          "count": 3,
+          "component": "friedrice"
         },
         {
           "fdcId": 168878,
@@ -3106,22 +3253,36 @@
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
           "unit": "heaped-spoon",
-          "count": 7
+          "count": 7,
+          "component": "friedrice"
         },
         {
           "fdcId": 170419,
           "grams": 70,
-          "note": "Peas, green, raw"
+          "note": "Peas, green, raw",
+          "component": "friedrice",
+          "primary": true
         },
         {
           "fdcId": 170393,
           "grams": 60,
-          "note": "Carrots, raw"
+          "note": "Carrots, raw",
+          "component": "friedrice",
+          "primary": true
         },
         {
           "fdcId": 171025,
           "grams": 16,
-          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+          "note": "Oil, sunflower, linoleic, (approx. 65%)",
+          "component": "friedrice",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "friedrice",
+          "nameAr": "أرز مقلي",
+          "nameEn": "Fried rice"
         }
       ]
     },
@@ -3809,28 +3970,36 @@
           "fdcId": 175204,
           "grams": 120,
           "note": "Beans, white, mature seeds, canned",
-          "primary": true
+          "primary": true,
+          "component": "stew"
         },
         {
           "fdcId": 171792,
           "grams": 60,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "stew"
         },
         {
           "fdcId": 170459,
           "grams": 12,
-          "note": "Tomato products, canned, paste, without salt added"
+          "note": "Tomato products, canned, paste, without salt added",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 170000,
           "grams": 40,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 168878,
@@ -3839,6 +4008,13 @@
           "unit": "heaped-spoon",
           "count": 6,
           "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "stew",
+          "nameAr": "فاصولياء باللحمة",
+          "nameEn": "Beans and meat stew"
         }
       ]
     },
@@ -3861,13 +4037,15 @@
           "fdcId": 175204,
           "grams": 200,
           "note": "Beans, white, mature seeds, canned",
-          "primary": true
+          "primary": true,
+          "component": "stew"
         },
         {
           "fdcId": 171792,
           "grams": 140,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "stew"
         },
         {
           "fdcId": 168878,
@@ -3880,12 +4058,23 @@
         {
           "fdcId": 170459,
           "grams": 40,
-          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)"
+          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171025,
           "grams": 18,
-          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+          "note": "Oil, sunflower, linoleic, (approx. 65%)",
+          "component": "stew",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "stew",
+          "nameAr": "فاصولياء باللحمة",
+          "nameEn": "Beans and meat stew"
         }
       ]
     },
@@ -3909,12 +4098,15 @@
           "fdcId": 175204,
           "grams": 200,
           "note": "Beans, white, mature seeds, canned",
-          "primary": true
+          "primary": true,
+          "component": "stew"
         },
         {
           "fdcId": 170459,
           "grams": 20,
-          "note": "Tomato products, canned, paste, without salt added"
+          "note": "Tomato products, canned, paste, without salt added",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 168878,
@@ -3927,12 +4119,23 @@
         {
           "fdcId": 170000,
           "grams": 40,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 10,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "stew",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "stew",
+          "nameAr": "يخنة فاصولياء بيضاء",
+          "nameEn": "White bean stew"
         }
       ]
     },
@@ -3963,7 +4166,8 @@
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
           "unit": "container",
-          "count": 0.5
+          "count": 0.5,
+          "component": "fatteh"
         },
         {
           "fdcId": 171284,
@@ -3971,7 +4175,8 @@
           "note": "Yogurt, plain, whole milk",
           "primary": true,
           "unit": "cup",
-          "count": 0.5
+          "count": 0.5,
+          "component": "fatteh"
         },
         {
           "fdcId": 174915,
@@ -3979,17 +4184,29 @@
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
-          "count": 0.5
+          "count": 0.5,
+          "component": "fatteh"
         },
         {
           "fdcId": 168604,
           "grams": 15,
-          "note": "Seeds, sesame butter, tahini"
+          "note": "Seeds, sesame butter, tahini",
+          "component": "fatteh",
+          "primary": true
         },
         {
           "fdcId": 170591,
           "grams": 8,
-          "note": "Nuts, pine nuts, dried"
+          "note": "Nuts, pine nuts, dried",
+          "component": "fatteh",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "fatteh",
+          "nameAr": "فتة حمص",
+          "nameEn": "Hummus fatteh"
         }
       ]
     },
@@ -4248,23 +4465,36 @@
           "fdcId": 168933,
           "grams": 25,
           "note": "Semolina, unenriched",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 170847,
           "grams": 40,
           "note": "Cheese, mozzarella, part skim milk",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 169655,
           "grams": 18,
-          "note": "Sugars, granulated"
+          "note": "Sugars, granulated",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 173412,
           "grams": 8,
-          "note": "Butter oil, anhydrous"
+          "note": "Butter oil, anhydrous",
+          "component": "piece",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "piece",
+          "nameAr": "نص قطعة كنافة",
+          "nameEn": "Half a knafeh piece"
         }
       ]
     },
@@ -4343,7 +4573,8 @@
           "fdcId": 168933,
           "grams": 45,
           "note": "Semolina, unenriched",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 170187,
@@ -4351,17 +4582,29 @@
           "note": "Nuts, walnuts, english",
           "primary": true,
           "unit": "piece",
-          "count": 6
+          "count": 6,
+          "component": "piece"
         },
         {
           "fdcId": 173412,
           "grams": 15,
-          "note": "Butter oil, anhydrous"
+          "note": "Butter oil, anhydrous",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 169655,
           "grams": 10,
-          "note": "Sugars, granulated"
+          "note": "Sugars, granulated",
+          "component": "piece",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "piece",
+          "nameAr": "معمول بالجوز",
+          "nameEn": "Walnut maamoul"
         }
       ]
     },
@@ -4430,7 +4673,8 @@
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
           "unit": "heaped-spoon",
-          "count": 4
+          "count": 4,
+          "component": "piece"
         },
         {
           "fdcId": 171265,
@@ -4438,19 +4682,31 @@
           "note": "Milk, whole, 3.25% milkfat, with added vitamin D",
           "primary": true,
           "unit": "cup",
-          "count": 0.75
+          "count": 0.75,
+          "component": "piece"
         },
         {
           "fdcId": 169655,
           "grams": 20,
-          "note": "Sugars, granulated"
+          "note": "Sugars, granulated",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 170184,
           "grams": 7.7,
           "note": "Nuts, pistachio nuts, raw",
           "unit": "piece",
-          "count": 11
+          "count": 11,
+          "component": "piece",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "piece",
+          "nameAr": "رز بحليب",
+          "nameEn": "Rice pudding"
         }
       ]
     },
@@ -4475,7 +4731,8 @@
           "fdcId": 171477,
           "grams": 180,
           "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
-          "primary": true
+          "primary": true,
+          "component": "stuffed"
         },
         {
           "fdcId": 168878,
@@ -4483,24 +4740,38 @@
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
           "unit": "heaped-spoon",
-          "count": 8
+          "count": 8,
+          "component": "stuffed"
         },
         {
           "fdcId": 170567,
           "grams": 14.4,
           "note": "Nuts, almonds",
           "unit": "piece",
-          "count": 12
+          "count": 12,
+          "component": "stuffed",
+          "primary": true
         },
         {
           "fdcId": 170591,
           "grams": 10,
-          "note": "Nuts, pine nuts, dried"
+          "note": "Nuts, pine nuts, dried",
+          "component": "stuffed",
+          "primary": true
         },
         {
           "fdcId": 173412,
           "grams": 18,
-          "note": "Butter oil, anhydrous"
+          "note": "Butter oil, anhydrous",
+          "component": "stuffed",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "stuffed",
+          "nameAr": "دجاج محشي",
+          "nameEn": "Stuffed chicken"
         }
       ]
     },
@@ -5211,23 +5482,30 @@
         {
           "fdcId": 169961,
           "grams": 200,
-          "note": "Beans, snap, green, raw"
+          "note": "Beans, snap, green, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171792,
           "grams": 85,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "stew"
         },
         {
           "fdcId": 170459,
           "grams": 15,
-          "note": "Tomato products, canned, paste, without salt added"
+          "note": "Tomato products, canned, paste, without salt added",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 10,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 168878,
@@ -5236,6 +5514,13 @@
           "unit": "heaped-spoon",
           "count": 6,
           "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "stew",
+          "nameAr": "لوبياء باللحم",
+          "nameEn": "Cowpeas and meat stew"
         }
       ]
     },
@@ -6273,28 +6558,43 @@
           "note": "Bulgur, cooked",
           "primary": true,
           "unit": "cup",
-          "count": 1.25
+          "count": 1.25,
+          "component": "kibbeh"
         },
         {
           "fdcId": 171792,
           "grams": 75,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "kibbeh"
         },
         {
           "fdcId": 170000,
           "grams": 40,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "kibbeh",
+          "primary": true
         },
         {
           "fdcId": 170591,
           "grams": 8,
-          "note": "Nuts, pine nuts, dried"
+          "note": "Nuts, pine nuts, dried",
+          "component": "kibbeh",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "kibbeh",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "kibbeh",
+          "nameAr": "كبة بالصينية",
+          "nameEn": "Baked kibbeh"
         }
       ]
     },
@@ -6322,28 +6622,43 @@
           "note": "Bulgur, cooked",
           "primary": true,
           "unit": "cup",
-          "count": 1
+          "count": 1,
+          "component": "kibbeh"
         },
         {
           "fdcId": 171792,
           "grams": 170,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "kibbeh"
         },
         {
           "fdcId": 170000,
           "grams": 70,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "kibbeh",
+          "primary": true
         },
         {
           "fdcId": 170591,
           "grams": 15,
-          "note": "Nuts, pine nuts, dried"
+          "note": "Nuts, pine nuts, dried",
+          "component": "kibbeh",
+          "primary": true
         },
         {
           "fdcId": 171025,
           "grams": 25,
-          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+          "note": "Oil, sunflower, linoleic, (approx. 65%)",
+          "component": "kibbeh",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "kibbeh",
+          "nameAr": "كبة بالصينية",
+          "nameEn": "Baked kibbeh"
         }
       ]
     },
@@ -6366,7 +6681,8 @@
           "fdcId": 173741,
           "grams": 200,
           "note": "Beans, kidney, all types, mature seeds, canned",
-          "primary": true
+          "primary": true,
+          "component": "stew"
         },
         {
           "fdcId": 168878,
@@ -6379,12 +6695,23 @@
         {
           "fdcId": 170459,
           "grams": 15,
-          "note": "Tomato products, canned, paste, without salt added"
+          "note": "Tomato products, canned, paste, without salt added",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 10,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "stew",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "stew",
+          "nameAr": "يخنة فاصولياء حمراء",
+          "nameEn": "Red bean stew"
         }
       ]
     },
@@ -6435,23 +6762,36 @@
           "fdcId": 168933,
           "grams": 45,
           "note": "Semolina, unenriched",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 170847,
           "grams": 70,
           "note": "Cheese, mozzarella, part skim milk",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 169655,
           "grams": 30,
-          "note": "Sugars, granulated"
+          "note": "Sugars, granulated",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 173412,
           "grams": 15,
-          "note": "Butter oil, anhydrous"
+          "note": "Butter oil, anhydrous",
+          "component": "piece",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "piece",
+          "nameAr": "كنافة بالجبنة",
+          "nameEn": "Cheese knafeh"
         }
       ]
     },
@@ -6474,7 +6814,8 @@
           "fdcId": 171792,
           "grams": 85,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "kofta"
         },
         {
           "fdcId": 170026,
@@ -6482,22 +6823,36 @@
           "note": "Potatoes, flesh and skin, raw",
           "primary": true,
           "unit": "piece",
-          "count": 0.5
+          "count": 0.5,
+          "component": "kofta"
         },
         {
           "fdcId": 170457,
           "grams": 80,
-          "note": "Tomatoes, red, ripe, raw, year round average"
+          "note": "Tomatoes, red, ripe, raw, year round average",
+          "component": "kofta",
+          "primary": true
         },
         {
           "fdcId": 170000,
           "grams": 40,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "kofta",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "kofta",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "kofta",
+          "nameAr": "كفتة بالفرن",
+          "nameEn": "Baked kofta"
         }
       ]
     },
@@ -6568,22 +6923,29 @@
           "fdcId": 171792,
           "grams": 115,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "kofta"
         },
         {
           "fdcId": 168604,
           "grams": 25,
-          "note": "Seeds, sesame butter, tahini"
+          "note": "Seeds, sesame butter, tahini",
+          "component": "kofta",
+          "primary": true
         },
         {
           "fdcId": 170000,
           "grams": 40,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "kofta",
+          "primary": true
         },
         {
           "fdcId": 170416,
           "grams": 10,
-          "note": "Parsley, fresh"
+          "note": "Parsley, fresh",
+          "component": "kofta",
+          "primary": true
         },
         {
           "fdcId": 170026,
@@ -6591,7 +6953,15 @@
           "note": "Potatoes, flesh and skin, raw",
           "primary": true,
           "unit": "piece",
-          "count": 0.5
+          "count": 0.5,
+          "component": "kofta"
+        }
+      ],
+      "components": [
+        {
+          "key": "kofta",
+          "nameAr": "كفتة بالطحينة مع بطاطا",
+          "nameEn": "Kofta with tahini and potato"
         }
       ]
     },
@@ -6616,7 +6986,8 @@
           "fdcId": 171792,
           "grams": 180,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "kofta"
         },
         {
           "fdcId": 170440,
@@ -6624,22 +6995,36 @@
           "note": "Potatoes, boiled, cooked without skin, flesh, without salt",
           "primary": true,
           "unit": "piece",
-          "count": 1.5
+          "count": 1.5,
+          "component": "kofta"
         },
         {
           "fdcId": 168604,
           "grams": 30,
-          "note": "Seeds, sesame butter, tahini, type of kernels unspecified"
+          "note": "Seeds, sesame butter, tahini, type of kernels unspecified",
+          "component": "kofta",
+          "primary": true
         },
         {
           "fdcId": 170000,
           "grams": 60,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "kofta",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 20,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "kofta",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "kofta",
+          "nameAr": "صينية كفتة بالبطاطا",
+          "nameEn": "Kofta and potato tray"
         }
       ]
     },
@@ -6973,7 +7358,8 @@
           "note": "Lentils, mature seeds, cooked, boiled, without salt",
           "primary": true,
           "unit": "cup",
-          "count": 1
+          "count": 1,
+          "component": "mujaddara"
         },
         {
           "fdcId": 168878,
@@ -6981,7 +7367,8 @@
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
           "unit": "heaped-spoon",
-          "count": 6
+          "count": 6,
+          "component": "mujaddara"
         },
         {
           "fdcId": 173424,
@@ -6994,12 +7381,23 @@
         {
           "fdcId": 170000,
           "grams": 50,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "mujaddara",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 12,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "mujaddara",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "mujaddara",
+          "nameAr": "مجدرة",
+          "nameEn": "Mujaddara"
         }
       ]
     },
@@ -7025,7 +7423,8 @@
           "fdcId": 174284,
           "grams": 80,
           "note": "Lentils, pink or red, raw",
-          "primary": true
+          "primary": true,
+          "component": "soup"
         },
         {
           "fdcId": 170287,
@@ -7033,22 +7432,36 @@
           "note": "Bulgur, cooked",
           "primary": true,
           "unit": "cup",
-          "count": 0.75
+          "count": 0.75,
+          "component": "soup"
         },
         {
           "fdcId": 170000,
           "grams": 40,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "soup",
+          "primary": true
         },
         {
           "fdcId": 170393,
           "grams": 50,
-          "note": "Carrots, raw"
+          "note": "Carrots, raw",
+          "component": "soup",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 10,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "soup",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "soup",
+          "nameAr": "شوربة عدس بالبرغل",
+          "nameEn": "Lentil and bulgur soup"
         }
       ]
     },
@@ -7271,7 +7684,8 @@
           "fdcId": 168933,
           "grams": 45,
           "note": "Semolina, unenriched",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 168191,
@@ -7279,17 +7693,29 @@
           "note": "Dates, medjool",
           "primary": true,
           "unit": "piece",
-          "count": 3
+          "count": 3,
+          "component": "piece"
         },
         {
           "fdcId": 173412,
           "grams": 15,
-          "note": "Butter oil, anhydrous"
+          "note": "Butter oil, anhydrous",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 169655,
           "grams": 8,
-          "note": "Sugars, granulated"
+          "note": "Sugars, granulated",
+          "component": "piece",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "piece",
+          "nameAr": "معمول بالتمر",
+          "nameEn": "Date maamoul"
         }
       ]
     },
@@ -7316,7 +7742,8 @@
           "note": "Couscous, cooked",
           "primary": true,
           "unit": "cup",
-          "count": 1.5
+          "count": 1.5,
+          "component": "maftoul"
         },
         {
           "fdcId": 172388,
@@ -7330,17 +7757,29 @@
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
           "unit": "container",
-          "count": 0.25
+          "count": 0.25,
+          "component": "maftoul"
         },
         {
           "fdcId": 170000,
           "grams": 40,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "maftoul",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 10,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "maftoul",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "maftoul",
+          "nameAr": "مفتول بالحمص",
+          "nameEn": "Maftoul with chickpeas"
         }
       ]
     },
@@ -7373,24 +7812,38 @@
           "note": "Couscous, cooked",
           "primary": true,
           "unit": "cup",
-          "count": 1.75
+          "count": 1.75,
+          "component": "maftoul"
         },
         {
           "fdcId": 173757,
           "grams": 82,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt",
           "unit": "cup",
-          "count": 0.5
+          "count": 0.5,
+          "component": "maftoul",
+          "primary": true
         },
         {
           "fdcId": 170000,
           "grams": 70,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "maftoul",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 25,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "maftoul",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "maftoul",
+          "nameAr": "مفتول بالحمص",
+          "nameEn": "Maftoul with chickpeas"
         }
       ]
     },
@@ -7412,7 +7865,9 @@
         {
           "fdcId": 169291,
           "grams": 250,
-          "note": "Squash, summer, zucchini, includes skin, raw"
+          "note": "Squash, summer, zucchini, includes skin, raw",
+          "component": "mahshi",
+          "primary": true
         },
         {
           "fdcId": 168878,
@@ -7420,23 +7875,36 @@
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "unit": "heaped-spoon",
           "count": 6,
-          "primary": true
+          "primary": true,
+          "component": "mahshi"
         },
         {
           "fdcId": 171792,
           "grams": 60,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "mahshi"
         },
         {
           "fdcId": 170459,
           "grams": 15,
-          "note": "Tomato products, canned, paste, without salt added"
+          "note": "Tomato products, canned, paste, without salt added",
+          "component": "mahshi",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "mahshi",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "mahshi",
+          "nameAr": "محشي كوسا",
+          "nameEn": "Stuffed zucchini"
         }
       ]
     },
@@ -7458,7 +7926,9 @@
         {
           "fdcId": 169975,
           "grams": 120,
-          "note": "Cabbage, raw"
+          "note": "Cabbage, raw",
+          "component": "mahshi",
+          "primary": true
         },
         {
           "fdcId": 168878,
@@ -7466,23 +7936,36 @@
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "unit": "heaped-spoon",
           "count": 6,
-          "primary": true
+          "primary": true,
+          "component": "mahshi"
         },
         {
           "fdcId": 171792,
           "grams": 50,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "mahshi"
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "mahshi",
+          "primary": true
         },
         {
           "fdcId": 167747,
           "grams": 8,
-          "note": "Lemon juice, raw"
+          "note": "Lemon juice, raw",
+          "component": "mahshi",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "mahshi",
+          "nameAr": "ملفوف محشي",
+          "nameEn": "Stuffed cabbage"
         }
       ]
     },
@@ -7510,24 +7993,35 @@
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
-          "count": 1.5
+          "count": 1.5,
+          "component": "piece"
         },
         {
           "fdcId": 170847,
           "grams": 70,
           "note": "Cheese, mozzarella, part skim milk",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 171413,
           "grams": 6,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 170457,
           "grams": 50,
           "free": true,
           "note": "Tomatoes, red, ripe, raw, year round average"
+        }
+      ],
+      "components": [
+        {
+          "key": "piece",
+          "nameAr": "منقوشة جبنة",
+          "nameEn": "Cheese manaqish"
         }
       ]
     },
@@ -7716,7 +8210,8 @@
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "unit": "heaped-spoon",
           "count": 8,
-          "primary": true
+          "primary": true,
+          "component": "maqluba"
         },
         {
           "fdcId": 171477,
@@ -7727,22 +8222,37 @@
         {
           "fdcId": 169228,
           "grams": 100,
-          "note": "Eggplant, raw"
+          "note": "Eggplant, raw",
+          "component": "maqluba",
+          "primary": true
         },
         {
           "fdcId": 169986,
           "grams": 60,
-          "note": "Cauliflower, raw"
+          "note": "Cauliflower, raw",
+          "component": "maqluba",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 12,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "maqluba",
+          "primary": true
         },
         {
           "fdcId": 170591,
           "grams": 8,
-          "note": "Nuts, pine nuts, dried"
+          "note": "Nuts, pine nuts, dried",
+          "component": "maqluba",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "maqluba",
+          "nameAr": "أرز وخضار المقلوبة",
+          "nameEn": "Maqluba rice and vegetables"
         }
       ]
     },
@@ -7775,27 +8285,43 @@
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
           "unit": "heaped-spoon",
-          "count": 9
+          "count": 9,
+          "component": "maqluba"
         },
         {
           "fdcId": 169228,
           "grams": 140,
-          "note": "Eggplant, raw"
+          "note": "Eggplant, raw",
+          "component": "maqluba",
+          "primary": true
         },
         {
           "fdcId": 169986,
           "grams": 100,
-          "note": "Cauliflower, raw"
+          "note": "Cauliflower, raw",
+          "component": "maqluba",
+          "primary": true
         },
         {
           "fdcId": 171025,
           "grams": 25,
-          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+          "note": "Oil, sunflower, linoleic, (approx. 65%)",
+          "component": "maqluba",
+          "primary": true
         },
         {
           "fdcId": 170591,
           "grams": 10,
-          "note": "Nuts, pine nuts, dried"
+          "note": "Nuts, pine nuts, dried",
+          "component": "maqluba",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "maqluba",
+          "nameAr": "أرز وخضار المقلوبة",
+          "nameEn": "Maqluba rice and vegetables"
         }
       ]
     },
@@ -7828,24 +8354,38 @@
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
           "unit": "heaped-spoon",
-          "count": 9
+          "count": 9,
+          "component": "maqluba"
         },
         {
           "fdcId": 169228,
           "grams": 150,
-          "note": "Eggplant, raw"
+          "note": "Eggplant, raw",
+          "component": "maqluba",
+          "primary": true
         },
         {
           "fdcId": 171025,
           "grams": 25,
-          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+          "note": "Oil, sunflower, linoleic, (approx. 65%)",
+          "component": "maqluba",
+          "primary": true
         },
         {
           "fdcId": 170567,
           "grams": 12,
           "note": "Nuts, almonds",
           "unit": "piece",
-          "count": 10
+          "count": 10,
+          "component": "maqluba",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "maqluba",
+          "nameAr": "أرز وخضار المقلوبة",
+          "nameEn": "Maqluba rice and vegetables"
         }
       ]
     },
@@ -8116,13 +8656,16 @@
         {
           "fdcId": 168419,
           "grams": 150,
-          "note": "Jute, potherb, raw"
+          "note": "Jute, potherb, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171477,
           "grams": 95,
           "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
-          "primary": true
+          "primary": true,
+          "component": "stew"
         },
         {
           "fdcId": 168878,
@@ -8135,12 +8678,23 @@
         {
           "fdcId": 169230,
           "grams": 5,
-          "note": "Garlic, raw"
+          "note": "Garlic, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 10,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "stew",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "stew",
+          "nameAr": "ملوخية بالدجاج",
+          "nameEn": "Molokhia with chicken"
         }
       ]
     },
@@ -8163,7 +8717,8 @@
           "fdcId": 172388,
           "grams": 170,
           "note": "Chicken, broilers or fryers, thigh, meat only, cooked, roasted",
-          "primary": true
+          "primary": true,
+          "component": "stew"
         },
         {
           "fdcId": 168878,
@@ -8176,17 +8731,30 @@
         {
           "fdcId": 168419,
           "grams": 180,
-          "note": "Jute, potherb, raw"
+          "note": "Jute, potherb, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 169230,
           "grams": 12,
-          "note": "Garlic, raw"
+          "note": "Garlic, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171025,
           "grams": 22,
-          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+          "note": "Oil, sunflower, linoleic, (approx. 65%)",
+          "component": "stew",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "stew",
+          "nameAr": "ملوخية بالدجاج",
+          "nameEn": "Molokhia with chicken"
         }
       ]
     },
@@ -8208,13 +8776,16 @@
         {
           "fdcId": 168419,
           "grams": 120,
-          "note": "Jute, potherb, raw"
+          "note": "Jute, potherb, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171792,
           "grams": 65,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "stew"
         },
         {
           "fdcId": 168878,
@@ -8227,12 +8798,23 @@
         {
           "fdcId": 169230,
           "grams": 6,
-          "note": "Garlic, raw"
+          "note": "Garlic, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "stew",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "stew",
+          "nameAr": "ملوخية باللحمة",
+          "nameEn": "Molokhia with meat"
         }
       ]
     },
@@ -8356,7 +8938,8 @@
           "note": "Lentils, mature seeds, cooked, boiled, without salt",
           "primary": true,
           "unit": "cup",
-          "count": 1
+          "count": 1,
+          "component": "mujaddara"
         },
         {
           "fdcId": 170287,
@@ -8364,17 +8947,29 @@
           "note": "Bulgur, cooked",
           "primary": true,
           "unit": "cup",
-          "count": 1.25
+          "count": 1.25,
+          "component": "mujaddara"
         },
         {
           "fdcId": 170000,
           "grams": 60,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "mujaddara",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 12,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "mujaddara",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "mujaddara",
+          "nameAr": "مجدرة برغل",
+          "nameEn": "Bulgur mujaddara"
         }
       ]
     },
@@ -8400,7 +8995,8 @@
           "note": "Lentils, mature seeds, cooked, boiled, without salt",
           "primary": true,
           "unit": "cup",
-          "count": 1
+          "count": 1,
+          "component": "mujaddara"
         },
         {
           "fdcId": 168878,
@@ -8408,17 +9004,22 @@
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "unit": "heaped-spoon",
           "count": 6,
-          "primary": true
+          "primary": true,
+          "component": "mujaddara"
         },
         {
           "fdcId": 170000,
           "grams": 60,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "mujaddara",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 12,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "mujaddara",
+          "primary": true
         },
         {
           "fdcId": 169247,
@@ -8434,6 +9035,13 @@
           "fdcId": 167747,
           "grams": 8,
           "note": "Lemon juice, raw"
+        }
+      ],
+      "components": [
+        {
+          "key": "mujaddara",
+          "nameAr": "مجدرة",
+          "nameEn": "Mujaddara"
         }
       ]
     },
@@ -9046,7 +9654,8 @@
           "fdcId": 172544,
           "grams": 150,
           "note": "Lamb, ground, cooked, broiled",
-          "primary": true
+          "primary": true,
+          "component": "ouzi"
         },
         {
           "fdcId": 168878,
@@ -9054,29 +9663,45 @@
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
           "unit": "heaped-spoon",
-          "count": 9
+          "count": 9,
+          "component": "ouzi"
         },
         {
           "fdcId": 170419,
           "grams": 70,
-          "note": "Peas, green, raw"
+          "note": "Peas, green, raw",
+          "component": "ouzi",
+          "primary": true
         },
         {
           "fdcId": 170393,
           "grams": 60,
-          "note": "Carrots, raw"
+          "note": "Carrots, raw",
+          "component": "ouzi",
+          "primary": true
         },
         {
           "fdcId": 173412,
           "grams": 18,
-          "note": "Butter oil, anhydrous"
+          "note": "Butter oil, anhydrous",
+          "component": "ouzi",
+          "primary": true
         },
         {
           "fdcId": 170567,
           "grams": 12,
           "note": "Nuts, almonds",
           "unit": "piece",
-          "count": 10
+          "count": 10,
+          "component": "ouzi",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "ouzi",
+          "nameAr": "أوزي",
+          "nameEn": "Ouzi"
         }
       ]
     },
@@ -9161,28 +9786,43 @@
           "note": "Pasta, cooked, enriched, without added salt",
           "primary": true,
           "unit": "cup",
-          "count": 2
+          "count": 2,
+          "component": "pasta"
         },
         {
           "fdcId": 171792,
           "grams": 130,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "pasta"
         },
         {
           "fdcId": 170857,
           "grams": 110,
-          "note": "Cream, fluid, light (coffee cream or table cream)"
+          "note": "Cream, fluid, light (coffee cream or table cream)",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 170847,
           "grams": 70,
-          "note": "Cheese, mozzarella, part skim milk"
+          "note": "Cheese, mozzarella, part skim milk",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 173410,
           "grams": 15,
-          "note": "Butter, salted"
+          "note": "Butter, salted",
+          "component": "pasta",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "pasta",
+          "nameAr": "مكرونة بالبشاميل",
+          "nameEn": "Pasta with béchamel"
         }
       ]
     },
@@ -9210,28 +9850,43 @@
           "note": "Pasta, cooked, enriched, without added salt",
           "primary": true,
           "unit": "cup",
-          "count": 1.75
+          "count": 1.75,
+          "component": "pasta"
         },
         {
           "fdcId": 171792,
           "grams": 110,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "pasta"
         },
         {
           "fdcId": 170459,
           "grams": 50,
-          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)"
+          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 170000,
           "grams": 40,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 10,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "pasta",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "pasta",
+          "nameAr": "مكرونة بولونيز",
+          "nameEn": "Pasta bolognese"
         }
       ]
     },
@@ -9259,28 +9914,43 @@
           "note": "Pasta, cooked, enriched, without added salt",
           "primary": true,
           "unit": "cup",
-          "count": 1.5
+          "count": 1.5,
+          "component": "pasta"
         },
         {
           "fdcId": 171477,
           "grams": 75,
           "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
-          "primary": true
+          "primary": true,
+          "component": "pasta"
         },
         {
           "fdcId": 170457,
           "grams": 60,
-          "note": "Tomatoes, red, ripe, raw, year round average"
+          "note": "Tomatoes, red, ripe, raw, year round average",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 170427,
           "grams": 40,
-          "note": "Peppers, sweet, green, raw"
+          "note": "Peppers, sweet, green, raw",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "pasta",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "pasta",
+          "nameAr": "باستا بالدجاج والخضار",
+          "nameEn": "Chicken and vegetable pasta"
         }
       ]
     },
@@ -9309,28 +9979,43 @@
           "note": "Pasta, cooked, enriched, without added salt",
           "primary": true,
           "unit": "cup",
-          "count": 1.5
+          "count": 1.5,
+          "component": "pasta"
         },
         {
           "fdcId": 171477,
           "grams": 120,
           "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
-          "primary": true
+          "primary": true,
+          "component": "pasta"
         },
         {
           "fdcId": 170857,
           "grams": 60,
-          "note": "Cream, fluid, light (coffee cream or table cream)"
+          "note": "Cream, fluid, light (coffee cream or table cream)",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 169251,
           "grams": 60,
-          "note": "Mushrooms, white, raw"
+          "note": "Mushrooms, white, raw",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "pasta",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "pasta",
+          "nameAr": "مكرونة بالكريمة والدجاج",
+          "nameEn": "Creamy chicken pasta"
         }
       ]
     },
@@ -9531,28 +10216,43 @@
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
-          "count": 1.5
+          "count": 1.5,
+          "component": "piece"
         },
         {
           "fdcId": 170847,
           "grams": 70,
           "note": "Cheese, mozzarella, part skim milk",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 170459,
           "grams": 35,
-          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)"
+          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 170427,
           "grams": 25,
-          "note": "Peppers, sweet, green, raw"
+          "note": "Peppers, sweet, green, raw",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "piece",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "piece",
+          "nameAr": "قطعة بيتزا",
+          "nameEn": "Pizza slice"
         }
       ]
     },
@@ -9676,17 +10376,22 @@
           "fdcId": 168448,
           "grams": 250,
           "note": "Pumpkin, raw",
-          "primary": true
+          "primary": true,
+          "component": "soup"
         },
         {
           "fdcId": 170000,
           "grams": 40,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "soup",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "soup",
+          "primary": true
         },
         {
           "fdcId": 171265,
@@ -9694,7 +10399,15 @@
           "note": "Milk, whole, 3.25% milkfat, with added vitamin D",
           "primary": true,
           "unit": "cup",
-          "count": 0.25
+          "count": 0.25,
+          "component": "soup"
+        }
+      ],
+      "components": [
+        {
+          "key": "soup",
+          "nameAr": "شوربة قرع",
+          "nameEn": "Pumpkin soup"
         }
       ]
     },
@@ -9720,7 +10433,8 @@
           "fdcId": 168894,
           "grams": 50,
           "note": "Wheat flour, white, all-purpose, enriched, bleached",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 170187,
@@ -9728,17 +10442,29 @@
           "note": "Nuts, walnuts, english",
           "primary": true,
           "unit": "piece",
-          "count": 6
+          "count": 6,
+          "component": "piece"
         },
         {
           "fdcId": 169655,
           "grams": 20,
-          "note": "Sugars, granulated"
+          "note": "Sugars, granulated",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 173412,
           "grams": 8,
-          "note": "Butter oil, anhydrous"
+          "note": "Butter oil, anhydrous",
+          "component": "piece",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "piece",
+          "nameAr": "قطايف بالجوز",
+          "nameEn": "Walnut qatayef"
         }
       ]
     },
@@ -9763,7 +10489,8 @@
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "unit": "heaped-spoon",
           "count": 8,
-          "primary": true
+          "primary": true,
+          "component": "qidreh"
         },
         {
           "fdcId": 172544,
@@ -9777,17 +10504,29 @@
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
           "unit": "container",
-          "count": 0.25
+          "count": 0.25,
+          "component": "qidreh"
         },
         {
           "fdcId": 169230,
           "grams": 6,
-          "note": "Garlic, raw"
+          "note": "Garlic, raw",
+          "component": "qidreh",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 10,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "qidreh",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "qidreh",
+          "nameAr": "أرز القدرة",
+          "nameEn": "Qidreh rice"
         }
       ]
     },
@@ -9818,24 +10557,38 @@
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
           "unit": "heaped-spoon",
-          "count": 9
+          "count": 9,
+          "component": "qidreh"
         },
         {
           "fdcId": 173757,
           "grams": 82,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt",
           "unit": "cup",
-          "count": 0.5
+          "count": 0.5,
+          "component": "qidreh",
+          "primary": true
         },
         {
           "fdcId": 169230,
           "grams": 12,
-          "note": "Garlic, raw"
+          "note": "Garlic, raw",
+          "component": "qidreh",
+          "primary": true
         },
         {
           "fdcId": 173412,
           "grams": 20,
-          "note": "Butter oil, anhydrous"
+          "note": "Butter oil, anhydrous",
+          "component": "qidreh",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "qidreh",
+          "nameAr": "أرز القدرة",
+          "nameEn": "Qidreh rice"
         }
       ]
     },
@@ -9861,23 +10614,36 @@
           "fdcId": 171477,
           "grams": 90,
           "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
-          "primary": true
+          "primary": true,
+          "component": "soup"
         },
         {
           "fdcId": 168919,
           "grams": 120,
           "note": "Noodles, egg, cooked, enriched, with added salt",
-          "primary": true
+          "primary": true,
+          "component": "soup"
         },
         {
           "fdcId": 170393,
           "grams": 60,
-          "note": "Carrots, raw"
+          "note": "Carrots, raw",
+          "component": "soup",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 10,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "soup",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "soup",
+          "nameAr": "شوربة دجاج بالشعيرية",
+          "nameEn": "Chicken noodle soup"
         }
       ]
     },
@@ -9906,7 +10672,8 @@
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt",
           "primary": true,
           "unit": "cup",
-          "count": 1
+          "count": 1,
+          "component": "fatteh"
         },
         {
           "fdcId": 174915,
@@ -9914,24 +10681,38 @@
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
-          "count": 1
+          "count": 1,
+          "component": "fatteh"
         },
         {
           "fdcId": 171284,
           "grams": 183.8,
           "note": "Yogurt, plain, whole milk",
           "unit": "cup",
-          "count": 0.75
+          "count": 0.75,
+          "component": "fatteh",
+          "primary": true
         },
         {
           "fdcId": 168604,
           "grams": 22,
-          "note": "Seeds, sesame butter, tahini, type of kernels unspecified"
+          "note": "Seeds, sesame butter, tahini, type of kernels unspecified",
+          "component": "fatteh",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 10,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "fatteh",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "fatteh",
+          "nameAr": "فتة باللبن",
+          "nameEn": "Yogurt fatteh"
         }
       ]
     },
@@ -10130,17 +10911,29 @@
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
           "unit": "heaped-spoon",
-          "count": 8
+          "count": 8,
+          "component": "maqluba"
         },
         {
           "fdcId": 169228,
           "grams": 120,
-          "note": "Eggplant, raw"
+          "note": "Eggplant, raw",
+          "component": "maqluba",
+          "primary": true
         },
         {
           "fdcId": 171025,
           "grams": 20,
-          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+          "note": "Oil, sunflower, linoleic, (approx. 65%)",
+          "component": "maqluba",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "maqluba",
+          "nameAr": "أرز وخضار المقلوبة",
+          "nameEn": "Maqluba rice and vegetables"
         }
       ]
     },
@@ -10166,23 +10959,36 @@
           "fdcId": 168894,
           "grams": 50,
           "note": "Wheat flour, white, all-purpose, enriched, bleached",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 171248,
           "grams": 70,
           "note": "Cheese, ricotta, part skim milk",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 169655,
           "grams": 20,
-          "note": "Sugars, granulated"
+          "note": "Sugars, granulated",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 173412,
           "grams": 8,
-          "note": "Butter oil, anhydrous"
+          "note": "Butter oil, anhydrous",
+          "component": "piece",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "piece",
+          "nameAr": "قطايف بالجبنة",
+          "nameEn": "Cheese qatayef"
         }
       ]
     },
@@ -10253,18 +11059,29 @@
           "fdcId": 168894,
           "grams": 55,
           "note": "Wheat flour, white, all-purpose, enriched, bleached",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 170847,
           "grams": 60,
           "note": "Cheese, mozzarella, part skim milk",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 171025,
           "grams": 12,
-          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+          "note": "Oil, sunflower, linoleic, (approx. 65%)",
+          "component": "piece",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "piece",
+          "nameAr": "سمبوسك بالجبنة",
+          "nameEn": "Cheese sambousek"
         }
       ]
     },
@@ -10289,23 +11106,36 @@
           "fdcId": 168894,
           "grams": 55,
           "note": "Wheat flour, white, all-purpose, enriched, bleached",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 171792,
           "grams": 60,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 170000,
           "grams": 30,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 171025,
           "grams": 12,
-          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+          "note": "Oil, sunflower, linoleic, (approx. 65%)",
+          "component": "piece",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "piece",
+          "nameAr": "سمبوسك باللحمة",
+          "nameEn": "Meat sambousek"
         }
       ]
     },
@@ -11035,33 +11865,50 @@
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
-          "count": 1.5
+          "count": 1.5,
+          "component": "piece"
         },
         {
           "fdcId": 171792,
           "grams": 90,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 170000,
           "grams": 50,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 170459,
           "grams": 25,
-          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)"
+          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 12,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 170591,
           "grams": 8,
-          "note": "Nuts, pine nuts, dried"
+          "note": "Nuts, pine nuts, dried",
+          "component": "piece",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "piece",
+          "nameAr": "صفيحة لحم",
+          "nameEn": "Meat sfeeha"
         }
       ]
     },
@@ -11135,28 +11982,43 @@
           "note": "Bread, pita, white, enriched",
           "primary": true,
           "unit": "loaf",
-          "count": 1
+          "count": 1,
+          "component": "piece"
         },
         {
           "fdcId": 171792,
           "grams": 70,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 170000,
           "grams": 30,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 170457,
           "grams": 30,
-          "note": "Tomatoes, red, ripe, raw, year round average"
+          "note": "Tomatoes, red, ripe, raw, year round average",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 5,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "piece",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "piece",
+          "nameAr": "صفيحة باللحمة والبندورة",
+          "nameEn": "Meat and tomato sfeeha"
         }
       ]
     },
@@ -11185,27 +12047,36 @@
           "note": "Egg, whole, raw, fresh",
           "unit": "piece",
           "count": 2,
-          "primary": true
+          "primary": true,
+          "component": "shakshuka"
         },
         {
           "fdcId": 170457,
           "grams": 200,
-          "note": "Tomatoes, red, ripe, raw, year round average"
+          "note": "Tomatoes, red, ripe, raw, year round average",
+          "component": "shakshuka",
+          "primary": true
         },
         {
           "fdcId": 170000,
           "grams": 50,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "shakshuka",
+          "primary": true
         },
         {
           "fdcId": 170427,
           "grams": 50,
-          "note": "Peppers, sweet, green, raw"
+          "note": "Peppers, sweet, green, raw",
+          "component": "shakshuka",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 10,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "shakshuka",
+          "primary": true
         },
         {
           "fdcId": 174915,
@@ -11214,6 +12085,13 @@
           "primary": true,
           "unit": "loaf",
           "count": 0.5
+        }
+      ],
+      "components": [
+        {
+          "key": "shakshuka",
+          "nameAr": "شكشوكة",
+          "nameEn": "Shakshuka"
         }
       ]
     },
@@ -11242,13 +12120,15 @@
           "note": "Egg, whole, raw, fresh",
           "primary": true,
           "unit": "piece",
-          "count": 3
+          "count": 3,
+          "component": "shakshuka"
         },
         {
           "fdcId": 170457,
           "grams": 220,
           "note": "Tomatoes, red, ripe, raw, year round average",
-          "primary": true
+          "primary": true,
+          "component": "shakshuka"
         },
         {
           "fdcId": 174916,
@@ -11260,12 +12140,23 @@
         {
           "fdcId": 170427,
           "grams": 60,
-          "note": "Peppers, sweet, green, raw"
+          "note": "Peppers, sweet, green, raw",
+          "component": "shakshuka",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 14,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "shakshuka",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "shakshuka",
+          "nameAr": "شكشوكة",
+          "nameEn": "Shakshuka"
         }
       ]
     },
@@ -11294,18 +12185,22 @@
           "note": "Egg, whole, raw, fresh",
           "primary": true,
           "unit": "piece",
-          "count": 3
+          "count": 3,
+          "component": "shakshuka"
         },
         {
           "fdcId": 170457,
           "grams": 200,
           "note": "Tomatoes, red, ripe, raw, year round average",
-          "primary": true
+          "primary": true,
+          "component": "shakshuka"
         },
         {
           "fdcId": 173420,
           "grams": 50,
-          "note": "Cheese, feta"
+          "note": "Cheese, feta",
+          "component": "shakshuka",
+          "primary": true
         },
         {
           "fdcId": 174916,
@@ -11317,7 +12212,16 @@
         {
           "fdcId": 171413,
           "grams": 12,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "shakshuka",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "shakshuka",
+          "nameAr": "شكشوكة",
+          "nameEn": "Shakshuka"
         }
       ]
     },
@@ -11884,7 +12788,8 @@
           "fdcId": 169291,
           "grams": 200,
           "note": "Squash, summer, zucchini, includes skin, raw",
-          "primary": true
+          "primary": true,
+          "component": "mahshi"
         },
         {
           "fdcId": 168878,
@@ -11892,23 +12797,36 @@
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
           "unit": "heaped-spoon",
-          "count": 8
+          "count": 8,
+          "component": "mahshi"
         },
         {
           "fdcId": 171792,
           "grams": 110,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "mahshi"
         },
         {
           "fdcId": 170459,
           "grams": 45,
-          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)"
+          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)",
+          "component": "mahshi",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 22,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "mahshi",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "mahshi",
+          "nameAr": "محشي مشكل",
+          "nameEn": "Mixed stuffed vegetables"
         }
       ]
     },
@@ -12300,28 +13218,43 @@
           "note": "Pasta, cooked, enriched, without added salt",
           "primary": true,
           "unit": "cup",
-          "count": 1.5
+          "count": 1.5,
+          "component": "pasta"
         },
         {
           "fdcId": 171986,
           "grams": 110,
           "note": "Fish, tuna, light, canned in water, without salt, drained solids",
-          "primary": true
+          "primary": true,
+          "component": "pasta"
         },
         {
           "fdcId": 169214,
           "grams": 60,
-          "note": "Corn, sweet, yellow, canned, whole kernel, drained solids"
+          "note": "Corn, sweet, yellow, canned, whole kernel, drained solids",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 171009,
           "grams": 20,
-          "note": "Salad dressing, mayonnaise, regular"
+          "note": "Salad dressing, mayonnaise, regular",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "pasta",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "pasta",
+          "nameAr": "مكرونة بالتونة",
+          "nameEn": "Tuna pasta"
         }
       ]
     },
@@ -12349,28 +13282,43 @@
           "note": "Pasta, cooked, enriched, without added salt",
           "primary": true,
           "unit": "cup",
-          "count": 1.25
+          "count": 1.25,
+          "component": "pasta"
         },
         {
           "fdcId": 171986,
           "grams": 90,
           "note": "Fish, tuna, light, canned in water, without salt, drained solids",
-          "primary": true
+          "primary": true,
+          "component": "pasta"
         },
         {
           "fdcId": 170457,
           "grams": 60,
-          "note": "Tomatoes, red, ripe, raw, year round average"
+          "note": "Tomatoes, red, ripe, raw, year round average",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 168409,
           "grams": 40,
-          "note": "Cucumber, with peel, raw"
+          "note": "Cucumber, with peel, raw",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "pasta",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "pasta",
+          "nameAr": "سلطة باستا بالتونة",
+          "nameEn": "Tuna pasta salad"
         }
       ]
     },
@@ -12771,28 +13719,43 @@
           "note": "Pasta, cooked, enriched, without added salt",
           "primary": true,
           "unit": "cup",
-          "count": 1.75
+          "count": 1.75,
+          "component": "pasta"
         },
         {
           "fdcId": 171496,
           "grams": 140,
           "note": "Turkey, whole, breast, meat only, cooked, roasted",
-          "primary": true
+          "primary": true,
+          "component": "pasta"
         },
         {
           "fdcId": 170379,
           "grams": 100,
-          "note": "Broccoli, raw"
+          "note": "Broccoli, raw",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 170857,
           "grams": 60,
-          "note": "Cream, fluid, light (coffee cream or table cream)"
+          "note": "Cream, fluid, light (coffee cream or table cream)",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 10,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "pasta",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "pasta",
+          "nameAr": "مكرونة مع حبش وخضار",
+          "nameEn": "Turkey and vegetable pasta"
         }
       ]
     },
@@ -13053,7 +14016,9 @@
         {
           "fdcId": 169393,
           "grams": 120,
-          "note": "Grape leaves, canned"
+          "note": "Grape leaves, canned",
+          "component": "warak",
+          "primary": true
         },
         {
           "fdcId": 168878,
@@ -13061,23 +14026,36 @@
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "unit": "heaped-spoon",
           "count": 6,
-          "primary": true
+          "primary": true,
+          "component": "warak"
         },
         {
           "fdcId": 171792,
           "grams": 65,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "warak"
         },
         {
           "fdcId": 167747,
           "grams": 10,
-          "note": "Lemon juice, raw"
+          "note": "Lemon juice, raw",
+          "component": "warak",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "warak",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "warak",
+          "nameAr": "ورق عنب",
+          "nameEn": "Stuffed vine leaves"
         }
       ]
     },
@@ -13100,7 +14078,8 @@
           "fdcId": 169393,
           "grams": 150,
           "note": "Grape leaves, canned",
-          "primary": true
+          "primary": true,
+          "component": "warak"
         },
         {
           "fdcId": 168878,
@@ -13108,23 +14087,36 @@
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
           "unit": "heaped-spoon",
-          "count": 9
+          "count": 9,
+          "component": "warak"
         },
         {
           "fdcId": 171792,
           "grams": 130,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "warak"
         },
         {
           "fdcId": 171413,
           "grams": 25,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "warak",
+          "primary": true
         },
         {
           "fdcId": 167747,
           "grams": 15,
-          "note": "Lemon juice, raw"
+          "note": "Lemon juice, raw",
+          "component": "warak",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "warak",
+          "nameAr": "ورق عنب باللحمة",
+          "nameEn": "Stuffed vine leaves with meat"
         }
       ]
     },
@@ -13439,7 +14431,9 @@
         {
           "fdcId": 169291,
           "grams": 220,
-          "note": "Squash, summer, zucchini, includes skin, raw"
+          "note": "Squash, summer, zucchini, includes skin, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171284,
@@ -13447,7 +14441,8 @@
           "note": "Yogurt, plain, whole milk",
           "primary": true,
           "unit": "cup",
-          "count": 0.5
+          "count": 0.5,
+          "component": "stew"
         },
         {
           "fdcId": 168878,
@@ -13460,7 +14455,16 @@
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "stew",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "stew",
+          "nameAr": "كوسا باللبن",
+          "nameEn": "Zucchini in yogurt"
         }
       ]
     }

@@ -54,8 +54,10 @@ type Line = {
   kcal: number;
   portion?: { key: PortionKey; labelAr: string; labelEn: string; grams: number };
   portionQuantity?: number;
-  /** Marks a line that gets a −/+ — `dish_ingredients.is_primary`. */
+  /** Marks a component that gets a −/+ — `dish_ingredients.is_primary`. */
   primary?: boolean;
+  /** Lines sharing one are cooked together and move under a single control. */
+  component?: { key: string; nameAr: string; nameEn: string };
 };
 
 function ingredient(line: Line, index: number): MealIngredientLine {
@@ -64,6 +66,9 @@ function ingredient(line: Line, index: number): MealIngredientLine {
     portion: line.portion ? { id: `${line.id}-portion`, ...line.portion } : null,
     portionQuantity: line.portionQuantity ?? null,
     isPrimary: line.primary ?? false,
+    componentKey: line.component?.key ?? null,
+    componentNameAr: line.component?.nameAr ?? null,
+    componentNameEn: line.component?.nameEn ?? null,
     sortOrder: index,
     side: null,
     food: {
@@ -122,6 +127,66 @@ const MIXED: Line[] = [
   },
 ];
 
+/**
+ * One pot and one plate beside it — the case components exist for.
+ *
+ * The rice carries a cup because that is how the recipe was written, and the
+ * panel must not offer it: مجدرة is served as مجدرة, so the four lines take one
+ * control between them and the egg keeps its own.
+ */
+const MUJADDARA_GROUP = { key: 'mujaddara', nameAr: 'مجدرة', nameEn: 'Mujaddara' } as const;
+
+const GROUPED: Line[] = [
+  {
+    id: 'lentils',
+    nameAr: 'عدس مطبوخ',
+    nameEn: 'Lentils, cooked',
+    grams: 198,
+    kcal: 116,
+    primary: true,
+    component: MUJADDARA_GROUP,
+  },
+  {
+    id: 'rice',
+    nameAr: 'أرز أبيض مطبوخ',
+    nameEn: 'White rice, cooked',
+    grams: 150,
+    kcal: 130,
+    portion: { key: 'heaped-spoon', labelAr: 'ملعقة ممتلئة', labelEn: 'Heaped spoon', grams: 25 },
+    portionQuantity: 6,
+    primary: true,
+    component: MUJADDARA_GROUP,
+  },
+  {
+    id: 'onion',
+    nameAr: 'بصل مقلي',
+    nameEn: 'Fried onion',
+    grams: 50,
+    kcal: 40,
+    primary: true,
+    component: MUJADDARA_GROUP,
+  },
+  {
+    id: 'oil',
+    nameAr: 'زيت زيتون',
+    nameEn: 'Olive oil',
+    grams: 12,
+    kcal: 884,
+    primary: true,
+    component: MUJADDARA_GROUP,
+  },
+  {
+    id: 'egg',
+    nameAr: 'بيض مسلوق',
+    nameEn: 'Egg, boiled',
+    grams: 100,
+    kcal: 155,
+    portion: { key: 'piece', labelAr: 'حبة', labelEn: 'Piece', grams: 50 },
+    portionQuantity: 2,
+    primary: true,
+  },
+];
+
 /** No household measures at all — meat, poultry and fish are grams-only by choice. */
 const GRAMS_ONLY: Line[] = [
   { id: 'chicken', nameAr: 'صدر دجاج', nameEn: 'Chicken breast', grams: 180, kcal: 165, primary: true },
@@ -143,7 +208,24 @@ const LONG: Line[] = [
   { id: 'l9', nameAr: 'صنوبر محمّص', nameEn: 'Toasted pine nuts', grams: 12, kcal: 673 },
 ];
 
-function meal(id: string, label: string, lines: readonly MealIngredientLine[]): BoardMeal {
+/**
+ * @param lines what the meal holds now, hand-set amounts included.
+ * @param recipe what the dish specifies at one serving, which never moves.
+ *
+ * The two are separate on purpose. They were the same array once, and a grouped
+ * component's `−/+` then drifted: its step is a share of the recipe amount, so
+ * feeding it the adjusted amount made every press measure itself against the
+ * previous one and 410 → 450 came back to 405. In the app they cannot be the
+ * same — `dish.ingredients` is loaded from `dish_ingredients` and the meal's own
+ * rows live in another table — so the harness has to hold them apart too or it
+ * stops testing the thing it exists to test.
+ */
+function meal(
+  id: string,
+  label: string,
+  lines: readonly MealIngredientLine[],
+  recipe: readonly MealIngredientLine[] = lines,
+): BoardMeal {
   return {
     id,
     slotKey: 'lunch',
@@ -173,7 +255,7 @@ function meal(id: string, label: string, lines: readonly MealIngredientLine[]): 
       allergenTags: [],
       baseServingLabel: 'حصة',
       isActive: true,
-      ingredients: [...lines],
+      ingredients: [...recipe],
       // Spent the moment a control is touched, and irrelevant before then: the
       // lines above are already the amounts.
       servings: 1,
@@ -182,15 +264,18 @@ function meal(id: string, label: string, lines: readonly MealIngredientLine[]): 
 }
 
 /**
- * The three cases the ingredient controls have to get right: a meal mixing units
+ * The four cases the ingredient controls have to get right: a meal mixing units
  * (a loaf stepping by half, eggs by one), a long list where only two lines are
- * adjustable and twelve are not, and a grams-only meal — meat, poultry and fish
- * carry no household unit by product choice, so their control steps in grams.
+ * adjustable and twelve are not, a grams-only meal — meat, poultry and fish
+ * carry no household unit by product choice, so their control steps in grams —
+ * and a dish cooked as one thing, where four lines share a single control and
+ * the egg beside it keeps its own.
  */
 const FIXTURES = {
   'eggs-toast-tomato': { label: 'فطور', lines: MIXED },
   'bamia-lahm': { label: 'غداء', lines: LONG },
   'maqluba-chicken': { label: 'عشاء', lines: GRAMS_ONLY },
+  'lentil-rice-egg-plate': { label: 'غداء', lines: GROUPED },
 } as const;
 
 type FixtureKey = keyof typeof FIXTURES;
@@ -216,23 +301,32 @@ export function MealsHarness({ locale }: { locale: string }) {
   }
 
   const { label } = FIXTURES[fixture];
-  const current = { ...meal(fixture, label, amounts), hasOwnAmounts: touched };
+  const current = {
+    ...meal(fixture, label, amounts, FIXTURES[fixture].lines.map(ingredient)),
+    hasOwnAmounts: touched,
+  };
 
   // Only the ingredient edits do anything; the rest are inert so a stray click in
   // the harness cannot look like a working edit.
   const actions: EditorActions = {
-    setIngredient: (_mealId, amount) => {
+    setIngredient: (_mealId, amounts) => {
       setTouched(true);
+      // Keyed the way the server keys it: one press can carry several lines,
+      // because a grouped component moves all of them at once.
+      const byFood = new Map(amounts.map((amount) => [amount.foodId, amount]));
+
       setAmounts((previous) =>
-        previous.map((line) =>
-          line.food.id === amount.foodId
+        previous.map((line) => {
+          const moved = byFood.get(line.food.id);
+
+          return moved
             ? {
                 ...line,
-                quantityGrams: amount.quantityGrams,
-                portionQuantity: amount.portionQuantity,
+                quantityGrams: moved.quantityGrams,
+                portionQuantity: moved.portionQuantity,
               }
-            : line,
-        ),
+            : line;
+        }),
       );
     },
     setSides: () => {},

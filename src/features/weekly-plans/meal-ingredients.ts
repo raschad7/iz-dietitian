@@ -36,7 +36,7 @@
  */
 
 import { stepQuantity } from './ingredient-units';
-import { lineStep, portionLine } from './portioning';
+import { clean, isSeasoning, lineStep, portionLine } from './portioning';
 import {
   dishGrams,
   dishTotals,
@@ -127,6 +127,32 @@ export function scaleRecipe(
   const multiplier = usableServings(servings);
 
   return recipe.map((line) => {
+    /*
+      A line inside a component scales by the plain ratio, not by its own grid.
+
+      Snapping each line separately is what a grid is for when the line is the
+      thing being served: bread lands on half loaves, eggs on whole ones. Inside
+      a مجدرة it is the opposite of correct — the rice would round up while the
+      lentils rounded down, and the ratio the recipe was written with would drift
+      a little further on every adjustment. The group is the served thing, so the
+      group is what moves, and the lines follow it exactly.
+
+      Free lines are still free: a plate of salad beside a grouped dish does not
+      grow because the dish did.
+    */
+    if (line.componentKey && multiplier !== 1 && !isSeasoning(line)) {
+      return {
+        ...line,
+        quantityGrams: clean(line.quantityGrams * multiplier),
+        portion: line.portion ?? null,
+        // 6 heaped spoons of rice describes the pot. Once the pot has been
+        // scaled it is no longer a whole number of spoons, and the client is
+        // being served مجدرة rather than rice, so the count goes.
+        portionQuantity: null,
+        side: null,
+      };
+    }
+
     const amount = portionLine(line, multiplier);
 
     return {
@@ -155,6 +181,18 @@ export function sideLines(sides: readonly SideRecipe[]): MealIngredientLine[] {
     scaleRecipe(side.recipe, 1).map((line) => ({
       ...line,
       isPrimary: false,
+      /*
+        A side arrives ungrouped, whatever its own recipe says.
+
+        Nothing here is adjustable — a side is a whole dish at one serving — so
+        its grouping carries no behaviour, and two dishes on one plate are free
+        to have both chosen `main` as a component key. Keeping them would let a
+        salad's lines merge into the main's مجدرة under a shared key, which is a
+        wrong plate rather than a cosmetic slip.
+      */
+      componentKey: null,
+      componentNameAr: null,
+      componentNameEn: null,
       sortOrder: SIDE_SORT_OFFSET * (index + 1) + line.sortOrder,
       side: { id: side.id, nameAr: side.nameAr, nameEn: side.nameEn },
     })),
@@ -213,11 +251,6 @@ export function mealTotals(lines: readonly MealIngredientLine[]): NutrientTotals
 /** The meal's total weight, from the same lines the calories came from. */
 export function mealGrams(lines: readonly MealIngredientLine[]): number {
   return dishGrams(lines, 1);
-}
-
-/** Just the lines a dietitian adjusts, in recipe order. */
-export function primaryLines(lines: readonly MealIngredientLine[]): MealIngredientLine[] {
-  return lines.filter((line) => line.isPrimary);
 }
 
 /**

@@ -403,10 +403,8 @@ export const setServingsSchema = z.object({
  * rather than a clinical limit. The mutation re-checks it: this schema protects
  * the action, and the mutation protects everything that is not this action.
  */
-export const setMealIngredientSchema = z
+const mealIngredientAmountSchema = z
   .object({
-    ...editBase,
-    mealId: mealIdSchema,
     foodId: z.uuid(),
     quantityGrams: z.coerce.number().positive().max(2000),
     portionId: z.uuid().nullish(),
@@ -416,6 +414,39 @@ export const setMealIngredientSchema = z
     (value) => (value.portionId == null) === (value.portionQuantity == null),
     'a portion and its count must be given together',
   );
+
+/**
+ * The most lines one press may move.
+ *
+ * A press moves one component, and a component is at most a whole recipe — a
+ * مقلوبة cooked as one thing is every line it has. Generous enough that no real
+ * dish reaches it, small enough that a forged request cannot ask the server to
+ * resolve a thousand foods.
+ */
+export const MAX_INGREDIENT_AMOUNTS = 24;
+
+export const setMealIngredientSchema = z.object({
+  ...editBase,
+  mealId: mealIdSchema,
+  /*
+    JSON in a form field, because this posts from a `<form>` and a component
+    carries a variable number of lines. Repeated fields would encode the same
+    thing, but they would also let a half-read request look like a complete one:
+    a single field is either parsed whole or rejected whole, which is the
+    property that matters when the four amounts describe one ratio.
+  */
+  amounts: z
+    .string()
+    .transform((raw, ctx) => {
+      try {
+        return JSON.parse(raw) as unknown;
+      } catch {
+        ctx.addIssue({ code: 'custom', message: 'amounts is not valid JSON' });
+        return z.NEVER;
+      }
+    })
+    .pipe(z.array(mealIngredientAmountSchema).min(1).max(MAX_INGREDIENT_AMOUNTS)),
+});
 
 /**
  * How many things may stand beside one main.

@@ -2369,6 +2369,7 @@
     "moreIngredient": "More of this ingredient",
     "lessIngredient": "Less of this ingredient",
     "alsoContains": "Also in this meal",
+    "moreServings": "More servings",
     "backToRecipe": "Reset to the recipe amounts",
     "budgetHint": "This meal's budget is {value} kcal",
     "overBudget": "Over budget",

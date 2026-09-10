@@ -315,15 +315,16 @@ export async function setServingsAction(
 }
 
 /**
- * Moves one ingredient inside one meal — more chicken, one spoon less rice.
+ * Moves one component inside one meal — more chicken, one spoon less rice, a
+ * smaller plate of مجدرة.
  *
- * The door the `−/+` beside a primary ingredient goes through. Everything that
+ * The door the `−/+` beside an adjustable component goes through. Everything that
  * makes it interesting happens in `setMealIngredient`: the first call copies the
  * whole meal down at its current amounts and retires the dish multiplier.
  *
- * `portionId` and `portionQuantity` arrive as empty strings from a form field that
- * was not filled, which is not the same as absent — `null` before parsing keeps
- * the schema's "both or neither" rule reading the truth rather than the encoding.
+ * The amounts arrive as one JSON field rather than repeated form entries, because
+ * a grouped component's lines describe a single ratio and have to be read whole
+ * or not at all.
  */
 export async function setMealIngredientAction(
   _previousState: PlanActionState,
@@ -335,10 +336,7 @@ export async function setMealIngredientAction(
   const parsed = setMealIngredientSchema.safeParse({
     planId: formData.get('planId'),
     mealId: formData.get('mealId'),
-    foodId: formData.get('foodId'),
-    quantityGrams: formData.get('quantityGrams'),
-    portionId: formData.get('portionId') || null,
-    portionQuantity: formData.get('portionQuantity') || null,
+    amounts: formData.get('amounts'),
   });
 
   if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
@@ -348,10 +346,12 @@ export async function setMealIngredientAction(
 
   return runEdit(locale, clientId, () =>
     setMealIngredient(clinicId, parsed.data.planId, parsed.data.mealId, {
-      foodId: parsed.data.foodId,
-      quantityGrams: parsed.data.quantityGrams,
-      portionId: parsed.data.portionId ?? null,
-      portionQuantity: parsed.data.portionQuantity ?? null,
+      amounts: parsed.data.amounts.map((amount) => ({
+        foodId: amount.foodId,
+        quantityGrams: amount.quantityGrams,
+        portionId: amount.portionId ?? null,
+        portionQuantity: amount.portionQuantity ?? null,
+      })),
     }),
   );
 }

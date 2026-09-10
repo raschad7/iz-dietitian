@@ -61,18 +61,24 @@ export type BoardEdit =
   | { kind: 'place'; mealId: string; dish: DishDetail; servings: number }
   | { kind: 'servings'; mealId: string; servings: number }
   /**
-   * One ingredient's amount, set by hand.
+   * One component's amount, set by hand — one line of it, or all of them.
    *
    * Named by food rather than by row index: the board holds the meal's resolved
    * lines and the server holds rows keyed on `catalog_food_id`, so a food id is
    * the one identifier both sides already agree on.
+   *
+   * A list because a مجدرة is one control over four lines. They move in the
+   * same edit so the board never shows a plate holding proportions no recipe
+   * specified — the same reason the server writes them in one transaction.
    */
   | {
       kind: 'ingredient';
       mealId: string;
-      foodId: string;
-      quantityGrams: number;
-      portionQuantity: number | null;
+      amounts: readonly {
+        foodId: string;
+        quantityGrams: number;
+        portionQuantity: number | null;
+      }[];
     }
   /** Puts a meal back on its dish's recipe, discarding hand-set amounts. */
   | { kind: 'resetIngredients'; mealId: string }
@@ -153,20 +159,22 @@ function withDish(meal: BoardMeal, dish: DishDetail | null, servings: number): B
  */
 function withIngredient(
   meal: BoardMeal,
-  foodId: string,
-  quantityGrams: number,
-  portionQuantity: number | null,
+  amounts: readonly { foodId: string; quantityGrams: number; portionQuantity: number | null }[],
 ): BoardMeal {
-  const lines: MealIngredientLine[] = meal.lines.map((line) =>
+  const byFood = new Map(amounts.map((amount) => [amount.foodId, amount]));
+
+  const lines: MealIngredientLine[] = meal.lines.map((line) => {
     // `line.side === null` as well as the food id: a salad standing beside a
     // maqluba can hold the same tomato the maqluba does, and without this the
     // one control would move both. The server never writes a side's amount at
     // all — `setMealIngredient` resolves the main's lines only — so matching it
     // here is what keeps the optimistic board honest about what was changed.
-    line.side === null && line.food.id === foodId
-      ? { ...line, quantityGrams, portionQuantity }
-      : line,
-  );
+    const moved = line.side === null ? byFood.get(line.food.id) : undefined;
+
+    return moved
+      ? { ...line, quantityGrams: moved.quantityGrams, portionQuantity: moved.portionQuantity }
+      : line;
+  });
 
   return {
     ...meal,
@@ -259,7 +267,7 @@ export function applyEdit(board: Board, edit: BoardEdit): Board {
     case 'ingredient':
       return mapMeals(board, (meal) =>
         meal.id === edit.mealId && meal.dish
-          ? withIngredient(meal, edit.foodId, edit.quantityGrams, edit.portionQuantity)
+          ? withIngredient(meal, edit.amounts)
           : meal,
       );
 

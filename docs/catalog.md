@@ -322,6 +322,65 @@ unit: "1 wedge yields 5.9 g" is the juice out of a lemon wedge and is not a
 portion of lemon juice, while "1 can (12 oz) yields 211 g" is the drained weight
 of a tin and is the most useful number a canned food has.
 
+## What a client can portion separately
+
+A dish line is not automatically something a client can take more or less of.
+Chicken and rice arrive on the plate in separate spoonfuls and move
+independently. The rice and lentils in a مجدرة were boiled in the same pot, and
+offering to raise one without the other is an instruction nobody can follow.
+
+So a dish is made of **components** — the things it is actually served as. Most
+lines are their own component and need no declaration. Lines that came out of one
+pot are declared together:
+
+```json
+{
+  "slug": "lentil-rice-egg-plate",
+  "components": [{ "key": "mujaddara", "nameAr": "مجدرة", "nameEn": "Mujaddara" }],
+  "ingredients": [
+    { "fdcId": 172421, "grams": 198, "component": "mujaddara", "primary": true, "note": "…" },
+    { "fdcId": 168878, "grams": 150, "component": "mujaddara", "primary": true, "note": "…" },
+    { "fdcId": 173424, "grams": 100, "primary": true, "note": "Egg, whole, cooked, hard-boiled" }
+  ]
+}
+```
+
+That dish has two controls: **مجدرة**, which moves four lines together, and the
+egg, which moves on its own.
+
+**`primary` describes the component, not the line.** Every line sharing a
+`component` must agree on it, because the control moves all of them at once. The
+seed refuses a group whose lines disagree, one with no name, one naming a
+component the dish never declared, and a declared component nothing is in.
+
+### How a component moves
+
+- **One line** keeps its own unit, step and ceiling — bread by the half loaf,
+  eggs by the piece, chicken by weight.
+- **A group** has no unit of its own, so it moves in **tenths of what the recipe
+  specifies**, rounded to 5 g. Every line inside follows by the same ratio, so
+  the proportions the recipe was written with survive every adjustment. The
+  recipe amount is on the grid, which is what lets a press be undone exactly.
+
+Inside a group a line is shown in **grams**, never as a count. «٦ ملاعق أرز» is a
+true statement about the pot and a false instruction about the plate: the client
+is served مجدرة. The lines stay visible for the dietitian to inspect.
+
+Changing the ratio between lines is a **recipe edit**, not a serving adjustment.
+This control only ever does the second.
+
+### There is no limit on how many controls a dish has
+
+There used to be: three. A dish has as many controls as it has separately served
+parts, which is a fact about the plate rather than a budget — a mixed grill
+honestly has four, and the cap forced an author to lie about one of them. The
+panel shows the first three and folds the rest away.
+
+Not everything cooked together needs grouping. About 70 of the shipped dishes are
+grouped — the stews, the stuffed vegetables, the trays, the pastries and the
+pasta. Assembled plates are left alone, because each line on them really is
+served on its own.
+
 ## Free items
 
 شرائح خضار and صحن سلطة appear in nearly every meal of a real plan **with no

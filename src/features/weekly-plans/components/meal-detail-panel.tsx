@@ -590,6 +590,7 @@ function MealQuantity({
         <MealIngredientEditor
           mealId={meal.id}
           lines={main}
+          recipe={meal.dish?.ingredients ?? []}
           locale={locale}
           hasOwnAmounts={meal.hasOwnAmounts}
         />

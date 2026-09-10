@@ -162,17 +162,54 @@ export const dishIngredients = pgTable(
     portionQuantity: real('portion_quantity'),
 
     /**
-     * Whether a dietitian adjusts this line by hand when planning a meal.
+     * The served thing this line is part of, or null when it is its own.
      *
-     * The chicken and the rice in a maqluba are primary; the eggplant, the oil and
-     * the pine nuts are not. Only primary lines get a `−/+` control on the board —
-     * everything else is listed and left alone, because a control for every
-     * ingredient is a control nobody uses on a line nobody adjusts.
+     * A **component** is what a client can take more or less of without taking
+     * the dish apart. مجدرة is one: its rice, lentils, onion and oil were boiled
+     * together, so they move together and the group carries a single control.
+     * The egg served beside it is another, and keeps its own.
+     *
+     * Null is the ordinary case, and the one every recipe written before this
+     * column is in: an ungrouped line stands alone exactly as it always did.
+     *
+     * Stable within the dish only — two dishes may both use `main`.
+     *
+     * @see src/features/weekly-plans/dish-components.ts
+     */
+    componentKey: text('component_key'),
+
+    /**
+     * What the component is called on the plate — «مجدرة», not «أرز».
+     *
+     * Carried on every line of the group rather than in a table of its own: a
+     * component is read on every surface that renders a meal, and a join for two
+     * strings would cost more than the rule that keeps them equal. That rule is
+     * `componentProblems`, enforced by the seed, the dish editor's schema and
+     * the dataset build — the three places a recipe can be written.
+     *
+     * Null exactly when `component_key` is.
+     */
+    componentNameAr: text('component_name_ar'),
+    componentNameEn: text('component_name_en'),
+
+    /**
+     * Whether a dietitian adjusts this component by hand when planning a meal.
+     *
+     * The chicken and the rice on an assembled plate are primary; the eggplant,
+     * the oil and the pine nuts cooked into a maqluba are not. Only primary
+     * components get a `−/+` control on the board — everything else is listed and
+     * left alone, because a control for every ingredient is a control nobody uses
+     * on a line nobody adjusts.
+     *
+     * **It describes the component, not the line.** Every line sharing a
+     * `component_key` must agree, because the control moves all of them at once;
+     * an adjustable rice line inside a مجدرة whose lentils were fixed would be
+     * offering an instruction nobody can follow.
      *
      * Stored rather than computed. Ranking by energy picks the rice in a maqluba
      * (right) and the olive oil in a salad (wrong), and no rule over the numbers
-     * can tell "carries the meal" from "contributes calories". Two or three lines
-     * per dish, decided by a person, is the only version of this that is correct.
+     * can tell "carries the meal" from "contributes calories". Decided by a
+     * person is the only version of this that is correct.
      *
      * Not an input to any calculation: grams remain the only thing nutrition is
      * built from, and a dish with nothing marked simply falls back to scaling the

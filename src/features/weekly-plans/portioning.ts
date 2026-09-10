@@ -169,7 +169,7 @@ const SEASONING_KCAL = 15;
 const SEASONING_CATEGORIES = new Set(['herbs_spices']);
 
 /** Quarter and half steps are exact in binary, but the arithmetic around them is not. */
-function clean(value: number): number {
+export function clean(value: number): number {
   return Math.round(value * 1000) / 1000;
 }
 

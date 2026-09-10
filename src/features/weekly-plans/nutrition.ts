@@ -263,9 +263,24 @@ export type DishIngredientDetail = {
   portion?: IngredientPortion | null;
   portionQuantity?: number | null;
   /**
-   * Whether a dietitian adjusts this line by hand when planning a meal — the
-   * chicken and the rice in a maqluba, not the pine nuts. See
-   * `dish_ingredients.is_primary`; only these lines get a `−/+` control.
+   * The served thing this line is part of, or null/absent when it is its own.
+   *
+   * The rice and the lentils boiled together into a مجدرة share one key and move
+   * as one; the egg beside it has none and moves alone. See
+   * `dish_ingredients.component_key` and `dish-components.ts`.
+   *
+   * Never an input to any total — grouping decides what is *offered*, not what is
+   * counted.
+   */
+  componentKey?: string | null;
+  /** What the component is called on the plate. Null exactly when the key is. */
+  componentNameAr?: string | null;
+  componentNameEn?: string | null;
+  /**
+   * Whether a dietitian adjusts this line's component by hand when planning a
+   * meal — the chicken and the rice on an assembled plate, not the pine nuts
+   * cooked into a maqluba. See `dish_ingredients.is_primary`; only these get a
+   * `−/+` control, and every line of one component agrees.
    *
    * Never an input to any total. It decides what is offered, not what is counted.
    */

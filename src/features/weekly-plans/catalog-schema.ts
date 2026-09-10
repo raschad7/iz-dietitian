@@ -31,6 +31,16 @@ const uuid = z.string().uuid();
 export const ingredientInputSchema = z
   .object({
     foodId: uuid,
+    /**
+     * The served part this line belongs to — see `dish-components.ts`.
+     *
+     * Round-tripped rather than authored: the editor has no grouping control, so
+     * these arrive from a dish that already had them. Validated all the same,
+     * because a request is a request whoever wrote it.
+     */
+    componentKey: z.string().trim().min(1).max(60).nullish(),
+    componentNameAr: z.string().trim().min(1).max(80).nullish(),
+    componentNameEn: z.string().trim().min(1).max(80).nullish(),
     isPrimary: z.boolean().optional(),
     isFree: z.boolean().optional(),
     // `.finite()` as well as `.positive()`: `Number("Infinity")` coerces happily,
