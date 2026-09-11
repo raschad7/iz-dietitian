@@ -36,6 +36,19 @@ function makeSlug(clinicId: string, nameEn: string): string {
 /** One recipe line after the server has decided what it actually means. */
 type ResolvedIngredient = {
   foodId: string;
+  /**
+   * The served part this line belongs to, carried straight through.
+   *
+   * The editor has no control for grouping yet — the shipped catalog is grouped
+   * in `data/dishes.json` — but a clinic dish cloned from a grouped one arrives
+   * holding these, and an edit that dropped them would quietly take a مجدرة
+   * apart into rice and lentils the client is told to portion separately.
+   */
+  componentKey: string | null;
+  componentNameAr: string | null;
+  componentNameEn: string | null;
+  isPrimary: boolean;
+  isFree: boolean;
   /** Derived here, never taken from the request when a portion was chosen. */
   quantityGrams: number;
   portionId: string | null;
@@ -46,6 +59,11 @@ function ingredientRows(dishId: string, ingredients: readonly ResolvedIngredient
   return ingredients.map((ingredient, index) => ({
     dishId,
     catalogFoodId: ingredient.foodId,
+    componentKey: ingredient.componentKey,
+    componentNameAr: ingredient.componentNameAr,
+    componentNameEn: ingredient.componentNameEn,
+    isPrimary: ingredient.isPrimary,
+    isFree: ingredient.isFree,
     // The authoritative amount, and the only one nutrition reads.
     quantityGrams: ingredient.quantityGrams,
     // How it was typed, preserved exactly as entered.
@@ -142,6 +160,11 @@ async function resolveIngredients(
     if (ingredient.portionId == null || ingredient.portionQuantity == null) {
       resolved.push({
         foodId: ingredient.foodId,
+        componentKey: ingredient.componentKey ?? null,
+        componentNameAr: ingredient.componentNameAr ?? null,
+        componentNameEn: ingredient.componentNameEn ?? null,
+        isPrimary: ingredient.isPrimary ?? false,
+        isFree: ingredient.isFree ?? false,
         quantityGrams: ingredient.quantityGrams,
         portionId: null,
         portionQuantity: null,
@@ -162,6 +185,11 @@ async function resolveIngredients(
 
     resolved.push({
       foodId: ingredient.foodId,
+      componentKey: ingredient.componentKey ?? null,
+      componentNameAr: ingredient.componentNameAr ?? null,
+      componentNameEn: ingredient.componentNameEn ?? null,
+      isPrimary: ingredient.isPrimary ?? false,
+      isFree: ingredient.isFree ?? false,
       quantityGrams: grams,
       portionId: ingredient.portionId,
       portionQuantity: ingredient.portionQuantity,
@@ -444,6 +472,18 @@ export async function createCustomFood(clinicId: string, input: CustomFoodInput)
         // No upstream reference: the weight is the dietitian's own, and claiming a
         // source would be attributing their number to somebody else.
         sourceRef: null,
+        /*
+          Her own measurement of her own food, and therefore already reviewed by
+          the only person whose review this row wants. Leaving it at the column
+          default would file every food she adds herself into a queue asking her
+          to check a number she just typed.
+        */
+        evidenceKind: 'local_measurement',
+        evidenceSource: 'Entered by the clinic',
+        evidenceDate: new Date().toISOString().slice(0, 10),
+        reviewStatus: 'reviewed',
+        reviewedBy: 'clinic',
+        reviewedAt: new Date(),
       });
     }
 

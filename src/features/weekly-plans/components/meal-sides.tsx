@@ -105,7 +105,12 @@ export function MealSides({
     const mealType = mealTypeForSlot(slotKey);
 
     return catalog
-      .filter((dish) => dish.isSide && dish.mealTypes.includes(mealType))
+      .filter(
+        (dish) =>
+          dish.isSide &&
+          dish.mealTypes.includes(mealType) &&
+          (dish.eligibility?.eligible ?? dish.blockedBy.length === 0),
+      )
       .map((dish) => ({
         id: dish.id,
         label: `${localizedName(dish, locale)} · ${Math.round(baseServingKcal(dish.ingredients))} kcal`,

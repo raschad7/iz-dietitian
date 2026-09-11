@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { isAnimalFood, suggestAllergens, suggestVegetarian } from './dish-suggestions';
+import { isAnimalFood, suggestAllergens, suggestVegan, suggestVegetarian } from './dish-suggestions';
 
 /**
  * What the review step is allowed to propose about a recipe.
@@ -29,9 +29,9 @@ const oliveOil = food('زيت زيتون', 'Olive oil', 'fats_oils');
 describe('suggestAllergens', () => {
   test('finds the allergen a food is named after', () => {
     expect(suggestAllergens([bread])).toEqual(['gluten']);
-    expect(suggestAllergens([yogurt])).toEqual(['lactose']);
+    expect(suggestAllergens([yogurt])).toEqual(['lactose', 'milk']);
     expect(suggestAllergens([egg])).toEqual(['egg']);
-    expect(suggestAllergens([almonds])).toEqual(['nuts']);
+    expect(suggestAllergens([almonds])).toEqual(['nuts', 'tree_nuts']);
     expect(suggestAllergens([tahini])).toEqual(['sesame']);
   });
 
@@ -55,7 +55,7 @@ describe('suggestAllergens', () => {
   });
 
   test('returns each allergen once, in ALLERGENS order', () => {
-    expect(suggestAllergens([tahini, bread, yogurt, bread])).toEqual(['lactose', 'gluten', 'sesame']);
+    expect(suggestAllergens([tahini, bread, yogurt, bread])).toEqual(['lactose', 'milk', 'gluten', 'sesame']);
   });
 
   test('normalizes Arabic, so spelling variants still match', () => {
@@ -66,7 +66,15 @@ describe('suggestAllergens', () => {
   /** A clinic food may have only an Arabic name, or only an English one. */
   test('matches on either name alone', () => {
     expect(suggestAllergens([food('', 'Whole wheat pita')])).toEqual(['gluten']);
-    expect(suggestAllergens([food('جبنة بيضاء', '')])).toEqual(['lactose']);
+    expect(suggestAllergens([food('جبنة بيضاء', '')])).toEqual(['lactose', 'milk']);
+  });
+
+  test('distinguishes peanut and tree nuts and does not call peanut butter dairy', () => {
+    expect(suggestAllergens([food('زبدة الفول السوداني', 'Peanut butter', 'nuts_seeds')])).toEqual([
+      'nuts',
+      'peanut',
+    ]);
+    expect(suggestAllergens([almonds])).toEqual(['nuts', 'tree_nuts']);
   });
 });
 
@@ -75,10 +83,16 @@ describe('suggestVegetarian', () => {
     expect(suggestVegetarian([rice, lentils, tomato, oliveOil])).toBe(true);
   });
 
-  test('is false as soon as one food is', () => {
+  test('allows egg and dairy but refuses meat or fish', () => {
     expect(suggestVegetarian([rice, tomato, chicken])).toBe(false);
-    expect(suggestVegetarian([rice, yogurt])).toBe(false);
-    expect(suggestVegetarian([lentils, egg])).toBe(false);
+    expect(suggestVegetarian([rice, yogurt])).toBe(true);
+    expect(suggestVegetarian([lentils, egg])).toBe(true);
+  });
+
+  test('vegan accepts only explicit plant foods', () => {
+    expect(suggestVegan([rice, lentils, tomato, oliveOil])).toBe(true);
+    expect(suggestVegan([rice, yogurt])).toBe(false);
+    expect(suggestVegan([food('خلطة البيت', 'House mix')])).toBe(false);
   });
 
   /** An empty recipe is not a vegetarian dish; it is not a dish yet. */

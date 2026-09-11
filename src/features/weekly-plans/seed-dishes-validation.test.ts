@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
 import {
-  MAX_PRIMARY_INGREDIENTS,
   readDishDataset,
   validateAllergenTags,
   validateCountingUnits,
@@ -57,10 +56,10 @@ describe('validateDishRecords', () => {
 });
 
 /**
- * The rules that keep a `−/+` on the two lines that carry a meal, and off the
- * nine that do not.
+ * The rules that keep a `−/+` on the parts of a meal a client is actually
+ * served separately, and off the ones they are not.
  */
-describe('validateDishRecords primary ingredients', () => {
+describe('validateDishRecords serving controls', () => {
   const withPrimary = (count: number): DishRecord => ({
     ...base,
     ingredients: Array.from({ length: count }, (_, index) => ({
@@ -75,19 +74,68 @@ describe('validateDishRecords primary ingredients', () => {
     expect(validateDishRecords([base])).toEqual([]);
   });
 
-  test(`up to ${MAX_PRIMARY_INGREDIENTS} marked ingredients is fine`, () => {
-    expect(validateDishRecords([withPrimary(MAX_PRIMARY_INGREDIENTS)])).toEqual([]);
+  test('a dish may have as many controls as it has separately served parts', () => {
+    // The old rule capped this at three, which made a display problem into a
+    // claim about food: a mixed grill with four separately served parts had to
+    // pretend one of them was fixed. The panel folds the extras away instead.
+    expect(validateDishRecords([withPrimary(5)])).toEqual([]);
   });
 
-  test('marking every line is refused — that is the problem marking exists to solve', () => {
-    const problems = validateDishRecords([withPrimary(MAX_PRIMARY_INGREDIENTS + 1)]);
+  test('a line in a component nobody declared is refused', () => {
+    const problems = validateDishRecords([
+      {
+        ...base,
+        ingredients: [{ fdcId: 171077, grams: 100, note: 'Chicken', component: 'mujaddara' }],
+      },
+    ]);
 
-    expect(problems.some((problem) => problem.includes('primary ingredients'))).toBe(true);
+    expect(problems.some((problem) => problem.includes('not declared'))).toBe(true);
+  });
+
+  test('a declared component with nothing in it is refused', () => {
+    const problems = validateDishRecords([
+      { ...base, components: [{ key: 'ghost', nameAr: 'شبح', nameEn: 'Ghost' }] },
+    ]);
+
+    expect(problems.some((problem) => problem.includes('has no ingredients'))).toBe(true);
+  });
+
+  test('a component whose lines disagree about being adjustable is refused', () => {
+    // The control moves every line in the group, so there is no coherent meaning
+    // for a مجدرة whose rice is adjustable and whose lentils are not.
+    const problems = validateDishRecords([
+      {
+        ...base,
+        components: [{ key: 'mix', nameAr: 'مجدرة', nameEn: 'Mujaddara' }],
+        ingredients: [
+          { fdcId: 171077, grams: 150, note: 'Rice', component: 'mix', primary: true },
+          { fdcId: 171078, grams: 198, note: 'Lentils', component: 'mix' },
+        ],
+      },
+    ]);
+
+    expect(problems.some((problem) => problem.includes('adjustable'))).toBe(true);
+  });
+
+  test('a sound grouping passes', () => {
+    expect(
+      validateDishRecords([
+        {
+          ...base,
+          components: [{ key: 'mix', nameAr: 'مجدرة', nameEn: 'Mujaddara' }],
+          ingredients: [
+            { fdcId: 171077, grams: 150, note: 'Rice', component: 'mix', primary: true },
+            { fdcId: 171078, grams: 198, note: 'Lentils', component: 'mix', primary: true },
+            { fdcId: 171079, grams: 100, note: 'Egg', primary: true },
+          ],
+        },
+      ]),
+    ).toEqual([]);
   });
 
   test('a unit without a count is refused, and so is the reverse', () => {
     const unitOnly = validateDishRecords([
-      { ...base, ingredients: [{ fdcId: 171077, grams: 60, note: 'Bread', unit: 'Loaf' }] },
+      { ...base, ingredients: [{ fdcId: 171077, grams: 60, note: 'Bread', unit: 'loaf' }] },
     ]);
     const countOnly = validateDishRecords([
       { ...base, ingredients: [{ fdcId: 171077, grams: 60, note: 'Bread', count: 1 }] },
@@ -101,7 +149,7 @@ describe('validateDishRecords primary ingredients', () => {
     const problems = validateDishRecords([
       {
         ...base,
-        ingredients: [{ fdcId: 171077, grams: 60, note: 'Bread', unit: 'Loaf', count: 0 }],
+        ingredients: [{ fdcId: 171077, grams: 60, note: 'Bread', unit: 'loaf', count: 0 }],
       },
     ]);
 
@@ -120,11 +168,10 @@ describe('validateDishRecords primary ingredients', () => {
 describe('the shipped dish catalog', () => {
   const dishes = readDishDataset();
 
-  test('every dish is inside the primary-ingredient limit', () => {
-    for (const dish of dishes) {
-      const primary = dish.ingredients.filter((ingredient) => ingredient.primary).length;
-      expect(primary).toBeLessThanOrEqual(MAX_PRIMARY_INGREDIENTS);
-    }
+  test('every shipped dish declares its components soundly', () => {
+    // The file is the thing a plan is built from, so the rules are checked
+    // against it and not only against fixtures.
+    expect(validateDishRecords(dishes)).toEqual([]);
   });
 
   test('almost every dish has something a dietitian can adjust', () => {

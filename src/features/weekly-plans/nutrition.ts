@@ -19,6 +19,8 @@
  * displayed. Adding one here and to the `foods` table is all it takes to surface
  * it in the meal detail panel.
  */
+import type { PortionKey } from './portion-contract';
+
 export const NUTRIENT_KEYS = [
   'kcal',
   'protein',
@@ -205,10 +207,16 @@ export function roundForDisplay(key: NutrientKey, value: number): number {
 /** The measure an amount was entered in. Display only — see {@link DishIngredientDetail}. */
 export type IngredientPortion = {
   id: string;
+  /** The portion's stable identity — what its step and its ceiling are keyed on. */
+  key: PortionKey;
   labelAr: string;
   labelEn: string;
   /** What one of it weighs. Recorded for display; the grams below are what count. */
   grams: number;
+  /** Overrides the key's default step, where a food needs its own grid. */
+  step?: number | null;
+  /** The most of this food, in this unit, one meal may hold. */
+  maxPerMeal?: number | null;
 };
 
 /** A recipe line, as the queries hand it over. */
@@ -255,9 +263,24 @@ export type DishIngredientDetail = {
   portion?: IngredientPortion | null;
   portionQuantity?: number | null;
   /**
-   * Whether a dietitian adjusts this line by hand when planning a meal — the
-   * chicken and the rice in a maqluba, not the pine nuts. See
-   * `dish_ingredients.is_primary`; only these lines get a `−/+` control.
+   * The served thing this line is part of, or null/absent when it is its own.
+   *
+   * The rice and the lentils boiled together into a مجدرة share one key and move
+   * as one; the egg beside it has none and moves alone. See
+   * `dish_ingredients.component_key` and `dish-components.ts`.
+   *
+   * Never an input to any total — grouping decides what is *offered*, not what is
+   * counted.
+   */
+  componentKey?: string | null;
+  /** What the component is called on the plate. Null exactly when the key is. */
+  componentNameAr?: string | null;
+  componentNameEn?: string | null;
+  /**
+   * Whether a dietitian adjusts this line's component by hand when planning a
+   * meal — the chicken and the rice on an assembled plate, not the pine nuts
+   * cooked into a maqluba. See `dish_ingredients.is_primary`; only these get a
+   * `−/+` control, and every line of one component agrees.
    *
    * Never an input to any total. It decides what is offered, not what is counted.
    */

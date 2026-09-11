@@ -21,9 +21,13 @@ function lineFor(
   ingredient: DishRecord['ingredients'][number],
   food: CuratedFood,
   index: number,
+  components: Map<string, { nameAr: string; nameEn: string }>,
 ): DishIngredientDetail {
+  // The seed refuses a line naming a component the dish never declared, so an
+  // unresolved key here means the dataset was read past its own validator.
+  const component = ingredient.component ? components.get(ingredient.component) : undefined;
   const portion = ingredient.unit
-    ? food.portions.find((one) => one.labelEn === ingredient.unit)
+    ? food.portions.find((one) => one.key === ingredient.unit)
     : undefined;
 
   return {
@@ -38,13 +42,19 @@ function lineFor(
     },
     portion: portion
       ? {
-          id: `${food.slug}:${portion.labelEn}`,
+          id: `${food.slug}:${portion.key}`,
+          key: portion.key,
           labelAr: portion.labelAr,
           labelEn: portion.labelEn,
           grams: portion.grams,
+          step: portion.step ?? null,
+          maxPerMeal: portion.maxPerMeal ?? null,
         }
       : null,
     portionQuantity: ingredient.count ?? null,
+    componentKey: ingredient.component ?? null,
+    componentNameAr: component?.nameAr ?? null,
+    componentNameEn: component?.nameEn ?? null,
     isPrimary: ingredient.primary ?? false,
     isFree: ingredient.free ?? false,
     sortOrder: index,
@@ -62,9 +72,13 @@ export function datasetCatalog(): DishDetail[] {
   const foods = new Map(readCatalogDataset().map((food) => [food.sourceRef, food]));
 
   return readDishDataset().map((dish) => {
+    const components = new Map(
+      (dish.components ?? []).map((one) => [one.key, { nameAr: one.nameAr, nameEn: one.nameEn }]),
+    );
+
     const ingredients = dish.ingredients.flatMap((ingredient, index) => {
       const food = foods.get(String(ingredient.fdcId));
-      return food ? [lineFor(ingredient, food, index)] : [];
+      return food ? [lineFor(ingredient, food, index, components)] : [];
     });
 
     return {

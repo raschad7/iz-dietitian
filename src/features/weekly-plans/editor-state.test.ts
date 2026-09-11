@@ -418,13 +418,36 @@ describe('applyEdit', () => {
       const next = applyEdit(withSalad(), {
         kind: 'ingredient',
         mealId: 'm1',
-        foodId: 'shared-food',
-        quantityGrams: 50,
-        portionQuantity: null,
+        amounts: [{ foodId: 'shared-food', quantityGrams: 50, portionQuantity: null }],
       });
 
       const line = next.days[0]!.meals[0]!.lines.find((one) => one.side !== null);
       expect(line?.quantityGrams).toBe(100);
+    });
+
+    /*
+     * A grouped component is one press over several lines. Applying them one at
+     * a time would leave the board showing a plate whose proportions no recipe
+     * specifies, so the edit carries them together.
+     */
+    test('one press moves every line of a component', () => {
+      const board = withSalad();
+      const mainLines = board.days[0]!.meals[0]!.lines.filter((one) => one.side === null);
+
+      const next = applyEdit(board, {
+        kind: 'ingredient',
+        mealId: 'm1',
+        amounts: mainLines.map((one) => ({
+          foodId: one.food.id,
+          quantityGrams: one.quantityGrams * 2,
+          portionQuantity: null,
+        })),
+      });
+
+      const moved = next.days[0]!.meals[0]!.lines.filter((one) => one.side === null);
+      expect(moved.map((one) => one.quantityGrams)).toEqual(
+        mainLines.map((one) => one.quantityGrams * 2),
+      );
     });
   });
 });

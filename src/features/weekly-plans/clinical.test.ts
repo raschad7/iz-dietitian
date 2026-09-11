@@ -156,16 +156,10 @@ describe('narrowToPattern', () => {
     expect(lunches.every((entry) => entry.nutritionCategory !== 'high_carb')).toBe(true);
   });
 
-  /*
-    A Palestinian breakfast is bread. Filtering it to nothing would raise
-    `EmptySlotCatalogError` and tell the dietitian the catalogue is broken, which
-    is both untrue and unactionable — so a meal type the filter would empty keeps
-    what it has, and the prompt's own words do the work there.
-  */
-  test('a meal type the filter would empty keeps its dishes', () => {
+  test('a meal type the filter would empty stays empty instead of restoring violations', () => {
     const kept = narrowToPattern(CATALOG, 'keto');
 
-    expect(kept.filter((entry) => entry.mealTypes.includes('breakfast'))).toHaveLength(2);
+    expect(kept.filter((entry) => entry.mealTypes.includes('breakfast'))).toHaveLength(0);
   });
 
   /*

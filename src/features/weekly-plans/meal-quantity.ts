@@ -25,12 +25,13 @@
 
 import { isArabicLocale, localizedPortionLabel } from './food-display';
 import { roundGrams } from './nutrition';
+import type { PortionKey } from './portion-contract';
 
 /** The fields a line must carry to be quantified. A subset of `DishIngredientDetail`. */
 export type QuantifiableIngredient = {
   /** The authoritative amount in this meal. */
   quantityGrams: number;
-  portion?: { labelAr: string; labelEn: string; grams: number } | null;
+  portion?: { key: PortionKey; labelAr: string; labelEn: string; grams: number } | null;
   /** How many of that portion this amount is, in this meal. */
   portionQuantity?: number | null;
   /**
@@ -41,7 +42,7 @@ export type QuantifiableIngredient = {
    * missing declaration only means the ten-count ceiling applies, which is the
    * behaviour every line had before the column was consulted.
    */
-  food?: { countedAs?: string | null } | null;
+  food?: { countedAs?: PortionKey | string | null } | null;
 };
 
 /**
@@ -135,11 +136,12 @@ export function pluralizeEnglishUnit(label: string, value: number): string {
  * The catalog derives these from a measured cup or loaf (see
  * `portion-derivation.ts`), and they are perfectly good units to *enter* an amount
  * in. They are a poor unit to state a fractional count in: three quarters of a
- * half cup is arithmetically exact and reads as a riddle. Matched on the English
- * label because that is the derivation's own vocabulary and a closed set of five
- * words; the Arabic label is a translation of it, not a second source.
+ * half cup is arithmetically exact and reads as a riddle.
+ *
+ * Matched on the portion key rather than the English label, so that rewording
+ * `Half cup` cannot silently turn this rule off.
  */
-const FRACTIONAL_LABEL = /^(half|quarter|third) /i;
+const FRACTIONAL_KEYS = new Set<PortionKey>(['half-cup', 'quarter-cup', 'half-loaf']);
 
 /**
  * The point at which counting stops being how anyone states an amount.
@@ -169,7 +171,7 @@ const FRACTIONAL_LABEL = /^(half|quarter|third) /i;
  * to overrule it.
  */
 const MAX_WRITTEN_COUNT = 10;
-const COUNTED_LABELS = new Set(['Piece', 'Slice']);
+const COUNTED_KEYS = new Set<PortionKey>(['piece', 'slice']);
 
 /** `1½ رغيف` / `1½ loaves` — a count and its unit, in the reader's language. */
 export function portionText(
@@ -211,17 +213,25 @@ export function ingredientAmount(
     portionQuantity > 0 &&
     portion.grams > 0
   ) {
-    // The food's own declaration wins over the ceiling — see `MAX_WRITTEN_COUNT`.
-    const alwaysCounted = ingredient.food?.countedAs === portion.labelEn;
+    /*
+      The food's own declaration wins over the ceiling — see `MAX_WRITTEN_COUNT`.
+
+      Compared on the key. It compared `countedAs` against `portion.labelEn` until
+      the portion contract moved `counted_as` onto keys, at which point the two
+      sides stopped ever being equal: both are strings, so nothing failed to
+      compile, and the only symptom would have been almonds quietly reverting from
+      `١٧ حبة لوز` to grams.
+    */
+    const alwaysCounted = ingredient.food?.countedAs === portion.key;
 
     const tooManyToCount =
-      !alwaysCounted && COUNTED_LABELS.has(portion.labelEn) && portionQuantity > MAX_WRITTEN_COUNT;
+      !alwaysCounted && COUNTED_KEYS.has(portion.key) && portionQuantity > MAX_WRITTEN_COUNT;
 
     // "ثلاثة أرباع نصف كوب" is not a quantity anyone acts on. A whole number of
     // half-cups still is, so only the fractional case falls back.
     if (
       !tooManyToCount &&
-      (Number.isInteger(portionQuantity) || !FRACTIONAL_LABEL.test(portion.labelEn))
+      (Number.isInteger(portionQuantity) || !FRACTIONAL_KEYS.has(portion.key))
     ) {
       return { kind: 'portion', text: portionText(portion, portionQuantity, locale) };
     }

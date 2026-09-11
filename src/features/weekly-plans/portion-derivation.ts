@@ -27,8 +27,18 @@
  * and `7 ملاعق أرز`, not `1.2 cups of apple`.
  */
 
+import type { PortionEvidence, PortionKey, ReviewStatus } from './portion-contract';
+
 /** A portion as the dataset stores it, before it becomes a `catalog_food_portions` row. */
 export type PortionSeed = {
+  /**
+   * The portion's stable identity — see `portion-contract.ts`.
+   *
+   * Everything that used to key on `labelEn` keys on this: the step size, the
+   * serving ceiling, the food's counted unit, and the seed's own upsert. A label
+   * is text a human reads, and renaming one is no longer a behaviour change.
+   */
+  key: PortionKey;
   labelAr: string;
   labelEn: string;
   /** What one of this portion weighs. Always > 0. */
@@ -44,17 +54,51 @@ export type PortionSeed = {
    * a row that cannot say where it came from should not be in a prescription.
    */
   sourceRef?: string;
+
+  /* --- the portion contract, all curated and all optional -------------------
+     Merged onto a derived row by key at build time, never derived. See
+     `portion-contract.ts` for what each one means and why it is data. */
+
+  /** Overrides `defaultStepOf(key)` where a food genuinely needs its own grid. */
+  step?: number;
+  /** The most of this food, in this unit, one meal may hold. */
+  maxPerMeal?: number;
+  evidence?: PortionEvidence;
+  reviewStatus?: ReviewStatus;
+  reviewedBy?: string;
+  /** ISO date. */
+  reviewedAt?: string;
 };
 
 /**
- * Categories a dietitian weighs rather than portions.
+ * Categories a dietitian weighs rather than measures by volume.
  *
  * The source data does carry "1 cup, chopped or diced" for cooked chicken, but "a
  * cup of chicken" is not how a plan is written — meat, poultry and fish go by
- * grams. A deliberate product choice, carried over from Phase 1 unchanged, and the
- * reason those foods simply have no portion rows.
+ * grams. A deliberate product choice, carried over from Phase 1.
+ *
+ * It used to mean *no portions at all*, which went further than the reason for
+ * it. A cup of chicken is not a serving; a drumstick is, and so is a slice of
+ * deli turkey — those are countable objects a client is handed, and USDA
+ * measures them. The dietitian asked for chicken by the piece, and the argument
+ * against it was only ever an argument against the volume units.
+ *
+ * So the categories keep their ban on volume and keep whatever countable
+ * portions the source actually measured. A cut with no measured piece — a
+ * boneless breast, a stewing cube — still has none, because its weight is
+ * whatever was put on the scale.
  */
-export const GRAMS_ONLY_CATEGORIES = new Set(['meat', 'poultry', 'fish']);
+export const WEIGHED_CATEGORIES = new Set(['meat', 'poultry', 'fish']);
+
+/**
+ * The families a weighed category may still carry: things you can count.
+ *
+ * A cup, a spoon and a loaf describe a volume or a shape that meat does not come
+ * in. A piece, a slice and a **tin** are objects a client is handed — علبة تونا
+ * is written in every one of the clinic's weekly plans, and it is no more a
+ * volume than a drumstick is.
+ */
+const COUNTABLE_FAMILIES = new Set<Family>(['piece', 'slice', 'container']);
 
 /** The household families a measured portion can resolve to. */
 type Family = 'cup' | 'tbsp' | 'tsp' | 'slice' | 'piece' | 'loaf' | 'leaf' | 'container' | 'none';
@@ -68,6 +112,9 @@ export const PIECE_WORDS = new Set([
   'large', 'medium', 'small', 'extra', 'unit', 'piece', 'each', 'whole', 'fillet',
   'link', 'patty', 'stick', 'clove', 'ear', 'fruit', 'pod', 'strip',
   'ball', 'bar', 'cookie', 'cracker', 'chip', 'date',
+  // Cuts a client is handed whole: دبوس، ورك، جناح. USDA measures each of them,
+  // and `MAX_PIECE_GRAMS` is what stops "1 leg of lamb" joining them.
+  'drumstick', 'thigh', 'wing', 'leg', 'breast', 'chop',
 ]);
 
 /**
@@ -94,6 +141,20 @@ const LOAF_WORDS = new Set(['pita', 'loaf', 'tortilla', 'flatbread', 'naan', 'bu
  * "one piece of chickpeas" is not a quantity anybody acts on.
  */
 const CONTAINER_WORDS = new Set(['can', 'container', 'jar', 'package', 'packet', 'tin', 'bottle']);
+
+/**
+ * The lightest thing a علبة may be.
+ *
+ * USDA measures single-serve sachets with the same words as real packaging:
+ * `1 container, individual` is an 11 g coffee creamer pod, `1 packet` is a 10 g
+ * mayonnaise sachet and a 9 g ketchup one. Read as a علبة they told a dietitian
+ * that a tub of cooking cream weighs 11 grams.
+ *
+ * The word cannot separate them — a 85 g `1 package, small (3 oz)` of cream
+ * cheese is a real علبة and uses the same noun. The weight can: every genuine
+ * one in the catalog is 85 g or more, and every sachet is under 12.
+ */
+const MIN_CONTAINER_GRAMS = 50;
 
 /** Singular only: "2 leaves" of mint is 0.15 g a leaf, which is not a portion anyone uses. */
 const LEAF_WORDS = new Set(['leaf']);
@@ -178,13 +239,13 @@ export function classifyUnit(unit: string): Family {
  * one added after are indistinguishable afterwards.
  */
 export const CUSTOM_UNIT_LABELS = {
-  loaf: { labelAr: 'رغيف', labelEn: 'Loaf' },
-  piece: { labelAr: 'حبة', labelEn: 'Piece' },
-  slice: { labelAr: 'شريحة', labelEn: 'Slice' },
-  cup: { labelAr: 'كوب', labelEn: 'Cup' },
-  tbsp: { labelAr: 'ملعقة كبيرة', labelEn: 'Tablespoon' },
-  tsp: { labelAr: 'ملعقة صغيرة', labelEn: 'Teaspoon' },
-} as const satisfies Record<string, { labelAr: string; labelEn: string }>;
+  loaf: { key: 'loaf', labelAr: 'رغيف', labelEn: 'Loaf' },
+  piece: { key: 'piece', labelAr: 'حبة', labelEn: 'Piece' },
+  slice: { key: 'slice', labelAr: 'شريحة', labelEn: 'Slice' },
+  cup: { key: 'cup', labelAr: 'كوب', labelEn: 'Cup' },
+  tbsp: { key: 'level-tablespoon', labelAr: 'ملعقة كبيرة', labelEn: 'Tablespoon' },
+  tsp: { key: 'teaspoon', labelAr: 'ملعقة صغيرة', labelEn: 'Teaspoon' },
+} as const satisfies Record<string, { key: PortionKey; labelAr: string; labelEn: string }>;
 
 export type CustomUnitKey = keyof typeof CUSTOM_UNIT_LABELS;
 
@@ -214,27 +275,38 @@ function g(value: number): number {
   return Math.round(value * 10) / 10;
 }
 
-/** Every family's rows, as multiples of the measured base. `[labelAr, labelEn, factor]`. */
-const FAMILY_ROWS: Record<Exclude<Family, 'none'>, readonly (readonly [string, string, number])[]> = {
+/**
+ * Every family's rows, as multiples of the measured base.
+ * `[key, labelAr, labelEn, factor]`.
+ *
+ * The key leads because it is the identity; the two labels are how it is read in
+ * each language. Note that the tablespoon derives as `level-tablespoon`: what USDA
+ * measured is a levelled 15 ml spoon, and saying so is what leaves room for the
+ * dietitian's heaped `ملعقة` to exist on the same food as its own row.
+ */
+const FAMILY_ROWS: Record<
+  Exclude<Family, 'none'>,
+  readonly (readonly [PortionKey, string, string, number])[]
+> = {
   cup: [
-    ['كوب', 'Cup', 1],
-    ['نصف كوب', 'Half cup', 1 / 2],
-    ['ربع كوب', 'Quarter cup', 1 / 4],
+    ['cup', 'كوب', 'Cup', 1],
+    ['half-cup', 'نصف كوب', 'Half cup', 1 / 2],
+    ['quarter-cup', 'ربع كوب', 'Quarter cup', 1 / 4],
   ],
   tbsp: [
-    ['ملعقة كبيرة', 'Tablespoon', 1],
+    ['level-tablespoon', 'ملعقة كبيرة', 'Tablespoon', 1],
     // A teaspoon is a third of a tablespoon by definition, not by estimate.
-    ['ملعقة صغيرة', 'Teaspoon', 1 / 3],
+    ['teaspoon', 'ملعقة صغيرة', 'Teaspoon', 1 / 3],
   ],
-  tsp: [['ملعقة صغيرة', 'Teaspoon', 1]],
-  slice: [['شريحة', 'Slice', 1]],
-  piece: [['حبة', 'Piece', 1]],
+  tsp: [['teaspoon', 'ملعقة صغيرة', 'Teaspoon', 1]],
+  slice: [['slice', 'شريحة', 'Slice', 1]],
+  piece: [['piece', 'حبة', 'Piece', 1]],
   loaf: [
-    ['رغيف', 'Loaf', 1],
-    ['نصف رغيف', 'Half loaf', 1 / 2],
+    ['loaf', 'رغيف', 'Loaf', 1],
+    ['half-loaf', 'نصف رغيف', 'Half loaf', 1 / 2],
   ],
-  leaf: [['ورقة', 'Leaf', 1]],
-  container: [['علبة', 'Container', 1]],
+  leaf: [['leaf', 'ورقة', 'Leaf', 1]],
+  container: [['container', 'علبة', 'Container', 1]],
 };
 
 /**
@@ -267,6 +339,22 @@ const FAMILY_PRIORITY: readonly Exclude<Family, 'none'>[] = [
 ];
 
 /**
+ * Categories whose **small** spoon leads.
+ *
+ * A dietitian prescribes oil by the teaspoon. One is about 45 kcal, which is a
+ * number she can put against a target; a tablespoon of olive oil is 120 and lands
+ * on the plate as "نصف ملعقة كبيرة" — a fraction nobody measures and nobody
+ * serves. The clinic said so directly about زيت زيتون، سمنة and زبدة.
+ *
+ * Only the fats. طحينة and زبدة الفول السوداني are spread by the tablespoon and
+ * written that way, and they are `nuts_seeds`.
+ *
+ * Both spoons still exist on the food either way; this decides which one a fresh
+ * line opens in and which one the settings guide prints.
+ */
+const TEASPOON_FIRST_CATEGORIES = new Set(['fats_oils']);
+
+/**
  * How many unit families one food offers.
  *
  * Two. The one it is served in and one to fall back on - an apple in حبة and in
@@ -286,8 +374,13 @@ const SIZE_WORDS = ['medium', 'large', 'small'];
  * lists honey by the 14 g packet, which is a sachet rather than an amount anyone
  * prescribes. Both are written in spoons and always were - this keeps them there
  * now that a food can offer more than one family.
+ *
+ * `sauces_condiments` joined them when the 10 g "1 packet" of mayonnaise was
+ * refused as a علبة and a 220 g **cup** of it inherited the default. That is the
+ * category whose own definition is "small amounts that season a dish rather than
+ * compose it", so the spoon was always the only unit it should have offered.
  */
-const SPOON_ONLY_CATEGORIES = new Set(['fats_oils', 'sweets']);
+const SPOON_ONLY_CATEGORIES = new Set(['fats_oils', 'sweets', 'sauces_condiments']);
 
 /** The only families those categories may offer. */
 const SPOON_FAMILIES = new Set<Family>(['tbsp', 'tsp']);
@@ -377,6 +470,22 @@ function isServable(label: string, unit: string, family: Family, grams: number):
   if (lower.includes('as purchased')) return false;
   if (WHOLE_PLANT_WORDS.has(unit)) return false;
   if (lower.includes('yields') && (family === 'piece' || family === 'slice')) return false;
+
+  /*
+    "yield from" is a cooking loss, never a serving — and it is refused for every
+    family, unlike the `yields` rule above.
+
+    USDA publishes meat as `1 unit, cooked (yield from 1 lb raw meat) = 272 g`:
+    what a pound of raw lamb cooks down to. Read as a countable unit it becomes
+    **one حبة لحم غنم of 272 g**, and 313 g of ground lamb as a single piece. It
+    is the watermelon-wedge error in its most expensive form, and it appeared the
+    moment meat was allowed to carry countable portions at all.
+
+    The right number is always on the next line: `1 thigh without skin`,
+    `1 wing, bone and skin removed`, `0.5 breast, bone and skin removed`. Refusing
+    the yield is what lets the derivation find it.
+  */
+  if (lower.includes('yield from')) return false;
 
   return grams <= MAX_SERVABLE_GRAMS;
 }
@@ -482,7 +591,6 @@ export function derivePortions(source: {
   nameEn?: string;
   portions: readonly MeasuredPortion[] | null | undefined;
 }): PortionSeed[] {
-  if (GRAMS_ONLY_CATEGORIES.has(source.category)) return [];
   if (!source.portions?.length) return [];
 
   /** The best measured base for one of each family. */
@@ -506,7 +614,11 @@ export function derivePortions(source: {
       const one = portion.grams / parsed.amount;
       if (one > MAX_PIECE_GRAMS || one < MIN_PIECE_GRAMS) continue;
     }
+    // A sachet is not a علبة — see `MIN_CONTAINER_GRAMS`.
+    if (family === 'container' && portion.grams / parsed.amount < MIN_CONTAINER_GRAMS) continue;
     if (SPOON_ONLY_CATEGORIES.has(source.category) && !SPOON_FAMILIES.has(family)) continue;
+    // Meat by the piece, never by the cup — see `WEIGHED_CATEGORIES`.
+    if (WEIGHED_CATEGORIES.has(source.category) && !COUNTABLE_FAMILIES.has(family)) continue;
 
     // "0.5 cup, diced = 75 g" means a whole cup is 150 g. The label's own count is
     // what makes the base recoverable.
@@ -524,18 +636,28 @@ export function derivePortions(source: {
   const rows: PortionSeed[] = [];
   /*
    * Two families can name the same unit: a tablespoon family derives its own
-   * teaspoon, and a food that measured both would emit "Teaspoon" twice. The seed
-   * upserts portions on `(food_id, label_en)`, so a duplicate is not an error - it
-   * is one row silently taking whichever weight was written last. The first
-   * family wins, because families are walked in priority order.
+   * teaspoon, and a food that measured both would emit `teaspoon` twice. The seed
+   * upserts portions on `(food_id, key)`, so a duplicate is not an error - it is
+   * one row silently taking whichever weight was written last. The first family
+   * wins, because families are walked in priority order.
    */
-  const taken = new Set<string>();
+  const taken = new Set<PortionKey>();
 
   for (const family of families) {
     const { base } = best.get(family)!;
 
-    for (const [labelAr, labelEn, factor] of FAMILY_ROWS[family]) {
-      if (taken.has(labelEn)) continue;
+    /*
+      Smallest first for the fats, so the teaspoon is the row that leads and
+      `isDefault` lands on it. Sorting by the factor rather than naming the key
+      says the intent once and needs no second list to keep in step.
+    */
+    const definition =
+      family === 'tbsp' && TEASPOON_FIRST_CATEGORIES.has(source.category)
+        ? [...FAMILY_ROWS[family]].sort((a, b) => a[3] - b[3])
+        : FAMILY_ROWS[family];
+
+    for (const [key, labelAr, labelEn, factor] of definition) {
+      if (taken.has(key)) continue;
 
       const grams = g(base * factor);
       // A fraction that rounds away to nothing is not a portion. Only reachable
@@ -543,9 +665,10 @@ export function derivePortions(source: {
       // offering "quarter cup = 0 g".
       if (grams <= 0) continue;
 
-      taken.add(labelEn);
+      taken.add(key);
 
       rows.push({
+        key,
         labelAr,
         labelEn,
         grams,

@@ -23,6 +23,7 @@ import { suggestAllergens, suggestVegetarian } from '../dish-suggestions';
 import { localizedName } from '../food-display';
 import {
   defaultUnitValue,
+  convertUnitQuantity,
   findUnitOption,
   GRAMS_OPTION,
   GRAMS_UNIT,
@@ -153,12 +154,25 @@ type IngredientRowState = {
   quantity: string;
   /** `'g'`, or the id of one of this food's own portions. Never another food's. */
   unitValue: string;
+  /**
+   * The served part this line belongs to — see `dish-components.ts`.
+   *
+   * Carried, not edited. There is no grouping control in this editor yet; the
+   * shipped catalog is grouped in `data/dishes.json`. What matters here is that
+   * a dish which arrives grouped leaves grouped, because an edit that silently
+   * ungrouped a مجدرة would start telling the client to portion its rice and its
+   * lentils separately.
+   */
+  componentKey: string | null;
+  componentNameAr: string | null;
+  componentNameEn: string | null;
+  isPrimary: boolean;
+  isFree: boolean;
 };
 
-/** Formats a reloaded quantity for the input: whole numbers plain, else trimmed to 3 dp. */
+/** Keep the stored amount exact when a portion needs a fractional count. */
 function formatQuantity(value: number): string {
-  const rounded = Math.round(value * 1000) / 1000;
-  return String(rounded);
+  return String(value);
 }
 
 /**
@@ -174,7 +188,13 @@ function rowFromIngredient(ingredient: DishEditData['ingredients'][number]): Ing
     quantityGrams: ingredient.quantityGrams,
     portionId: ingredient.portionId,
   });
-  return { key: `row-${rowSeq}`, food: ingredient.food, quantity: formatQuantity(quantity), unitValue };
+  return {
+    key: `row-${rowSeq}`, food: ingredient.food, quantity: formatQuantity(quantity), unitValue,
+    componentKey: ingredient.componentKey,
+    componentNameAr: ingredient.componentNameAr,
+    componentNameEn: ingredient.componentNameEn,
+    isPrimary: ingredient.isPrimary, isFree: ingredient.isFree,
+  };
 }
 
 export function DishEditor({
@@ -315,6 +335,9 @@ export function DishEditor({
       f: row.food.id,
       q: row.quantity,
       u: row.unitValue,
+      c: row.componentKey,
+      p: row.isPrimary,
+      free: row.isFree,
     })),
   });
   // Captured once at mount via a lazy initial state (not a ref — reading a ref
@@ -348,7 +371,13 @@ export function DishEditor({
     const key = `row-${rowSeq}`;
     const unitValue = defaultUnitValue(food);
     const grams = unitValue === GRAMS_UNIT;
-    setRows((prev) => [...prev, { key, food, unitValue, quantity: grams ? '' : '1' }]);
+    setRows((prev) => [...prev, {
+      key, food, unitValue, quantity: grams ? '' : '1',
+      // A new line is its own component until somebody says otherwise, which is
+      // what every ungrouped recipe already is.
+      componentKey: null, componentNameAr: null, componentNameEn: null,
+      isPrimary: false, isFree: false,
+    }]);
     setFocusRowKey(grams ? key : null);
     if (!grams) searchRef.current?.focus();
   }
@@ -408,6 +437,11 @@ export function DishEditor({
       JSON.stringify(
         completeRows.map((prepared) => ({
           foodId: prepared.row.food.id,
+          componentKey: prepared.row.componentKey,
+          componentNameAr: prepared.row.componentNameAr,
+          componentNameEn: prepared.row.componentNameEn,
+          isPrimary: prepared.row.isPrimary,
+          isFree: prepared.row.isFree,
           /*
             What the row weighs, full stop. `dish_ingredients` stores grams for
             ONE serving and every reader in the app depends on that — and one
@@ -436,9 +470,9 @@ export function DishEditor({
     if (!nameAr.trim()) return 'name';
     if (!nameEn.trim()) return 'nameEn';
     if (mealTypes.length === 0) return 'mealTypes';
-    if (completeRows.length === 0) return 'ingredients';
+    if (completeRows.length === 0 || completeRows.length !== rows.length) return 'ingredients';
     return null;
-  }, [nameAr, nameEn, mealTypes, completeRows]);
+  }, [nameAr, nameEn, mealTypes, completeRows, rows.length]);
 
   /** The blocker this step is responsible for, if it is the one still unanswered. */
   const stepBlocker: Blocker | null = useMemo(() => {
@@ -716,7 +750,7 @@ export function DishEditor({
                 inputRef={searchRef}
               />
 
-              {attempted && completeRows.length === 0 && (
+              {attempted && blocker === 'ingredients' && (
                 <FieldError>{t('editor.errors.ingredientRequired')}</FieldError>
               )}
 
@@ -1545,7 +1579,13 @@ function IngredientRow({
         size="sm"
         aria-label={t('editor.unitAria')}
         value={unit.value}
-        onValueChange={(next) => onChange({ unitValue: next })}
+        onValueChange={(next) => {
+          const quantity = convertUnitQuantity(options, Number(row.quantity), unit.value, next);
+          onChange({
+            unitValue: next,
+            quantity: quantity === null ? row.quantity : formatQuantity(quantity),
+          });
+        }}
         options={options.map((option) => ({
           value: option.value,
           label: unitLabel(option, locale, gramsLabel),
@@ -1595,6 +1635,18 @@ function IngredientRow({
       >
         <Icon name="close" />
       </Button>
+      <SelectField
+        size="sm"
+        aria-label={t('editor.ingredientRole', { name: localizedName(row.food, locale) })}
+        value={row.isPrimary ? 'primary' : row.isFree ? 'free' : 'scaled'}
+        onValueChange={(role) => onChange({ isPrimary: role === 'primary', isFree: role === 'free' })}
+        options={[
+          { value: 'primary', label: t('editor.rolePrimary') },
+          { value: 'scaled', label: t('editor.roleScaled') },
+          { value: 'free', label: t('editor.roleFree') },
+        ]}
+        className="order-6 col-span-full w-full sm:mt-2 sm:w-64"
+      />
     </li>
   );
 }

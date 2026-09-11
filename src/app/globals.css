@@ -86,7 +86,8 @@
   --green-200: #C2EDA9;
   --green-300: #9BE076;
   --green-400: #75CF48;
-  --green-500: #58B52D;
+  /* Carries the unified semantic tone at H138 — see the note at `--red`. */
+  --green-500: oklch(0.620 0.145 137.9); /* #579A3C — 3.45:1 on white */
   --green-600: #419020;
   --green-700: #346E1D;
   --green-800: #2C581C;
@@ -108,7 +109,15 @@
    * still a *fill*, never ink, and text on it is still `--on-accent`.
    */
 
-  /* ── Warm neutrals (never pure gray) ── */
+  /*
+   * ── Warm neutrals (never pure gray) ──
+   *
+   * A complete ramp. `--n-50`, `--n-800` and `--flame-100` in the family below
+   * currently have no consumer — the cool neutrals took most of the surface
+   * work and two chart steps were retired — but interior stops stay declared:
+   * a ramp with holes in it stops being a ramp, and the next stop someone
+   * reaches for should already be here at the right value.
+   */
   --n-0: #FFFFFF;
   --n-25: #FCFBF7;
   --n-50: #F7F5EF;
@@ -175,7 +184,8 @@
    * Now the fill carries C=0.055 and the ink C=0.120 at the same hue, so the
    * chip reads as one warm material rather than two. amber-700 on amber-100 is
    * 5.89:1, and 6.89:1 on white; amber-600, which draws chart series 3, the
-   * poultry protein mark and two intake glyphs, is 4.71:1 on white.
+   * poultry protein mark and two intake glyphs, is 3.70:1 on white — a mark,
+   * not ink, since it joined the unified semantic tone.
    *
    * ⚠ Hue is the family's identity here, not lightness — see `--flame-*`, which
    * sits 20-25° further round at H52 and means something else entirely. Add a
@@ -183,7 +193,8 @@
    */
   --amber-100: #FFEBC6;
   --amber-300: #F7BD5E;
-  --amber-600: #9B6A00;
+  /* Carries the unified semantic tone at H77 — see the note at `--red`. */
+  --amber-600: oklch(0.620 0.145 76.9); /* #B67800 — 3.70:1 on white */
   --amber-700: #7F5000;
 
   /*
@@ -195,30 +206,50 @@
    * replaces the four-stop clay ramp, whose 600 and 700 steps were a muted
    * terracotta.
    *
-   * 6.24:1 on white, so it can be ink as well as fill. The clay-600 it
-   * replaces was 6.84:1, so this gives up a little headroom and still clears
-   * AA comfortably.
+   * ⚠ **3.90:1 on white — a mark, not ink.** It was a brick `#AA3D36` at 6.24:1
+   * and could be either. It is lighter now because it is one of five colours
+   * holding a single shared tone (see the note below), and lightness is what
+   * that costs. Everywhere it still carries *text* it is below the 4.5:1 AA
+   * asks: the destructive button's white label, the medical chip, destructive
+   * body copy. That is a known trade recorded here, not an oversight — the
+   * whole set moves to L .554 together if it is revisited.
    *
-   * ⚠ **It is quieter than it was, on purpose.** This was
-   * `oklch(0.5148 0.1993 29.64)` — `#BF180D`, a fire-engine red carrying more
-   * chroma than anything else in the palette by a distance. In a clinic
-   * application red is not excitement, it is an allergy, a contraindication and
-   * a deletion, and a colour that loud makes an ordinary confirmation feel like
-   * an incident. Dropping C from 0.199 to 0.145 at the same lightness leaves a
-   * brick red that is unmistakably still red and stops shouting; every ratio it
-   * carries is within 0.15 of what it was, and the solid `destructive` button
-   * is the case that mattered most (white on it, 6.12:1).
+   * Before the brick it was `oklch(0.5148 0.1993 29.64)` — `#BF180D`, a
+   * fire-engine red carrying more chroma than anything else in the palette. In
+   * a clinic application red is not excitement, it is an allergy, a
+   * contraindication and a deletion, and a colour that loud makes an ordinary
+   * confirmation feel like an incident. The chroma stayed at .145 through both
+   * moves since.
    *
    * The three places a red cannot be *this* red are derived from it rather than
    * chosen beside it, so that all three follow it if it ever moves:
    *
    * - --red-tint is the fill that red ink sits on: destructive-subtle, and
-   *   the medical status chip. --red on it is 5.38:1.
-   * - --red-light is what the dark theme draws destructive in. This stop is
-   *   2.50:1 on the dark card and would be unreadable there; lightened it is
-   *   7.58:1, a shade better than the clay-300 it replaces.
+   *   the medical status chip. --red on it is 3.48:1.
+   * - --red-light is what the dark theme draws destructive in. Lightened, it
+   *   is 8.97:1 on the dark card.
    */
-  --red: oklch(0.512 0.145 27); /* #AA3D36 */
+  /*
+   * ── One tone for every meaning ──
+   *
+   * `--red`, `--green-500`, `--amber-600`, `--flame-500` and `--blue` are the
+   * five colours in this system that *mean* something — destructive, on track,
+   * needs follow-up, done, bought. They now share one lightness and one chroma
+   * — L .620, C .145 — and differ only in hue, so no status outranks another
+   * by weight. Change the tone and change all five, or the set stops being a
+   * set. Each carries its hue in its own declaration; nothing else in the file
+   * is pinned to this pair.
+   *
+   * ⚠ **At this lightness they are marks, not ink.** All five land between
+   * 3.45:1 and 3.90:1 on white — over the 3:1 a dot, bar, icon or border owes
+   * a reader, under the 4.5:1 that text owes one. Red is the one that carries
+   * text today (the destructive button's label, the medical chip, destructive
+   * body copy), and those three pairings sit below AA as a result. Dropping L
+   * to .554 at the same chroma and hues clears 4.5:1 for all five, and is the
+   * one-line change if the trade is revisited. `design-prototypes/palette-lab.html`
+   * renders every pairing and re-measures it live.
+   */
+  --red: oklch(0.620 0.145 27.2); /* #CF5E54 — 3.90:1 on white */
   --red-tint: color-mix(in oklab, var(--red) 10%, var(--n-0));
   --red-light: color-mix(in oklab, var(--red) 45%, var(--n-0));
   /*
@@ -227,9 +258,10 @@
    *   fill has nowhere to go on hover unless there is a second stop to go to.
    *   Darker rather than lighter: the fill is already mid-ramp, so lightening
    *   it would read as the control fading out, and it takes white *up* to
-   *   7.68:1 from --red's 6.27:1 — the hover state is the more legible of the
+   *   5.18:1 from --red's 3.90:1 — the hover state is the more legible of the
    *   two, which is the right way round for the one action in this system that
-   *   cannot be undone. Resolves to #A02215.
+   *   cannot be undone, and it is the only red pairing here that clears AA.
+   *   Resolves to #AC5248.
    */
   --red-deep: color-mix(in oklab, var(--red) 82%, var(--n-900));
 
@@ -245,14 +277,16 @@
    * Set at `--red`’s lightness so the two read as peers in a row of options:
    * neither outranks the other, which is right, because a subscription and a
    * consultation are two things a clinic sells and not a good one and a bad
-   * one. 5.69:1 on white, and 4.94:1 on its own tint.
+   * one. 3.65:1 on white, and 3.27:1 on its own tint — a fill and a mark, not ink.
    *
-   * ⚠ **It sits close to `--indigo-500`** (#2F5FA8), which is a meal-tag
-   * identity mark. They never share a screen — one is a billing pill, the
+   * ⚠ **It used to sit close to `--indigo-500`** (#2F5FA8), which is a meal-tag
+   * identity mark; at the unified tone it is a clear two steps lighter and the
+   * two no longer collide. They never share a screen — one is a billing pill, the
    * other a 10px dot on a meal card — but anything that would bring them
    * together should move one of them first.
    */
-  --blue: oklch(0.5148 0.145 256); /* #2566B8 */
+  /* Carries the unified semantic tone at H256 — see the note at `--red`. */
+  --blue: oklch(0.620 0.145 256.2); /* #4686DB — 3.65:1 on white */
   --blue-tint: color-mix(in oklab, var(--blue) 10%, var(--n-0));
 
   /*
@@ -274,14 +308,16 @@
    * family. It draws `--status-complete-mark` while flame-300 draws
    * `--status-complete-mark-soft`, so the mark that is meant to be the stronger
    * of the two was the paler one. Lightness now falls monotonically —
-   * .941 › .789 › .699 › .490 — and "soft" is softer than "mark".
+   * .941 › .789 › .620 › .490 — and "soft" is softer than "mark".
+   * The .620 step is the unified semantic tone; see the note at `--red`.
    *
    * flame-700 on flame-100 is 5.5:1. flame-500 is a graphic fill only — it
    * carries icons and rings, never text.
    */
   --flame-100: #FFE6D5;
   --flame-300: #FEA065;
-  --flame-500: #F07813;
+  /* Carries the unified semantic tone at H52 — see the note at `--red`. */
+  --flame-500: oklch(0.620 0.145 51.8); /* #C86822 — 3.85:1 on white */
   --flame-700: #984500;
 
   /*
@@ -522,6 +558,7 @@
    * reach it.
    */
   --font-sans: var(--script-ui-font), var(--font-ibm-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  /* Same stack as --font-sans; `html[dir='rtl']` @applies `font-arabic` below. */
   --font-arabic: var(--script-ui-font), var(--font-ibm-plex-sans), ui-sans-serif, system-ui, sans-serif;
   /* Display — Readex Pro in Latin, the Arabic face in Arabic. */
   --font-heading: var(--script-display-font), var(--script-ui-font), var(--font-ibm-plex-sans), ui-sans-serif, system-ui, sans-serif;
@@ -594,8 +631,6 @@
   --text-xl--line-height: var(--lh-heading-sm);
   --text-2xl: 1.5rem;              /* → heading.lg */
   --text-2xl--line-height: var(--lh-heading-lg);
-  --text-3xl: 2rem;                /* → display.sm */
-  --text-3xl--line-height: var(--lh-display-sm);
   --text-4xl: 2.5rem;              /* → display.lg */
   --text-4xl--line-height: var(--lh-display-lg);
 
@@ -606,8 +641,6 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
   --color-sidebar-hover: var(--sidebar-hover);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
 
@@ -617,14 +650,9 @@
    * hues rather than inventing new ones; confirm with design before a real
    * multi-series chart ships.
    */
-  --color-chart-1: var(--green-600);
   /* Was lime-600. Separated from series 1 by lightness rather than hue now
      that both are the same green — the same tactic `viz-cat-*` uses, and the
      one that survives colour-vision simulation. */
-  --color-chart-2: var(--green-300);
-  --color-chart-3: var(--amber-600);
-  --color-chart-4: var(--red);
-  --color-chart-5: var(--n-600);
 
   /*
    * ── The three macros ──
@@ -658,38 +686,25 @@
    * on it stood out as clickable. The rule the scales below encode: *olive
    * marks what you can act on; data is drawn in neutrals and support hues.*
    *
-   * `viz-seq-*` is the SEQUENTIAL ramp: one hue, five monotone lightness
-   * steps, light → dark, for "how much" (visit density, band sizes). The steps
-   * are n-400…800 rather than 200…600 because the light end has to stay
-   * visible on the card: n-200 measures 1.34:1 on white and n-300 1.66:1, both
-   * under the 2:1 floor a filled mark needs. `.dark` re-anchors the ramp
+   * `viz-seq-*` is the SEQUENTIAL ramp: one hue, monotone lightness steps,
+   * light → dark, for "how much" (visit density, band sizes). It is a
+   * five-step scale by design and only steps **2 and 4** are drawn — the two
+   * the admin charts actually ask for — so the other three are not declared.
+   * The steps sit at n-500/n-700 rather than the light end because a pale
+   * fill has to stay visible on the card: n-200 measures 1.34:1 on white and
+   * n-300 1.66:1, both under the 2:1 floor a filled mark needs. Add step 1, 3
+   * or 5 back at the matching n-400/n-600/n-800 when a chart needs it, and
+   * add the `--color-viz-seq-*` mirror with it. `.dark` re-anchors the ramp
    * rather than flipping it automatically.
    *
-   * `viz-cat-*` is the two-slot CATEGORICAL palette, for identity (which
-   * segment). Two olive stops far apart — green-800 + green-500 on the light
-   * surface — because the only categorical split the app draws is the sex
-   * donut, nothing on that card is clickable, and the warm support hues it
-   * used to take read as an alarm about the register rather than a
-   * description of it. Separation is by LIGHTNESS, not hue (10.4:1 vs 3.47:1
-   * on white, a 3.0:1 ratio between the two fills), which is what carries a
-   * one-hue pair through colour-vision simulation. Both clear the 3:1 mark
-   * floor on white unaided. `viz-cat-none` is the deliberate neutral for "not
-   * recorded" — an absence is not a third category.
+   * A two-slot CATEGORICAL palette (`viz-cat-*`) used to live here for the sex
+   * donut. It was removed with that chart: nothing drew it.
    *
-   * The exception proves the rule: this is the one place olive appears as
-   * data, and it is allowed only because the surface it sits on has no action
-   * on it at all. A chart legend is still mandatory (see
-   * docs/design-system.md) — the fills name nothing on their own — and no
-   * other surface may borrow these tokens.
+   * A chart legend is mandatory (see docs/design-system.md) — the fills name
+   * nothing on their own — and no other surface may borrow these tokens.
    */
-  --color-viz-seq-1: var(--viz-seq-1);
   --color-viz-seq-2: var(--viz-seq-2);
-  --color-viz-seq-3: var(--viz-seq-3);
   --color-viz-seq-4: var(--viz-seq-4);
-  --color-viz-seq-5: var(--viz-seq-5);
-  --color-viz-cat-1: var(--viz-cat-1);
-  --color-viz-cat-2: var(--viz-cat-2);
-  --color-viz-cat-none: var(--viz-cat-none);
 
   /*
    * `viz-brand-*` is the BRAND pair, and it is a deliberate exception to
@@ -753,8 +768,6 @@
   --color-status-medical-bg: var(--status-medical-bg);
   --color-status-rest-fg: var(--status-rest-fg);
   --color-status-rest-bg: var(--status-rest-bg);
-  --color-status-complete-fg: var(--status-complete-fg);
-  --color-status-complete-bg: var(--status-complete-bg);
   --color-status-complete-mark: var(--status-complete-mark);
   --color-status-complete-mark-soft: var(--status-complete-mark-soft);
   --color-planner-protein-red-meat: var(--planner-protein-red-meat);
@@ -785,11 +798,7 @@
   --color-intake-icon-chicken: var(--intake-icon-chicken);
   --color-intake-icon-fish: var(--intake-icon-fish);
   --color-intake-icon-sweets: var(--intake-icon-sweets);
-  --color-progress-track: var(--progress-track);
-  --color-progress-card-border: var(--progress-card-border);
 
-  --color-commitment-card-figure: var(--commitment-card-figure);
-  --color-commitment-card-stat: var(--commitment-card-stat);
 
   --color-portal-progress-fill: var(--portal-progress-fill);
   --color-portal-progress-track: var(--portal-progress-track);
@@ -824,10 +833,7 @@
   --color-card: var(--card);
   --color-foreground: var(--foreground);
   --color-background: var(--background);
-  --color-auth-canvas: var(--auth-canvas);
   --color-overlay: var(--overlay);
-  --color-overlay-strong: var(--overlay-strong);
-  --color-scrim: var(--scrim);
 
   /* radius.* — sm 8 / md 12 / lg 16 / xl 24. Pill is rounded-full. Never 0. */
   --radius-sm: var(--enzyme-radius-sm);
@@ -943,7 +949,6 @@
    * It is a token rather than a raw hex at the call site for the usual reason —
    * a second use of a value is where a palette starts drifting.
    */
-  --auth-canvas: var(--c-50);
 
   --card: var(--n-0);                   /* bg.surface */
   --card-foreground: var(--n-900);
@@ -971,7 +976,6 @@
    * agree, and deleting one of them is what leaves the other two dangling —
    * remove all three together or none.
    */
-  --overlay-strong: rgba(22, 34, 13, .6);
 
   /*
    * action.primary.bg — the brand's own leaf green, `#75CF48`, so the action
@@ -1104,9 +1108,9 @@
   --accent-foreground: var(--n-900);
 
   /* Destructive maps to --red — the system's only true alarm colour. */
-  --destructive: var(--red);           /* 6.24:1 on white */
+  --destructive: var(--red);           /* 3.90:1 on white — see the note at --red */
   --destructive-hover: var(--red-deep);     /* the solid fill's pointer state */
-  --destructive-subtle: var(--red-tint);    /* 5.38:1 against --red */
+  --destructive-subtle: var(--red-tint);    /* 3.48:1 against --red */
   --destructive-foreground: var(--n-0);
 
   /*
@@ -1127,7 +1131,7 @@
    * steps above it are fills, not marks: green-300 measures about 1.7:1 on white
    * (see `--accent-green` right above) and green-400 — `--primary` — is not much
    * better, so eight 2px strokes in either would be a suggestion of a spinner
-   * rather than one. green-500 is 3.47:1 on the light canvas, over the 3:1 floor
+   * rather than one. green-500 is 3.45:1 on the light canvas, over the 3:1 floor
    * WCAG sets for a graphic, and the last step that still reads as *light* green
    * rather than as the dark brand green of green-600 and below.
    *
@@ -1248,8 +1252,6 @@
    * screen — if a second thing on that screen turns orange, one of them is
    * wrong.
    */
-  --status-complete-fg: var(--flame-700);
-  --status-complete-bg: var(--flame-100);
   --status-complete-mark: var(--flame-500);
   --status-complete-mark-soft: var(--flame-300);
 
@@ -1367,48 +1369,8 @@
   --intake-icon-fish: var(--teal-500);
   --intake-icon-sweets: var(--plum-500);
 
-  /*
-   * The Q-arc's unfilled track (§9.6) — the dots the week has not reached yet.
-   *
-   * A stop of its own rather than status-on-track-bg, which is what it started
-   * as: the portal's progress card is a cream→green-50→green-100 gradient, and
-   * an green-100 track sitting on an green-100 ground is invisible. This is the
-   * next stop down, chosen so an untouched week still reads as a whole circle
-   * waiting to be filled rather than as an arc floating in space.
-   */
-  --progress-track: var(--green-200);
 
-  /*
-   * The ground that arc sits on — the home screen's progress card.
-   *
-   * The ramp the note above names, as tokens rather than as four hex values in
-   * the component: cream at the ring end, green-100 at the text end, so the arc
-   * has the lightest part of the card behind it and the copy has the softest.
-   * Semantic rather than palette because the card has to invert — a primitive
-   * ramp would stay cream on an green-950 canvas.
-   */
-  --progress-card-from: var(--c-50);
-  --progress-card-via: var(--green-50);
-  --progress-card-to: var(--green-100);
-  --progress-card-edge: var(--green-200);
-  --progress-card-border: var(--green-200);
 
-  /*
-   * The home screen's "commitment today" hero.
-   *
-   * **The surface is `--card`, not a token of its own.** It was a lime-to-olive
-   * wash — a `-from` and a `-to` that lived here for it — and the card sits on
-   * the portal's green home glow, so a tinted card on a tinted ground left the
-   * two the same colour family and the card stopped reading as a surface. It is
-   * plain white with `Card`'s own hairline now, which also means it inverts with
-   * the rest of the portal's dark theme instead of needing the wash restated
-   * twice below. The two ramp stops are gone; only the two foregrounds remain,
-   * and they still need to invert.
-   *
-   * green-800 and green-700 on white are 10.4:1 and 6.51:1.
-   */
-  --commitment-card-figure: var(--green-800);
-  --commitment-card-stat: var(--green-700);
 
   /*
    * The meal card's surface — one tone for every meal, so the list reads as one
@@ -1491,20 +1453,14 @@
    * between the two fills against the old pair's 1.45:1. Both clear the 3:1
    * mark floor unaided.
    */
-  --viz-seq-1: var(--n-400);
   --viz-seq-2: var(--n-500);
-  --viz-seq-3: var(--n-600);
   --viz-seq-4: var(--n-700);
-  --viz-seq-5: var(--n-800);
   /*
    * Colour follows the entity, never its rank: female is always slot 1.
    * Lightened to green-100/green-50 by design request — the pair no longer
    * clears 3:1 on white unaided, which the mandatory legend beside the ring
    * is what carries the reading instead.
    */
-  --viz-cat-1: var(--green-100);
-  --viz-cat-2: var(--green-50);
-  --viz-cat-none: var(--c-300);
 
   /* The dashboard's stat cards. See the note in `@theme` above. */
   --viz-brand: var(--green-500);
@@ -1622,8 +1578,6 @@
   --sidebar-foreground: var(--c-600);       /* the rail's default ink — 7.23:1 */
   --sidebar-icon: var(--c-600);             /* idle label and glyph — #4B5563 */
   --sidebar-label: var(--c-500);            /* section headings — 4.63:1, see above */
-  --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: var(--green-900); /* the wordmark, on a light rail */
   --sidebar-accent: var(--c-200);           /* the selected surface — ΔL* 6.6 from the rail */
   --sidebar-accent-foreground: var(--green-700); /* the brand, on it — 5.00:1, see above */
   --sidebar-hover: var(--c-100);            /* hover is one step under the rail, never green */
@@ -1730,7 +1684,6 @@
   --foreground: var(--n-25);
 
   /* One step off the canvas, the same relationship the light build has. */
-  --auth-canvas: var(--green-950);
 
   /* The canvas is already green-950, so the scrim has to go denser to register. */
   --scrim: color-mix(in srgb, var(--green-950) 72%, transparent);
@@ -1742,7 +1695,6 @@
   --popover-foreground: var(--n-25);
   --overlay: rgba(10, 16, 6, .6);
   /* See the light assignment — kept in step with it, one step heavier. */
-  --overlay-strong: rgba(10, 16, 6, .72);
 
   /*
    * The same leaf green as light mode — the action colour is the brand's, and
@@ -1813,28 +1765,18 @@
   --status-medical-bg: var(--red-tint);
   --status-rest-fg: var(--green-700);
   --status-rest-bg: var(--green-50);
-  --status-complete-fg: var(--flame-700);
-  --status-complete-bg: var(--flame-100);
   --status-complete-mark: var(--flame-500);
   --status-complete-mark-soft: var(--flame-300);
 
   /* Dark's progress card sits on green-900, so its track steps up, not down. */
-  --progress-track: var(--green-700);
 
   /*
    * Same ramp inverted: the ring end stays the lighter one. The middle stop is
    * mixed rather than picked — the scale has no step between 800 and 900, and
    * landing on either makes the gradient a two-stop step with a visible edge.
    */
-  --progress-card-from: var(--green-800);
-  --progress-card-via: color-mix(in oklch, var(--green-800), var(--green-900));
-  --progress-card-to: var(--green-900);
-  --progress-card-edge: var(--green-950);
-  --progress-card-border: var(--green-800);
 
   /* The card is `--card` here as everywhere; only its two foregrounds go light to keep reading on the dark surface. */
-  --commitment-card-figure: var(--n-25);
-  --commitment-card-stat: var(--green-200);
 
   --viz-band-range: var(--green-200);
   --viz-band-edge: var(--green-500);
@@ -1854,14 +1796,8 @@
    * rest. Dark mode has no switch in the app today — if one ships, re-run the
    * palette validator against the real dark surface first.
    */
-  --viz-seq-1: var(--n-600);
   --viz-seq-2: var(--n-500);
-  --viz-seq-3: var(--n-400);
   --viz-seq-4: var(--n-300);
-  --viz-seq-5: var(--n-200);
-  --viz-cat-1: var(--green-200);
-  --viz-cat-2: var(--green-400);
-  --viz-cat-none: var(--n-600);
 
   /*
    * One step lighter than the light theme, for the same reason the sequential
@@ -1898,8 +1834,6 @@
      counterpart of `--c-500` on the light rail. green-300 on green-900 measures
      6.30:1, so it stays legible while sitting clearly under the green-200 rows. */
   --sidebar-label: var(--green-300);
-  --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: var(--n-25);
   /*
    * The same split the light rail makes, in the direction a dark surface can
    * make it: active lifts *toward* the brand, hover lifts toward neutral.
@@ -2009,21 +1943,11 @@
     --status-medical-bg: var(--red-tint);
     --status-rest-fg: var(--green-700);
     --status-rest-bg: var(--green-50);
-    --status-complete-fg: var(--flame-700);
-    --status-complete-bg: var(--flame-100);
     --status-complete-mark: var(--flame-500);
     --status-complete-mark-soft: var(--flame-300);
 
-    --progress-track: var(--green-700);
 
-    --progress-card-from: var(--green-800);
-    --progress-card-via: color-mix(in oklch, var(--green-800), var(--green-900));
-    --progress-card-to: var(--green-900);
-    --progress-card-edge: var(--green-950);
-    --progress-card-border: var(--green-800);
 
-    --commitment-card-figure: var(--n-25);
-    --commitment-card-stat: var(--green-200);
 
     --viz-band-range: var(--green-200);
     --viz-band-edge: var(--green-500);
@@ -2037,8 +1961,6 @@
     --sidebar: var(--green-900);
     --sidebar-foreground: var(--green-200);
     --sidebar-label: var(--green-300);
-    --sidebar-primary: var(--primary);
-    --sidebar-primary-foreground: var(--n-0);
     /* Mirrors the `.dark` rail above — see the note there. */
     --sidebar-accent: var(--green-800);
     --sidebar-accent-foreground: var(--green-300);

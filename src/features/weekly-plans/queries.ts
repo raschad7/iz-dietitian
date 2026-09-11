@@ -49,6 +49,8 @@ import { carbBase, proteinSource } from './dish-composition';
 import type { ReviewFinding } from './review';
 import type { CatalogDish } from './generate';
 import type { FoodPortion } from './ingredient-units';
+import type { ReviewStatus } from './portion-contract';
+import type { PortionGuideEntry } from './portion-guide';
 import {
   hasOwnAmounts,
   mealIngredientLines,
@@ -66,6 +68,7 @@ import {
   nutritionCategory,
   type DishDetail,
   type FoodNutrients,
+  type IngredientPortion,
   type NutrientTotals,
   type NutritionCategory,
 } from './nutrition';
@@ -85,6 +88,11 @@ import {
   type MealScheduleInput,
 } from './schema';
 import { narrowToPattern } from './clinical';
+import {
+  evaluateDishEligibility,
+  type EligibilityDecision,
+  type PlanConstraints,
+} from './eligibility';
 import { readNutritionRules, type NutritionRules } from './nutrition-rules';
 import { slotBudgets, suggestProteinGrams, suggestTargets, type SlotBudget, type SuggestedTargets } from './targets';
 import { weekDates } from './week';
@@ -107,6 +115,63 @@ import { weekDates } from './week';
  * `editor-mutations.ts`.
  */
 export type DbExecutor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/** The structured client constraints attached to one clinic-owned plan. */
+export async function getPlanConstraints(
+  clinicId: string,
+  planId: string,
+  executor: DbExecutor = db,
+): Promise<PlanConstraints | null> {
+  const [row] = await executor
+    .select({
+      allergens: clientNutritionProfiles.allergenTags,
+      dietPattern: clientNutritionProfiles.dietPattern,
+      unmappedExclusions: clientNutritionProfiles.customAllergens,
+    })
+    .from(weeklyPlans)
+    .innerJoin(
+      clientNutritionProfiles,
+      and(
+        eq(clientNutritionProfiles.clientId, weeklyPlans.clientId),
+        eq(clientNutritionProfiles.clinicId, clinicId),
+      ),
+    )
+    .where(and(eq(weeklyPlans.id, planId), eq(weeklyPlans.clinicId, clinicId)))
+    .limit(1);
+
+  return row ?? null;
+}
+
+/** Structured constraints for a clinic-owned client before a plan exists. */
+export async function getClientPlanConstraints(
+  clinicId: string,
+  clientId: string,
+  executor: DbExecutor = db,
+): Promise<PlanConstraints | null> {
+  const [row] = await executor
+    .select({
+      allergens: clientNutritionProfiles.allergenTags,
+      dietPattern: clientNutritionProfiles.dietPattern,
+      unmappedExclusions: clientNutritionProfiles.customAllergens,
+    })
+    .from(clientNutritionProfiles)
+    .innerJoin(
+      clients,
+      and(
+        eq(clients.id, clientNutritionProfiles.clientId),
+        eq(clients.clinicId, clinicId),
+      ),
+    )
+    .where(
+      and(
+        eq(clientNutritionProfiles.clientId, clientId),
+        eq(clientNutritionProfiles.clinicId, clinicId),
+      ),
+    )
+    .limit(1);
+
+  return row ?? null;
+}
 
 /**
  * A `text[]` literal with each element bound as a parameter.
@@ -170,9 +235,12 @@ const foodColumns = {
 /** The portion columns, joined onto a recipe line to say how its amount was typed. */
 const portionColumns = {
   id: catalogFoodPortions.id,
+  key: catalogFoodPortions.key,
   labelAr: catalogFoodPortions.labelAr,
   labelEn: catalogFoodPortions.labelEn,
   grams: catalogFoodPortions.grams,
+  step: catalogFoodPortions.step,
+  maxPerMeal: catalogFoodPortions.maxPerMeal,
 } as const;
 
 /**
@@ -196,11 +264,14 @@ async function portionsByFood(
     .select({
       foodId: catalogFoodPortions.foodId,
       id: catalogFoodPortions.id,
+      key: catalogFoodPortions.key,
       labelAr: catalogFoodPortions.labelAr,
       labelEn: catalogFoodPortions.labelEn,
       grams: catalogFoodPortions.grams,
       isDefault: catalogFoodPortions.isDefault,
       sortOrder: catalogFoodPortions.sortOrder,
+      step: catalogFoodPortions.step,
+      maxPerMeal: catalogFoodPortions.maxPerMeal,
     })
     .from(catalogFoodPortions)
     .where(inArray(catalogFoodPortions.foodId, [...foodIds]))
@@ -220,6 +291,9 @@ const recipeColumns = {
   dishId: dishIngredients.dishId,
   quantityGrams: dishIngredients.quantityGrams,
   portionQuantity: dishIngredients.portionQuantity,
+  componentKey: dishIngredients.componentKey,
+  componentNameAr: dishIngredients.componentNameAr,
+  componentNameEn: dishIngredients.componentNameEn,
   isPrimary: dishIngredients.isPrimary,
   isFree: dishIngredients.isFree,
   sortOrder: dishIngredients.sortOrder,
@@ -231,7 +305,11 @@ type RecipeRow = {
   dishId: string;
   quantityGrams: number;
   portionQuantity: number | null;
-  /** Whether this line carries a `−/+` control on the board. */
+  /** The served part this line belongs to, or null when it is its own. */
+  componentKey: string | null;
+  componentNameAr: string | null;
+  componentNameEn: string | null;
+  /** Whether this line's component carries a `−/+` control on the board. */
   isPrimary: boolean;
   /** Written without a number and never scaled — شرائح خضار. */
   isFree: boolean;
@@ -242,7 +320,7 @@ type RecipeRow = {
    * and the `left join` then finds nothing. Both cases mean the same thing to a
    * reader: show the grams.
    */
-  portion: { id: string; labelAr: string; labelEn: string; grams: number } | null;
+  portion: IngredientPortion | null;
   food: Omit<FoodSearchResult, 'portions'>;
 };
 
@@ -269,7 +347,11 @@ export async function ownAmountsByMeal(
       mealId: weeklyPlanMealIngredients.mealId,
       quantityGrams: weeklyPlanMealIngredients.quantityGrams,
       portionQuantity: weeklyPlanMealIngredients.portionQuantity,
+      componentKey: weeklyPlanMealIngredients.componentKey,
+      componentNameAr: weeklyPlanMealIngredients.componentNameAr,
+      componentNameEn: weeklyPlanMealIngredients.componentNameEn,
       isPrimary: weeklyPlanMealIngredients.isPrimary,
+      isFree: weeklyPlanMealIngredients.isFree,
       sortOrder: weeklyPlanMealIngredients.sortOrder,
       portion: portionColumns,
       food: foodColumns,
@@ -348,6 +430,9 @@ function attachRecipes<D extends { id: string }>(
       food: row.food,
       portion: row.portion,
       portionQuantity: row.portionQuantity,
+      componentKey: row.componentKey,
+      componentNameAr: row.componentNameAr,
+      componentNameEn: row.componentNameEn,
       isPrimary: row.isPrimary,
       isFree: row.isFree,
       sortOrder: row.sortOrder,
@@ -437,9 +522,10 @@ async function withPortions(
 export async function loadCatalog(
   clinicId: string,
   allergens: readonly string[] = [],
+  executor: DbExecutor = db,
 ): Promise<DishDetail[]> {
   // Dishes hidden by this clinic — read first so the main query can exclude them.
-  const hidden = await db
+  const hidden = await executor
     .select({ dishId: clinicHiddenDishes.dishId })
     .from(clinicHiddenDishes)
     .where(eq(clinicHiddenDishes.clinicId, clinicId));
@@ -461,7 +547,7 @@ export async function loadCatalog(
     conditions.push(sql`not (${dishes.allergenTags} && ${textArray(allergens)})`);
   }
 
-  const dishRows = await db
+  const dishRows = await executor
     .select({
       id: dishes.id,
       clinicId: dishes.clinicId,
@@ -484,7 +570,7 @@ export async function loadCatalog(
 
   if (!dishRows.length) return [];
 
-  const ingredientRows = await db
+  const ingredientRows = await executor
     .select(recipeColumns)
     .from(dishIngredients)
     .innerJoin(catalogFoods, eq(catalogFoods.id, dishIngredients.catalogFoodId))
@@ -577,8 +663,11 @@ export function toPromptCatalog(
   catalog: readonly DishDetail[],
   /** A prescribed pattern narrows what may be chosen — see `narrowToPattern`. */
   dietPattern: string | null = null,
+  allergens: readonly string[] = [],
 ): CatalogDish[] {
-  return narrowToPattern(catalog.filter((dish) => !dish.isSide).map(toCatalogDish), dietPattern);
+  const constraints = { allergens, dietPattern };
+  return narrowToPattern(catalog.filter((dish) => !dish.isSide).map(toCatalogDish), dietPattern)
+    .filter((dish) => evaluateDishEligibility(dish, constraints).eligible);
 }
 
 /**
@@ -591,8 +680,11 @@ export function toPromptCatalog(
 export function toPromptSides(
   catalog: readonly DishDetail[],
   dietPattern: string | null = null,
+  allergens: readonly string[] = [],
 ): CatalogDish[] {
-  return narrowToPattern(catalog.filter((dish) => dish.isSide).map(toCatalogDish), dietPattern);
+  const constraints = { allergens, dietPattern };
+  return narrowToPattern(catalog.filter((dish) => dish.isSide).map(toCatalogDish), dietPattern)
+    .filter((dish) => evaluateDishEligibility(dish, constraints).eligible);
 }
 
 function toCatalogDish(dish: DishDetail): CatalogDish {
@@ -600,6 +692,7 @@ function toCatalogDish(dish: DishDetail): CatalogDish {
     id: dish.id,
     slug: dish.slug,
     nameAr: dish.nameAr,
+    nameEn: dish.nameEn,
     mealTypes: dish.mealTypes,
     source: dish.source,
     effort: dish.effort,
@@ -644,6 +737,8 @@ export type CatalogEntry = DishDetail & {
    * refuses it regardless, because `loadCatalog(allergens)` never offered it.
    */
   blockedBy: string[];
+  /** Full shared decision; optional only for static development-harness fixtures. */
+  eligibility?: EligibilityDecision;
 };
 
 /**
@@ -655,18 +750,21 @@ export type CatalogEntry = DishDetail & {
  */
 export async function listCatalogForBoard(
   clinicId: string,
-  allergens: readonly string[],
+  constraints: PlanConstraints,
 ): Promise<CatalogEntry[]> {
   const catalog = await loadCatalog(clinicId);
-  const blocked = new Set(allergens);
 
   return catalog
-    .map((dish) => ({
-      ...dish,
-      baseKcal: baseServingKcal(dish.ingredients),
-      nutritionCategory: nutritionCategory(dishTotals(dish.ingredients, 1)),
-      blockedBy: dish.allergenTags.filter((tag) => blocked.has(tag)),
-    }))
+    .map((dish) => {
+      const eligibility = evaluateDishEligibility(dish, constraints);
+      return {
+        ...dish,
+        baseKcal: baseServingKcal(dish.ingredients),
+        nutritionCategory: nutritionCategory(dishTotals(dish.ingredients, 1)),
+        blockedBy: eligibility.blockedBy,
+        eligibility,
+      };
+    })
     .sort((a, b) => a.nameAr.localeCompare(b.nameAr, 'ar'));
 }
 
@@ -696,6 +794,18 @@ export type DishEditData = {
     quantityGrams: number;
     /** The portion the amount was saved in, or null for grams. */
     portionId: string | null;
+    /**
+     * The served part this line belongs to, carried through an edit untouched.
+     *
+     * The editor does not yet let a clinic group lines — that is authored in
+     * `data/dishes.json` for the shipped catalog — but it must not silently
+     * ungroup a dish it opened, so the fields round-trip.
+     */
+    componentKey: string | null;
+    componentNameAr: string | null;
+    componentNameEn: string | null;
+    isPrimary: boolean;
+    isFree: boolean;
   }[];
 };
 
@@ -920,6 +1030,11 @@ export async function getClinicDishForEdit(clinicId: string, dishId: string): Pr
     .select({
       quantityGrams: dishIngredients.quantityGrams,
       portionId: dishIngredients.portionId,
+      componentKey: dishIngredients.componentKey,
+      componentNameAr: dishIngredients.componentNameAr,
+      componentNameEn: dishIngredients.componentNameEn,
+      isPrimary: dishIngredients.isPrimary,
+      isFree: dishIngredients.isFree,
       food: foodColumns,
     })
     .from(dishIngredients)
@@ -935,6 +1050,11 @@ export async function getClinicDishForEdit(clinicId: string, dishId: string): Pr
       food: { ...row.food, portions: byFood.get(row.food.id) ?? [] },
       quantityGrams: row.quantityGrams,
       portionId: row.portionId,
+      componentKey: row.componentKey,
+      componentNameAr: row.componentNameAr,
+      componentNameEn: row.componentNameEn,
+      isPrimary: row.isPrimary,
+      isFree: row.isFree,
     })),
   };
 }
@@ -1115,6 +1235,59 @@ export async function searchFoods(
  * Symmetric with `searchFoods`: same columns, same visibility rule, but by id —
  * what the editor needs after a pick, without guessing at text search.
  */
+/**
+ * Every measurement the clinic writes in, for the settings guide.
+ *
+ * One row per food: the portion it is *written* in — `is_default`, which
+ * `promoteCountedUnit` has already moved onto `counted_as` where a food declares
+ * one — and nothing else. A food offers several portions and is written in one,
+ * and the written one is the only thing a reference table should state.
+ *
+ * Reads the same `catalogVisibleTo` scope as the ingredient picker, so a clinic
+ * sees the shared catalog plus its own foods and never another practice's.
+ */
+export async function portionGuideEntries(clinicId: string): Promise<PortionGuideEntry[]> {
+  const rows = await db
+    .select({
+      foodId: catalogFoods.id,
+      nameAr: catalogFoods.nameAr,
+      nameEn: catalogFoods.nameEn,
+      key: catalogFoodPortions.key,
+      labelAr: catalogFoodPortions.labelAr,
+      labelEn: catalogFoodPortions.labelEn,
+      grams: catalogFoodPortions.grams,
+      reviewStatus: catalogFoodPortions.reviewStatus,
+      minGrams: catalogFoodPortions.evidenceMinGrams,
+      maxGrams: catalogFoodPortions.evidenceMaxGrams,
+    })
+    .from(catalogFoodPortions)
+    .innerJoin(catalogFoods, eq(catalogFoods.id, catalogFoodPortions.foodId))
+    .where(
+      and(
+        catalogVisibleTo(clinicId),
+        eq(catalogFoods.isActive, true),
+        eq(catalogFoodPortions.isDefault, true),
+      ),
+    );
+
+  return rows.map((row) => ({
+    foodId: row.foodId,
+    nameAr: row.nameAr,
+    nameEn: row.nameEn,
+    key: row.key,
+    labelAr: row.labelAr,
+    labelEn: row.labelEn,
+    grams: row.grams,
+    reviewStatus: (row.reviewStatus ?? 'needs_review') as ReviewStatus,
+    // Both ends or neither: half a range is not a range, and rendering "22 - "
+    // is worse than rendering nothing.
+    rangeGrams:
+      typeof row.minGrams === 'number' && typeof row.maxGrams === 'number'
+        ? ([row.minGrams, row.maxGrams] as const)
+        : null,
+  }));
+}
+
 export async function searchFoodsById(clinicId: string, foodId: string): Promise<FoodSearchResult[]> {
   const rows = await db
     .select(foodColumns)
@@ -1357,6 +1530,8 @@ export type ClientContext = {
     dailyKcalTarget: number | null;
     proteinTargetGrams: number | null;
     allergenTags: string[];
+    /** Free-text exclusions cannot be verified against the structured catalog. */
+    customAllergens: string[];
     /** Ticked conditions and the prescribed pattern — see `clinical.ts`. */
     clinicalTags: string[];
     dietPattern: string | null;
@@ -1423,6 +1598,7 @@ export async function getClientContext(clinicId: string, clientId: string): Prom
       dailyKcalTarget: clientNutritionProfiles.dailyKcalTarget,
       proteinTargetGrams: clientNutritionProfiles.proteinTargetGrams,
       allergenTags: clientNutritionProfiles.allergenTags,
+      customAllergens: clientNutritionProfiles.customAllergens,
       clinicalTags: clientNutritionProfiles.clinicalTags,
       dietPattern: clientNutritionProfiles.dietPattern,
       preferences: clientNutritionProfiles.preferences,
@@ -1489,6 +1665,7 @@ export async function getClientContext(clinicId: string, clientId: string): Prom
           dailyKcalTarget: row.dailyKcalTarget,
           proteinTargetGrams: row.proteinTargetGrams,
           allergenTags: row.allergenTags ?? [],
+          customAllergens: row.customAllergens ?? [],
           clinicalTags: row.clinicalTags ?? [],
           dietPattern: row.dietPattern,
           preferences: row.preferences,

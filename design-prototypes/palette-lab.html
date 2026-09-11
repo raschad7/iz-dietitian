@@ -1,0 +1,1155 @@
+<title>Enzyme Palette Lab</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=Readex+Pro:wght@500;600&display=swap">
+
+<style>
+/* ────────────────────────────────────────────────────────────
+   Page chrome. Deliberately achromatic: the palette under test
+   is the only colour on this page, so the instrument around it
+   carries none of its own.
+   ──────────────────────────────────────────────────────────── */
+:root {
+  --ui-bg:        #F4F4F5;
+  --ui-panel:     #FFFFFF;
+  --ui-ink:       #18181B;
+  --ui-ink-soft:  #52525B;
+  --ui-ink-faint: #A1A1AA;
+  --ui-line:      #E4E4E7;
+  --ui-line-soft: #F0F0F1;
+  --ui-field:     #FFFFFF;
+  --ui-pass:      #15803D;
+  --ui-fail:      #B91C1C;
+  --ui-warn:      #A16207;
+  --ui-shadow:    0 1px 2px rgba(9,9,11,.05), 0 8px 24px rgba(9,9,11,.06);
+  --sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ui-bg:        #0F0F11;
+    --ui-panel:     #18181B;
+    --ui-ink:       #FAFAFA;
+    --ui-ink-soft:  #A1A1AA;
+    --ui-ink-faint: #71717A;
+    --ui-line:      #2A2A2E;
+    --ui-line-soft: #212124;
+    --ui-field:     #202024;
+    --ui-pass:      #4ADE80;
+    --ui-fail:      #F87171;
+    --ui-warn:      #FBBF24;
+    --ui-shadow:    0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"] {
+  --ui-bg:        #0F0F11;
+  --ui-panel:     #18181B;
+  --ui-ink:       #FAFAFA;
+  --ui-ink-soft:  #A1A1AA;
+  --ui-ink-faint: #71717A;
+  --ui-line:      #2A2A2E;
+  --ui-line-soft: #212124;
+  --ui-field:     #202024;
+  --ui-pass:      #4ADE80;
+  --ui-fail:      #F87171;
+  --ui-warn:      #FBBF24;
+  --ui-shadow:    0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--ui-bg);
+  color: var(--ui-ink);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+:focus-visible { outline: 2px solid var(--ui-ink); outline-offset: 2px; border-radius: 4px; }
+
+/* ── Header ── */
+.masthead {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 20px;
+  justify-content: space-between;
+  padding: 22px 28px 18px;
+  border-bottom: 1px solid var(--ui-line);
+  background: var(--ui-panel);
+  position: sticky; top: 0; z-index: 20;
+}
+.masthead h1 {
+  margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -.01em;
+}
+.masthead p {
+  margin: 3px 0 0; font-size: 12.5px; color: var(--ui-ink-soft); max-width: 62ch;
+}
+.tools { display: flex; gap: 8px; flex-wrap: wrap; }
+.tool {
+  font: 500 12px/1 var(--sans);
+  padding: 9px 13px; border-radius: 7px; cursor: pointer;
+  background: var(--ui-panel); color: var(--ui-ink);
+  border: 1px solid var(--ui-line);
+}
+.tool:hover { background: var(--ui-line-soft); }
+.tool[aria-pressed="true"] { background: var(--ui-ink); color: var(--ui-panel); border-color: var(--ui-ink); }
+
+/* ── Shell ── */
+.shell {
+  display: grid; grid-template-columns: 336px minmax(0, 1fr);
+  align-items: start; gap: 0;
+}
+@media (max-width: 940px) { .shell { grid-template-columns: 1fr; } }
+
+/* ── Editor rail ── */
+.rail {
+  border-inline-end: 1px solid var(--ui-line);
+  background: var(--ui-panel);
+  padding: 4px 0 48px;
+  position: sticky; top: 78px;
+  max-height: calc(100vh - 78px);
+  overflow-y: auto;
+}
+@media (max-width: 940px) { .rail { position: static; max-height: none; border-inline-end: 0; border-bottom: 1px solid var(--ui-line); } }
+.rail-hint {
+  padding: 14px 20px; font-size: 12px; color: var(--ui-ink-soft);
+  border-bottom: 1px solid var(--ui-line-soft);
+}
+details { border-bottom: 1px solid var(--ui-line-soft); }
+summary {
+  cursor: pointer; padding: 12px 20px; list-style: none;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em;
+  color: var(--ui-ink-soft);
+}
+summary::-webkit-details-marker { display: none; }
+summary:hover { color: var(--ui-ink); background: var(--ui-line-soft); }
+summary .count { font-family: var(--mono); font-size: 10.5px; color: var(--ui-ink-faint); letter-spacing: 0; }
+details[open] > summary { color: var(--ui-ink); }
+.group-body { padding: 2px 20px 16px; display: flex; flex-direction: column; gap: 3px; }
+.group-note {
+  font-size: 11.5px; line-height: 1.55; color: var(--ui-ink-soft);
+  text-transform: none; letter-spacing: 0; font-weight: 400;
+  margin: 0 0 10px; padding-inline-start: 10px;
+  border-inline-start: 2px solid var(--ui-line);
+}
+
+.row { display: grid; grid-template-columns: 26px 1fr 82px; align-items: center; gap: 9px; padding: 3px 0; }
+.row label { font-family: var(--mono); font-size: 11.5px; color: var(--ui-ink-soft); overflow: hidden; text-overflow: ellipsis; }
+.swatch {
+  inline-size: 26px; block-size: 26px; padding: 0; cursor: pointer;
+  border: 1px solid var(--ui-line); border-radius: 6px; background: none;
+  -webkit-appearance: none; appearance: none;
+}
+.swatch::-webkit-color-swatch-wrapper { padding: 2px; }
+.swatch::-webkit-color-swatch { border: 0; border-radius: 4px; }
+.swatch::-moz-color-swatch { border: 0; border-radius: 4px; }
+.hex {
+  font-family: var(--mono); font-size: 11.5px; text-transform: uppercase;
+  padding: 5px 6px; inline-size: 100%;
+  border: 1px solid var(--ui-line); border-radius: 6px;
+  background: var(--ui-field); color: var(--ui-ink);
+}
+.hex:focus { border-color: var(--ui-ink); outline: none; }
+.hex.bad { border-color: var(--ui-fail); }
+.row.derived label { color: var(--ui-ink-faint); }
+.row.driven label { color: var(--ui-ink-faint); }
+.row.driven .hex { color: var(--ui-ink-faint); background: var(--ui-line-soft); }
+
+/* ── Unified-tone panel ── */
+.unify { padding: 14px 20px 16px; border-bottom: 1px solid var(--ui-line); background: var(--ui-line-soft); }
+.unify h2 {
+  margin: 0 0 3px; font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .07em; color: var(--ui-ink);
+}
+.unify p { margin: 0 0 12px; font-size: 11.5px; line-height: 1.55; color: var(--ui-ink-soft); }
+.toggle { display: flex; align-items: center; gap: 9px; font-size: 12.5px; font-weight: 500; margin-block-end: 12px; cursor: pointer; }
+.toggle input { inline-size: 16px; block-size: 16px; accent-color: var(--ui-ink); cursor: pointer; }
+.lc { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-block-end: 12px; }
+.lc label { display: flex; flex-direction: column; gap: 4px; font-family: var(--mono); font-size: 10.5px; color: var(--ui-ink-soft); }
+.lc input {
+  font-family: var(--mono); font-size: 12px; padding: 6px 8px;
+  border: 1px solid var(--ui-line); border-radius: 6px;
+  background: var(--ui-field); color: var(--ui-ink); inline-size: 100%;
+}
+.lc input:focus { border-color: var(--ui-ink); outline: none; }
+.fams { display: flex; flex-direction: column; gap: 5px; }
+.fam { display: grid; grid-template-columns: 20px 1fr 66px 46px; align-items: center; gap: 8px; }
+.fam .sw { inline-size: 20px; block-size: 20px; border-radius: 5px; border: 1px solid var(--ui-line); }
+.fam .nm { font-family: var(--mono); font-size: 11px; color: var(--ui-ink-soft); overflow: hidden; text-overflow: ellipsis; }
+.fam input.hue {
+  font-family: var(--mono); font-size: 11px; padding: 4px 5px; inline-size: 100%;
+  border: 1px solid var(--ui-line); border-radius: 5px; background: var(--ui-field); color: var(--ui-ink);
+}
+.fam .rr { font-family: var(--mono); font-size: 10.5px; text-align: end; font-variant-numeric: tabular-nums; }
+.fam .rr.ok { color: var(--ui-pass); }
+.fam .rr.mark { color: var(--ui-warn); }
+.fam .rr.no { color: var(--ui-fail); }
+.unify .legend-note { margin: 11px 0 0; font-size: 11px; line-height: 1.5; color: var(--ui-ink-soft); }
+.unify[data-on="false"] .lc, .unify[data-on="false"] .fams { opacity: .4; pointer-events: none; }
+.row.derived .out {
+  font-family: var(--mono); font-size: 11.5px; text-transform: uppercase;
+  color: var(--ui-ink-faint); text-align: end; padding-inline-end: 6px;
+}
+.chip-static {
+  inline-size: 26px; block-size: 26px; border-radius: 6px; border: 1px solid var(--ui-line);
+}
+
+/* ── Preview canvas ──
+   Locked to the app's LIGHT theme regardless of the viewer's own theme:
+   this region is a picture of the product, not part of this page's chrome. */
+.stage { padding: 28px; display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+.canvas {
+  /* Brand ramp */
+  --green-50:#F1FBEA; --green-100:#DFF6D1; --green-200:#C2EDA9; --green-300:#9BE076;
+  --green-400:#75CF48; --green-500:#58B52D; --green-600:#419020; --green-700:#346E1D;
+  --green-800:#2C581C; --green-900:#284B1C; --green-950:#11290A;
+  /* Warm neutrals */
+  --n-0:#FFFFFF; --n-25:#FCFBF7; --n-100:#EFEDE4; --n-200:#E2DFD3; --n-300:#CDC9B9;
+  --n-400:#A8A493; --n-500:#837F6E; --n-600:#605D50; --n-700:#46443B; --n-800:#2F2E28; --n-900:#1C1B17;
+  /* Cool neutrals */
+  --c-50:#F9FAFB; --c-100:#F3F4F6; --c-200:#E5E7EB; --c-300:#D1D5DB;
+  --c-400:#9CA3AF; --c-500:#6B7280; --c-600:#4B5563;
+  /* Accent families */
+  --amber-100:#FFEBC6; --amber-300:#F7BD5E; --amber-600:#9B6A00; --amber-700:#7F5000;
+  --red: oklch(0.512 0.145 27);
+  --blue: oklch(0.5148 0.145 256);
+  --flame-100:#FFE6D5; --flame-300:#FEA065; --flame-500:#F07813; --flame-700:#984500;
+  --teal-500:#17827B; --plum-500:#7D4F9B; --indigo-500:#2F5FA8;
+  --indigo-300:#8FB2E0; --plum-300:#BE9BD8; --gold-500:#E8B000;
+
+  /* Derived exactly as globals.css derives them */
+  --red-tint:  color-mix(in oklab, var(--red) 10%, var(--n-0));
+  --red-light: color-mix(in oklab, var(--red) 45%, var(--n-0));
+  --red-deep:  color-mix(in oklab, var(--red) 82%, var(--n-900));
+  --blue-tint: color-mix(in oklab, var(--blue) 10%, var(--n-0));
+
+  /* Semantic layer — the mapping straight out of globals.css */
+  --background: var(--n-0);
+  --foreground: var(--n-900);
+  --card: var(--n-0);
+  --primary: var(--green-400);
+  --primary-hover: var(--green-600);
+  --primary-foreground: var(--n-900);
+  --primary-foreground-white: var(--n-0);
+  --primary-subtle: var(--green-100);
+  --secondary: var(--green-50);
+  --secondary-foreground: var(--green-700);
+  --muted: var(--c-100);
+  --muted-foreground: var(--c-600);
+  --placeholder: var(--c-500);
+  --accent: var(--c-200);
+  --accent-green: var(--green-300);
+  --on-accent: var(--green-950);
+  --icon-chip: var(--c-50);
+  --icon-chip-foreground: var(--c-600);
+  --destructive: var(--red);
+  --destructive-hover: var(--red-deep);
+  --destructive-subtle: var(--red-tint);
+  --destructive-foreground: var(--n-0);
+  --border: var(--c-200);
+  --input: var(--c-300);
+  --control-edge: var(--c-500);
+  --input-hover: var(--green-500);
+  --ring: var(--green-600);
+  --spinner: var(--green-500);
+  --status-on-track-fg: var(--green-700);   --status-on-track-bg: var(--green-100);
+  --status-attention-fg: var(--amber-700);  --status-attention-bg: var(--amber-100);
+  --status-incomplete-fg: var(--c-600);     --status-incomplete-bg: var(--c-100);
+  --status-medical-fg: var(--red);          --status-medical-bg: var(--red-tint);
+  --status-rest-fg: var(--green-700);       --status-rest-bg: var(--green-50);
+  --status-complete-fg: var(--flame-700);   --status-complete-bg: var(--flame-100);
+  --status-complete-mark: var(--flame-500);
+  --sidebar: var(--c-50);
+  --sidebar-foreground: var(--c-600);
+  --sidebar-label: var(--c-500);
+  --sidebar-accent: var(--c-200);
+  --sidebar-accent-foreground: var(--green-700);
+  --sidebar-hover: var(--c-100);
+  --sidebar-border: var(--c-300);
+  --progress-track: var(--green-200);
+  --viz-progress: var(--gold-500);
+  --viz-seq-2: var(--n-500); --viz-seq-4: var(--n-700);
+  --viz-band-range: var(--green-200); --viz-band-edge: var(--green-500);
+  --overlay: rgba(22,34,13,.45);
+  --shadow-1: 0 1px 2px rgba(34,52,20,.06), 0 1px 3px rgba(34,52,20,.05);
+  --shadow-2: 0 2px 6px rgba(34,52,20,.07), 0 8px 20px rgba(34,52,20,.06);
+
+  color-scheme: light;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  border: 1px solid var(--ui-line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.canvas[dir="rtl"] { font-family: "IBM Plex Sans Arabic", "IBM Plex Sans", sans-serif; }
+.canvas h3, .canvas h4 { font-family: "Readex Pro", "IBM Plex Sans", sans-serif; }
+.canvas[dir="rtl"] h3, .canvas[dir="rtl"] h4 { font-family: "Readex Pro", "IBM Plex Sans Arabic", sans-serif; }
+
+.canvas-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 9px 16px; border-bottom: 1px solid var(--ui-line);
+  background: var(--ui-line-soft); color: var(--ui-ink-soft);
+  font: 500 11px/1 var(--mono); text-transform: uppercase; letter-spacing: .06em;
+}
+.canvas-body { padding: 26px; display: flex; flex-direction: column; gap: 30px; }
+
+.block { display: flex; flex-direction: column; gap: 12px; }
+.block > h4 {
+  margin: 0; font-size: 11px; font-weight: 600; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--muted-foreground);
+  font-family: "IBM Plex Sans", sans-serif !important;
+}
+.strip { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+/* ── App components ── */
+.btn {
+  font: 600 13px/1 inherit; padding: 12px 18px; border-radius: 10px;
+  border: 1px solid transparent; cursor: pointer; min-block-size: 44px;
+}
+.btn-primary { background: var(--primary); color: var(--primary-foreground-white); }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-primary-dark { background: var(--primary); color: var(--primary-foreground); }
+.btn-primary-dark:hover { background: var(--primary-hover); color: var(--n-0); }
+.btn-secondary { background: var(--secondary); color: var(--secondary-foreground); border-color: var(--green-200); }
+.btn-outline { background: var(--card); color: var(--foreground); border-color: var(--input); }
+.btn-outline:hover { border-color: var(--input-hover); background: var(--secondary); }
+.btn-destructive { background: var(--destructive); color: var(--destructive-foreground); }
+.btn-destructive:hover { background: var(--destructive-hover); }
+.btn-ghost-destructive { background: var(--destructive-subtle); color: var(--destructive); }
+.btn-disabled { background: var(--muted); color: var(--placeholder); cursor: not-allowed; }
+.btn-focus { background: var(--card); color: var(--foreground); border-color: var(--ring);
+  box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--ring); }
+
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 11px; border-radius: 999px; font-size: 12px; font-weight: 600;
+}
+.chip .dot { inline-size: 6px; block-size: 6px; border-radius: 50%; background: currentColor; }
+
+.field { display: flex; flex-direction: column; gap: 6px; max-inline-size: 260px; }
+.field label { font-size: 13px; font-weight: 600; color: var(--foreground); }
+.field .box {
+  min-block-size: 48px; display: flex; align-items: center;
+  padding: 0 14px; border-radius: 10px; font-size: 15px;
+  border: 1px solid var(--input); background: var(--card); color: var(--foreground);
+}
+.field .box.placeholder { color: var(--placeholder); }
+.field .box.hover { border-color: var(--input-hover); background: var(--secondary); }
+.field .box.focused { border: 2px solid var(--ring); box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--green-950); }
+.field .box.invalid { border: 2px solid var(--destructive); }
+.field .help { font-size: 12px; color: var(--muted-foreground); }
+.field .help.err { color: var(--destructive); font-weight: 500; }
+.checkrow { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.checkbox { inline-size: 18px; block-size: 18px; border-radius: 5px; border: 1px solid var(--control-edge); background: var(--card); }
+.checkbox.on { background: var(--primary); border-color: var(--primary); display: grid; place-items: center; }
+.checkbox.on::after { content: ""; inline-size: 5px; block-size: 9px; margin-block-start: -2px;
+  border: solid var(--primary-foreground); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+
+.card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 16px; box-shadow: var(--shadow-1); overflow: hidden;
+}
+
+table.register { inline-size: 100%; border-collapse: collapse; font-size: 13px; }
+.register th {
+  text-align: start; padding: 11px 14px; font-size: 11px; font-weight: 600;
+  letter-spacing: .05em; text-transform: uppercase;
+  background: var(--muted); color: var(--muted-foreground);
+  border-bottom: 1px solid var(--border);
+}
+.register td { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+.register tr:last-child td { border-bottom: 0; }
+.register tr:nth-child(even) td { background: var(--c-50); }
+.meter { inline-size: 92px; block-size: 8px; border-radius: 999px; background: var(--progress-track); overflow: hidden; }
+.meter > i { display: block; block-size: 100%; background: var(--viz-progress); border-radius: 999px; }
+.num { font-variant-numeric: tabular-nums; }
+
+.rail-mock { inline-size: 216px; background: var(--sidebar); border: 1px solid var(--sidebar-border); border-radius: 14px; padding: 10px; }
+.rail-mock .lbl { font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--sidebar-label); padding: 10px 12px 6px; }
+.rail-mock a { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 9px;
+  font-size: 13.5px; color: var(--sidebar-foreground); text-decoration: none; }
+.rail-mock a .ico { inline-size: 15px; block-size: 15px; border-radius: 4px; background: currentColor; opacity: .55; }
+.rail-mock a.hover { background: var(--sidebar-hover); }
+.rail-mock a.sel { background: var(--sidebar-accent); color: var(--sidebar-accent-foreground); font-weight: 600; }
+
+.meal { inline-size: 210px; padding: 12px 13px; border-radius: 12px;
+  background: var(--card); border: 1px solid var(--border); box-shadow: var(--shadow-1);
+  display: flex; flex-direction: column; gap: 9px; }
+.meal .top { display: flex; align-items: center; gap: 7px; font-size: 13.5px; font-weight: 600; }
+.meal .pdot { inline-size: 9px; block-size: 9px; border-radius: 50%; flex: none; }
+.meal .tags { display: flex; gap: 5px; flex-wrap: wrap; }
+.meal .tag { font-size: 10.5px; font-weight: 600; padding: 3px 7px; border-radius: 5px;
+  background: var(--muted); color: var(--muted-foreground); }
+.macro { display: flex; flex-direction: column; gap: 4px; }
+.macro .bar { block-size: 7px; border-radius: 999px; display: flex; overflow: hidden; background: var(--muted); }
+.macro .legend { display: flex; gap: 10px; font-size: 10.5px; color: var(--muted-foreground); }
+.macro .legend span { display: inline-flex; align-items: center; gap: 4px; }
+.macro .key { inline-size: 8px; block-size: 8px; border-radius: 2px; }
+
+.chart { display: flex; align-items: flex-end; gap: 7px; block-size: 92px; padding-block-start: 4px; }
+.chart .bar { inline-size: 26px; border-radius: 5px 5px 0 0; background: var(--viz-seq-2); }
+.chart .bar.hi { background: var(--viz-seq-4); }
+.chart-band { position: relative; block-size: 44px; border-radius: 8px; background: var(--muted); overflow: hidden; }
+.chart-band .range { position: absolute; inset-block: 0; background: var(--viz-band-range); }
+.chart-band .mark { position: absolute; inset-block: 0; inline-size: 3px; background: var(--viz-band-edge); }
+
+.dialog-wrap { position: relative; border-radius: 14px; overflow: hidden; background: var(--muted); padding: 22px; }
+.dialog-wrap::before { content: ""; position: absolute; inset: 0; background: var(--overlay); }
+.dialog { position: relative; max-inline-size: 340px; margin-inline: auto; background: var(--card);
+  border-radius: 16px; padding: 20px; box-shadow: var(--shadow-2); display: flex; flex-direction: column; gap: 12px; }
+.dialog h3 { margin: 0; font-size: 17px; font-weight: 600; }
+.dialog p { margin: 0; font-size: 13.5px; color: var(--muted-foreground); }
+.dialog .acts { display: flex; gap: 8px; justify-content: flex-end; }
+.dialog .acts .btn { padding: 10px 15px; min-block-size: 40px; }
+
+.iconrow { display: flex; align-items: center; gap: 11px; font-size: 13.5px; }
+.iconrow .plate { inline-size: 34px; block-size: 34px; border-radius: 9px;
+  background: var(--icon-chip); display: grid; place-items: center; }
+.iconrow .plate i { inline-size: 15px; block-size: 15px; border-radius: 3px; background: var(--icon-chip-foreground); }
+.accent-fill { padding: 12px 16px; border-radius: 10px; background: var(--accent-green); color: var(--on-accent);
+  font-size: 13px; font-weight: 600; }
+
+/* ── Contrast audit ── */
+.audit { padding: 0 28px 44px; }
+.audit-card { background: var(--ui-panel); border: 1px solid var(--ui-line); border-radius: 14px; overflow: hidden; }
+.audit h2 { margin: 0; padding: 16px 20px 4px; font-size: 15px; font-weight: 600; }
+.audit .sub { margin: 0; padding: 0 20px 14px; font-size: 12.5px; color: var(--ui-ink-soft); max-width: 70ch; }
+.audit table { inline-size: 100%; border-collapse: collapse; font-size: 12.5px; }
+.audit th {
+  text-align: start; padding: 9px 20px; font-size: 10.5px; font-weight: 600;
+  letter-spacing: .07em; text-transform: uppercase; color: var(--ui-ink-soft);
+  border-block: 1px solid var(--ui-line); background: var(--ui-line-soft);
+}
+.audit td { padding: 9px 20px; border-bottom: 1px solid var(--ui-line-soft); vertical-align: middle; }
+.audit tr:last-child td { border-bottom: 0; }
+.audit .pair { font-family: var(--mono); font-size: 11.5px; color: var(--ui-ink-soft); }
+.audit .ratio { font-family: var(--mono); font-variant-numeric: tabular-nums; font-weight: 500; }
+.verdict { font-family: var(--mono); font-size: 11px; font-weight: 500; padding: 3px 7px; border-radius: 5px; white-space: nowrap; }
+.verdict.pass { color: var(--ui-pass); background: color-mix(in srgb, currentColor 12%, transparent); }
+.verdict.fail { color: var(--ui-fail); background: color-mix(in srgb, currentColor 12%, transparent); }
+.verdict.known { color: var(--ui-warn); background: color-mix(in srgb, currentColor 14%, transparent); }
+.sample { display: inline-grid; place-items: center; inline-size: 46px; block-size: 26px;
+  border-radius: 6px; font-size: 12px; font-weight: 600; border: 1px solid var(--ui-line); }
+
+dialog.export { border: 1px solid var(--ui-line); border-radius: 14px; padding: 0; max-inline-size: 620px; inline-size: 92vw;
+  background: var(--ui-panel); color: var(--ui-ink); box-shadow: var(--ui-shadow); }
+dialog.export::backdrop { background: rgba(9,9,11,.5); }
+dialog.export header { display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: 14px 18px; border-bottom: 1px solid var(--ui-line); }
+dialog.export h2 { margin: 0; font-size: 15px; font-weight: 600; }
+dialog.export textarea {
+  inline-size: 100%; block-size: 46vh; border: 0; resize: vertical; padding: 16px 18px;
+  font-family: var(--mono); font-size: 12px; line-height: 1.65;
+  background: var(--ui-field); color: var(--ui-ink);
+}
+dialog.export textarea:focus { outline: none; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<header class="masthead">
+  <div>
+    <h1>Enzyme Palette Lab</h1>
+    <p>Type a hex into any primitive on the left. Every semantic token derives from it exactly the way <code>globals.css</code> does, and the components below repaint live. Contrast is re-measured on every change.</p>
+  </div>
+  <div class="tools">
+    <button class="tool" id="langBtn" aria-pressed="false" type="button">عربي / RTL</button>
+    <button class="tool" id="resetBtn" type="button">Reset to current</button>
+    <button class="tool" id="exportBtn" type="button">Copy CSS</button>
+  </div>
+</header>
+
+<div class="shell">
+  <aside class="rail" id="rail">
+    <p class="rail-hint">Primitives only — the semantic layer is computed, never edited directly. That mirrors the real file.</p>
+  </aside>
+
+  <main class="stage">
+    <div class="canvas" id="canvas" dir="ltr">
+      <div class="canvas-head">
+        <span>Enzyme — light theme</span>
+        <span id="dirLabel">LTR · English</span>
+      </div>
+      <div class="canvas-body">
+
+        <section class="block">
+          <h4 data-en="Buttons" data-ar="الأزرار">Buttons</h4>
+          <div class="strip">
+            <button class="btn btn-primary" data-en="Save plan" data-ar="حفظ الخطة">Save plan</button>
+            <button class="btn btn-primary-dark" data-en="Save plan (dark label)" data-ar="حفظ الخطة (نص داكن)">Save plan (dark label)</button>
+            <button class="btn btn-secondary" data-en="Duplicate" data-ar="نسخ">Duplicate</button>
+            <button class="btn btn-outline" data-en="Cancel" data-ar="إلغاء">Cancel</button>
+            <button class="btn btn-destructive" data-en="Delete client" data-ar="حذف العميلة">Delete client</button>
+            <button class="btn btn-ghost-destructive" data-en="Remove" data-ar="إزالة">Remove</button>
+            <button class="btn btn-focus" data-en="Focused" data-ar="مركّز">Focused</button>
+            <button class="btn btn-disabled" data-en="Unavailable" data-ar="غير متاح">Unavailable</button>
+          </div>
+        </section>
+
+        <section class="block">
+          <h4 data-en="Status chips" data-ar="شارات الحالة">Status chips</h4>
+          <div class="strip">
+            <span class="chip" style="background:var(--status-on-track-bg);color:var(--status-on-track-fg)"><i class="dot"></i><span data-en="On track" data-ar="على المسار">On track</span></span>
+            <span class="chip" style="background:var(--status-attention-bg);color:var(--status-attention-fg)"><i class="dot"></i><span data-en="Needs follow-up" data-ar="يحتاج متابعة">Needs follow-up</span></span>
+            <span class="chip" style="background:var(--status-incomplete-bg);color:var(--status-incomplete-fg)"><i class="dot"></i><span data-en="Incomplete" data-ar="غير مكتمل">Incomplete</span></span>
+            <span class="chip" style="background:var(--status-medical-bg);color:var(--status-medical-fg)"><i class="dot"></i><span data-en="Medical" data-ar="حالة طبية">Medical</span></span>
+            <span class="chip" style="background:var(--status-rest-bg);color:var(--status-rest-fg)"><i class="dot"></i><span data-en="Rest day" data-ar="يوم راحة">Rest day</span></span>
+            <span class="chip" style="background:var(--status-complete-bg);color:var(--status-complete-fg)"><i class="dot"></i><span data-en="Complete" data-ar="مكتمل">Complete</span></span>
+          </div>
+        </section>
+
+        <section class="block">
+          <h4 data-en="Fields" data-ar="الحقول">Fields</h4>
+          <div class="strip" style="align-items:flex-start;gap:18px">
+            <div class="field">
+              <label data-en="Weight (kg)" data-ar="الوزن (كجم)">Weight (kg)</label>
+              <div class="box num">68.4</div>
+              <span class="help" data-en="Scale weight, not lean mass" data-ar="وزن الميزان، وليس الكتلة الصافية">Scale weight, not lean mass</span>
+            </div>
+            <div class="field">
+              <label data-en="Hover" data-ar="مرور المؤشر">Hover</label>
+              <div class="box hover placeholder" data-en="e.g. 70" data-ar="مثال ٧٠">e.g. 70</div>
+            </div>
+            <div class="field">
+              <label data-en="Focused" data-ar="مركّز">Focused</label>
+              <div class="box focused num">1,850</div>
+            </div>
+            <div class="field">
+              <label data-en="Phone" data-ar="رقم الهاتف">Phone</label>
+              <div class="box invalid num">059</div>
+              <span class="help err" data-en="Needs 10 digits" data-ar="يجب أن يتكون من ١٠ أرقام">Needs 10 digits</span>
+            </div>
+          </div>
+          <div class="strip" style="gap:22px">
+            <span class="checkrow"><i class="checkbox on"></i><span data-en="Send the plan by WhatsApp" data-ar="إرسال الخطة عبر واتساب">Send the plan by WhatsApp</span></span>
+            <span class="checkrow"><i class="checkbox"></i><span data-en="Include the shopping list" data-ar="إرفاق قائمة التسوق">Include the shopping list</span></span>
+          </div>
+        </section>
+
+        <section class="block">
+          <h4 data-en="Client register" data-ar="سجل العميلات">Client register</h4>
+          <div class="card">
+            <table class="register">
+              <thead>
+                <tr>
+                  <th data-en="Client" data-ar="العميلة">Client</th>
+                  <th data-en="Adherence" data-ar="الالتزام">Adherence</th>
+                  <th data-en="Status" data-ar="الحالة">Status</th>
+                  <th data-en="Last visit" data-ar="آخر زيارة">Last visit</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td data-en="Layla Haddad" data-ar="ليلى حداد">Layla Haddad</td>
+                  <td><span style="display:flex;align-items:center;gap:9px"><span class="meter"><i style="inline-size:86%"></i></span><span class="num">86%</span></span></td>
+                  <td><span class="chip" style="background:var(--status-on-track-bg);color:var(--status-on-track-fg)" data-en="On track" data-ar="على المسار">On track</span></td>
+                  <td class="num" data-en="2 Sep" data-ar="٢ سبتمبر">2 Sep</td>
+                </tr>
+                <tr>
+                  <td data-en="Rana Odeh" data-ar="رنا عودة">Rana Odeh</td>
+                  <td><span style="display:flex;align-items:center;gap:9px"><span class="meter"><i style="inline-size:41%"></i></span><span class="num">41%</span></span></td>
+                  <td><span class="chip" style="background:var(--status-attention-bg);color:var(--status-attention-fg)" data-en="Needs follow-up" data-ar="يحتاج متابعة">Needs follow-up</span></td>
+                  <td class="num" data-en="19 Aug" data-ar="١٩ أغسطس">19 Aug</td>
+                </tr>
+                <tr>
+                  <td data-en="Nadia Barghouti" data-ar="نادية البرغوثي">Nadia Barghouti</td>
+                  <td><span style="display:flex;align-items:center;gap:9px"><span class="meter"><i style="inline-size:63%"></i></span><span class="num">63%</span></span></td>
+                  <td><span class="chip" style="background:var(--status-medical-bg);color:var(--status-medical-fg)" data-en="Medical" data-ar="حالة طبية">Medical</span></td>
+                  <td class="num" data-en="5 Sep" data-ar="٥ سبتمبر">5 Sep</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="block">
+          <h4 data-en="Navigation rail, meal card, macros" data-ar="شريط التنقل وبطاقة الوجبة والماكروز">Navigation rail, meal card, macros</h4>
+          <div class="strip" style="align-items:flex-start;gap:18px">
+            <nav class="rail-mock">
+              <div class="lbl" data-en="Clinic" data-ar="العيادة">Clinic</div>
+              <a href="#" class="sel"><i class="ico"></i><span data-en="Weekly plans" data-ar="الخطط الأسبوعية">Weekly plans</span></a>
+              <a href="#" class="hover"><i class="ico"></i><span data-en="Clients" data-ar="العميلات">Clients</span></a>
+              <a href="#"><i class="ico"></i><span data-en="Appointments" data-ar="المواعيد">Appointments</span></a>
+              <a href="#"><i class="ico"></i><span data-en="Food catalog" data-ar="دليل الأطعمة">Food catalog</span></a>
+            </nav>
+
+            <div class="meal">
+              <div class="top"><i class="pdot" style="background:var(--amber-600)"></i><span data-en="Musakhan, 1 plate" data-ar="مسخّن، طبق">Musakhan, 1 plate</span></div>
+              <div class="tags">
+                <span class="tag" data-en="Poultry" data-ar="دجاج">Poultry</span>
+                <span class="tag" style="background:var(--secondary);color:var(--secondary-foreground)" data-en="High protein" data-ar="عالي البروتين">High protein</span>
+              </div>
+              <div class="macro">
+                <div class="bar">
+                  <i style="inline-size:31%;background:var(--indigo-300)"></i>
+                  <i style="inline-size:44%;background:var(--amber-300)"></i>
+                  <i style="inline-size:25%;background:var(--plum-300)"></i>
+                </div>
+                <div class="legend">
+                  <span><i class="key" style="background:var(--indigo-300)"></i><span data-en="Protein" data-ar="بروتين">Protein</span></span>
+                  <span><i class="key" style="background:var(--amber-300)"></i><span data-en="Carbs" data-ar="كربوهيدرات">Carbs</span></span>
+                  <span><i class="key" style="background:var(--plum-300)"></i><span data-en="Fat" data-ar="دهون">Fat</span></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="meal">
+              <div class="top"><i class="pdot" style="background:var(--red)"></i><span data-en="Maqluba, 1 plate" data-ar="مقلوبة، طبق">Maqluba, 1 plate</span></div>
+              <div class="tags">
+                <span class="tag" data-en="Red meat" data-ar="لحم أحمر">Red meat</span>
+                <span class="tag" style="background:var(--status-medical-bg);color:var(--status-medical-fg)" data-en="Allergy" data-ar="حساسية">Allergy</span>
+              </div>
+              <div class="macro">
+                <div class="bar">
+                  <i style="inline-size:22%;background:var(--indigo-300)"></i>
+                  <i style="inline-size:52%;background:var(--amber-300)"></i>
+                  <i style="inline-size:26%;background:var(--plum-300)"></i>
+                </div>
+                <div class="legend"><span class="num">640 kcal</span><span class="num" data-en="P 34 g" data-ar="ب ٣٤ غ">P 34 g</span></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="block">
+          <h4 data-en="Charts and the comfort band" data-ar="الرسوم ونطاق الراحة">Charts and the comfort band</h4>
+          <div class="strip" style="align-items:flex-end;gap:26px">
+            <div class="chart">
+              <i class="bar" style="block-size:38%"></i><i class="bar" style="block-size:54%"></i>
+              <i class="bar" style="block-size:47%"></i><i class="bar hi" style="block-size:88%"></i>
+              <i class="bar" style="block-size:62%"></i><i class="bar" style="block-size:71%"></i>
+            </div>
+            <div style="flex:1;min-inline-size:200px">
+              <div class="chart-band">
+                <i class="range" style="inset-inline-start:34%;inline-size:32%"></i>
+                <i class="mark" style="inset-inline-start:57%"></i>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted-foreground);padding-block-start:6px" class="num">
+                <span>1,400</span><span data-en="target 1,850" data-ar="الهدف ١٬٨٥٠">target 1,850</span><span>2,300</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="block">
+          <h4 data-en="Destructive confirmation" data-ar="تأكيد الحذف">Destructive confirmation</h4>
+          <div class="dialog-wrap">
+            <div class="dialog">
+              <h3 data-en="Delete this weekly plan?" data-ar="حذف هذه الخطة الأسبوعية؟">Delete this weekly plan?</h3>
+              <p data-en="Seven days of meals will be removed. This cannot be undone." data-ar="سيتم حذف وجبات سبعة أيام. لا يمكن التراجع عن هذا.">Seven days of meals will be removed. This cannot be undone.</p>
+              <div class="acts">
+                <button class="btn btn-outline" data-en="Keep it" data-ar="الاحتفاظ بها">Keep it</button>
+                <button class="btn btn-destructive" data-en="Delete plan" data-ar="حذف الخطة">Delete plan</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="block">
+          <h4 data-en="Icon plates and the accent fill" data-ar="أقراص الأيقونات والتعبئة اللونية">Icon plates and the accent fill</h4>
+          <div class="strip" style="gap:26px">
+            <span class="iconrow"><i class="plate"><i></i></i><span data-en="Nutrition rules" data-ar="قواعد التغذية">Nutrition rules</span></span>
+            <span class="iconrow"><i class="plate"><i></i></i><span data-en="Clinic profile" data-ar="ملف العيادة">Clinic profile</span></span>
+            <span class="accent-fill" data-en="12 plans sent this week" data-ar="١٢ خطة أُرسلت هذا الأسبوع">12 plans sent this week</span>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<section class="audit">
+  <div class="audit-card">
+    <h2>Contrast audit</h2>
+    <p class="sub">Every pair the palette actually puts together. Text needs 4.5:1; a control edge or a graphic mark needs 3:1. Recomputed on every change you make. <strong>KNOWN</strong> marks a shortfall the product already chose on purpose and recorded in <code>button.tsx</code> — not a regression you introduced.</p>
+    <table>
+      <thead>
+        <tr><th>Sample</th><th>Pair</th><th>Where it appears</th><th>Ratio</th><th>Needs</th><th>Verdict</th></tr>
+      </thead>
+      <tbody id="auditBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<dialog class="export" id="exportDlg">
+  <header>
+    <h2>Paste into globals.css</h2>
+    <div class="tools">
+      <button class="tool" id="copyBtn" type="button">Copy</button>
+      <button class="tool" id="closeBtn" type="button">Close</button>
+    </div>
+  </header>
+  <textarea id="exportText" readonly spellcheck="false"></textarea>
+</dialog>
+
+<script>
+(function () {
+  "use strict";
+
+  var canvas = document.getElementById("canvas");
+  var rail = document.getElementById("rail");
+
+  /* ── The editable primitives, grouped the way globals.css groups them ── */
+  var GROUPS = [
+    { name: "Red — the one alarm colour", open: true,
+      note: "One value, not a ramp. Destructive actions, the medical chip and chart series 4 all draw it. The three below are derived from it, so they follow it anywhere it goes.",
+      tokens: [ ["--red", "#AA3D36"] ],
+      derived: ["--red-tint", "--red-light", "--red-deep"] },
+
+    { name: "Green — brand", open: true,
+      note: "Step 400 is the logo's own leaf colour and is what --primary maps to.",
+      tokens: [
+        ["--green-50","#F1FBEA"],["--green-100","#DFF6D1"],["--green-200","#C2EDA9"],
+        ["--green-300","#9BE076"],["--green-400","#75CF48"],["--green-500","#58B52D"],
+        ["--green-600","#419020"],["--green-700","#346E1D"],["--green-800","#2C581C"],
+        ["--green-900","#284B1C"],["--green-950","#11290A"] ] },
+
+    { name: "Amber — needs follow-up", open: true,
+      note: "One hue through the ramp, H78 in OKLCH. Hue is this family's identity, not lightness.",
+      tokens: [ ["--amber-100","#FFEBC6"],["--amber-300","#F7BD5E"],["--amber-600","#9B6A00"],["--amber-700","#7F5000"] ] },
+
+    { name: "Flame — a completed day",
+      note: "H52, a true orange, kept 20–25° clear of amber so \"done\" never reads as \"problem\".",
+      tokens: [ ["--flame-100","#FFE6D5"],["--flame-300","#FEA065"],["--flame-500","#F07813"],["--flame-700","#984500"] ] },
+
+    { name: "Cool neutrals — surfaces",
+      note: "Fills, borders and secondary ink. --muted, --border, --input and the rail all live here.",
+      tokens: [ ["--c-50","#F9FAFB"],["--c-100","#F3F4F6"],["--c-200","#E5E7EB"],["--c-300","#D1D5DB"],
+                ["--c-400","#9CA3AF"],["--c-500","#6B7280"],["--c-600","#4B5563"] ] },
+
+    { name: "Warm neutrals — ink",
+      note: "Page text and the darkest grounds. Never pure grey.",
+      tokens: [ ["--n-0","#FFFFFF"],["--n-25","#FCFBF7"],["--n-100","#EFEDE4"],["--n-200","#E2DFD3"],
+                ["--n-300","#CDC9B9"],["--n-400","#A8A493"],["--n-500","#837F6E"],["--n-600","#605D50"],
+                ["--n-700","#46443B"],["--n-800","#2F2E28"],["--n-900","#1C1B17"] ] },
+
+    { name: "Tag identity hues",
+      note: "Dish-tag marks only. Cool on a warm page on purpose — never status, action or surface.",
+      tokens: [ ["--teal-500","#17827B"],["--plum-500","#7D4F9B"],["--indigo-500","#2F5FA8"],
+                ["--indigo-300","#8FB2E0"],["--plum-300","#BE9BD8"] ] },
+
+    { name: "Blue and gold",
+      note: "Blue is what a subscription is bought as. Gold is the adherence meter's fill — a graphic, never ink.",
+      tokens: [ ["--blue","#2566B8"],["--gold-500","#E8B000"] ],
+      derived: ["--blue-tint"] }
+  ];
+
+  /* Defaults, so Reset is exact. --red and --blue ship as oklch() in the real file. */
+  var DEFAULTS = { "--red": "oklch(0.512 0.145 27)", "--blue": "oklch(0.5148 0.145 256)" };
+  GROUPS.forEach(function (g) {
+    g.tokens.forEach(function (t) {
+      if (!DEFAULTS[t[0]]) DEFAULTS[t[0]] = t[1];
+    });
+  });
+
+  /* ── Colour helpers ── */
+  var probe = document.createElement("span");
+  probe.style.display = "none";
+  canvas.appendChild(probe);
+
+  /* getComputedStyle keeps a modern colour in its own space — an oklch() token
+     comes back as "oklch(0.512 0.145 27)", not rgb(). Painting one pixel and
+     reading it back is the only reliable way to get sRGB bytes for every
+     syntax in the file: hex, oklch(), and color-mix() alike. */
+  var pixel = document.createElement("canvas");
+  pixel.width = pixel.height = 1;
+  var ctx = pixel.getContext("2d", { willReadFrequently: true });
+
+  function resolve(token) {
+    probe.style.color = "";
+    probe.style.color = "var(" + token + ")";
+    var computed = getComputedStyle(probe).color;
+    var legacy = computed.match(/^rgba?\(([\d.]+),?\s*([\d.]+),?\s*([\d.]+)/);
+    if (legacy) return [+legacy[1], +legacy[2], +legacy[3]];
+    ctx.clearRect(0, 0, 1, 1);
+    ctx.fillStyle = "#000000";
+    ctx.fillStyle = computed;      /* an unparseable value leaves black behind */
+    ctx.fillRect(0, 0, 1, 1);
+    var d = ctx.getImageData(0, 0, 1, 1).data;
+    return [d[0], d[1], d[2]];
+  }
+  function toHex(rgb) {
+    return "#" + rgb.slice(0, 3).map(function (v) {
+      return Math.round(v).toString(16).padStart(2, "0");
+    }).join("").toUpperCase();
+  }
+  function lum(rgb) {
+    var a = rgb.slice(0, 3).map(function (v) {
+      v /= 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
+  }
+  function ratio(a, b) {
+    var l1 = lum(a), l2 = lum(b);
+    return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+  }
+  /* ── OKLCH, for the unified-tone panel ──
+     The browser renders oklch() natively; this is only so the panel can show
+     the resulting hex and its contrast before you commit to it. */
+  function srgbToLinear(v) { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }
+  function linearToSrgb(v) {
+    v = v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055;
+    return Math.max(0, Math.min(255, Math.round(v * 255)));
+  }
+  function rgbToOklch(rgb) {
+    var r = srgbToLinear(rgb[0]), g = srgbToLinear(rgb[1]), b = srgbToLinear(rgb[2]);
+    var l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+    var m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+    var s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+    var L = 0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s;
+    var A = 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s;
+    var B = 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s;
+    var H = Math.atan2(B, A) * 180 / Math.PI;
+    if (H < 0) H += 360;
+    return { L: L, C: Math.hypot(A, B), H: H };
+  }
+  function oklchToRgb(L, C, H) {
+    var h = H * Math.PI / 180, a = C * Math.cos(h), b = C * Math.sin(h);
+    var l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+    var m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+    var s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+    var l = l_ * l_ * l_, m = m_ * m_ * m_, s = s_ * s_ * s_;
+    return [
+      linearToSrgb(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s),
+      linearToSrgb(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s),
+      linearToSrgb(-0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s)
+    ];
+  }
+
+  var HEX_RE = /^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+  function normalise(v) {
+    v = v.trim().replace(/^#/, "");
+    if (v.length === 3) v = v[0] + v[0] + v[1] + v[1] + v[2] + v[2];
+    return "#" + v.toUpperCase();
+  }
+
+  /* ── Build the editor ── */
+  var inputs = {};
+  GROUPS.forEach(function (g) {
+    var d = document.createElement("details");
+    if (g.open) d.open = true;
+    var count = g.tokens.length + (g.derived ? g.derived.length : 0);
+    d.innerHTML = '<summary><span>' + g.name + '</span><span class="count">' + count + '</span></summary>';
+    var body = document.createElement("div");
+    body.className = "group-body";
+    if (g.note) {
+      var n = document.createElement("p");
+      n.className = "group-note";
+      n.textContent = g.note;
+      body.appendChild(n);
+    }
+
+    g.tokens.forEach(function (t) {
+      var token = t[0], seed = t[1];
+      var row = document.createElement("div");
+      row.className = "row";
+
+      var sw = document.createElement("input");
+      sw.type = "color"; sw.className = "swatch"; sw.value = seed;
+      sw.setAttribute("aria-label", token + " colour picker");
+
+      var lb = document.createElement("label");
+      lb.textContent = token;
+
+      var hx = document.createElement("input");
+      hx.type = "text"; hx.className = "hex"; hx.value = seed;
+      hx.spellcheck = false;
+      hx.setAttribute("aria-label", token + " hex value");
+
+      sw.addEventListener("input", function () {
+        hx.value = sw.value.toUpperCase();
+        hx.classList.remove("bad");
+        apply(token, sw.value);
+      });
+      hx.addEventListener("input", function () {
+        if (!HEX_RE.test(hx.value)) { hx.classList.add("bad"); return; }
+        hx.classList.remove("bad");
+        var v = normalise(hx.value);
+        sw.value = v;
+        apply(token, v);
+      });
+
+      row.append(sw, lb, hx);
+      body.appendChild(row);
+      inputs[token] = { sw: sw, hx: hx, seed: seed };
+    });
+
+    (g.derived || []).forEach(function (token) {
+      var row = document.createElement("div");
+      row.className = "row derived";
+      /* The rail sits outside .canvas, so it cannot see these tokens through a
+         var(). The swatch is painted from the resolved value instead. */
+      row.innerHTML =
+        '<span class="chip-static" data-swatch="' + token + '"></span>' +
+        '<label>' + token + '</label>' +
+        '<span class="out" data-readback="' + token + '">—</span>';
+      body.appendChild(row);
+    });
+
+    d.appendChild(body);
+    rail.appendChild(d);
+  });
+
+  function apply(token, value) {
+    canvas.style.setProperty(token, value);
+    refresh();
+  }
+
+  /* ────────────────────────────────────────────────────────────
+     Unified semantic tone.
+
+     One lightness and one chroma, five hues. Each family keeps its own
+     identity and gives up its weight, so no status outranks another.
+     Seeded from #CF5E54 — L .620, C .145 — and the hues are the ones the
+     families already carry.
+     ──────────────────────────────────────────────────────────── */
+  var FAMILIES = [
+    { token: "--red",        label: "--red",        role: "destructive, medical", hue: 27.2 },
+    { token: "--green-500",  label: "--green-500",  role: "success mark, spinner", hue: 137.9 },
+    { token: "--amber-600",  label: "--amber-600",  role: "attention mark",        hue: 76.9 },
+    { token: "--flame-500",  label: "--flame-500",  role: "completed mark",        hue: 51.8 },
+    { token: "--blue",       label: "--blue",       role: "subscription",          hue: 256.2 }
+  ];
+  var unify = { on: true, L: 0.620, C: 0.145 };
+
+  var panel = document.createElement("section");
+  panel.className = "unify";
+  panel.setAttribute("data-on", "true");
+  panel.innerHTML =
+    '<h2>Unified semantic tone</h2>' +
+    '<p>One lightness and one chroma across every colour that carries meaning — only the hue changes. ' +
+    'Seeded from <strong>#CF5E54</strong>. The five primitives below are driven from here while this is on.</p>' +
+    '<label class="toggle"><input type="checkbox" id="unifyOn" checked><span>Unify lightness &amp; chroma</span></label>' +
+    '<div class="lc">' +
+      '<label>LIGHTNESS<input type="number" id="uL" min="0" max="1" step="0.005" value="0.620"></label>' +
+      '<label>CHROMA<input type="number" id="uC" min="0" max="0.4" step="0.005" value="0.145"></label>' +
+    '</div>' +
+    '<div class="fams" id="fams"></div>' +
+    '<p class="legend-note" id="unifyNote"></p>';
+  rail.insertBefore(panel, rail.firstChild.nextSibling);
+
+  var famsEl = panel.querySelector("#fams");
+  FAMILIES.forEach(function (f, i) {
+    var row = document.createElement("div");
+    row.className = "fam";
+    row.innerHTML =
+      '<span class="sw" data-fsw="' + i + '"></span>' +
+      '<span class="nm" title="' + f.role + '">' + f.label + '</span>' +
+      '<input class="hue" type="number" min="0" max="360" step="0.1" value="' + f.hue + '" aria-label="' + f.label + ' hue">' +
+      '<span class="rr" data-frr="' + i + '"></span>';
+    row.querySelector("input").addEventListener("input", function () {
+      var v = parseFloat(this.value);
+      if (!isNaN(v)) { f.hue = ((v % 360) + 360) % 360; applyUnify(); }
+    });
+    famsEl.appendChild(row);
+  });
+
+  function applyUnify() {
+    panel.setAttribute("data-on", String(unify.on));
+    FAMILIES.forEach(function (f) {
+      var row = inputs[f.token];
+      if (unify.on) {
+        var css = "oklch(" + unify.L.toFixed(3) + " " + unify.C.toFixed(3) + " " + f.hue.toFixed(1) + ")";
+        canvas.style.setProperty(f.token, css);
+        var hx = toHex(oklchToRgb(unify.L, unify.C, f.hue));
+        if (row) {
+          row.hx.value = hx; row.sw.value = hx;
+          row.hx.readOnly = true; row.sw.disabled = true;
+          row.hx.closest(".row").classList.add("driven");
+        }
+      } else if (row) {
+        row.hx.readOnly = false; row.sw.disabled = false;
+        row.hx.closest(".row").classList.remove("driven");
+      }
+    });
+    refresh();
+  }
+
+  panel.querySelector("#unifyOn").addEventListener("change", function () {
+    unify.on = this.checked;
+    if (!unify.on) {
+      FAMILIES.forEach(function (f) {
+        canvas.style.removeProperty(f.token);
+        var row = inputs[f.token];
+        if (row) {
+          var hx = toHex(resolve(f.token));
+          row.hx.value = DEFAULTS[f.token].indexOf("oklch") === 0 ? hx : DEFAULTS[f.token];
+          row.sw.value = hx;
+        }
+      });
+    }
+    applyUnify();
+  });
+  ["uL", "uC"].forEach(function (id) {
+    panel.querySelector("#" + id).addEventListener("input", function () {
+      var v = parseFloat(this.value);
+      if (isNaN(v)) return;
+      unify[id === "uL" ? "L" : "C"] = v;
+      applyUnify();
+    });
+  });
+
+  function refreshUnifyPanel() {
+    var white = [255, 255, 255], worst = null;
+    FAMILIES.forEach(function (f, i) {
+      var rgb = resolve(f.token);
+      var r = ratio(rgb, white);
+      panel.querySelector('[data-fsw="' + i + '"]').style.background = toHex(rgb);
+      var el = panel.querySelector('[data-frr="' + i + '"]');
+      el.textContent = r.toFixed(2);
+      el.className = "rr " + (r >= 4.5 ? "ok" : r >= 3 ? "mark" : "no");
+      if (!worst || r < worst.r) worst = { r: r, f: f };
+    });
+    var note = panel.querySelector("#unifyNote");
+    if (!unify.on) { note.textContent = "Off — each family keeps the value you typed for it."; return; }
+    /* The lightness at which the weakest hue would clear 4.5:1 on white. */
+    var need = null;
+    for (var L = unify.L; L > 0.2; L -= 0.002) {
+      if (ratio(oklchToRgb(L, unify.C, worst.f.hue), white) >= 4.5) { need = L; break; }
+    }
+    note.textContent = worst.r >= 4.5
+      ? "All five clear 4.5:1 on white — they can be ink as well as marks."
+      : "At L " + unify.L.toFixed(3) + " these are marks, not ink: " + worst.f.label +
+        " is the weakest at " + worst.r.toFixed(2) + ":1 on white" +
+        (need ? ". Drop lightness to about " + need.toFixed(3) + " and all five clear 4.5:1." : ".");
+  }
+
+  /* ── Contrast audit rows ── */
+  var PAIRS = [
+    ["--primary-foreground-white", "--primary", "Primary button — what ships", 4.5, "Save", 1],
+    ["--primary-foreground-white", "--primary-hover", "Primary button, hover", 4.5, "Save", 1],
+    ["--primary-foreground", "--primary", "Primary button, dark-label option", 4.5, "Save"],
+    ["--destructive-foreground", "--destructive", "Delete button", 4.5, "Del"],
+    ["--destructive-foreground", "--destructive-hover", "Delete button, hover", 4.5, "Del"],
+    ["--destructive", "--destructive-subtle", "Medical chip, ghost delete", 4.5, "Aa"],
+    ["--destructive", "--card", "Destructive ink on a card", 4.5, "Aa"],
+    ["--status-on-track-fg", "--status-on-track-bg", "On-track chip", 4.5, "Aa"],
+    ["--status-attention-fg", "--status-attention-bg", "Follow-up chip", 4.5, "Aa"],
+    ["--status-incomplete-fg", "--status-incomplete-bg", "Incomplete chip", 4.5, "Aa"],
+    ["--status-complete-fg", "--status-complete-bg", "Complete chip", 4.5, "Aa"],
+    ["--foreground", "--background", "Body text", 4.5, "Aa"],
+    ["--muted-foreground", "--card", "Secondary text", 4.5, "Aa"],
+    ["--secondary-foreground", "--secondary", "Brand text on its tint", 4.5, "Aa"],
+    ["--on-accent", "--accent-green", "Text on the accent fill", 4.5, "Aa"],
+    ["--icon-chip-foreground", "--icon-chip", "Icon plate glyph", 4.5, "Aa"],
+    ["--sidebar-accent-foreground", "--sidebar-accent", "Selected rail row", 4.5, "Aa"],
+    ["--placeholder", "--card", "Placeholder text", 4.5, "Aa"],
+    ["--control-edge", "--card", "Unchecked checkbox edge", 3, "▢"],
+    ["--ring", "--card", "Focus ring", 3, "◎"],
+    ["--spinner", "--card", "Loading mark", 3, "◐"],
+    ["--status-complete-mark", "--card", "Completed-day flame", 3, "▲"],
+    ["--viz-band-edge", "--viz-band-range", "Comfort-band marker", 3, "│"]
+  ];
+
+  var auditBody = document.getElementById("auditBody");
+  PAIRS.forEach(function (p) {
+    var tr = document.createElement("tr");
+    tr.innerHTML =
+      '<td><span class="sample" data-fg="' + p[0] + '" data-bg="' + p[1] + '">' + p[4] + '</span></td>' +
+      '<td class="pair">' + p[0].replace("--", "") + " on " + p[1].replace("--", "") + '</td>' +
+      '<td>' + p[2] + '</td>' +
+      '<td class="ratio" data-ratio></td>' +
+      '<td class="ratio">' + p[3].toFixed(1) + ':1</td>' +
+      '<td><span class="verdict" data-verdict></span></td>';
+    auditBody.appendChild(tr);
+  });
+
+  function refresh() {
+    document.querySelectorAll("[data-readback]").forEach(function (el) {
+      el.textContent = toHex(resolve(el.getAttribute("data-readback")));
+    });
+    document.querySelectorAll("[data-swatch]").forEach(function (el) {
+      el.style.background = toHex(resolve(el.getAttribute("data-swatch")));
+    });
+    auditBody.querySelectorAll("tr").forEach(function (tr, i) {
+      var p = PAIRS[i];
+      var fg = resolve(p[0]), bg = resolve(p[1]);
+      var r = ratio(fg, bg);
+      var sample = tr.querySelector(".sample");
+      sample.style.color = toHex(fg);
+      sample.style.background = toHex(bg);
+      tr.querySelector("[data-ratio]").textContent = r.toFixed(2) + ":1";
+      var v = tr.querySelector("[data-verdict]");
+      var ok = r >= p[3];
+      if (ok) { v.textContent = "PASS"; v.className = "verdict pass"; }
+      else if (p[5]) { v.textContent = "KNOWN"; v.className = "verdict known"; }
+      else { v.textContent = "FAIL"; v.className = "verdict fail"; }
+    });
+    refreshUnifyPanel();
+  }
+
+  /* ── Toolbar ── */
+  var lang = "en";
+  document.getElementById("langBtn").addEventListener("click", function () {
+    lang = lang === "en" ? "ar" : "en";
+    var rtl = lang === "ar";
+    this.setAttribute("aria-pressed", String(rtl));
+    canvas.setAttribute("dir", rtl ? "rtl" : "ltr");
+    canvas.setAttribute("lang", rtl ? "ar" : "en");
+    document.getElementById("dirLabel").textContent = rtl ? "RTL · العربية" : "LTR · English";
+    document.querySelectorAll("[data-en]").forEach(function (el) {
+      el.textContent = el.getAttribute(rtl ? "data-ar" : "data-en");
+    });
+  });
+
+  document.getElementById("resetBtn").addEventListener("click", function () {
+    unify.on = false;
+    panel.querySelector("#unifyOn").checked = false;
+    panel.setAttribute("data-on", "false");
+    FAMILIES.forEach(function (f) {
+      var row = inputs[f.token];
+      if (row) { row.hx.readOnly = false; row.sw.disabled = false; row.hx.closest(".row").classList.remove("driven"); }
+    });
+    Object.keys(inputs).forEach(function (token) {
+      var d = DEFAULTS[token];
+      canvas.style.removeProperty(token);
+      var hex = toHex(resolve(token));
+      inputs[token].sw.value = hex;
+      inputs[token].hx.value = d.indexOf("oklch") === 0 ? hex : d;
+      inputs[token].hx.classList.remove("bad");
+    });
+    refresh();
+  });
+
+  var dlg = document.getElementById("exportDlg");
+  var out = document.getElementById("exportText");
+  document.getElementById("exportBtn").addEventListener("click", function () {
+    var lines = ["/* Enzyme primitives — generated by the Palette Lab */", ":root {"];
+    GROUPS.forEach(function (g) {
+      lines.push("  /* " + g.name + " */");
+      g.tokens.forEach(function (t) {
+        var token = t[0];
+        var set = canvas.style.getPropertyValue(token).trim();
+        var value = set || DEFAULTS[token];
+        var note = set && DEFAULTS[token] !== set ? "   /* was " + DEFAULTS[token] + " */" : "";
+        lines.push("  " + token + ": " + value + ";" + note);
+      });
+      (g.derived || []).forEach(function (token) {
+        lines.push("  /* " + token + " resolves to " + toHex(resolve(token)) + " */");
+      });
+    });
+    lines.push("}");
+    out.value = lines.join("\n");
+    dlg.showModal();
+  });
+  document.getElementById("closeBtn").addEventListener("click", function () { dlg.close(); });
+  document.getElementById("copyBtn").addEventListener("click", function () {
+    out.select();
+    navigator.clipboard.writeText(out.value).then(function () {
+      var b = document.getElementById("copyBtn");
+      b.textContent = "Copied";
+      setTimeout(function () { b.textContent = "Copy"; }, 1400);
+    }, function () { /* selection is already made — the user can press Ctrl+C */ });
+  });
+
+  /* Seed the swatches from the resolved values, so the two oklch() tokens
+     show a real hex rather than an empty picker. */
+  Object.keys(inputs).forEach(function (token) {
+    var hex = toHex(resolve(token));
+    inputs[token].sw.value = hex;
+    if (DEFAULTS[token].indexOf("oklch") === 0) inputs[token].hx.value = hex;
+  });
+  applyUnify();   /* seeded on, so the page opens on the unified tone */
+})();
+</script>

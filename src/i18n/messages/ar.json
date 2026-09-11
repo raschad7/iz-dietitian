@@ -965,11 +965,16 @@
     },
     "allergens": {
       "nuts": "مكسرات",
+      "peanut": "فول سوداني",
+      "tree_nuts": "مكسرات شجرية",
       "lactose": "لاكتوز",
+      "milk": "حليب",
       "gluten": "غلوتين",
       "egg": "بيض",
       "fish": "سمك",
-      "sesame": "سمسم"
+      "shellfish": "محاريات وقشريات",
+      "sesame": "سمسم",
+      "soy": "صويا"
     },
     "bmiCategories": {
       "underweight": "نقص وزن",
@@ -1044,6 +1049,8 @@
       "gout": "النقرس"
     },
     "dietPatterns": {
+      "vegetarian": "نباتي (يسمح بالبيض والحليب)",
+      "vegan": "نباتي صرف",
       "low_carb": "قليل الكربوهيدرات",
       "keto": "كيتو",
       "high_protein": "عالي البروتين",
@@ -2154,6 +2161,8 @@
     "replaceMeal": "استبدال",
     "mealReplaced": "تم استبدال الوجبة",
     "mealReplacedHint": "تم حفظ البديل في خانة الوجبة هذه.",
+    "removeAlternative": "إزالة {name} من البدائل",
+    "alternativeRemoved": "تمت إزالة البديل",
     "originalPosition": "المكان الأصلي",
     "swapWith": "تبديل مع",
     "moveHere": "نقل إلى هنا",
@@ -2196,20 +2205,28 @@
     },
     "allergens": {
       "nuts": "مكسرات",
+      "peanut": "فول سوداني",
+      "tree_nuts": "مكسرات شجرية",
       "lactose": "لاكتوز",
+      "milk": "حليب",
       "gluten": "غلوتين",
       "egg": "بيض",
       "fish": "سمك",
-      "sesame": "سمسم"
+      "shellfish": "محاريات وقشريات",
+      "sesame": "سمسم",
+      "soy": "صويا"
     },
     "errors": {
       "notConfigured": "الذكاء الاصطناعي غير مُهيّأ: أضف OPENAI_API_KEY إلى ملف البيئة.",
       "profileIncomplete": "أكمل الملف الغذائي (الوزن والطول والجنس وتاريخ الميلاد) قبل التوليد.",
+      "unsupportedPattern": "لا يستطيع التطبيق بعدُ التحقق من هذا النمط العلاجي من المكونات والكميات النهائية، لذلك أُوقف التوليد الآلي له. أنشئي الخطة وراجعيها يدوياً.",
+      "unmappedExclusions": "لدى العميل حساسية أو مكوّن مستبعد مكتوب يدوياً ولم يُربط بعدُ بقاموس الكتالوج المُراجع. اربطيه بحساسية منظّمة قبل التوليد أو النشر.",
       "emptyCatalog": "لا توجد أطباق متاحة بعد تصفية الحساسية.",
       "modelUnusable": "لم نتمكن من استخدام رد النموذج. أعد المحاولة.",
       "planNotFound": "الخطة غير موجودة.",
       "notDraft": "لا يمكن تعديل خطة منشورة. ألغِ النشر أولاً.",
       "unfilled": "لا يمكن النشر مع وجود وجبات غير محددة.",
+      "unsafePlan": "تحتوي الخطة على طبق أو صنف جانبي أو بديل أو كمية أو قيد للعميل لم يجتز فحص الأمان النهائي. راجعي الخطة واستبدلي العنصر المحظور قبل النشر.",
       "invalid": "بيانات غير صحيحة.",
       "clientNotFound": "المشترك غير موجود.",
       "unexpected": "حدث خطأ غير متوقع.",
@@ -2273,6 +2290,7 @@
     "usedThisWeek": "هذا الأسبوع",
     "usedWeeksAgo": "{count, plural, one {الأسبوع الماضي} other {قبل # أسابيع}}",
     "blockedByAllergen": "يحتوي على {allergens}",
+    "blockedByConstraint": "لا يطابق النمط الغذائي الموصوف للعميل",
     "mealTypes": {
       "breakfast": "فطور",
       "snack": "سناك",
@@ -2352,6 +2370,7 @@
     "moreIngredient": "زيادة هذا المكوّن",
     "lessIngredient": "تقليل هذا المكوّن",
     "alsoContains": "يحتوي أيضًا",
+    "moreServings": "وحدات أخرى",
     "backToRecipe": "إرجاع الكميات الأصلية",
     "budgetHint": "ميزانية هذه الوجبة {value} kcal",
     "overBudget": "أكبر من الميزانية",
@@ -2563,11 +2582,16 @@
     },
     "allergens": {
       "nuts": "مكسرات",
+      "peanut": "فول سوداني",
+      "tree_nuts": "مكسرات شجرية",
       "lactose": "لاكتوز",
+      "milk": "حليب",
       "gluten": "غلوتين",
       "egg": "بيض",
       "fish": "سمك",
-      "sesame": "سمسم"
+      "shellfish": "محاريات وقشريات",
+      "sesame": "سمسم",
+      "soy": "صويا"
     },
     "proteinSources": {
       "red_meat": "لحوم حمراء",
@@ -2644,6 +2668,10 @@
       },
       "ingredientsHeading": "المكوّنات",
       "removeIngredient": "إزالة المكوّن",
+      "ingredientRole": "التحكم بكمية {name}",
+      "rolePrimary": "قابل للتعديل في الخطة",
+      "roleScaled": "يتغيّر مع حصة الطبق",
+      "roleFree": "كمية حرة",
       "ingredientCount": "{count, plural, =0 {لا مكوّنات} one {مكوّن واحد} two {مكوّنان} few {# مكوّنات} many {# مكوّناً} other {# مكوّن}}",
       "amount": "الكمية",
       "unitAria": "الوحدة",
@@ -2669,7 +2697,7 @@
         "nameRequired": "الاسم بالعربية مطلوب",
         "nameEnRequired": "الاسم بالإنجليزية مطلوب",
         "mealTypeRequired": "اختر وقت وجبة واحداً على الأقل",
-        "ingredientRequired": "أضف مكوّناً واحداً على الأقل بطعام وكمية موجبة"
+        "ingredientRequired": "أدخل كمية أكبر من صفر لكل مكوّن"
       },
       "submit": "إنشاء الطبق",
       "saveChanges": "حفظ التعديلات",
@@ -3755,6 +3783,29 @@
       "very_active": "نشط جداً — تمرين مكثف",
       "kidney_disease": "كلى — بدون غسيل",
       "dialysis": "كلى — مع غسيل"
+    }
+  },
+  "portionGuide": {
+    "title": "المقاييس والأوزان",
+    "description": "كم يزن كل مقياس في خطط هذه العيادة. هذه هي نفسها الأرقام التي تُحسب منها السعرات، فلا يمكن أن يختلف هذا الجدول عنها.",
+    "columns": {
+      "food": "الصنف",
+      "unit": "الوحدة",
+      "weight": "الوزن"
+    },
+    "grams": "{value} غ",
+    "range": "({min}–{max})",
+    "empty": "لا توجد مقاييس بعد.",
+    "groups": {
+      "heaped_spoon": "الملاعق الممتلئة",
+      "level_spoon": "الملاعق الممسوحة",
+      "loaf": "الخبز",
+      "slice": "الشرائح",
+      "piece": "الحبة",
+      "cup": "الأكواب",
+      "container": "العلب",
+      "serving": "حصص الأطباق",
+      "leaf": "الورقة"
     }
   }
 }

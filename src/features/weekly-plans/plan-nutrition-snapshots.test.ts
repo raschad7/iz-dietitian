@@ -6,6 +6,7 @@ import { db } from '@/db';
 import { normalizeArabic } from '@/features/weekly-plans/arabic-normalize';
 import {
   catalogFoods,
+  clientNutritionProfiles,
   dishIngredients,
   dishes,
 
@@ -19,6 +20,7 @@ import type { ReconciledMeal } from './generate';
 import { createPlanFromGeneration, publishPlan, unpublishPlan } from './mutations';
 import { placeDish } from './editor-mutations';
 import { getBoard, getPublishedBoard } from './queries';
+import { DEFAULT_MEAL_SCHEDULE } from './schema';
 
 /**
  * The Phase 0 invariant, proven end to end against the database.
@@ -77,7 +79,7 @@ async function seedCatalog(): Promise<void> {
         slug: 'snap-lunch-a',
         nameAr: 'طبق أ',
         nameEn: 'Dish A',
-        mealTypes: ['lunch'],
+        mealTypes: ['breakfast', 'lunch', 'dinner'],
         allergenTags: [],
         baseServingLabel: 'حصة',
       },
@@ -85,7 +87,7 @@ async function seedCatalog(): Promise<void> {
         slug: 'snap-lunch-b',
         nameAr: 'طبق ب',
         nameEn: 'Dish B',
-        mealTypes: ['lunch'],
+        mealTypes: ['breakfast', 'lunch', 'dinner'],
         allergenTags: [],
         baseServingLabel: 'حصة',
       },
@@ -136,6 +138,11 @@ async function createPlan(meals: ReconciledMeal[] = [meal()]): Promise<string> {
       model: 'test-model',
       usage: { promptTokens: 1, completionTokens: 1 },
       durationMs: 1,
+      passes: [{
+        pass: 'single', model: 'test-model',
+        usage: { promptTokens: 1, completionTokens: 1 },
+        durationMs: 1, status: 'ok', error: null,
+      }],
     },
   });
 
@@ -171,6 +178,11 @@ beforeEach(async () => {
   await resetDatabase();
   clinicId = await createTestClinic();
   clientId = await createTestClient(clinicId);
+  await db.insert(clientNutritionProfiles).values({
+    clinicId,
+    clientId,
+    mealSchedule: DEFAULT_MEAL_SCHEDULE,
+  });
   await seedCatalog();
 });
 
@@ -470,23 +482,15 @@ describe('a draft keeps calculating live', () => {
 // ---------------------------------------------------------------------------
 
 describe('publish atomicity', () => {
-  /**
-   * A dish with no ingredients is a real, publishable state, not a failure: it
-   * totals zero because it contains nothing. Worth pinning down so the genuine
-   * failure case below is not confused with it.
-   */
-  test('a dish with an empty recipe freezes as a measured zero, and publishes', async () => {
+  test('a named dish with no recipe is blocked instead of becoming a zero-calorie client meal', async () => {
     const planId = await createPlan();
 
     await db.delete(dishIngredients).where(eq(dishIngredients.dishId, dishIds[0]!));
 
-    expect(await publishPlan(clinicId, planId)).toEqual({ ok: true });
+    expect(await publishPlan(clinicId, planId)).toEqual({ ok: false, reason: 'unsafe' });
 
     const [row] = await snapshotRows(planId);
-    expect(row?.snapshot).not.toBeNull();
-    expect(row?.snapshot?.totals.kcal.value).toBe(0);
-    // Measured zero, not unmeasured: there are no ingredients to be unsure about.
-    expect(row?.snapshot?.totals.kcal.unmeasured).toBe(0);
+    expect(row?.snapshot).toBeNull();
   });
 
   /**
@@ -689,6 +693,11 @@ describe('backfill', () => {
 
     const otherClinicId = await createTestClinic('Other Clinic');
     const otherClientId = await createTestClient(otherClinicId, 'Other Client');
+    await db.insert(clientNutritionProfiles).values({
+      clinicId: otherClinicId,
+      clientId: otherClientId,
+      mealSchedule: DEFAULT_MEAL_SCHEDULE,
+    });
 
     const otherPlanId = await createPlanFromGeneration({
       clinicId: otherClinicId,
@@ -707,6 +716,11 @@ describe('backfill', () => {
         model: 'test-model',
         usage: { promptTokens: 1, completionTokens: 1 },
         durationMs: 1,
+        passes: [{
+          pass: 'single', model: 'test-model',
+          usage: { promptTokens: 1, completionTokens: 1 },
+          durationMs: 1, status: 'ok', error: null,
+        }],
       },
     });
     await publishPlan(otherClinicId, otherPlanId!);

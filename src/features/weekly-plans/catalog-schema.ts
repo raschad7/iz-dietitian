@@ -31,11 +31,27 @@ const uuid = z.string().uuid();
 export const ingredientInputSchema = z
   .object({
     foodId: uuid,
+    /**
+     * The served part this line belongs to — see `dish-components.ts`.
+     *
+     * Round-tripped rather than authored: the editor has no grouping control, so
+     * these arrive from a dish that already had them. Validated all the same,
+     * because a request is a request whoever wrote it.
+     */
+    componentKey: z.string().trim().min(1).max(60).nullish(),
+    componentNameAr: z.string().trim().min(1).max(80).nullish(),
+    componentNameEn: z.string().trim().min(1).max(80).nullish(),
+    isPrimary: z.boolean().optional(),
+    isFree: z.boolean().optional(),
     // `.finite()` as well as `.positive()`: `Number("Infinity")` coerces happily,
     // and an infinite gram count would poison every total on the plan.
     quantityGrams: z.coerce.number().positive().finite(),
     portionId: uuid.nullish(),
     portionQuantity: z.coerce.number().positive().finite().nullish(),
+  })
+  .refine((value) => !(value.isPrimary && value.isFree), {
+    message: 'An ingredient cannot be both adjustable and a free serving.',
+    path: ['isPrimary'],
   })
   .refine(
     (value) =>
@@ -78,6 +94,19 @@ export const clinicDishInputSchema = z.object({
   allergenTags: z.array(z.enum(ALLERGENS)),
   baseServingLabel: z.string().trim().min(1).max(60),
   ingredients: z.array(ingredientInputSchema).min(1),
+}).superRefine((value, context) => {
+  const seen = new Set<string>();
+
+  value.ingredients.forEach((ingredient, index) => {
+    if (seen.has(ingredient.foodId)) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Each food may appear only once in a dish.',
+        path: ['ingredients', index, 'foodId'],
+      });
+    }
+    seen.add(ingredient.foodId);
+  });
 });
 
 export type ClinicDishInput = z.infer<typeof clinicDishInputSchema>;

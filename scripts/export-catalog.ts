@@ -87,7 +87,14 @@ const NUTRIENT_KEYS = [
 ] as const;
 
 /** The portion fields the database owns; anything else in the file is carried through. */
-const PORTION_KEYS = new Set(['labelAr', 'labelEn', 'grams', 'isDefault', 'sortOrder']);
+const PORTION_COLUMNS = new Set([
+  'key',
+  'labelAr',
+  'labelEn',
+  'grams',
+  'isDefault',
+  'sortOrder',
+]);
 
 type ExportedFood = Record<string, unknown> & { slug?: unknown };
 
@@ -195,26 +202,30 @@ async function buildFoods(existing: readonly ExportedFood[]): Promise<ExportedFo
       A portion in `data/catalog-foods.json` may carry a `sourceRef` — one does
       today: "clinic practice, Hebron: one heaped eating spoon of cooked rice.
       Not a level measuring tablespoon." The database has no column for it, so
-      building a fresh object dropped it. `label_en` is the key the seed upserts
-      portions on, which makes it the right thing to match on here too.
+      building a fresh object dropped it.
+
+      Matched on `key`, which is what the seed upserts portions on. It matched on
+      `label_en` until the portion contract moved identity onto the key; a rename
+      would have orphaned the authored half of a row and quietly dropped it.
     */
     const beforePortions = Array.isArray(before?.portions)
       ? (before.portions as Record<string, unknown>[])
       : [];
-    const beforeByLabel = new Map(beforePortions.map((portion) => [portion.labelEn, portion]));
+    const beforeByKey = new Map(beforePortions.map((portion) => [portion.key, portion]));
 
     const portionRows = (portionsByFood.get(food.id) ?? []).map((portion) => {
-      const authored = beforeByLabel.get(portion.labelEn) ?? {};
+      const authored = beforeByKey.get(portion.key) ?? {};
 
       // The extras go LAST, matching where the file writes them. Spreading the
       // authored object first put `sourceRef` at the head of the object, which
       // is a different `JSON.stringify` and therefore a different checksum for
       // a portion whose data had not changed.
       const extras = Object.fromEntries(
-        Object.entries(authored).filter(([key]) => !PORTION_KEYS.has(key)),
+        Object.entries(authored).filter(([field]) => !PORTION_COLUMNS.has(field)),
       );
 
       return {
+        key: portion.key,
         labelAr: portion.labelAr,
         labelEn: portion.labelEn,
         grams: portion.grams,

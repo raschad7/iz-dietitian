@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/db';
+import { saveIntake } from '@/features/clients/mutations';
 import { normalizeArabic } from '@/features/weekly-plans/arabic-normalize';
 import {
   clientPlanAdherence,
@@ -52,6 +53,12 @@ beforeEach(async () => {
   await resetDatabase();
   clinicId = await createTestClinic();
   clientId = await createTestClient(clinicId, 'Test Client');
+  await saveIntake(clinicId, {
+    clientId,
+    allergenTags: [],
+    customAllergens: [],
+    mealSchedule: schedule,
+  });
 });
 
 function skeleton() {
@@ -197,7 +204,7 @@ describe('createPlanFromSkeleton', () => {
         slug: 'copy-dish',
         nameAr: 'طبق',
         nameEn: 'Dish',
-        mealTypes: ['lunch'],
+        mealTypes: ['breakfast', 'lunch'],
         allergenTags: [],
         baseServingLabel: 'حصة',
       })
@@ -276,6 +283,32 @@ describe('createPlanFromSkeleton', () => {
     expect(meals.every((meal) => meal.dishId === null)).toBe(true);
     expect(new Set(meals.map((meal) => meal.slotKey))).toEqual(new Set(['breakfast', 'lunch']));
   });
+
+  test('turns an untrusted copied dish id into an explicit empty slot', async () => {
+    const meals = skeleton();
+    meals[0] = { ...meals[0]!, dishId: randomUUID(), servings: 2 };
+
+    const planId = await createPlanFromSkeleton({
+      clinicId,
+      clientId,
+      weekStartDate: '2026-08-02',
+      kcalTarget: 1000,
+      meals,
+    });
+
+    const [stored] = await db
+      .select({ dishId: weeklyPlanMeals.dishId, servings: weeklyPlanMeals.servings })
+      .from(weeklyPlanMeals)
+      .where(
+        and(
+          eq(weeklyPlanMeals.planId, planId!),
+          eq(weeklyPlanMeals.dayOfWeek, meals[0]!.dayOfWeek),
+          eq(weeklyPlanMeals.slotKey, meals[0]!.slotKey),
+        ),
+      );
+
+    expect(stored).toEqual({ dishId: null, servings: 1 });
+  });
 });
 
 describe('the edit writes', () => {
@@ -311,7 +344,7 @@ describe('the edit writes', () => {
         slug,
         nameAr: slug,
         nameEn: slug,
-        mealTypes: ['lunch'],
+        mealTypes: ['breakfast', 'lunch'],
         allergenTags: [],
         baseServingLabel: 'حصة',
       })
@@ -568,6 +601,29 @@ describe('the edit writes', () => {
     expect((await readMeal(sunday.breakfast))?.dishId).toBe(dishId);
   });
 
+  test('moveMealDish refuses a dish that is incompatible with the destination slot', async () => {
+    await db.update(dishes).set({ mealTypes: ['lunch'] }).where(eq(dishes.id, dishId));
+    await placeDish(clinicId, planId, sunday.lunch, dishId, 1);
+
+    expect(await moveMealDish(clinicId, planId, sunday.lunch, sunday.breakfast, 'move')).toBe(false);
+    expect((await readMeal(sunday.lunch))?.dishId).toBe(dishId);
+    expect((await readMeal(sunday.breakfast))?.dishId).toBeNull();
+  });
+
+  test('moveMealDish rechecks current client allergens before copying a dish', async () => {
+    await placeDish(clinicId, planId, sunday.lunch, dishId, 1);
+    await db.update(dishes).set({ allergenTags: ['egg'] }).where(eq(dishes.id, dishId));
+    await saveIntake(clinicId, {
+      clientId,
+      allergenTags: ['egg'],
+      customAllergens: [],
+      mealSchedule: schedule,
+    });
+
+    expect(await moveMealDish(clinicId, planId, sunday.lunch, sunday.breakfast, 'copy')).toBe(false);
+    expect((await readMeal(sunday.breakfast))?.dishId).toBeNull();
+  });
+
   test('moveMealDish refuses when the source holds no dish', async () => {
     expect(await moveMealDish(clinicId, planId, sunday.lunch, sunday.breakfast, 'move')).toBe(false);
   });
@@ -788,7 +844,13 @@ describe('setMealSides', () => {
     const [meal] = await db
       .select({ id: weeklyPlanMeals.id })
       .from(weeklyPlanMeals)
-      .where(and(eq(weeklyPlanMeals.planId, planId), eq(weeklyPlanMeals.dayOfWeek, 0)))
+      .where(
+        and(
+          eq(weeklyPlanMeals.planId, planId),
+          eq(weeklyPlanMeals.dayOfWeek, 0),
+          eq(weeklyPlanMeals.slotKey, 'lunch'),
+        ),
+      )
       .limit(1);
 
     mealId = meal!.id;
@@ -831,6 +893,19 @@ describe('setMealSides', () => {
 
     expect(await setMealSides(clinicId, planId, mealId, [mainId])).toBe(false);
     expect(await attached()).toEqual([saladId]);
+  });
+
+  test('a side carrying a current client allergen is refused', async () => {
+    await db.update(dishes).set({ allergenTags: ['egg'] }).where(eq(dishes.id, saladId));
+    await saveIntake(clinicId, {
+      clientId,
+      allergenTags: ['egg'],
+      customAllergens: [],
+      mealSchedule: schedule,
+    });
+
+    expect(await setMealSides(clinicId, planId, mealId, [saladId])).toBe(false);
+    expect(await attached()).toEqual([]);
   });
 
   test('another clinic’s side is refused the same way a forged id is', async () => {

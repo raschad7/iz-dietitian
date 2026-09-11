@@ -42,6 +42,7 @@ import { localizedName } from './food-display';
 import { getReviewTransport, type LlmResult } from './llm';
 import { formatQuantity, ingredientAmount } from './meal-quantity';
 import { printPlan } from './plan-print';
+import type { PortionKey } from './portion-contract';
 import { exceedsCountLimit } from './portion-limits';
 import type { PromptPayload } from './prompt';
 import type { Board } from './queries';
@@ -150,7 +151,7 @@ export function renderPlanForReview(board: Board): string {
 /* -------------------------------------------------------------------------- */
 
 /** Units a meal is counted in, where too many of them stops being a portion. */
-const COUNTABLE_LABELS = new Set(['Piece', 'Slice']);
+const COUNTABLE_KEYS = new Set<PortionKey>(['piece', 'slice']);
 
 /**
  * Every finding that is a question about numbers rather than about judgement.
@@ -229,8 +230,8 @@ export function arithmeticFindings(board: Board): string[] {
           halves now read the same table.
         */
         if (
-          COUNTABLE_LABELS.has(line.portion.labelEn) &&
-          exceedsCountLimit(line.food.slug, count, line.portion.labelEn)
+          COUNTABLE_KEYS.has(line.portion.key) &&
+          exceedsCountLimit(line.food.slug, count, line.portion.key)
         ) {
           found.push(
             `${dayName} · ${meal.label}: ${name} ${formatQuantity(count, 'ar')} ${line.portion.labelAr} — أكثر مما يؤكل في جلسة واحدة.`,

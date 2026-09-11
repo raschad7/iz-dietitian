@@ -46,10 +46,11 @@
  * the page — the two cannot drift apart, because they are the same numbers.
  */
 
-import { GRAMS_STEP } from './ingredient-units';
+import { GRAMS_STEP, unitStep } from './ingredient-units';
+import type { PortionKey } from './portion-contract';
 import { countLimit } from './portion-limits';
 import type { FoodNutrients } from './nutrition';
-import { MAX_SERVINGS, MIN_SERVINGS, SERVING_STEP } from './similar';
+import { isSimilar, MAX_SERVINGS, MIN_SERVINGS, SERVING_STEP } from './similar';
 
 /** What portioning needs of a recipe line. A subset of `DishIngredientDetail`. */
 export type PortionableLine = {
@@ -70,7 +71,7 @@ export type PortionableLine = {
     FoodNutrients,
     'kcal'
   >;
-  portion?: { labelEn: string; grams: number } | null;
+  portion?: { key: PortionKey; grams: number; step?: number | null; maxPerMeal?: number | null } | null;
   /** How many of that portion one base serving is. */
   portionQuantity?: number | null;
   isPrimary?: boolean;
@@ -90,23 +91,6 @@ export type PortionedAmount = {
   quantityGrams: number;
   /** Null when the line is measured in grams, or its portion is unusable. */
   portionQuantity: number | null;
-};
-
-/**
- * How much one press of a unit is worth, in that unit.
- *
- * The same increments as `unitStep` in `ingredient-units.ts`, which is what the
- * dietitian's `−`/`+` moves by — deliberately, so a generated amount sits on the
- * grid her buttons walk. A unit whose label already names a fraction (`نصف كوب`)
- * moves by whole ones: a quarter of a half cup is arithmetic nobody serves.
- *
- * An egg moves by a whole egg. Half a رغيف is a real instruction and half an egg
- * is not, which is the distinction the table encodes.
- */
-const UNIT_STEPS: Record<string, number> = {
-  Cup: 0.25,
-  Loaf: 0.5,
-  Container: 0.5,
 };
 
 /**
@@ -185,14 +169,14 @@ const SEASONING_KCAL = 15;
 const SEASONING_CATEGORIES = new Set(['herbs_spices']);
 
 /** Quarter and half steps are exact in binary, but the arithmetic around them is not. */
-function clean(value: number): number {
+export function clean(value: number): number {
   return Math.round(value * 1000) / 1000;
 }
 
 /** The step a line's amount moves on, in whatever unit it is written in. */
 export function lineStep(line: PortionableLine): number {
   if (!line.portion) return GRAM_STEPS[line.food.category ?? ''] ?? GRAMS_STEP;
-  return UNIT_STEPS[line.portion.labelEn] ?? 1;
+  return unitStep(line.portion);
 }
 
 /**
@@ -210,17 +194,25 @@ export function lineCeiling(line: PortionableLine): number | null {
   const counted: number[] = [];
 
   /*
-    The per-food limit first, because it is the one somebody decided. A category
-    cannot tell a grape from an almond, and the weight ceiling alone let a
-    forty-gram allowance become fifty-seven pistachios.
+    The ceiling carried by the portion row itself first, because it is the one
+    somebody decided about this exact food in this exact unit. A category cannot
+    tell a grape from an almond, and the weight ceiling alone let a forty-gram
+    allowance become fifty-seven pistachios.
+
+    `countLimit` is the same decision still living in `portion-limits.ts` for the
+    foods whose ceiling has not been moved onto its row yet. It is consulted
+    second and both are minimised, so migrating one food changes nothing until
+    someone deliberately writes a different number.
   */
-  const perFood = countLimit(line.food.slug, line.portion.labelEn);
+  if (typeof line.portion.maxPerMeal === 'number') counted.push(line.portion.maxPerMeal);
+
+  const perFood = countLimit(line.food.slug, line.portion.key);
   if (perFood !== null) counted.push(perFood);
 
-  if (line.portion.labelEn === 'Piece' && PIECE_CEILINGS[category] !== undefined) {
+  if (line.portion.key === 'piece' && PIECE_CEILINGS[category] !== undefined) {
     counted.push(PIECE_CEILINGS[category]!);
   }
-  if (line.portion.labelEn === 'Container') counted.push(CONTAINER_CEILING);
+  if (line.portion.key === 'container') counted.push(CONTAINER_CEILING);
 
   // A weight ceiling becomes a count ceiling through the line's own
   // grams-per-count, which is the stored relationship rather than the portion's
@@ -275,7 +267,10 @@ export function stepFromBase(base: number, target: number, step: number, ceiling
 /** Whether a line's portion can carry its amount. */
 function usablePortion(
   line: PortionableLine,
-): line is PortionableLine & { portion: { labelEn: string; grams: number }; portionQuantity: number } {
+): line is PortionableLine & {
+  portion: { key: PortionKey; grams: number };
+  portionQuantity: number;
+} {
   return Boolean(
     line.portion &&
       line.portion.grams > 0 &&
@@ -397,6 +392,18 @@ export function chooseServings(
   }
 
   return best;
+}
+
+/** A practical multiplier only when its actual snapped plate fits the slot. */
+export function similarServings(
+  recipe: readonly PortionableLine[],
+  budgetKcal: number,
+  options: ServingOptions = {},
+): number | null {
+  const servings = chooseServings(recipe, budgetKcal, options);
+  if (servings === null) return null;
+
+  return isSimilar(portionedKcal(recipe, servings), budgetKcal) ? servings : null;
 }
 
 /**

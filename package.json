@@ -24,6 +24,7 @@
     "report:read": "bun run scripts/read-measurement-report.ts",
     "plan:review": "bun run scripts/review-plan.ts",
     "plan:sweep": "bun run scripts/review-sweep.ts",
+    "plan:audit": "bun run scripts/audit-plan-catalog.ts",
     "plan:lab": "bun --env-file=.env.local run scripts/plan-lab.ts",
     "db:build-catalog": "bun run scripts/build-catalog-dataset.ts",
     "db:build-food-dataset": "bun run scripts/build-food-dataset.ts",

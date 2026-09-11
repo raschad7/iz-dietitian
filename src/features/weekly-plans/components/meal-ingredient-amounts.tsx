@@ -2,6 +2,7 @@ import { useTranslations } from 'next-intl';
 
 import { cn } from '@/lib/utils';
 
+import { readableRows, type ReadableRow } from '../dish-components';
 import { localizedName } from '../food-display';
 import type { MealIngredientLine } from '../meal-ingredients';
 import { ingredientAmount } from '../meal-quantity';
@@ -57,8 +58,8 @@ export function MealIngredientAmounts({
     <div className="flex flex-col gap-2">
       {main.length > 0 && (
         <ul className="flex flex-col gap-1.5 text-body-sm">
-          {main.map((line) => (
-            <IngredientRow key={lineKey(line)} line={line} locale={locale} />
+          {readableRows(main).map((row) => (
+            <ComponentRow key={row.key} row={row} locale={locale} />
           ))}
         </ul>
       )}
@@ -132,6 +133,34 @@ export function groupBySide(lines: readonly MealIngredientLine[]): {
  * so the two surfaces still cannot disagree about how a quantity is spelled
  * without either one pretending to be the other's layout.
  */
+function ComponentRow({
+  row,
+  locale,
+}: {
+  row: ReadableRow<MealIngredientLine>;
+  locale: string;
+}) {
+  /*
+    The served thing's name — «مجدرة», not «أرز» — and the weight of all of it.
+
+    «أرز ٦ ملاعق ، عدس ١٩٨ غ ، بصل ٥٠ غ» is not a description of مجدرة; it is a
+    description of cooking one. The lines are still on the plan for the
+    dietitian to inspect. What changes here is that the plate is named as the
+    thing it is. An ungrouped line is its own row and reads exactly as before.
+  */
+  return (
+    <li className="flex items-center justify-between gap-3">
+      <span className="min-w-0 flex-1 text-muted-foreground [overflow-wrap:anywhere]" dir="auto">
+        {localizedName({ nameAr: row.nameAr, nameEn: row.nameEn }, locale)}
+      </span>
+
+      {/* `shrink-0` and no wrapping: the amount is short in both languages and is
+          what the eye runs down the column for. */}
+      <IngredientAmount line={row.line} locale={locale} className="shrink-0 text-end font-medium" />
+    </li>
+  );
+}
+
 function IngredientRow({ line, locale }: { line: MealIngredientLine; locale: string }) {
   return (
     <li className="flex items-center justify-between gap-3">

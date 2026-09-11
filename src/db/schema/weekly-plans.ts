@@ -318,13 +318,33 @@ export const weeklyPlanMealIngredients = pgTable(
     portionQuantity: real('portion_quantity'),
 
     /**
-     * Whether this line carried a control when the meal was copied here.
+     * The component this line belonged to when the meal was copied here.
+     *
+     * Copied from `dish_ingredients.component_key` rather than joined back to it,
+     * for the same reason the food is: re-authoring a dish must not regroup a
+     * meal that was already prescribed, which would change what the client is
+     * told to serve after the fact.
+     *
+     * @see src/features/weekly-plans/dish-components.ts
+     */
+    componentKey: text('component_key'),
+
+    /** The served thing's name, as it read when this meal was written. */
+    componentNameAr: text('component_name_ar'),
+    componentNameEn: text('component_name_en'),
+
+    /**
+     * Whether this line's component carried a control when the meal was copied
+     * here.
      *
      * Copied from `dish_ingredients.is_primary` rather than joined back to it, for
      * the same reason the food is: re-starring a dish must not add or remove
      * controls on meals that were already prescribed.
      */
     isPrimary: boolean('is_primary').notNull().default(false),
+
+    /** Preserved from the recipe: displayed as flexible and never multiplier-scaled. */
+    isFree: boolean('is_free').notNull().default(false),
 
     /** The recipe's own order, preserved so the meal reads as it was written. */
     sortOrder: integer('sort_order').notNull().default(0),
@@ -440,6 +460,9 @@ export const weeklyPlanGenerations = pgTable(
 
     /** `week` | `day` | `meal`. */
     scope: text('scope').notNull(),
+
+    /** `single` | `initial` | `refinement`; one row is one provider call. */
+    pass: text('pass').notNull().default('single'),
 
     /** The one-line instruction for this run, if any. */
     instruction: text('instruction'),

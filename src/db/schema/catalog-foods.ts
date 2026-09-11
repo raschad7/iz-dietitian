@@ -12,6 +12,8 @@ import {
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
+import type { PortionKey } from '@/features/weekly-plans/portion-contract';
+
 import { clinics } from './clinics';
 
 /**
@@ -82,8 +84,11 @@ export const catalogFoods = pgTable(
     category: text('category').notNull(),
 
     /**
-     * The unit this food is **always** counted in — the `label_en` of one of its
-     * own portions — or null when it is measured by weight.
+     * The unit this food is **always** counted in — the `key` of one of its own
+     * portions — or null when it is measured by weight.
+     *
+     * Keyed rather than labelled since the portion contract: this pointed at a
+     * `label_en`, so renaming a portion broke the link with no error.
      *
      * An egg is a حبة, bread is a رغيف, cooked rice is a ملعقة. Before this column
      * the recipe author decided per line, which is how the same egg appeared as
@@ -243,6 +248,18 @@ export const catalogFoodPortions = pgTable(
       .notNull()
       .references(() => catalogFoods.id, { onDelete: 'cascade' }),
 
+    /**
+     * The portion's stable identity — one of `PORTION_KEY_SPECS` in
+     * `portion-contract.ts`. `cup`, `heaped-spoon`, `loaf`, `piece`.
+     *
+     * Identity used to be `label_en`, and three separate systems keyed behaviour on
+     * that prose: the step size, the serving ceiling, and `catalog_foods.counted_as`.
+     * Renaming a label therefore changed three behaviours silently, which is the
+     * reason the catalog's wrong spoon weights could not be corrected. The key is
+     * what those systems key on now, so a label is text a human reads.
+     */
+    key: text('key').$type<PortionKey>().notNull(),
+
     /** Stored separately, never translated at runtime. "كوب" / "Cup". */
     labelAr: text('label_ar').notNull(),
     labelEn: text('label_en').notNull(),
@@ -255,6 +272,51 @@ export const catalogFoodPortions = pgTable(
 
     sortOrder: integer('sort_order').notNull().default(0),
 
+    /**
+     * What one press of `−`/`+` moves this portion by, in its own unit.
+     *
+     * Null means "the default for this key" — see `defaultStepOf`. Only a food that
+     * genuinely needs its own grid carries a number here.
+     */
+    step: real('step'),
+
+    /**
+     * The most of this food, in this unit, one meal may hold. Null means nobody has
+     * decided, which is the honest answer and the one the portioner already treats
+     * as "no ceiling".
+     */
+    maxPerMeal: real('max_per_meal'),
+
+    /**
+     * `local_measurement` | `published_table` | `usda_measure` | `estimate`.
+     *
+     * `usda_measure` is what the level measuring spoons already shipping are. They
+     * are real measurements of a real object, just not the object a dietitian means
+     * by ملعقة, and recording that is what lets them keep working while being
+     * visibly unreviewed.
+     */
+    evidenceKind: text('evidence_kind'),
+
+    /** A citation, a URL, or who weighed it and where. */
+    evidenceSource: text('evidence_source'),
+
+    /** When the weight was established, and how firmly. */
+    evidenceDate: text('evidence_date'),
+    evidenceSamples: integer('evidence_samples'),
+    evidenceMinGrams: real('evidence_min_grams'),
+    evidenceMaxGrams: real('evidence_max_grams'),
+
+    /**
+     * `candidate` | `needs_review` | `reviewed`.
+     *
+     * An unreviewed portion may be offered in the editor with its status visible.
+     * It may not be a food's counted unit — the unit a *generated* plan writes
+     * without anyone choosing it.
+     */
+    reviewStatus: text('review_status').notNull().default('needs_review'),
+    reviewedBy: text('reviewed_by'),
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+
     /** Where the weight came from, when it is not simply the food's own source. */
     sourceRef: text('source_ref'),
 
@@ -263,8 +325,10 @@ export const catalogFoodPortions = pgTable(
   },
   (table) => [
     // What makes the seed an upsert: re-running it updates a portion's weight in
-    // place rather than adding a second "Cup" beside the first.
-    uniqueIndex('catalog_food_portions_food_label_idx').on(table.foodId, table.labelEn),
+    // place rather than adding a second cup beside the first. On the key rather
+    // than the label, so that correcting the wording of a portion updates it
+    // instead of creating a duplicate under the new name.
+    uniqueIndex('catalog_food_portions_food_key_idx').on(table.foodId, table.key),
     // Two defaults would make "which unit does this food start in" unanswerable.
     uniqueIndex('catalog_food_portions_default_idx')
       .on(table.foodId)

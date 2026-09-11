@@ -24,6 +24,7 @@
  */
 
 import { localizedPortionLabel } from './food-display';
+import { defaultStepOf, type PortionKey } from './portion-contract';
 
 /** The value the grams option carries. Not a uuid, so it can never collide with a portion id. */
 export const GRAMS_UNIT = 'g';
@@ -31,12 +32,18 @@ export const GRAMS_UNIT = 'g';
 /** One portion of a food, as the queries hand it over. */
 export type FoodPortion = {
   id: string;
+  /** The portion's stable identity — what its behaviour is keyed on. */
+  key: PortionKey;
   labelAr: string;
   labelEn: string;
   /** What one of this portion weighs. Always > 0 — the column is constrained. */
   grams: number;
   isDefault: boolean;
   sortOrder: number;
+  /** Overrides the key's default step, where a food needs its own grid. */
+  step?: number | null;
+  /** The most of this food, in this unit, one meal may hold. Null means nobody decided. */
+  maxPerMeal?: number | null;
 };
 
 export type UnitOption = {
@@ -111,28 +118,18 @@ export function rowGrams(options: readonly UnitOption[], quantity: number, value
   return option ? quantity * option.gramsPerUnit : 0;
 }
 
-/**
- * What one press of `−` or `+` changes an ingredient by, in its own unit.
- *
- * Keyed on the English label because that is a closed vocabulary — `FAMILY_ROWS`
- * in `portion-derivation.ts` and `CUSTOM_UNIT_LABELS` are the only things that
- * write these strings, and the Arabic label is a translation of them rather than a
- * second source.
- *
- * The steps are the increments a dietitian actually writes. Bread moves by half a
- * loaf because half a loaf is a real instruction; an egg does not, because half an
- * egg is not. A unit whose own label already names a fraction (`نصف كوب`) steps by
- * whole ones — quarter of a half cup is arithmetic nobody serves.
- */
-const UNIT_STEPS: Record<string, number> = {
-  Cup: 0.25,
-  Loaf: 0.5,
-  Container: 0.5,
-  // Half a slice is a real instruction — نصف شريحة بطيخ، نصف شريحة جبنة — in a
-  // way half an egg is not. A slice is already a cut off something bigger, so
-  // cutting it again is the ordinary thing to do with one.
-  Slice: 0.5,
-};
+/** Express the same amount in another of this food's units. */
+export function convertUnitQuantity(
+  options: readonly UnitOption[],
+  quantity: number,
+  from: string,
+  to: string,
+): number | null {
+  const source = findUnitOption(options, from);
+  const target = findUnitOption(options, to);
+  if (!source || !target || !Number.isFinite(quantity) || quantity <= 0) return null;
+  return (quantity * source.gramsPerUnit) / target.gramsPerUnit;
+}
 
 /**
  * How many grams one press moves an ungrammed ingredient by.
@@ -144,15 +141,27 @@ const UNIT_STEPS: Record<string, number> = {
 export const GRAMS_STEP = 10;
 
 /**
- * The step for one unit — its own increment, or {@link GRAMS_STEP} for grams.
+ * The step for one unit — the portion's own increment, its key's default, or
+ * {@link GRAMS_STEP} for grams.
  *
- * Takes the label alone rather than a whole portion row, so a planned meal's line
- * (which carries only what it needs to render) can ask without reconstructing a
- * `FoodPortion` it has no other use for.
+ * The steps are the increments a dietitian actually writes. Bread moves by half a
+ * loaf because half a loaf is a real instruction; an egg does not, because half an
+ * egg is not. A unit whose own label already names a fraction (`نصف كوب`) steps by
+ * whole ones — a quarter of a half cup is arithmetic nobody serves.
+ *
+ * That used to be a map keyed on the English label, which meant renaming a portion
+ * silently changed how far one press moved it. It is the key's business now, and a
+ * food that genuinely needs its own grid carries a `step` of its own.
+ *
+ * Takes the narrowest shape it can, so a planned meal's line — which carries only
+ * what it needs to render — can ask without reconstructing a `FoodPortion` it has
+ * no other use for.
  */
-export function unitStep(portion: { labelEn: string } | null | undefined): number {
+export function unitStep(
+  portion: { key: PortionKey; step?: number | null } | null | undefined,
+): number {
   if (!portion) return GRAMS_STEP;
-  return UNIT_STEPS[portion.labelEn] ?? 1;
+  return portion.step ?? defaultStepOf(portion.key);
 }
 
 /**

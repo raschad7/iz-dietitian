@@ -37,6 +37,8 @@ import {
   DISH_SOURCES,
   MEAL_TYPES,
 } from '@/features/weekly-plans/schema';
+import type { PortionKey } from '@/features/weekly-plans/portion-contract';
+import { componentProblems } from '@/features/weekly-plans/dish-components';
 import { countLimit } from '@/features/weekly-plans/portion-limits';
 import { isMember } from '@/lib/enum';
 
@@ -44,14 +46,21 @@ import { readCatalogDataset } from './seed-catalog-foods';
 
 const DATASET_PATH = join(dirname(fileURLToPath(import.meta.url)), '../data/dishes.json');
 
-/**
- * How many lines of one dish may carry a control.
+/*
+ * There is no longer a cap on how many lines of a dish may carry a control.
  *
- * Three, because the point of marking is contrast. A dish with a control on every
- * line has recreated the problem the marking exists to solve — the two amounts a
- * dietitian actually sets, buried among nine she never touches.
+ * The old rule allowed three, on the reasoning that the point of marking is
+ * contrast — and contrast is still the point, but a count was the wrong way to
+ * get it. A dish has as many controls as it has separately served parts, which is
+ * a fact about the plate rather than a budget: مقلوبة has two, a
+ * chicken-rice-salad plate has three, and a mixed grill honestly has four.
+ * Capping at three forced an author to lie about the fourth.
+ *
+ * What keeps a dish readable instead is grouping — the lines cooked together
+ * share one control rather than each taking their own — plus `VISIBLE_CONTROLS`
+ * in `dish-components.ts`, which is a display decision and lives with the panel
+ * that makes it.
  */
-export const MAX_PRIMARY_INGREDIENTS = 3;
 
 /** `excluded.<column>` — the row PostgreSQL could not insert, inside an upsert. */
 function sqlExcluded(column: string) {
@@ -64,11 +73,23 @@ type IngredientRecord = {
   /** The USDA description this fdcId had when the file was written. Asserted, not trusted. */
   note: string;
   /**
-   * Whether a dietitian adjusts this line by hand when planning a meal.
+   * The dish component this line is part of, by its `key` in `components`.
    *
-   * Two or three per dish — the chicken and the rice in a maqluba, not the pine
-   * nuts. Only these get a `−/+` on the board. Absent means false, so a dish
+   * Lines sharing one are cooked together and move together: مجدرة's rice,
+   * lentils, onion and oil are one served thing and take one control between
+   * them. Absent means the line is its own component, which is what every recipe
+   * written before this field is.
+   */
+  component?: string;
+  /**
+   * Whether a dietitian adjusts this line's component by hand when planning a
+   * meal.
+   *
+   * The chicken and the rice on an assembled plate, not the pine nuts cooked into
+   * a maqluba. Only these get a `−/+` on the board. Absent means false, so a dish
    * nobody has marked behaves exactly as every dish did before the field existed.
+   *
+   * Every line of one `component` must agree: the control moves all of them.
    */
   primary?: boolean;
   /**
@@ -79,7 +100,7 @@ type IngredientRecord = {
    */
   free?: boolean;
   /**
-   * The household unit this amount is counted in, by its English portion label
+   * The household unit this amount is counted in, by its portion key
    * (`Loaf`, `Piece`, `Cup`).
    *
    * Optional, and absent for most lines: the catalog is authored in grams, and
@@ -87,7 +108,7 @@ type IngredientRecord = {
    * line, because it is the unit the `−/+` steps in — bread by the loaf, eggs by
    * the piece, meat by weight because that is how meat is prescribed.
    */
-  unit?: string;
+  unit?: PortionKey;
   /** How many of `unit`. Required with it, meaningless without it. */
   count?: number;
 };
@@ -106,7 +127,24 @@ export type DishRecord = {
   isSide: boolean;
   allergenTags: string[];
   baseServingLabel: string;
+  /**
+   * The dish's separately served parts, where its lines do not each stand alone.
+   *
+   * Only needed for lines that were cooked together. A plate of chicken, rice and
+   * salad declares nothing: each line is already its own component, named by its
+   * own food. مجدرة declares one, because "أرز" is not what the client is served.
+   */
+  components?: ComponentRecord[];
   ingredients: IngredientRecord[];
+};
+
+/** A served part of a dish, named for the client. */
+type ComponentRecord = {
+  /** Stable within this dish, and what an ingredient's `component` refers to. */
+  key: string;
+  /** What the client is told they are eating — «مجدرة», not «أرز». */
+  nameAr: string;
+  nameEn: string;
 };
 
 type Dataset = { dishes: DishRecord[] };
@@ -171,16 +209,72 @@ export function validateDishRecords(records: DishRecord[]): string[] {
       }
     }
 
-    // A dish where everything is adjustable has answered the question with
-    // "all of it", which is the same as not answering it: the point of marking is
-    // that the two or three lines that carry the meal stand out from the rest.
-    const primary = dish.ingredients.filter((ingredient) => ingredient.primary).length;
-    if (primary > MAX_PRIMARY_INGREDIENTS) {
+    problems.push(...componentRecordProblems(dish));
+  }
+
+  return problems;
+}
+
+/**
+ * Everything wrong with one dish's declared components.
+ *
+ * Grouping decides what a client is told to serve, so a mistake here is not a
+ * cosmetic one: a line pointing at a component that was never declared would lose
+ * its name on read and quietly become its own control, which is the opposite of
+ * what the author asked for.
+ *
+ * The shared rules — a group needs a name, its lines must agree on it and on
+ * whether it is adjustable — live in `dish-components.ts` and are checked here
+ * against the same function the clinic editor uses, so the two cannot drift.
+ */
+function componentRecordProblems(dish: DishRecord): string[] {
+  const problems: string[] = [];
+  const declared = new Map<string, ComponentRecord>();
+
+  for (const component of dish.components ?? []) {
+    if (declared.has(component.key)) {
+      problems.push(`${dish.slug}: component "${component.key}" is declared twice`);
+      continue;
+    }
+    declared.set(component.key, component);
+  }
+
+  const used = new Set<string>();
+
+  for (const ingredient of dish.ingredients) {
+    if (!ingredient.component) continue;
+
+    used.add(ingredient.component);
+
+    if (!declared.has(ingredient.component)) {
       problems.push(
-        `${dish.slug}: ${primary} primary ingredients, at most ${MAX_PRIMARY_INGREDIENTS} are useful`,
+        `${dish.slug}: fdcId ${ingredient.fdcId} is in component "${ingredient.component}", which is not declared`,
       );
     }
   }
+
+  for (const key of declared.keys()) {
+    // A component nothing is in describes a part of the plate that is not on it.
+    if (!used.has(key)) problems.push(`${dish.slug}: component "${key}" has no ingredients`);
+  }
+
+  const lines = dish.ingredients.map((ingredient, index) => {
+    const component = ingredient.component ? declared.get(ingredient.component) : undefined;
+
+    return {
+      componentKey: ingredient.component ?? null,
+      componentNameAr: component?.nameAr ?? null,
+      componentNameEn: component?.nameEn ?? null,
+      isPrimary: ingredient.primary ?? false,
+      quantityGrams: ingredient.grams,
+      sortOrder: index,
+      // The dataset identifies a food by its USDA id and carries its description
+      // rather than its names; both are only ever read back into a message here.
+      food: { id: String(ingredient.fdcId), nameAr: ingredient.note, nameEn: ingredient.note },
+    };
+  });
+
+  problems.push(...componentProblems(lines).map((problem) => `${dish.slug}: ${problem}`));
 
   return problems;
 }
@@ -312,7 +406,7 @@ export function validateRecipeCounts(
       const food = byRef.get(String(ingredient.fdcId));
       if (!food || ingredient.count === undefined) continue;
 
-      const limit = countLimit(food.slug, ingredient.unit);
+      const limit = countLimit(food.slug, ingredient.unit as PortionKey | undefined);
       if (limit !== null && ingredient.count > limit) {
         problems.push(
           `${dish.slug}: ${ingredient.count} × ${food.slug} is past the ${limit} a meal may hold`,
@@ -470,7 +564,7 @@ export async function seedDishes(): Promise<{ dishes: number; ingredients: numbe
   }
 
   /**
-   * Every portion of every referenced food, keyed by `foodId:labelEn`.
+   * Every portion of every referenced food, keyed by `foodId:key`.
    *
    * Loaded before anything is written so a unit the food does not offer aborts the
    * seed rather than silently landing as `portion_id = null` — which would look
@@ -480,12 +574,12 @@ export async function seedDishes(): Promise<{ dishes: number; ingredients: numbe
     .select({
       id: catalogFoodPortions.id,
       foodId: catalogFoodPortions.foodId,
-      labelEn: catalogFoodPortions.labelEn,
+      key: catalogFoodPortions.key,
       grams: catalogFoodPortions.grams,
     })
     .from(catalogFoodPortions);
 
-  const portionByKey = new Map(portionRows.map((row) => [`${row.foodId}:${row.labelEn}`, row]));
+  const portionByKey = new Map(portionRows.map((row) => [`${row.foodId}:${row.key}`, row]));
   const portionIdFor = (foodId: string, unit: string) =>
     portionByKey.get(`${foodId}:${unit}`)?.id ?? null;
 
@@ -582,12 +676,22 @@ export async function seedDishes(): Promise<{ dishes: number; ingredients: numbe
       // writing a recipe onto the wrong dish.
       if (!dishId) throw new Error(`dish ${dish.slug} was not written`);
 
+      const components = new Map((dish.components ?? []).map((one) => [one.key, one]));
+
       return dish.ingredients.map((ingredient, index) => {
         const foodId = catalogBySourceRef.get(String(ingredient.fdcId))!.id;
+        // Validated above: a line naming an undeclared component never gets here.
+        const component = ingredient.component ? components.get(ingredient.component) : undefined;
 
         return {
           dishId,
           catalogFoodId: foodId,
+          componentKey: ingredient.component ?? null,
+          // Flattened onto the line rather than joined from a table of its own —
+          // see `dish_ingredients.component_name_ar` for why, and
+          // `componentProblems` for the rule that keeps the copies equal.
+          componentNameAr: component?.nameAr ?? null,
+          componentNameEn: component?.nameEn ?? null,
           // Grams stay authoritative even where a unit was given: the unit was
           // checked against them above, so the two cannot disagree by the time
           // either is written.

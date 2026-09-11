@@ -36,7 +36,7 @@
           "grams": 14.4,
           "note": "Nuts, almonds",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12
         }
       ]
@@ -62,7 +62,7 @@
           "fdcId": 171688,
           "grams": 182,
           "note": "Apples, raw, with skin",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1,
           "primary": true
         },
@@ -70,7 +70,7 @@
           "fdcId": 170567,
           "grams": 14.4,
           "note": "Nuts, almonds",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12
         }
       ]
@@ -97,7 +97,7 @@
           "grams": 182,
           "note": "Apples, raw, with skin (Includes foods for USDA's Food Distribution Program)",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1
         },
         {
@@ -177,11 +177,11 @@
       "ingredients": [
         {
           "fdcId": 170026,
-          "grams": 213.0,
+          "grams": 150,
           "note": "Potatoes, flesh and skin, raw",
           "primary": true,
-          "unit": "Piece",
-          "count": 1.0
+          "unit": "piece",
+          "count": 1
         },
         {
           "fdcId": 173420,
@@ -214,36 +214,52 @@
         {
           "fdcId": 169260,
           "grams": 200,
-          "note": "Okra, raw"
+          "note": "Okra, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171792,
           "grams": 85,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "stew"
         },
         {
           "fdcId": 170459,
           "grams": 20,
-          "note": "Tomato products, canned, paste, without salt added"
+          "note": "Tomato products, canned, paste, without salt added",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 170000,
           "grams": 40,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 10,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 168878,
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6,
           "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "stew",
+          "nameAr": "بامية باللحم",
+          "nameEn": "Okra and meat stew"
         }
       ]
     },
@@ -266,30 +282,44 @@
           "fdcId": 171792,
           "grams": 150,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "stew"
         },
         {
           "fdcId": 168878,
           "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 9
         },
         {
           "fdcId": 169260,
           "grams": 180,
-          "note": "Okra, raw"
+          "note": "Okra, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 170459,
           "grams": 45,
-          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)"
+          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171025,
           "grams": 20,
-          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+          "note": "Oil, sunflower, linoleic, (approx. 65%)",
+          "component": "stew",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "stew",
+          "nameAr": "بامية باللحم",
+          "nameEn": "Okra and meat stew"
         }
       ]
     },
@@ -315,22 +345,22 @@
           "grams": 118,
           "note": "Bananas, raw",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1
         },
         {
           "fdcId": 171267,
-          "grams": 244.0,
+          "grams": 244,
           "note": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.0
+          "unit": "cup",
+          "count": 1
         },
         {
           "fdcId": 173904,
-          "grams": 20.2,
+          "grams": 20.3,
           "note": "Cereals, oats, regular and quick, not fortified, dry",
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.25
         },
         {
@@ -361,7 +391,7 @@
           "fdcId": 173944,
           "grams": 118,
           "note": "Bananas, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1,
           "primary": true
         },
@@ -390,10 +420,10 @@
       "ingredients": [
         {
           "fdcId": 170026,
-          "grams": 159.8,
+          "grams": 112.5,
           "note": "Potatoes, flesh and skin, raw",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 0.75
         },
         {
@@ -436,31 +466,46 @@
         {
           "fdcId": 169228,
           "grams": 150,
-          "note": "Eggplant, raw"
+          "note": "Eggplant, raw",
+          "component": "mahshi",
+          "primary": true
         },
         {
           "fdcId": 168878,
           "grams": 125,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 5,
-          "primary": true
+          "primary": true,
+          "component": "mahshi"
         },
         {
           "fdcId": 171792,
           "grams": 50,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "mahshi"
         },
         {
           "fdcId": 170459,
           "grams": 10,
-          "note": "Tomato products, canned, paste, without salt added"
+          "note": "Tomato products, canned, paste, without salt added",
+          "component": "mahshi",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "mahshi",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "mahshi",
+          "nameAr": "باذنجان محشي",
+          "nameEn": "Stuffed eggplant"
         }
       ]
     },
@@ -482,31 +527,45 @@
         {
           "fdcId": 170419,
           "grams": 90,
-          "note": "Peas, green, raw"
+          "note": "Peas, green, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171792,
           "grams": 60,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "stew"
         },
         {
           "fdcId": 168878,
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6,
           "primary": true
         },
         {
           "fdcId": 170459,
           "grams": 10,
-          "note": "Tomato products, canned, paste, without salt added"
+          "note": "Tomato products, canned, paste, without salt added",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "stew",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "stew",
+          "nameAr": "بازيلا ولحمة",
+          "nameEn": "Peas and meat stew"
         }
       ]
     },
@@ -530,30 +589,44 @@
           "fdcId": 175194,
           "grams": 220,
           "note": "Beans, kidney, red, mature seeds, cooked, boiled, without salt",
-          "primary": true
+          "primary": true,
+          "component": "stew"
         },
         {
           "fdcId": 168878,
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6
         },
         {
           "fdcId": 170459,
           "grams": 35,
-          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)"
+          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 170000,
           "grams": 40,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 12,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "stew",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "stew",
+          "nameAr": "يخنة فاصولياء حمراء",
+          "nameEn": "Red bean stew"
         }
       ]
     },
@@ -583,7 +656,7 @@
           "grams": 208.8,
           "note": "Potatoes, boiled, cooked without skin, flesh, without salt",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1.25
         },
         {
@@ -632,7 +705,7 @@
           "grams": 183.8,
           "note": "Yogurt, plain, whole milk",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.75
         }
       ]
@@ -659,30 +732,44 @@
           "fdcId": 173760,
           "grams": 200,
           "note": "Cowpeas, common (blackeyes, crowder, southern), mature seeds, canned, plain",
-          "primary": true
+          "primary": true,
+          "component": "stew"
         },
         {
           "fdcId": 170457,
           "grams": 100,
-          "note": "Tomatoes, red, ripe, raw, year round average"
+          "note": "Tomatoes, red, ripe, raw, year round average",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 170000,
           "grams": 40,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 10,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 174916,
-          "grams": 64.0,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
-          "unit": "Loaf",
-          "count": 1.0
+          "unit": "loaf",
+          "count": 1
+        }
+      ],
+      "components": [
+        {
+          "key": "stew",
+          "nameAr": "لوبياء بيضاء بالخضار",
+          "nameEn": "Cowpea and vegetable stew"
         }
       ]
     },
@@ -708,7 +795,7 @@
           "grams": 50,
           "note": "Egg, whole, cooked, hard-boiled",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1
         }
       ]
@@ -736,16 +823,16 @@
           "grams": 50,
           "note": "Egg, whole, cooked, hard-boiled",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1
         },
         {
           "fdcId": 172688,
-          "grams": 32.0,
+          "grams": 28,
           "note": "Bread, whole-wheat, commercially prepared",
           "primary": true,
-          "unit": "Slice",
-          "count": 1.0
+          "unit": "slice",
+          "count": 1
         },
         {
           "fdcId": 168409,
@@ -777,15 +864,15 @@
           "fdcId": 173424,
           "grams": 100,
           "note": "Egg, whole, cooked, hard-boiled",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2,
           "primary": true
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1,
           "primary": true
         },
@@ -825,7 +912,7 @@
           "fdcId": 173424,
           "grams": 100,
           "note": "Egg, whole, cooked, hard-boiled",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2,
           "primary": true
         },
@@ -868,11 +955,11 @@
       "ingredients": [
         {
           "fdcId": 900001,
-          "grams": 45.0,
+          "grams": 90,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
-          "unit": "Tablespoon",
-          "count": 3.0
+          "unit": "heaped-spoon",
+          "count": 3
         },
         {
           "fdcId": 173420,
@@ -884,14 +971,14 @@
           "fdcId": 169096,
           "grams": 29.7,
           "note": "Olives, pickled, canned or bottled, green",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 11
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -1000,9 +1087,9 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -1031,10 +1118,10 @@
       "ingredients": [
         {
           "fdcId": 170287,
-          "grams": 273.0,
+          "grams": 273,
           "note": "Bulgur, cooked",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.5
         },
         {
@@ -1077,7 +1164,7 @@
           "grams": 227.5,
           "note": "Bulgur, cooked",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.25
         },
         {
@@ -1126,7 +1213,7 @@
           "grams": 227.5,
           "note": "Bulgur, cooked",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.25
         },
         {
@@ -1146,10 +1233,10 @@
         },
         {
           "fdcId": 173800,
-          "grams": 63.2,
+          "grams": 60,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
-          "unit": "Container",
+          "unit": "container",
           "count": 0.25
         }
       ]
@@ -1175,10 +1262,10 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 90.0,
+          "grams": 135,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1.5
         },
         {
@@ -1337,11 +1424,11 @@
         },
         {
           "fdcId": 900001,
-          "grams": 30.0,
+          "grams": 60,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
-          "unit": "Tablespoon",
-          "count": 2.0
+          "unit": "heaped-spoon",
+          "count": 2
         }
       ]
     },
@@ -1369,10 +1456,10 @@
         },
         {
           "fdcId": 173800,
-          "grams": 63.2,
+          "grams": 60,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
-          "unit": "Container",
+          "unit": "container",
           "count": 0.25
         },
         {
@@ -1404,7 +1491,7 @@
           "grams": 19.2,
           "note": "Nuts, cashew nuts, raw",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12
         },
         {
@@ -1412,7 +1499,7 @@
           "grams": 48,
           "note": "Dates, medjool",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2
         }
       ]
@@ -1439,7 +1526,7 @@
           "grams": 19.2,
           "note": "Nuts, cashew nuts, raw",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12
         }
       ]
@@ -1476,7 +1563,7 @@
           "fdcId": 168878,
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6,
           "primary": true
         },
@@ -1508,10 +1595,10 @@
       "ingredients": [
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -1524,7 +1611,7 @@
           "fdcId": 169096,
           "grams": 24.3,
           "note": "Olives, pickled, canned or bottled, green",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 9
         },
         {
@@ -1557,10 +1644,10 @@
       "ingredients": [
         {
           "fdcId": 172688,
-          "grams": 72.0,
+          "grams": 63,
           "note": "Bread, whole-wheat, commercially prepared",
           "primary": true,
-          "unit": "Slice",
+          "unit": "slice",
           "count": 2.25
         },
         {
@@ -1568,7 +1655,7 @@
           "grams": 50,
           "note": "Egg, whole, cooked, hard-boiled",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1
         },
         {
@@ -1608,7 +1695,7 @@
           "grams": 150,
           "note": "Egg, whole, raw, fresh",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 3
         },
         {
@@ -1619,10 +1706,10 @@
         },
         {
           "fdcId": 170440,
-          "grams": 167.0,
+          "grams": 167,
           "note": "Potatoes, boiled, cooked without skin, flesh, without salt",
-          "unit": "Piece",
-          "count": 1.0
+          "unit": "piece",
+          "count": 1
         },
         {
           "fdcId": 170427,
@@ -1656,10 +1743,10 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -1704,21 +1791,21 @@
           "grams": 100,
           "note": "Egg, whole, cooked, hard-boiled",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2
         },
         {
           "fdcId": 169096,
           "grams": 29.7,
           "note": "Olives, pickled, canned or bottled, green",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 11
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -1749,32 +1836,47 @@
       "ingredients": [
         {
           "fdcId": 169737,
-          "grams": 186.0,
+          "grams": 186,
           "note": "Pasta, cooked, enriched, without added salt",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.5
+          "unit": "cup",
+          "count": 1.5,
+          "component": "pasta"
         },
         {
           "fdcId": 170847,
           "grams": 90,
           "note": "Cheese, mozzarella, part skim milk",
-          "primary": true
+          "primary": true,
+          "component": "pasta"
         },
         {
           "fdcId": 170857,
           "grams": 60,
-          "note": "Cream, fluid, light (coffee cream or table cream)"
+          "note": "Cream, fluid, light (coffee cream or table cream)",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 170459,
           "grams": 30,
-          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)"
+          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "pasta",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "pasta",
+          "nameAr": "مكرونة بالجبنة بالفرن",
+          "nameEn": "Baked cheese pasta"
         }
       ]
     },
@@ -1799,10 +1901,10 @@
       "ingredients": [
         {
           "fdcId": 172688,
-          "grams": 48.0,
+          "grams": 42,
           "note": "Bread, whole-wheat, commercially prepared",
           "primary": true,
-          "unit": "Slice",
+          "unit": "slice",
           "count": 1.5
         },
         {
@@ -1845,7 +1947,7 @@
           "grams": 200,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 8
         },
         {
@@ -1888,7 +1990,7 @@
           "grams": 227.5,
           "note": "Bulgur, cooked",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.25
         },
         {
@@ -1982,10 +2084,10 @@
         },
         {
           "fdcId": 169700,
-          "grams": 196.2,
+          "grams": 196.3,
           "note": "Couscous, cooked",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.25
         },
         {
@@ -2027,7 +2129,7 @@
           "grams": 235.5,
           "note": "Couscous, cooked",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.5
         },
         {
@@ -2073,10 +2175,10 @@
       "ingredients": [
         {
           "fdcId": 900002,
-          "grams": 90.0,
+          "grams": 90,
           "note": "Freekeh, roasted green wheat, dry (manufacturer panels)",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
@@ -2099,7 +2201,7 @@
           "fdcId": 170567,
           "grams": 14.4,
           "note": "Nuts, almonds",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12
         }
       ]
@@ -2130,17 +2232,17 @@
         },
         {
           "fdcId": 900002,
-          "grams": 90.0,
+          "grams": 90,
           "note": "Freekeh, roasted green wheat, dry (manufacturer panels)",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
           "fdcId": 171284,
           "grams": 122.5,
           "note": "Yogurt, plain, whole milk",
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
@@ -2257,32 +2359,47 @@
       "ingredients": [
         {
           "fdcId": 169737,
-          "grams": 248.0,
+          "grams": 248,
           "note": "Pasta, cooked, enriched, without added salt",
           "primary": true,
-          "unit": "Cup",
-          "count": 2.0
+          "unit": "cup",
+          "count": 2,
+          "component": "pasta"
         },
         {
           "fdcId": 171477,
           "grams": 160,
           "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
-          "primary": true
+          "primary": true,
+          "component": "pasta"
         },
         {
           "fdcId": 170857,
           "grams": 100,
-          "note": "Cream, fluid, light (coffee cream or table cream)"
+          "note": "Cream, fluid, light (coffee cream or table cream)",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 173414,
           "grams": 40,
-          "note": "Cheese, cheddar (Includes foods for USDA's Food Distribution Program)"
+          "note": "Cheese, cheddar (Includes foods for USDA's Food Distribution Program)",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 12,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "pasta",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "pasta",
+          "nameAr": "مكرونة بالدجاج",
+          "nameEn": "Chicken pasta"
         }
       ]
     },
@@ -2312,7 +2429,7 @@
           "grams": 175,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 7
         },
         {
@@ -2354,7 +2471,7 @@
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6
         },
         {
@@ -2402,10 +2519,10 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -2452,10 +2569,10 @@
       "ingredients": [
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -2507,9 +2624,9 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1,
           "primary": true
         },
@@ -2598,11 +2715,11 @@
         },
         {
           "fdcId": 170440,
-          "grams": 167.0,
+          "grams": 167,
           "note": "Potatoes, boiled, cooked without skin, flesh, without salt",
           "primary": true,
-          "unit": "Piece",
-          "count": 1.0
+          "unit": "piece",
+          "count": 1
         },
         {
           "fdcId": 170393,
@@ -2642,10 +2759,10 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -2691,34 +2808,48 @@
       "ingredients": [
         {
           "fdcId": 173800,
-          "grams": 189.8,
+          "grams": 180,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
-          "unit": "Container",
-          "count": 0.75
+          "unit": "container",
+          "count": 0.75,
+          "component": "stew"
         },
         {
           "fdcId": 168462,
           "grams": 120,
-          "note": "Spinach, raw"
+          "note": "Spinach, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 170459,
           "grams": 15,
-          "note": "Tomato products, canned, paste, without salt added"
+          "note": "Tomato products, canned, paste, without salt added",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 10,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 168878,
           "grams": 125,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 5,
           "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "stew",
+          "nameAr": "يخنة حمص وسبانخ",
+          "nameEn": "Chickpea and spinach stew"
         }
       ]
     },
@@ -2743,36 +2874,51 @@
       "ingredients": [
         {
           "fdcId": 173757,
-          "grams": 205.0,
+          "grams": 205,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.25
+          "unit": "cup",
+          "count": 1.25,
+          "component": "fatteh"
         },
         {
           "fdcId": 174915,
-          "grams": 90.0,
+          "grams": 135,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
-          "count": 1.5
+          "unit": "loaf",
+          "count": 1.5,
+          "component": "fatteh"
         },
         {
           "fdcId": 168604,
           "grams": 30,
-          "note": "Seeds, sesame butter, tahini, type of kernels unspecified"
+          "note": "Seeds, sesame butter, tahini, type of kernels unspecified",
+          "component": "fatteh",
+          "primary": true
         },
         {
           "fdcId": 171284,
           "grams": 122.5,
           "note": "Yogurt, plain, whole milk",
-          "unit": "Cup",
-          "count": 0.5
+          "unit": "cup",
+          "count": 0.5,
+          "component": "fatteh",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 12,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "fatteh",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "fatteh",
+          "nameAr": "فتة حمص بالطحينة",
+          "nameEn": "Hummus fatteh with tahini"
         }
       ]
     },
@@ -2801,10 +2947,10 @@
         },
         {
           "fdcId": 171267,
-          "grams": 183.0,
+          "grams": 183,
           "note": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.75
         }
       ]
@@ -2866,24 +3012,24 @@
         },
         {
           "fdcId": 171267,
-          "grams": 244.0,
+          "grams": 244,
           "note": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.0
+          "unit": "cup",
+          "count": 1
         },
         {
           "fdcId": 173944,
           "grams": 118,
           "note": "Bananas, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1
         },
         {
           "fdcId": 170567,
           "grams": 14.4,
           "note": "Nuts, almonds",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12
         }
       ]
@@ -2943,7 +3089,7 @@
           "grams": 122.5,
           "note": "Yogurt, plain, whole milk",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
@@ -2987,10 +3133,10 @@
         },
         {
           "fdcId": 170026,
-          "grams": 159.8,
+          "grams": 112.5,
           "note": "Potatoes, flesh and skin, raw",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 0.75
         },
         {
@@ -3027,16 +3173,16 @@
           "grams": 48,
           "note": "Dates, medjool",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2
         },
         {
           "fdcId": 900001,
-          "grams": 30.0,
+          "grams": 60,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
-          "unit": "Tablespoon",
-          "count": 2.0
+          "unit": "heaped-spoon",
+          "count": 2
         }
       ]
     },
@@ -3061,7 +3207,7 @@
           "fdcId": 168191,
           "grams": 36,
           "note": "Dates, medjool",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1.5,
           "primary": true
         },
@@ -3069,7 +3215,7 @@
           "fdcId": 170187,
           "grams": 16,
           "note": "Nuts, walnuts, english",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 4
         }
       ]
@@ -3097,31 +3243,46 @@
           "grams": 150,
           "note": "Egg, whole, raw, fresh",
           "primary": true,
-          "unit": "Piece",
-          "count": 3
+          "unit": "piece",
+          "count": 3,
+          "component": "friedrice"
         },
         {
           "fdcId": 168878,
           "grams": 175,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
-          "count": 7
+          "unit": "heaped-spoon",
+          "count": 7,
+          "component": "friedrice"
         },
         {
           "fdcId": 170419,
           "grams": 70,
-          "note": "Peas, green, raw"
+          "note": "Peas, green, raw",
+          "component": "friedrice",
+          "primary": true
         },
         {
           "fdcId": 170393,
           "grams": 60,
-          "note": "Carrots, raw"
+          "note": "Carrots, raw",
+          "component": "friedrice",
+          "primary": true
         },
         {
           "fdcId": 171025,
           "grams": 16,
-          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+          "note": "Oil, sunflower, linoleic, (approx. 65%)",
+          "component": "friedrice",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "friedrice",
+          "nameAr": "أرز مقلي",
+          "nameEn": "Fried rice"
         }
       ]
     },
@@ -3148,7 +3309,7 @@
           "grams": 150,
           "note": "Egg, whole, raw, fresh",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 3
         },
         {
@@ -3156,7 +3317,7 @@
           "grams": 208.8,
           "note": "Potatoes, boiled, cooked without skin, flesh, without salt",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1.25
         },
         {
@@ -3199,17 +3360,17 @@
           "fdcId": 171287,
           "grams": 100,
           "note": "Egg, whole, raw, fresh",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2,
           "primary": true
         },
         {
           "fdcId": 174915,
-          "grams": 60.0,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
-          "count": 1.0
+          "unit": "loaf",
+          "count": 1
         },
         {
           "fdcId": 170457,
@@ -3247,7 +3408,7 @@
           "grams": 150,
           "note": "Egg, whole, raw, fresh",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 3
         },
         {
@@ -3258,9 +3419,9 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -3299,7 +3460,7 @@
           "grams": 100,
           "note": "Egg, whole, raw, fresh",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2
         },
         {
@@ -3310,9 +3471,9 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -3357,22 +3518,22 @@
           "grams": 100,
           "note": "Egg, whole, raw, fresh",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2
         },
         {
           "fdcId": 900001,
-          "grams": 45.0,
+          "grams": 90,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
-          "unit": "Tablespoon",
-          "count": 3.0
+          "unit": "heaped-spoon",
+          "count": 3
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -3412,7 +3573,7 @@
           "grams": 100,
           "note": "Egg, whole, raw, fresh",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2
         },
         {
@@ -3427,10 +3588,10 @@
         },
         {
           "fdcId": 174916,
-          "grams": 32.0,
+          "grams": 45,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 0.5
         }
       ]
@@ -3458,7 +3619,7 @@
           "grams": 150,
           "note": "Egg, whole, raw, fresh",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 3
         },
         {
@@ -3469,9 +3630,9 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -3509,15 +3670,15 @@
           "fdcId": 171287,
           "grams": 100,
           "note": "Egg, whole, raw, fresh",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2,
           "primary": true
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1,
           "primary": true
         },
@@ -3556,7 +3717,7 @@
           "fdcId": 171287,
           "grams": 100,
           "note": "Egg, whole, raw, fresh",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2,
           "primary": true
         },
@@ -3572,9 +3733,9 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1,
           "primary": true
         }
@@ -3606,10 +3767,10 @@
         },
         {
           "fdcId": 174915,
-          "grams": 90.0,
+          "grams": 135,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1.5
         },
         {
@@ -3658,15 +3819,15 @@
           "fdcId": 172455,
           "grams": 102,
           "note": "Falafel, home-prepared",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 6,
           "primary": true
         },
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1,
           "primary": true
         },
@@ -3751,10 +3912,10 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -3809,36 +3970,51 @@
           "fdcId": 175204,
           "grams": 120,
           "note": "Beans, white, mature seeds, canned",
-          "primary": true
+          "primary": true,
+          "component": "stew"
         },
         {
           "fdcId": 171792,
           "grams": 60,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "stew"
         },
         {
           "fdcId": 170459,
           "grams": 12,
-          "note": "Tomato products, canned, paste, without salt added"
+          "note": "Tomato products, canned, paste, without salt added",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 170000,
           "grams": 40,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 168878,
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6,
           "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "stew",
+          "nameAr": "فاصولياء باللحمة",
+          "nameEn": "Beans and meat stew"
         }
       ]
     },
@@ -3861,31 +4037,44 @@
           "fdcId": 175204,
           "grams": 200,
           "note": "Beans, white, mature seeds, canned",
-          "primary": true
+          "primary": true,
+          "component": "stew"
         },
         {
           "fdcId": 171792,
           "grams": 140,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "stew"
         },
         {
           "fdcId": 168878,
           "grams": 200,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 8
         },
         {
           "fdcId": 170459,
           "grams": 40,
-          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)"
+          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171025,
           "grams": 18,
-          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+          "note": "Oil, sunflower, linoleic, (approx. 65%)",
+          "component": "stew",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "stew",
+          "nameAr": "فاصولياء باللحمة",
+          "nameEn": "Beans and meat stew"
         }
       ]
     },
@@ -3909,30 +4098,44 @@
           "fdcId": 175204,
           "grams": 200,
           "note": "Beans, white, mature seeds, canned",
-          "primary": true
+          "primary": true,
+          "component": "stew"
         },
         {
           "fdcId": 170459,
           "grams": 20,
-          "note": "Tomato products, canned, paste, without salt added"
+          "note": "Tomato products, canned, paste, without salt added",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 168878,
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6,
           "primary": true
         },
         {
           "fdcId": 170000,
           "grams": 40,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 10,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "stew",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "stew",
+          "nameAr": "يخنة فاصولياء بيضاء",
+          "nameEn": "White bean stew"
         }
       ]
     },
@@ -3959,37 +4162,51 @@
       "ingredients": [
         {
           "fdcId": 173800,
-          "grams": 126.5,
+          "grams": 120,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
-          "unit": "Container",
-          "count": 0.5
+          "unit": "container",
+          "count": 0.5,
+          "component": "fatteh"
         },
         {
           "fdcId": 171284,
           "grams": 122.5,
           "note": "Yogurt, plain, whole milk",
           "primary": true,
-          "unit": "Cup",
-          "count": 0.5
+          "unit": "cup",
+          "count": 0.5,
+          "component": "fatteh"
         },
         {
           "fdcId": 174915,
-          "grams": 30.0,
+          "grams": 45,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
-          "count": 0.5
+          "unit": "loaf",
+          "count": 0.5,
+          "component": "fatteh"
         },
         {
           "fdcId": 168604,
           "grams": 15,
-          "note": "Seeds, sesame butter, tahini"
+          "note": "Seeds, sesame butter, tahini",
+          "component": "fatteh",
+          "primary": true
         },
         {
           "fdcId": 170591,
           "grams": 8,
-          "note": "Nuts, pine nuts, dried"
+          "note": "Nuts, pine nuts, dried",
+          "component": "fatteh",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "fatteh",
+          "nameAr": "فتة حمص",
+          "nameEn": "Hummus fatteh"
         }
       ]
     },
@@ -4028,9 +4245,9 @@
         },
         {
           "fdcId": 174915,
-          "grams": 30,
+          "grams": 45,
           "note": "Bread, pita, white, enriched",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 0.5,
           "primary": true
         },
@@ -4087,10 +4304,10 @@
         },
         {
           "fdcId": 174915,
-          "grams": 30.0,
+          "grams": 45,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 0.5
         },
         {
@@ -4131,10 +4348,10 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -4207,21 +4424,21 @@
           "grams": 143,
           "note": "Watermelon, raw",
           "primary": true,
-          "unit": "Slice",
+          "unit": "slice",
           "count": 0.5
         },
         {
           "fdcId": 174683,
-          "grams": 113.2,
+          "grams": 113.3,
           "note": "Grapes, red or green (European type, such as Thompson seedless), raw",
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.75
         },
         {
           "fdcId": 171688,
-          "grams": 91.0,
+          "grams": 91,
           "note": "Apples, raw, with skin (Includes foods for USDA's Food Distribution Program)",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 0.5
         }
       ]
@@ -4248,23 +4465,36 @@
           "fdcId": 168933,
           "grams": 25,
           "note": "Semolina, unenriched",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 170847,
           "grams": 40,
           "note": "Cheese, mozzarella, part skim milk",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 169655,
           "grams": 18,
-          "note": "Sugars, granulated"
+          "note": "Sugars, granulated",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 173412,
           "grams": 8,
-          "note": "Butter oil, anhydrous"
+          "note": "Butter oil, anhydrous",
+          "component": "piece",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "piece",
+          "nameAr": "نص قطعة كنافة",
+          "nameEn": "Half a knafeh piece"
         }
       ]
     },
@@ -4297,14 +4527,14 @@
           "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 9
         },
         {
           "fdcId": 170567,
           "grams": 14.4,
           "note": "Nuts, almonds",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12
         },
         {
@@ -4316,7 +4546,7 @@
           "fdcId": 171284,
           "grams": 122.5,
           "note": "Yogurt, plain, whole milk",
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         }
       ]
@@ -4343,25 +4573,38 @@
           "fdcId": 168933,
           "grams": 45,
           "note": "Semolina, unenriched",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 170187,
           "grams": 24,
           "note": "Nuts, walnuts, english",
           "primary": true,
-          "unit": "Piece",
-          "count": 6
+          "unit": "piece",
+          "count": 6,
+          "component": "piece"
         },
         {
           "fdcId": 173412,
           "grams": 15,
-          "note": "Butter oil, anhydrous"
+          "note": "Butter oil, anhydrous",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 169655,
           "grams": 10,
-          "note": "Sugars, granulated"
+          "note": "Sugars, granulated",
+          "component": "piece",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "piece",
+          "nameAr": "معمول بالجوز",
+          "nameEn": "Walnut maamoul"
         }
       ]
     },
@@ -4384,24 +4627,24 @@
       "ingredients": [
         {
           "fdcId": 170184,
-          "grams": 14.0,
+          "grams": 14,
           "note": "Nuts, pistachio nuts, raw",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 20
         },
         {
           "fdcId": 170162,
           "grams": 19.2,
           "note": "Nuts, cashew nuts, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12
         },
         {
           "fdcId": 170567,
           "grams": 14.4,
           "note": "Nuts, almonds",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12
         }
       ]
@@ -4429,28 +4672,41 @@
           "grams": 100,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
-          "count": 4
+          "unit": "heaped-spoon",
+          "count": 4,
+          "component": "piece"
         },
         {
           "fdcId": 171265,
-          "grams": 183.0,
+          "grams": 183,
           "note": "Milk, whole, 3.25% milkfat, with added vitamin D",
           "primary": true,
-          "unit": "Cup",
-          "count": 0.75
+          "unit": "cup",
+          "count": 0.75,
+          "component": "piece"
         },
         {
           "fdcId": 169655,
           "grams": 20,
-          "note": "Sugars, granulated"
+          "note": "Sugars, granulated",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 170184,
           "grams": 7.7,
           "note": "Nuts, pistachio nuts, raw",
-          "unit": "Piece",
-          "count": 11
+          "unit": "piece",
+          "count": 11,
+          "component": "piece",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "piece",
+          "nameAr": "رز بحليب",
+          "nameEn": "Rice pudding"
         }
       ]
     },
@@ -4475,32 +4731,47 @@
           "fdcId": 171477,
           "grams": 180,
           "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
-          "primary": true
+          "primary": true,
+          "component": "stuffed"
         },
         {
           "fdcId": 168878,
           "grams": 200,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
-          "count": 8
+          "unit": "heaped-spoon",
+          "count": 8,
+          "component": "stuffed"
         },
         {
           "fdcId": 170567,
           "grams": 14.4,
           "note": "Nuts, almonds",
-          "unit": "Piece",
-          "count": 12
+          "unit": "piece",
+          "count": 12,
+          "component": "stuffed",
+          "primary": true
         },
         {
           "fdcId": 170591,
           "grams": 10,
-          "note": "Nuts, pine nuts, dried"
+          "note": "Nuts, pine nuts, dried",
+          "component": "stuffed",
+          "primary": true
         },
         {
           "fdcId": 173412,
           "grams": 18,
-          "note": "Butter oil, anhydrous"
+          "note": "Butter oil, anhydrous",
+          "component": "stuffed",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "stuffed",
+          "nameAr": "دجاج محشي",
+          "nameEn": "Stuffed chicken"
         }
       ]
     },
@@ -4523,7 +4794,7 @@
           "fdcId": 173021,
           "grams": 150,
           "note": "Figs, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 3,
           "primary": true
         }
@@ -4558,7 +4829,7 @@
           "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 9
         },
         {
@@ -4606,7 +4877,7 @@
           "grams": 250.5,
           "note": "Potatoes, boiled, cooked without skin, flesh, without salt",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1.5
         },
         {
@@ -4656,7 +4927,7 @@
           "grams": 175,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 7
         },
         {
@@ -4706,14 +4977,14 @@
           "grams": 100,
           "note": "Egg, whole, cooked, hard-boiled",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -4760,9 +5031,9 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -4803,17 +5074,17 @@
         },
         {
           "fdcId": 173800,
-          "grams": 126.5,
+          "grams": 120,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
-          "unit": "Container",
+          "unit": "container",
           "count": 0.5
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -4874,9 +5145,9 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1,
           "primary": true
         }
@@ -4907,10 +5178,10 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -4951,10 +5222,10 @@
       "ingredients": [
         {
           "fdcId": 900002,
-          "grams": 90.0,
+          "grams": 90,
           "note": "Freekeh, roasted green wheat, dry (manufacturer panels)",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
@@ -5000,10 +5271,10 @@
       "ingredients": [
         {
           "fdcId": 900002,
-          "grams": 45.0,
+          "grams": 45,
           "note": "Freekeh, roasted green wheat, dry (manufacturer panels)",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.25
         },
         {
@@ -5043,10 +5314,10 @@
       "ingredients": [
         {
           "fdcId": 900002,
-          "grams": 90.0,
+          "grams": 90,
           "note": "Freekeh, roasted green wheat, dry (manufacturer panels)",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
@@ -5094,21 +5365,21 @@
           "grams": 122.5,
           "note": "Yogurt, plain, whole milk",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
           "fdcId": 171688,
-          "grams": 91.0,
+          "grams": 91,
           "note": "Apples, raw, with skin",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 0.5
         },
         {
           "fdcId": 173944,
           "grams": 59,
           "note": "Bananas, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 0.5,
           "primary": true
         },
@@ -5116,7 +5387,7 @@
           "fdcId": 167762,
           "grams": 48,
           "note": "Strawberries, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 4
         }
       ]
@@ -5138,11 +5409,11 @@
       "ingredients": [
         {
           "fdcId": 174683,
-          "grams": 151.0,
+          "grams": 151,
           "note": "Grapes, red or green (European type, such as Thompson seedless), raw",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.0
+          "unit": "cup",
+          "count": 1
         }
       ]
     },
@@ -5175,7 +5446,7 @@
           "fdcId": 173944,
           "grams": 59,
           "note": "Bananas, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 0.5,
           "primary": true
         },
@@ -5183,7 +5454,7 @@
           "fdcId": 170187,
           "grams": 16,
           "note": "Nuts, walnuts, english",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 4
         },
         {
@@ -5211,31 +5482,45 @@
         {
           "fdcId": 169961,
           "grams": 200,
-          "note": "Beans, snap, green, raw"
+          "note": "Beans, snap, green, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171792,
           "grams": 85,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "stew"
         },
         {
           "fdcId": 170459,
           "grams": 15,
-          "note": "Tomato products, canned, paste, without salt added"
+          "note": "Tomato products, canned, paste, without salt added",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 10,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 168878,
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6,
           "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "stew",
+          "nameAr": "لوبياء باللحم",
+          "nameEn": "Cowpeas and meat stew"
         }
       ]
     },
@@ -5321,7 +5606,7 @@
           "grams": 200,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 8
         },
         {
@@ -5362,7 +5647,7 @@
           "fdcId": 168878,
           "grams": 175,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 7,
           "primary": true
         },
@@ -5412,7 +5697,7 @@
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6
         },
         {
@@ -5505,10 +5790,10 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -5563,7 +5848,7 @@
           "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 9
         },
         {
@@ -5578,9 +5863,9 @@
         },
         {
           "fdcId": 174915,
-          "grams": 30.0,
+          "grams": 45,
           "note": "Bread, pita, white, enriched",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 0.5
         },
         {
@@ -5610,7 +5895,7 @@
           "fdcId": 173044,
           "grams": 110,
           "note": "Guavas, common, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2,
           "primary": true
         }
@@ -5635,10 +5920,10 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -5681,7 +5966,7 @@
           "grams": 16.8,
           "note": "Nuts, hazelnuts or filberts",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12
         }
       ]
@@ -5706,10 +5991,10 @@
       "ingredients": [
         {
           "fdcId": 173800,
-          "grams": 126.5,
+          "grams": 120,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
-          "unit": "Container",
+          "unit": "container",
           "count": 0.5
         },
         {
@@ -5720,9 +6005,9 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -5757,10 +6042,10 @@
       "ingredients": [
         {
           "fdcId": 173800,
-          "grams": 189.8,
+          "grams": 180,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
-          "unit": "Container",
+          "unit": "container",
           "count": 0.75
         },
         {
@@ -5780,11 +6065,11 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60.0,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
-          "count": 1.0
+          "unit": "loaf",
+          "count": 1
         }
       ]
     },
@@ -5809,11 +6094,11 @@
       "ingredients": [
         {
           "fdcId": 173757,
-          "grams": 164.0,
+          "grams": 164,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.0
+          "unit": "cup",
+          "count": 1
         },
         {
           "fdcId": 168604,
@@ -5823,9 +6108,9 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -5861,18 +6146,18 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
           "fdcId": 173800,
-          "grams": 126.5,
+          "grams": 120,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
-          "unit": "Container",
+          "unit": "container",
           "count": 0.5
         },
         {
@@ -5913,10 +6198,10 @@
       "ingredients": [
         {
           "fdcId": 173800,
-          "grams": 126.5,
+          "grams": 120,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
-          "unit": "Container",
+          "unit": "container",
           "count": 0.5
         },
         {
@@ -5936,9 +6221,9 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1,
           "primary": true
         }
@@ -5991,15 +6276,15 @@
           "grams": 72,
           "note": "Dates, medjool",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 3
         },
         {
           "fdcId": 171267,
-          "grams": 183.0,
+          "grams": 183,
           "note": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.75
         }
       ]
@@ -6024,10 +6309,10 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 90.0,
+          "grams": 135,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1.5
         },
         {
@@ -6035,7 +6320,7 @@
           "grams": 100,
           "note": "Egg, whole, cooked, hard-boiled",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2
         },
         {
@@ -6077,7 +6362,7 @@
           "grams": 200,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 8
         },
         {
@@ -6128,7 +6413,7 @@
           "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 9
         },
         {
@@ -6179,7 +6464,7 @@
           "grams": 200,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 8
         },
         {
@@ -6219,10 +6504,10 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 90.0,
+          "grams": 135,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1.5
         },
         {
@@ -6272,29 +6557,44 @@
           "grams": 227.5,
           "note": "Bulgur, cooked",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.25
+          "unit": "cup",
+          "count": 1.25,
+          "component": "kibbeh"
         },
         {
           "fdcId": 171792,
           "grams": 75,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "kibbeh"
         },
         {
           "fdcId": 170000,
           "grams": 40,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "kibbeh",
+          "primary": true
         },
         {
           "fdcId": 170591,
           "grams": 8,
-          "note": "Nuts, pine nuts, dried"
+          "note": "Nuts, pine nuts, dried",
+          "component": "kibbeh",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "kibbeh",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "kibbeh",
+          "nameAr": "كبة بالصينية",
+          "nameEn": "Baked kibbeh"
         }
       ]
     },
@@ -6318,32 +6618,47 @@
       "ingredients": [
         {
           "fdcId": 170287,
-          "grams": 182.0,
+          "grams": 182,
           "note": "Bulgur, cooked",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.0
+          "unit": "cup",
+          "count": 1,
+          "component": "kibbeh"
         },
         {
           "fdcId": 171792,
           "grams": 170,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "kibbeh"
         },
         {
           "fdcId": 170000,
           "grams": 70,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "kibbeh",
+          "primary": true
         },
         {
           "fdcId": 170591,
           "grams": 15,
-          "note": "Nuts, pine nuts, dried"
+          "note": "Nuts, pine nuts, dried",
+          "component": "kibbeh",
+          "primary": true
         },
         {
           "fdcId": 171025,
           "grams": 25,
-          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+          "note": "Oil, sunflower, linoleic, (approx. 65%)",
+          "component": "kibbeh",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "kibbeh",
+          "nameAr": "كبة بالصينية",
+          "nameEn": "Baked kibbeh"
         }
       ]
     },
@@ -6366,25 +6681,37 @@
           "fdcId": 173741,
           "grams": 200,
           "note": "Beans, kidney, all types, mature seeds, canned",
-          "primary": true
+          "primary": true,
+          "component": "stew"
         },
         {
           "fdcId": 168878,
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6,
           "primary": true
         },
         {
           "fdcId": 170459,
           "grams": 15,
-          "note": "Tomato products, canned, paste, without salt added"
+          "note": "Tomato products, canned, paste, without salt added",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 10,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "stew",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "stew",
+          "nameAr": "يخنة فاصولياء حمراء",
+          "nameEn": "Red bean stew"
         }
       ]
     },
@@ -6405,10 +6732,10 @@
       "ingredients": [
         {
           "fdcId": 168153,
-          "grams": 155.2,
+          "grams": 155.3,
           "note": "Kiwifruit, green, raw",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2.25
         }
       ]
@@ -6435,23 +6762,36 @@
           "fdcId": 168933,
           "grams": 45,
           "note": "Semolina, unenriched",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 170847,
           "grams": 70,
           "note": "Cheese, mozzarella, part skim milk",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 169655,
           "grams": 30,
-          "note": "Sugars, granulated"
+          "note": "Sugars, granulated",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 173412,
           "grams": 15,
-          "note": "Butter oil, anhydrous"
+          "note": "Butter oil, anhydrous",
+          "component": "piece",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "piece",
+          "nameAr": "كنافة بالجبنة",
+          "nameEn": "Cheese knafeh"
         }
       ]
     },
@@ -6474,30 +6814,45 @@
           "fdcId": 171792,
           "grams": 85,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "kofta"
         },
         {
           "fdcId": 170026,
-          "grams": 106.5,
+          "grams": 75,
           "note": "Potatoes, flesh and skin, raw",
           "primary": true,
-          "unit": "Piece",
-          "count": 0.5
+          "unit": "piece",
+          "count": 0.5,
+          "component": "kofta"
         },
         {
           "fdcId": 170457,
           "grams": 80,
-          "note": "Tomatoes, red, ripe, raw, year round average"
+          "note": "Tomatoes, red, ripe, raw, year round average",
+          "component": "kofta",
+          "primary": true
         },
         {
           "fdcId": 170000,
           "grams": 40,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "kofta",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "kofta",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "kofta",
+          "nameAr": "كفتة بالفرن",
+          "nameEn": "Baked kofta"
         }
       ]
     },
@@ -6527,7 +6882,7 @@
           "grams": 175,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 7
         },
         {
@@ -6568,30 +6923,45 @@
           "fdcId": 171792,
           "grams": 115,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "kofta"
         },
         {
           "fdcId": 168604,
           "grams": 25,
-          "note": "Seeds, sesame butter, tahini"
+          "note": "Seeds, sesame butter, tahini",
+          "component": "kofta",
+          "primary": true
         },
         {
           "fdcId": 170000,
           "grams": 40,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "kofta",
+          "primary": true
         },
         {
           "fdcId": 170416,
           "grams": 10,
-          "note": "Parsley, fresh"
+          "note": "Parsley, fresh",
+          "component": "kofta",
+          "primary": true
         },
         {
           "fdcId": 170026,
-          "grams": 106.5,
+          "grams": 75,
           "note": "Potatoes, flesh and skin, raw",
           "primary": true,
-          "unit": "Piece",
-          "count": 0.5
+          "unit": "piece",
+          "count": 0.5,
+          "component": "kofta"
+        }
+      ],
+      "components": [
+        {
+          "key": "kofta",
+          "nameAr": "كفتة بالطحينة مع بطاطا",
+          "nameEn": "Kofta with tahini and potato"
         }
       ]
     },
@@ -6616,30 +6986,45 @@
           "fdcId": 171792,
           "grams": 180,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "kofta"
         },
         {
           "fdcId": 170440,
           "grams": 250.5,
           "note": "Potatoes, boiled, cooked without skin, flesh, without salt",
           "primary": true,
-          "unit": "Piece",
-          "count": 1.5
+          "unit": "piece",
+          "count": 1.5,
+          "component": "kofta"
         },
         {
           "fdcId": 168604,
           "grams": 30,
-          "note": "Seeds, sesame butter, tahini, type of kernels unspecified"
+          "note": "Seeds, sesame butter, tahini, type of kernels unspecified",
+          "component": "kofta",
+          "primary": true
         },
         {
           "fdcId": 170000,
           "grams": 60,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "kofta",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 20,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "kofta",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "kofta",
+          "nameAr": "صينية كفتة بالبطاطا",
+          "nameEn": "Kofta and potato tray"
         }
       ]
     },
@@ -6663,11 +7048,11 @@
       "ingredients": [
         {
           "fdcId": 900001,
-          "grams": 45.0,
+          "grams": 90,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
-          "unit": "Tablespoon",
-          "count": 3.0
+          "unit": "heaped-spoon",
+          "count": 3
         },
         {
           "fdcId": 168409,
@@ -6681,10 +7066,10 @@
         },
         {
           "fdcId": 174916,
-          "grams": 32.0,
+          "grams": 45,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 0.5
         }
       ]
@@ -6708,11 +7093,11 @@
       "ingredients": [
         {
           "fdcId": 900001,
-          "grams": 30.0,
+          "grams": 60,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
-          "unit": "Tablespoon",
-          "count": 2.0
+          "unit": "heaped-spoon",
+          "count": 2
         },
         {
           "fdcId": 168409,
@@ -6742,17 +7127,17 @@
       "ingredients": [
         {
           "fdcId": 900001,
-          "grams": 45.0,
+          "grams": 90,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
-          "unit": "Tablespoon",
-          "count": 3.0
+          "unit": "heaped-spoon",
+          "count": 3
         },
         {
           "fdcId": 170187,
           "grams": 16,
           "note": "Nuts, walnuts, english",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 4
         },
         {
@@ -6762,9 +7147,9 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1,
           "primary": true
         }
@@ -6791,11 +7176,11 @@
       "ingredients": [
         {
           "fdcId": 900001,
-          "grams": 45.0,
+          "grams": 90,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
-          "unit": "Tablespoon",
-          "count": 3.0
+          "unit": "heaped-spoon",
+          "count": 3
         },
         {
           "fdcId": 171413,
@@ -6804,9 +7189,9 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1,
           "primary": true
         },
@@ -6838,19 +7223,19 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
           "fdcId": 900001,
-          "grams": 45.0,
+          "grams": 90,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
-          "unit": "Tablespoon",
-          "count": 3.0
+          "unit": "heaped-spoon",
+          "count": 3
         },
         {
           "fdcId": 171413,
@@ -6890,11 +7275,11 @@
       "ingredients": [
         {
           "fdcId": 900001,
-          "grams": 60.0,
+          "grams": 120,
           "note": "Labneh, strained yogurt, full fat (manufacturer panel)",
           "primary": true,
-          "unit": "Tablespoon",
-          "count": 4.0
+          "unit": "heaped-spoon",
+          "count": 4
         },
         {
           "fdcId": 171413,
@@ -6931,7 +7316,7 @@
           "fdcId": 168878,
           "grams": 175,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 7,
           "primary": true
         },
@@ -6940,7 +7325,7 @@
           "grams": 122.5,
           "note": "Yogurt, plain, whole milk",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
@@ -6969,37 +7354,50 @@
       "ingredients": [
         {
           "fdcId": 172421,
-          "grams": 198.0,
+          "grams": 198,
           "note": "Lentils, mature seeds, cooked, boiled, without salt",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.0
+          "unit": "cup",
+          "count": 1,
+          "component": "mujaddara"
         },
         {
           "fdcId": 168878,
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
-          "count": 6
+          "unit": "heaped-spoon",
+          "count": 6,
+          "component": "mujaddara"
         },
         {
           "fdcId": 173424,
           "grams": 100,
           "note": "Egg, whole, cooked, hard-boiled",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2
         },
         {
           "fdcId": 170000,
           "grams": 50,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "mujaddara",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 12,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "mujaddara",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "mujaddara",
+          "nameAr": "مجدرة",
+          "nameEn": "Mujaddara"
         }
       ]
     },
@@ -7025,30 +7423,45 @@
           "fdcId": 174284,
           "grams": 80,
           "note": "Lentils, pink or red, raw",
-          "primary": true
+          "primary": true,
+          "component": "soup"
         },
         {
           "fdcId": 170287,
           "grams": 136.5,
           "note": "Bulgur, cooked",
           "primary": true,
-          "unit": "Cup",
-          "count": 0.75
+          "unit": "cup",
+          "count": 0.75,
+          "component": "soup"
         },
         {
           "fdcId": 170000,
           "grams": 40,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "soup",
+          "primary": true
         },
         {
           "fdcId": 170393,
           "grams": 50,
-          "note": "Carrots, raw"
+          "note": "Carrots, raw",
+          "component": "soup",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 10,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "soup",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "soup",
+          "nameAr": "شوربة عدس بالبرغل",
+          "nameEn": "Lentil and bulgur soup"
         }
       ]
     },
@@ -7070,10 +7483,10 @@
       "ingredients": [
         {
           "fdcId": 172421,
-          "grams": 99.0,
+          "grams": 99,
           "note": "Lentils, mature seeds, cooked, boiled, without salt",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
@@ -7242,10 +7655,10 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         }
       ]
@@ -7271,25 +7684,38 @@
           "fdcId": 168933,
           "grams": 45,
           "note": "Semolina, unenriched",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 168191,
           "grams": 72,
           "note": "Dates, medjool",
           "primary": true,
-          "unit": "Piece",
-          "count": 3
+          "unit": "piece",
+          "count": 3,
+          "component": "piece"
         },
         {
           "fdcId": 173412,
           "grams": 15,
-          "note": "Butter oil, anhydrous"
+          "note": "Butter oil, anhydrous",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 169655,
           "grams": 8,
-          "note": "Sugars, granulated"
+          "note": "Sugars, granulated",
+          "component": "piece",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "piece",
+          "nameAr": "معمول بالتمر",
+          "nameEn": "Date maamoul"
         }
       ]
     },
@@ -7315,8 +7741,9 @@
           "grams": 235.5,
           "note": "Couscous, cooked",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.5
+          "unit": "cup",
+          "count": 1.5,
+          "component": "maftoul"
         },
         {
           "fdcId": 172388,
@@ -7326,21 +7753,33 @@
         },
         {
           "fdcId": 173800,
-          "grams": 63.2,
+          "grams": 60,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
-          "unit": "Container",
-          "count": 0.25
+          "unit": "container",
+          "count": 0.25,
+          "component": "maftoul"
         },
         {
           "fdcId": 170000,
           "grams": 40,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "maftoul",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 10,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "maftoul",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "maftoul",
+          "nameAr": "مفتول بالحمص",
+          "nameEn": "Maftoul with chickpeas"
         }
       ]
     },
@@ -7372,25 +7811,39 @@
           "grams": 274.8,
           "note": "Couscous, cooked",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.75
+          "unit": "cup",
+          "count": 1.75,
+          "component": "maftoul"
         },
         {
           "fdcId": 173757,
-          "grams": 82.0,
+          "grams": 82,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt",
-          "unit": "Cup",
-          "count": 0.5
+          "unit": "cup",
+          "count": 0.5,
+          "component": "maftoul",
+          "primary": true
         },
         {
           "fdcId": 170000,
           "grams": 70,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "maftoul",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 25,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "maftoul",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "maftoul",
+          "nameAr": "مفتول بالحمص",
+          "nameEn": "Maftoul with chickpeas"
         }
       ]
     },
@@ -7412,31 +7865,46 @@
         {
           "fdcId": 169291,
           "grams": 250,
-          "note": "Squash, summer, zucchini, includes skin, raw"
+          "note": "Squash, summer, zucchini, includes skin, raw",
+          "component": "mahshi",
+          "primary": true
         },
         {
           "fdcId": 168878,
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6,
-          "primary": true
+          "primary": true,
+          "component": "mahshi"
         },
         {
           "fdcId": 171792,
           "grams": 60,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "mahshi"
         },
         {
           "fdcId": 170459,
           "grams": 15,
-          "note": "Tomato products, canned, paste, without salt added"
+          "note": "Tomato products, canned, paste, without salt added",
+          "component": "mahshi",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "mahshi",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "mahshi",
+          "nameAr": "محشي كوسا",
+          "nameEn": "Stuffed zucchini"
         }
       ]
     },
@@ -7458,31 +7926,46 @@
         {
           "fdcId": 169975,
           "grams": 120,
-          "note": "Cabbage, raw"
+          "note": "Cabbage, raw",
+          "component": "mahshi",
+          "primary": true
         },
         {
           "fdcId": 168878,
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6,
-          "primary": true
+          "primary": true,
+          "component": "mahshi"
         },
         {
           "fdcId": 171792,
           "grams": 50,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "mahshi"
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "mahshi",
+          "primary": true
         },
         {
           "fdcId": 167747,
           "grams": 8,
-          "note": "Lemon juice, raw"
+          "note": "Lemon juice, raw",
+          "component": "mahshi",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "mahshi",
+          "nameAr": "ملفوف محشي",
+          "nameEn": "Stuffed cabbage"
         }
       ]
     },
@@ -7506,28 +7989,39 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 90.0,
+          "grams": 135,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
-          "count": 1.5
+          "unit": "loaf",
+          "count": 1.5,
+          "component": "piece"
         },
         {
           "fdcId": 170847,
           "grams": 70,
           "note": "Cheese, mozzarella, part skim milk",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 171413,
           "grams": 6,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 170457,
           "grams": 50,
           "free": true,
           "note": "Tomatoes, red, ripe, raw, year round average"
+        }
+      ],
+      "components": [
+        {
+          "key": "piece",
+          "nameAr": "منقوشة جبنة",
+          "nameEn": "Cheese manaqish"
         }
       ]
     },
@@ -7619,17 +8113,17 @@
         },
         {
           "fdcId": 171267,
-          "grams": 183.0,
+          "grams": 183,
           "note": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.75
         },
         {
           "fdcId": 173904,
-          "grams": 20.2,
+          "grams": 20.3,
           "note": "Cereals, oats, regular and quick, not fortified, dry",
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.25
         }
       ]
@@ -7664,21 +8158,21 @@
           "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 9
         },
         {
           "fdcId": 171284,
-          "grams": 245.0,
+          "grams": 245,
           "note": "Yogurt, plain, whole milk",
-          "unit": "Cup",
-          "count": 1.0
+          "unit": "cup",
+          "count": 1
         },
         {
           "fdcId": 174915,
-          "grams": 30.0,
+          "grams": 45,
           "note": "Bread, pita, white, enriched",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 0.5
         },
         {
@@ -7714,9 +8208,10 @@
           "fdcId": 168878,
           "grams": 200,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 8,
-          "primary": true
+          "primary": true,
+          "component": "maqluba"
         },
         {
           "fdcId": 171477,
@@ -7727,22 +8222,37 @@
         {
           "fdcId": 169228,
           "grams": 100,
-          "note": "Eggplant, raw"
+          "note": "Eggplant, raw",
+          "component": "maqluba",
+          "primary": true
         },
         {
           "fdcId": 169986,
           "grams": 60,
-          "note": "Cauliflower, raw"
+          "note": "Cauliflower, raw",
+          "component": "maqluba",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 12,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "maqluba",
+          "primary": true
         },
         {
           "fdcId": 170591,
           "grams": 8,
-          "note": "Nuts, pine nuts, dried"
+          "note": "Nuts, pine nuts, dried",
+          "component": "maqluba",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "maqluba",
+          "nameAr": "أرز وخضار المقلوبة",
+          "nameEn": "Maqluba rice and vegetables"
         }
       ]
     },
@@ -7774,28 +8284,44 @@
           "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
-          "count": 9
+          "unit": "heaped-spoon",
+          "count": 9,
+          "component": "maqluba"
         },
         {
           "fdcId": 169228,
           "grams": 140,
-          "note": "Eggplant, raw"
+          "note": "Eggplant, raw",
+          "component": "maqluba",
+          "primary": true
         },
         {
           "fdcId": 169986,
           "grams": 100,
-          "note": "Cauliflower, raw"
+          "note": "Cauliflower, raw",
+          "component": "maqluba",
+          "primary": true
         },
         {
           "fdcId": 171025,
           "grams": 25,
-          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+          "note": "Oil, sunflower, linoleic, (approx. 65%)",
+          "component": "maqluba",
+          "primary": true
         },
         {
           "fdcId": 170591,
           "grams": 10,
-          "note": "Nuts, pine nuts, dried"
+          "note": "Nuts, pine nuts, dried",
+          "component": "maqluba",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "maqluba",
+          "nameAr": "أرز وخضار المقلوبة",
+          "nameEn": "Maqluba rice and vegetables"
         }
       ]
     },
@@ -7827,25 +8353,39 @@
           "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
-          "count": 9
+          "unit": "heaped-spoon",
+          "count": 9,
+          "component": "maqluba"
         },
         {
           "fdcId": 169228,
           "grams": 150,
-          "note": "Eggplant, raw"
+          "note": "Eggplant, raw",
+          "component": "maqluba",
+          "primary": true
         },
         {
           "fdcId": 171025,
           "grams": 25,
-          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+          "note": "Oil, sunflower, linoleic, (approx. 65%)",
+          "component": "maqluba",
+          "primary": true
         },
         {
           "fdcId": 170567,
-          "grams": 12.0,
+          "grams": 12,
           "note": "Nuts, almonds",
-          "unit": "Piece",
-          "count": 10
+          "unit": "piece",
+          "count": 10,
+          "component": "maqluba",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "maqluba",
+          "nameAr": "أرز وخضار المقلوبة",
+          "nameEn": "Maqluba rice and vegetables"
         }
       ]
     },
@@ -7870,7 +8410,7 @@
           "fdcId": 168878,
           "grams": 200,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 8,
           "primary": true
         },
@@ -7924,7 +8464,7 @@
           "grams": 227.5,
           "note": "Bulgur, cooked",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.25
         },
         {
@@ -7982,10 +8522,10 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -8026,10 +8566,10 @@
       "ingredients": [
         {
           "fdcId": 173757,
-          "grams": 123.0,
+          "grams": 123,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.75
         },
         {
@@ -8045,9 +8585,9 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -8079,21 +8619,21 @@
           "grams": 14.4,
           "note": "Nuts, almonds",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12
         },
         {
           "fdcId": 170187,
           "grams": 16,
           "note": "Nuts, walnuts, english",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 4
         },
         {
           "fdcId": 168191,
           "grams": 48,
           "note": "Dates, medjool",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2
         }
       ]
@@ -8116,31 +8656,45 @@
         {
           "fdcId": 168419,
           "grams": 150,
-          "note": "Jute, potherb, raw"
+          "note": "Jute, potherb, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171477,
           "grams": 95,
           "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
-          "primary": true
+          "primary": true,
+          "component": "stew"
         },
         {
           "fdcId": 168878,
           "grams": 175,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 7,
           "primary": true
         },
         {
           "fdcId": 169230,
           "grams": 5,
-          "note": "Garlic, raw"
+          "note": "Garlic, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 10,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "stew",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "stew",
+          "nameAr": "ملوخية بالدجاج",
+          "nameEn": "Molokhia with chicken"
         }
       ]
     },
@@ -8163,30 +8717,44 @@
           "fdcId": 172388,
           "grams": 170,
           "note": "Chicken, broilers or fryers, thigh, meat only, cooked, roasted",
-          "primary": true
+          "primary": true,
+          "component": "stew"
         },
         {
           "fdcId": 168878,
           "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 9
         },
         {
           "fdcId": 168419,
           "grams": 180,
-          "note": "Jute, potherb, raw"
+          "note": "Jute, potherb, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 169230,
           "grams": 12,
-          "note": "Garlic, raw"
+          "note": "Garlic, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171025,
           "grams": 22,
-          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+          "note": "Oil, sunflower, linoleic, (approx. 65%)",
+          "component": "stew",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "stew",
+          "nameAr": "ملوخية بالدجاج",
+          "nameEn": "Molokhia with chicken"
         }
       ]
     },
@@ -8208,31 +8776,45 @@
         {
           "fdcId": 168419,
           "grams": 120,
-          "note": "Jute, potherb, raw"
+          "note": "Jute, potherb, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171792,
           "grams": 65,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "stew"
         },
         {
           "fdcId": 168878,
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6,
           "primary": true
         },
         {
           "fdcId": 169230,
           "grams": 6,
-          "note": "Garlic, raw"
+          "note": "Garlic, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "stew",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "stew",
+          "nameAr": "ملوخية باللحمة",
+          "nameEn": "Molokhia with meat"
         }
       ]
     },
@@ -8267,10 +8849,10 @@
         },
         {
           "fdcId": 171284,
-          "grams": 61.2,
+          "grams": 61.3,
           "note": "Yogurt, plain, whole milk",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.25
         },
         {
@@ -8280,11 +8862,11 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64.0,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
-          "unit": "Loaf",
-          "count": 1.0
+          "unit": "loaf",
+          "count": 1
         }
       ]
     },
@@ -8324,9 +8906,9 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1,
           "primary": true
         }
@@ -8352,29 +8934,42 @@
       "ingredients": [
         {
           "fdcId": 172421,
-          "grams": 198.0,
+          "grams": 198,
           "note": "Lentils, mature seeds, cooked, boiled, without salt",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.0
+          "unit": "cup",
+          "count": 1,
+          "component": "mujaddara"
         },
         {
           "fdcId": 170287,
           "grams": 227.5,
           "note": "Bulgur, cooked",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.25
+          "unit": "cup",
+          "count": 1.25,
+          "component": "mujaddara"
         },
         {
           "fdcId": 170000,
           "grams": 60,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "mujaddara",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 12,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "mujaddara",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "mujaddara",
+          "nameAr": "مجدرة برغل",
+          "nameEn": "Bulgur mujaddara"
         }
       ]
     },
@@ -8396,29 +8991,35 @@
       "ingredients": [
         {
           "fdcId": 172421,
-          "grams": 198.0,
+          "grams": 198,
           "note": "Lentils, mature seeds, cooked, boiled, without salt",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.0
+          "unit": "cup",
+          "count": 1,
+          "component": "mujaddara"
         },
         {
           "fdcId": 168878,
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6,
-          "primary": true
+          "primary": true,
+          "component": "mujaddara"
         },
         {
           "fdcId": 170000,
           "grams": 60,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "mujaddara",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 12,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "mujaddara",
+          "primary": true
         },
         {
           "fdcId": 169247,
@@ -8434,6 +9035,13 @@
           "fdcId": 167747,
           "grams": 8,
           "note": "Lemon juice, raw"
+        }
+      ],
+      "components": [
+        {
+          "key": "mujaddara",
+          "nameAr": "مجدرة",
+          "nameEn": "Mujaddara"
         }
       ]
     },
@@ -8463,10 +9071,10 @@
         },
         {
           "fdcId": 174915,
-          "grams": 90.0,
+          "grams": 135,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1.5
         },
         {
@@ -8512,10 +9120,10 @@
         },
         {
           "fdcId": 174916,
-          "grams": 128,
+          "grams": 180,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 2
         },
         {
@@ -8556,21 +9164,21 @@
           "fdcId": 170567,
           "grams": 14.4,
           "note": "Nuts, almonds",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12
         },
         {
           "fdcId": 170187,
           "grams": 16,
           "note": "Nuts, walnuts, english",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 4
         },
         {
           "fdcId": 168191,
           "grams": 24,
           "note": "Dates, medjool",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1,
           "primary": true
         }
@@ -8598,7 +9206,7 @@
           "grams": 14.4,
           "note": "Nuts, almonds",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12
         },
         {
@@ -8606,14 +9214,14 @@
           "grams": 14.4,
           "note": "Nuts, cashew nuts, raw",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 9
         },
         {
           "fdcId": 170184,
           "grams": 9.8,
           "note": "Nuts, pistachio nuts, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 14
         }
       ]
@@ -8641,22 +9249,22 @@
           "grams": 40.5,
           "note": "Cereals, oats, regular and quick, not fortified, dry",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
           "fdcId": 171265,
-          "grams": 183.0,
+          "grams": 183,
           "note": "Milk, whole, 3.25% milkfat, with added vitamin D",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.75
         },
         {
           "fdcId": 171688,
           "grams": 91,
           "note": "Apples, raw, with skin",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 0.5
         }
       ]
@@ -8684,22 +9292,22 @@
           "grams": 40.5,
           "note": "Cereals, oats, regular and quick, not fortified, dry",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
           "fdcId": 171265,
-          "grams": 183.0,
+          "grams": 183,
           "note": "Milk, whole, 3.25% milkfat, with added vitamin D",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.75
         },
         {
           "fdcId": 173944,
           "grams": 118,
           "note": "Bananas, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1,
           "primary": true
         }
@@ -8728,22 +9336,22 @@
           "grams": 60.8,
           "note": "Cereals, oats, regular and quick, not fortified, dry",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.75
         },
         {
           "fdcId": 171267,
-          "grams": 244.0,
+          "grams": 244,
           "note": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.0
+          "unit": "cup",
+          "count": 1
         },
         {
           "fdcId": 170187,
           "grams": 20,
           "note": "Nuts, walnuts, english",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 5
         },
         {
@@ -8755,7 +9363,7 @@
           "fdcId": 173944,
           "grams": 118,
           "note": "Bananas, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1
         }
       ]
@@ -8783,7 +9391,7 @@
           "grams": 40.5,
           "note": "Cereals, oats, regular and quick, not fortified, dry",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
@@ -8794,16 +9402,16 @@
         },
         {
           "fdcId": 173944,
-          "grams": 59.0,
+          "grams": 59,
           "note": "Bananas, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 0.5
         },
         {
           "fdcId": 171267,
-          "grams": 122.0,
+          "grams": 122,
           "note": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D",
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         }
       ]
@@ -8831,7 +9439,7 @@
           "grams": 40.5,
           "note": "Cereals, oats, regular and quick, not fortified, dry",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
@@ -8839,14 +9447,14 @@
           "grams": 122.5,
           "note": "Yogurt, plain, whole milk",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
           "fdcId": 168191,
           "grams": 24,
           "note": "Dates, medjool",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1,
           "primary": true
         }
@@ -8884,9 +9492,9 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1,
           "primary": true
         },
@@ -8923,7 +9531,7 @@
           "grams": 150,
           "note": "Egg, whole, raw, fresh",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 3
         },
         {
@@ -8934,9 +9542,9 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -8975,7 +9583,7 @@
           "grams": 100,
           "note": "Egg, whole, raw, fresh",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2
         },
         {
@@ -9019,7 +9627,7 @@
           "fdcId": 169097,
           "grams": 196.5,
           "note": "Oranges, raw, all commercial varieties",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1.5,
           "primary": true
         }
@@ -9046,37 +9654,54 @@
           "fdcId": 172544,
           "grams": 150,
           "note": "Lamb, ground, cooked, broiled",
-          "primary": true
+          "primary": true,
+          "component": "ouzi"
         },
         {
           "fdcId": 168878,
           "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
-          "count": 9
+          "unit": "heaped-spoon",
+          "count": 9,
+          "component": "ouzi"
         },
         {
           "fdcId": 170419,
           "grams": 70,
-          "note": "Peas, green, raw"
+          "note": "Peas, green, raw",
+          "component": "ouzi",
+          "primary": true
         },
         {
           "fdcId": 170393,
           "grams": 60,
-          "note": "Carrots, raw"
+          "note": "Carrots, raw",
+          "component": "ouzi",
+          "primary": true
         },
         {
           "fdcId": 173412,
           "grams": 18,
-          "note": "Butter oil, anhydrous"
+          "note": "Butter oil, anhydrous",
+          "component": "ouzi",
+          "primary": true
         },
         {
           "fdcId": 170567,
-          "grams": 12.0,
+          "grams": 12,
           "note": "Nuts, almonds",
-          "unit": "Piece",
-          "count": 10
+          "unit": "piece",
+          "count": 10,
+          "component": "ouzi",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "ouzi",
+          "nameAr": "أوزي",
+          "nameEn": "Ouzi"
         }
       ]
     },
@@ -9109,14 +9734,14 @@
           "fdcId": 171287,
           "grams": 50,
           "note": "Egg, whole, raw, fresh",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1
         },
         {
           "fdcId": 171267,
-          "grams": 122.0,
+          "grams": 122,
           "note": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D",
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
@@ -9157,32 +9782,47 @@
       "ingredients": [
         {
           "fdcId": 169737,
-          "grams": 248.0,
+          "grams": 248,
           "note": "Pasta, cooked, enriched, without added salt",
           "primary": true,
-          "unit": "Cup",
-          "count": 2.0
+          "unit": "cup",
+          "count": 2,
+          "component": "pasta"
         },
         {
           "fdcId": 171792,
           "grams": 130,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "pasta"
         },
         {
           "fdcId": 170857,
           "grams": 110,
-          "note": "Cream, fluid, light (coffee cream or table cream)"
+          "note": "Cream, fluid, light (coffee cream or table cream)",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 170847,
           "grams": 70,
-          "note": "Cheese, mozzarella, part skim milk"
+          "note": "Cheese, mozzarella, part skim milk",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 173410,
           "grams": 15,
-          "note": "Butter, salted"
+          "note": "Butter, salted",
+          "component": "pasta",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "pasta",
+          "nameAr": "مكرونة بالبشاميل",
+          "nameEn": "Pasta with béchamel"
         }
       ]
     },
@@ -9206,32 +9846,47 @@
       "ingredients": [
         {
           "fdcId": 169737,
-          "grams": 217.0,
+          "grams": 217,
           "note": "Pasta, cooked, enriched, without added salt",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.75
+          "unit": "cup",
+          "count": 1.75,
+          "component": "pasta"
         },
         {
           "fdcId": 171792,
           "grams": 110,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "pasta"
         },
         {
           "fdcId": 170459,
           "grams": 50,
-          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)"
+          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 170000,
           "grams": 40,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 10,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "pasta",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "pasta",
+          "nameAr": "مكرونة بولونيز",
+          "nameEn": "Pasta bolognese"
         }
       ]
     },
@@ -9255,32 +9910,47 @@
       "ingredients": [
         {
           "fdcId": 169737,
-          "grams": 186.0,
+          "grams": 186,
           "note": "Pasta, cooked, enriched, without added salt",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.5
+          "unit": "cup",
+          "count": 1.5,
+          "component": "pasta"
         },
         {
           "fdcId": 171477,
           "grams": 75,
           "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
-          "primary": true
+          "primary": true,
+          "component": "pasta"
         },
         {
           "fdcId": 170457,
           "grams": 60,
-          "note": "Tomatoes, red, ripe, raw, year round average"
+          "note": "Tomatoes, red, ripe, raw, year round average",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 170427,
           "grams": 40,
-          "note": "Peppers, sweet, green, raw"
+          "note": "Peppers, sweet, green, raw",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "pasta",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "pasta",
+          "nameAr": "باستا بالدجاج والخضار",
+          "nameEn": "Chicken and vegetable pasta"
         }
       ]
     },
@@ -9305,32 +9975,47 @@
       "ingredients": [
         {
           "fdcId": 169737,
-          "grams": 186.0,
+          "grams": 186,
           "note": "Pasta, cooked, enriched, without added salt",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.5
+          "unit": "cup",
+          "count": 1.5,
+          "component": "pasta"
         },
         {
           "fdcId": 171477,
           "grams": 120,
           "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
-          "primary": true
+          "primary": true,
+          "component": "pasta"
         },
         {
           "fdcId": 170857,
           "grams": 60,
-          "note": "Cream, fluid, light (coffee cream or table cream)"
+          "note": "Cream, fluid, light (coffee cream or table cream)",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 169251,
           "grams": 60,
-          "note": "Mushrooms, white, raw"
+          "note": "Mushrooms, white, raw",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "pasta",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "pasta",
+          "nameAr": "مكرونة بالكريمة والدجاج",
+          "nameEn": "Creamy chicken pasta"
         }
       ]
     },
@@ -9354,10 +10039,10 @@
       "ingredients": [
         {
           "fdcId": 169737,
-          "grams": 217.0,
+          "grams": 217,
           "note": "Pasta, cooked, enriched, without added salt",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.75
         },
         {
@@ -9401,7 +10086,7 @@
           "fdcId": 169118,
           "grams": 178,
           "note": "Pears, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1,
           "primary": true
         }
@@ -9436,7 +10121,7 @@
           "fdcId": 168878,
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6,
           "primary": true
         },
@@ -9474,7 +10159,7 @@
           "grams": 24.3,
           "note": "Olives, pickled, canned or bottled, green",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 9
         }
       ]
@@ -9498,10 +10183,10 @@
       "ingredients": [
         {
           "fdcId": 170184,
-          "grams": 14.0,
+          "grams": 14,
           "note": "Nuts, pistachio nuts, raw",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 20
         }
       ]
@@ -9527,38 +10212,53 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 90.0,
+          "grams": 135,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
-          "count": 1.5
+          "unit": "loaf",
+          "count": 1.5,
+          "component": "piece"
         },
         {
           "fdcId": 170847,
           "grams": 70,
           "note": "Cheese, mozzarella, part skim milk",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 170459,
           "grams": 35,
-          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)"
+          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 170427,
           "grams": 25,
-          "note": "Peppers, sweet, green, raw"
+          "note": "Peppers, sweet, green, raw",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "piece",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "piece",
+          "nameAr": "قطعة بيتزا",
+          "nameEn": "Pizza slice"
         }
       ]
     },
     {
       "slug": "plums-apricots",
-      "nameAr": "خوخ ومشمش",
+      "nameAr": "برقوق ومشمش",
       "nameEn": "Plums and apricots",
       "mealTypes": [
         "snack"
@@ -9575,7 +10275,7 @@
           "fdcId": 169949,
           "grams": 99,
           "note": "Plums, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1.5,
           "primary": true
         },
@@ -9604,10 +10304,10 @@
       "ingredients": [
         {
           "fdcId": 169134,
-          "grams": 141.0,
+          "grams": 141,
           "note": "Pomegranates, raw",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 0.5
         }
       ]
@@ -9634,7 +10334,7 @@
           "grams": 250.5,
           "note": "Potatoes, boiled, cooked without skin, flesh, without salt",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1.5
         },
         {
@@ -9676,25 +10376,38 @@
           "fdcId": 168448,
           "grams": 250,
           "note": "Pumpkin, raw",
-          "primary": true
+          "primary": true,
+          "component": "soup"
         },
         {
           "fdcId": 170000,
           "grams": 40,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "soup",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "soup",
+          "primary": true
         },
         {
           "fdcId": 171265,
-          "grams": 61.0,
+          "grams": 61,
           "note": "Milk, whole, 3.25% milkfat, with added vitamin D",
           "primary": true,
-          "unit": "Cup",
-          "count": 0.25
+          "unit": "cup",
+          "count": 0.25,
+          "component": "soup"
+        }
+      ],
+      "components": [
+        {
+          "key": "soup",
+          "nameAr": "شوربة قرع",
+          "nameEn": "Pumpkin soup"
         }
       ]
     },
@@ -9720,25 +10433,38 @@
           "fdcId": 168894,
           "grams": 50,
           "note": "Wheat flour, white, all-purpose, enriched, bleached",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 170187,
           "grams": 24,
           "note": "Nuts, walnuts, english",
           "primary": true,
-          "unit": "Piece",
-          "count": 6
+          "unit": "piece",
+          "count": 6,
+          "component": "piece"
         },
         {
           "fdcId": 169655,
           "grams": 20,
-          "note": "Sugars, granulated"
+          "note": "Sugars, granulated",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 173412,
           "grams": 8,
-          "note": "Butter oil, anhydrous"
+          "note": "Butter oil, anhydrous",
+          "component": "piece",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "piece",
+          "nameAr": "قطايف بالجوز",
+          "nameEn": "Walnut qatayef"
         }
       ]
     },
@@ -9761,9 +10487,10 @@
           "fdcId": 168878,
           "grams": 200,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 8,
-          "primary": true
+          "primary": true,
+          "component": "qidreh"
         },
         {
           "fdcId": 172544,
@@ -9773,21 +10500,33 @@
         },
         {
           "fdcId": 173800,
-          "grams": 63.2,
+          "grams": 60,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
           "primary": true,
-          "unit": "Container",
-          "count": 0.25
+          "unit": "container",
+          "count": 0.25,
+          "component": "qidreh"
         },
         {
           "fdcId": 169230,
           "grams": 6,
-          "note": "Garlic, raw"
+          "note": "Garlic, raw",
+          "component": "qidreh",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 10,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "qidreh",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "qidreh",
+          "nameAr": "أرز القدرة",
+          "nameEn": "Qidreh rice"
         }
       ]
     },
@@ -9817,25 +10556,39 @@
           "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
-          "count": 9
+          "unit": "heaped-spoon",
+          "count": 9,
+          "component": "qidreh"
         },
         {
           "fdcId": 173757,
-          "grams": 82.0,
+          "grams": 82,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt",
-          "unit": "Cup",
-          "count": 0.5
+          "unit": "cup",
+          "count": 0.5,
+          "component": "qidreh",
+          "primary": true
         },
         {
           "fdcId": 169230,
           "grams": 12,
-          "note": "Garlic, raw"
+          "note": "Garlic, raw",
+          "component": "qidreh",
+          "primary": true
         },
         {
           "fdcId": 173412,
           "grams": 20,
-          "note": "Butter oil, anhydrous"
+          "note": "Butter oil, anhydrous",
+          "component": "qidreh",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "qidreh",
+          "nameAr": "أرز القدرة",
+          "nameEn": "Qidreh rice"
         }
       ]
     },
@@ -9861,23 +10614,36 @@
           "fdcId": 171477,
           "grams": 90,
           "note": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
-          "primary": true
+          "primary": true,
+          "component": "soup"
         },
         {
           "fdcId": 168919,
           "grams": 120,
           "note": "Noodles, egg, cooked, enriched, with added salt",
-          "primary": true
+          "primary": true,
+          "component": "soup"
         },
         {
           "fdcId": 170393,
           "grams": 60,
-          "note": "Carrots, raw"
+          "note": "Carrots, raw",
+          "component": "soup",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 10,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "soup",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "soup",
+          "nameAr": "شوربة دجاج بالشعيرية",
+          "nameEn": "Chicken noodle soup"
         }
       ]
     },
@@ -9902,36 +10668,51 @@
       "ingredients": [
         {
           "fdcId": 173757,
-          "grams": 164.0,
+          "grams": 164,
           "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.0
+          "unit": "cup",
+          "count": 1,
+          "component": "fatteh"
         },
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
-          "count": 1
+          "unit": "loaf",
+          "count": 1,
+          "component": "fatteh"
         },
         {
           "fdcId": 171284,
           "grams": 183.8,
           "note": "Yogurt, plain, whole milk",
-          "unit": "Cup",
-          "count": 0.75
+          "unit": "cup",
+          "count": 0.75,
+          "component": "fatteh",
+          "primary": true
         },
         {
           "fdcId": 168604,
           "grams": 22,
-          "note": "Seeds, sesame butter, tahini, type of kernels unspecified"
+          "note": "Seeds, sesame butter, tahini, type of kernels unspecified",
+          "component": "fatteh",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 10,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "fatteh",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "fatteh",
+          "nameAr": "فتة باللبن",
+          "nameEn": "Yogurt fatteh"
         }
       ]
     },
@@ -9971,10 +10752,10 @@
         },
         {
           "fdcId": 174915,
-          "grams": 30.0,
+          "grams": 45,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 0.5
         },
         {
@@ -10011,7 +10792,7 @@
           "grams": 72,
           "note": "Dates, medjool",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 3
         },
         {
@@ -10019,7 +10800,7 @@
           "grams": 14.4,
           "note": "Nuts, almonds",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12
         }
       ]
@@ -10046,7 +10827,7 @@
           "grams": 72,
           "note": "Dates, medjool",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 3
         },
         {
@@ -10054,7 +10835,7 @@
           "grams": 183.8,
           "note": "Yogurt, plain, whole milk",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.75
         }
       ]
@@ -10084,10 +10865,10 @@
         },
         {
           "fdcId": 174916,
-          "grams": 32.0,
+          "grams": 45,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 0.5
         },
         {
@@ -10129,18 +10910,30 @@
           "grams": 200,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
-          "count": 8
+          "unit": "heaped-spoon",
+          "count": 8,
+          "component": "maqluba"
         },
         {
           "fdcId": 169228,
           "grams": 120,
-          "note": "Eggplant, raw"
+          "note": "Eggplant, raw",
+          "component": "maqluba",
+          "primary": true
         },
         {
           "fdcId": 171025,
           "grams": 20,
-          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+          "note": "Oil, sunflower, linoleic, (approx. 65%)",
+          "component": "maqluba",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "maqluba",
+          "nameAr": "أرز وخضار المقلوبة",
+          "nameEn": "Maqluba rice and vegetables"
         }
       ]
     },
@@ -10166,23 +10959,36 @@
           "fdcId": 168894,
           "grams": 50,
           "note": "Wheat flour, white, all-purpose, enriched, bleached",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 171248,
           "grams": 70,
           "note": "Cheese, ricotta, part skim milk",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 169655,
           "grams": 20,
-          "note": "Sugars, granulated"
+          "note": "Sugars, granulated",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 173412,
           "grams": 8,
-          "note": "Butter oil, anhydrous"
+          "note": "Butter oil, anhydrous",
+          "component": "piece",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "piece",
+          "nameAr": "قطايف بالجبنة",
+          "nameEn": "Cheese qatayef"
         }
       ]
     },
@@ -10214,7 +11020,7 @@
           "grams": 175,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 7
         },
         {
@@ -10226,7 +11032,7 @@
           "fdcId": 170567,
           "grams": 9.6,
           "note": "Nuts, almonds",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 8
         }
       ]
@@ -10253,18 +11059,29 @@
           "fdcId": 168894,
           "grams": 55,
           "note": "Wheat flour, white, all-purpose, enriched, bleached",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 170847,
           "grams": 60,
           "note": "Cheese, mozzarella, part skim milk",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 171025,
           "grams": 12,
-          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+          "note": "Oil, sunflower, linoleic, (approx. 65%)",
+          "component": "piece",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "piece",
+          "nameAr": "سمبوسك بالجبنة",
+          "nameEn": "Cheese sambousek"
         }
       ]
     },
@@ -10289,23 +11106,36 @@
           "fdcId": 168894,
           "grams": 55,
           "note": "Wheat flour, white, all-purpose, enriched, bleached",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 171792,
           "grams": 60,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 170000,
           "grams": 30,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 171025,
           "grams": 12,
-          "note": "Oil, sunflower, linoleic, (approx. 65%)"
+          "note": "Oil, sunflower, linoleic, (approx. 65%)",
+          "component": "piece",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "piece",
+          "nameAr": "سمبوسك باللحمة",
+          "nameEn": "Meat sambousek"
         }
       ]
     },
@@ -10372,41 +11202,41 @@
       "ingredients": [
         {
           "fdcId": 900001,
-          "grams": 60.0,
+          "grams": 120,
           "note": "Labneh, strained yogurt, full fat (manufacturer label)",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 4
         },
         {
           "fdcId": 171284,
-          "grams": 245.0,
+          "grams": 245,
           "note": "Yogurt, plain, whole milk",
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1
         },
         {
           "fdcId": 174916,
-          "grams": 64.0,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
           "fdcId": 171413,
-          "grams": 8.0,
+          "grams": 8,
           "note": "Oil, olive, salad or cooking"
         },
         {
           "fdcId": 169096,
           "grams": 21.6,
           "note": "Olives, pickled, canned or bottled, green",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 8
         },
         {
           "fdcId": 168409,
-          "grams": 80.0,
+          "grams": 80,
           "note": "Cucumber, with peel, raw"
         }
       ]
@@ -10433,7 +11263,7 @@
           "fdcId": 168878,
           "grams": 175,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 7,
           "primary": true
         },
@@ -10567,10 +11397,10 @@
         },
         {
           "fdcId": 172688,
-          "grams": 72.0,
+          "grams": 63,
           "note": "Bread, whole-wheat, commercially prepared",
           "primary": true,
-          "unit": "Slice",
+          "unit": "slice",
           "count": 2.25
         },
         {
@@ -10612,10 +11442,10 @@
         },
         {
           "fdcId": 169700,
-          "grams": 196.2,
+          "grams": 196.3,
           "note": "Couscous, cooked",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.25
         },
         {
@@ -10656,10 +11486,10 @@
         },
         {
           "fdcId": 170026,
-          "grams": 159.8,
+          "grams": 112.5,
           "note": "Potatoes, flesh and skin, raw",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 0.75
         },
         {
@@ -10700,11 +11530,11 @@
         },
         {
           "fdcId": 169704,
-          "grams": 202.0,
+          "grams": 202,
           "note": "Rice, brown, long-grain, cooked (Includes foods for USDA's Food Distribution Program)",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.0
+          "unit": "cup",
+          "count": 1
         },
         {
           "fdcId": 170379,
@@ -10746,7 +11576,7 @@
           "fdcId": 168878,
           "grams": 175,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 7,
           "primary": true
         },
@@ -10793,10 +11623,10 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -10864,10 +11694,10 @@
         },
         {
           "fdcId": 174916,
-          "grams": 32.0,
+          "grams": 45,
           "note": "Bread, pita, whole-wheat",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 0.5
         }
       ]
@@ -10898,10 +11728,10 @@
         },
         {
           "fdcId": 172688,
-          "grams": 72.0,
+          "grams": 63,
           "note": "Bread, whole-wheat, commercially prepared",
           "primary": true,
-          "unit": "Slice",
+          "unit": "slice",
           "count": 2.25
         },
         {
@@ -10949,7 +11779,7 @@
           "fdcId": 168878,
           "grams": 175,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 7,
           "primary": true
         },
@@ -10987,7 +11817,7 @@
           "fdcId": 171287,
           "grams": 100,
           "note": "Egg, whole, raw, fresh",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2,
           "primary": true
         },
@@ -11031,37 +11861,54 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 90.0,
+          "grams": 135,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
-          "count": 1.5
+          "unit": "loaf",
+          "count": 1.5,
+          "component": "piece"
         },
         {
           "fdcId": 171792,
           "grams": 90,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 170000,
           "grams": 50,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 170459,
           "grams": 25,
-          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)"
+          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 12,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 170591,
           "grams": 8,
-          "note": "Nuts, pine nuts, dried"
+          "note": "Nuts, pine nuts, dried",
+          "component": "piece",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "piece",
+          "nameAr": "صفيحة لحم",
+          "nameEn": "Meat sfeeha"
         }
       ]
     },
@@ -11131,32 +11978,47 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 60,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
-          "count": 1
+          "unit": "loaf",
+          "count": 1,
+          "component": "piece"
         },
         {
           "fdcId": 171792,
           "grams": 70,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "piece"
         },
         {
           "fdcId": 170000,
           "grams": 30,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 170457,
           "grams": 30,
-          "note": "Tomatoes, red, ripe, raw, year round average"
+          "note": "Tomatoes, red, ripe, raw, year round average",
+          "component": "piece",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 5,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "piece",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "piece",
+          "nameAr": "صفيحة باللحمة والبندورة",
+          "nameEn": "Meat and tomato sfeeha"
         }
       ]
     },
@@ -11183,37 +12045,53 @@
           "fdcId": 171287,
           "grams": 100,
           "note": "Egg, whole, raw, fresh",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2,
-          "primary": true
+          "primary": true,
+          "component": "shakshuka"
         },
         {
           "fdcId": 170457,
           "grams": 200,
-          "note": "Tomatoes, red, ripe, raw, year round average"
+          "note": "Tomatoes, red, ripe, raw, year round average",
+          "component": "shakshuka",
+          "primary": true
         },
         {
           "fdcId": 170000,
           "grams": 50,
-          "note": "Onions, raw"
+          "note": "Onions, raw",
+          "component": "shakshuka",
+          "primary": true
         },
         {
           "fdcId": 170427,
           "grams": 50,
-          "note": "Peppers, sweet, green, raw"
+          "note": "Peppers, sweet, green, raw",
+          "component": "shakshuka",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 10,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "shakshuka",
+          "primary": true
         },
         {
           "fdcId": 174915,
-          "grams": 30.0,
+          "grams": 45,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 0.5
+        }
+      ],
+      "components": [
+        {
+          "key": "shakshuka",
+          "nameAr": "شكشوكة",
+          "nameEn": "Shakshuka"
         }
       ]
     },
@@ -11241,31 +12119,44 @@
           "grams": 150,
           "note": "Egg, whole, raw, fresh",
           "primary": true,
-          "unit": "Piece",
-          "count": 3
+          "unit": "piece",
+          "count": 3,
+          "component": "shakshuka"
         },
         {
           "fdcId": 170457,
           "grams": 220,
           "note": "Tomatoes, red, ripe, raw, year round average",
-          "primary": true
+          "primary": true,
+          "component": "shakshuka"
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
           "fdcId": 170427,
           "grams": 60,
-          "note": "Peppers, sweet, green, raw"
+          "note": "Peppers, sweet, green, raw",
+          "component": "shakshuka",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 14,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "shakshuka",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "shakshuka",
+          "nameAr": "شكشوكة",
+          "nameEn": "Shakshuka"
         }
       ]
     },
@@ -11293,31 +12184,44 @@
           "grams": 150,
           "note": "Egg, whole, raw, fresh",
           "primary": true,
-          "unit": "Piece",
-          "count": 3
+          "unit": "piece",
+          "count": 3,
+          "component": "shakshuka"
         },
         {
           "fdcId": 170457,
           "grams": 200,
           "note": "Tomatoes, red, ripe, raw, year round average",
-          "primary": true
+          "primary": true,
+          "component": "shakshuka"
         },
         {
           "fdcId": 173420,
           "grams": 50,
-          "note": "Cheese, feta"
+          "note": "Cheese, feta",
+          "component": "shakshuka",
+          "primary": true
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
           "fdcId": 171413,
           "grams": 12,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "shakshuka",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "shakshuka",
+          "nameAr": "شكشوكة",
+          "nameEn": "Shakshuka"
         }
       ]
     },
@@ -11341,10 +12245,10 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 120,
+          "grams": 180,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 2
         },
         {
@@ -11395,10 +12299,10 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 90.0,
+          "grams": 135,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1.5
         },
         {
@@ -11455,10 +12359,10 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 90.0,
+          "grams": 135,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1.5
         },
         {
@@ -11515,7 +12419,7 @@
           "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 9
         },
         {
@@ -11569,15 +12473,15 @@
           "grams": 227.5,
           "note": "Bulgur, cooked",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.25
         },
         {
           "fdcId": 171284,
-          "grams": 61.2,
+          "grams": 61.3,
           "note": "Yogurt, plain, whole milk",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.25
         },
         {
@@ -11619,7 +12523,7 @@
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6
         },
         {
@@ -11660,10 +12564,10 @@
       "ingredients": [
         {
           "fdcId": 174915,
-          "grams": 90.0,
+          "grams": 135,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1.5
         },
         {
@@ -11724,7 +12628,7 @@
           "grams": 175,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 7
         },
         {
@@ -11763,17 +12667,17 @@
       "ingredients": [
         {
           "fdcId": 172421,
-          "grams": 198.0,
+          "grams": 198,
           "note": "Lentils, mature seeds, cooked, boiled, without salt",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.0
+          "unit": "cup",
+          "count": 1
         },
         {
           "fdcId": 174915,
-          "grams": 30.0,
+          "grams": 45,
           "note": "Bread, pita, white, enriched",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 0.5
         },
         {
@@ -11815,7 +12719,7 @@
           "grams": 122.5,
           "note": "Yogurt, plain, whole milk",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         },
         {
@@ -11851,7 +12755,7 @@
           "fdcId": 167762,
           "grams": 144,
           "note": "Strawberries, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12,
           "primary": true
         },
@@ -11860,7 +12764,7 @@
           "grams": 122.5,
           "note": "Yogurt, plain, whole milk",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.5
         }
       ]
@@ -11884,31 +12788,45 @@
           "fdcId": 169291,
           "grams": 200,
           "note": "Squash, summer, zucchini, includes skin, raw",
-          "primary": true
+          "primary": true,
+          "component": "mahshi"
         },
         {
           "fdcId": 168878,
           "grams": 200,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
-          "count": 8
+          "unit": "heaped-spoon",
+          "count": 8,
+          "component": "mahshi"
         },
         {
           "fdcId": 171792,
           "grams": 110,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "mahshi"
         },
         {
           "fdcId": 170459,
           "grams": 45,
-          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)"
+          "note": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)",
+          "component": "mahshi",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 22,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "mahshi",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "mahshi",
+          "nameAr": "محشي مشكل",
+          "nameEn": "Mixed stuffed vegetables"
         }
       ]
     },
@@ -11958,7 +12876,7 @@
           "grams": 136.5,
           "note": "Bulgur, cooked",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.75
         },
         {
@@ -12027,7 +12945,7 @@
           "fdcId": 170287,
           "grams": 45.5,
           "note": "Bulgur, cooked",
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.25
         },
         {
@@ -12082,9 +13000,9 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1,
           "primary": true
         }
@@ -12110,10 +13028,10 @@
       "ingredients": [
         {
           "fdcId": 172688,
-          "grams": 72.0,
+          "grams": 63,
           "note": "Bread, whole-wheat, commercially prepared",
           "primary": true,
-          "unit": "Slice",
+          "unit": "slice",
           "count": 2.25
         },
         {
@@ -12126,7 +13044,7 @@
           "fdcId": 173944,
           "grams": 118,
           "note": "Bananas, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 1
         },
         {
@@ -12206,14 +13124,14 @@
           "grams": 100,
           "note": "Egg, whole, cooked, hard-boiled",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1
         },
         {
@@ -12296,32 +13214,47 @@
       "ingredients": [
         {
           "fdcId": 169737,
-          "grams": 186.0,
+          "grams": 186,
           "note": "Pasta, cooked, enriched, without added salt",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.5
+          "unit": "cup",
+          "count": 1.5,
+          "component": "pasta"
         },
         {
           "fdcId": 171986,
           "grams": 110,
           "note": "Fish, tuna, light, canned in water, without salt, drained solids",
-          "primary": true
+          "primary": true,
+          "component": "pasta"
         },
         {
           "fdcId": 169214,
           "grams": 60,
-          "note": "Corn, sweet, yellow, canned, whole kernel, drained solids"
+          "note": "Corn, sweet, yellow, canned, whole kernel, drained solids",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 171009,
           "grams": 20,
-          "note": "Salad dressing, mayonnaise, regular"
+          "note": "Salad dressing, mayonnaise, regular",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "pasta",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "pasta",
+          "nameAr": "مكرونة بالتونة",
+          "nameEn": "Tuna pasta"
         }
       ]
     },
@@ -12345,32 +13278,47 @@
       "ingredients": [
         {
           "fdcId": 169737,
-          "grams": 155.0,
+          "grams": 155,
           "note": "Pasta, cooked, enriched, without added salt",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.25
+          "unit": "cup",
+          "count": 1.25,
+          "component": "pasta"
         },
         {
           "fdcId": 171986,
           "grams": 90,
           "note": "Fish, tuna, light, canned in water, without salt, drained solids",
-          "primary": true
+          "primary": true,
+          "component": "pasta"
         },
         {
           "fdcId": 170457,
           "grams": 60,
-          "note": "Tomatoes, red, ripe, raw, year round average"
+          "note": "Tomatoes, red, ripe, raw, year round average",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 168409,
           "grams": 40,
-          "note": "Cucumber, with peel, raw"
+          "note": "Cucumber, with peel, raw",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "pasta",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "pasta",
+          "nameAr": "سلطة باستا بالتونة",
+          "nameEn": "Tuna pasta salad"
         }
       ]
     },
@@ -12400,10 +13348,10 @@
         },
         {
           "fdcId": 170026,
-          "grams": 159.8,
+          "grams": 112.5,
           "note": "Potatoes, flesh and skin, raw",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 0.75
         },
         {
@@ -12462,11 +13410,11 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60.0,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
-          "count": 1.0
+          "unit": "loaf",
+          "count": 1
         },
         {
           "fdcId": 169247,
@@ -12509,11 +13457,11 @@
       "ingredients": [
         {
           "fdcId": 174924,
-          "grams": 58.0,
+          "grams": 56,
           "note": "Bread, white, commercially prepared (includes soft bread crumbs)",
           "primary": true,
-          "unit": "Slice",
-          "count": 2.0
+          "unit": "slice",
+          "count": 2
         },
         {
           "fdcId": 171986,
@@ -12561,10 +13509,10 @@
       "ingredients": [
         {
           "fdcId": 172688,
-          "grams": 72.0,
+          "grams": 63,
           "note": "Bread, whole-wheat, commercially prepared",
           "primary": true,
-          "unit": "Slice",
+          "unit": "slice",
           "count": 2.25
         },
         {
@@ -12615,7 +13563,7 @@
           "grams": 227.5,
           "note": "Bulgur, cooked",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 1.25
         },
         {
@@ -12663,11 +13611,11 @@
       "ingredients": [
         {
           "fdcId": 172688,
-          "grams": 64.0,
+          "grams": 56,
           "note": "Bread, whole-wheat, commercially prepared",
           "primary": true,
-          "unit": "Slice",
-          "count": 2.0
+          "unit": "slice",
+          "count": 2
         },
         {
           "fdcId": 171496,
@@ -12715,10 +13663,10 @@
       "ingredients": [
         {
           "fdcId": 172688,
-          "grams": 72.0,
+          "grams": 63,
           "note": "Bread, whole-wheat, commercially prepared",
           "primary": true,
-          "unit": "Slice",
+          "unit": "slice",
           "count": 2.25
         },
         {
@@ -12731,7 +13679,7 @@
           "fdcId": 173424,
           "grams": 100,
           "note": "Egg, whole, cooked, hard-boiled",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 2
         },
         {
@@ -12767,32 +13715,47 @@
       "ingredients": [
         {
           "fdcId": 169737,
-          "grams": 217.0,
+          "grams": 217,
           "note": "Pasta, cooked, enriched, without added salt",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.75
+          "unit": "cup",
+          "count": 1.75,
+          "component": "pasta"
         },
         {
           "fdcId": 171496,
           "grams": 140,
           "note": "Turkey, whole, breast, meat only, cooked, roasted",
-          "primary": true
+          "primary": true,
+          "component": "pasta"
         },
         {
           "fdcId": 170379,
           "grams": 100,
-          "note": "Broccoli, raw"
+          "note": "Broccoli, raw",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 170857,
           "grams": 60,
-          "note": "Cream, fluid, light (coffee cream or table cream)"
+          "note": "Cream, fluid, light (coffee cream or table cream)",
+          "component": "pasta",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 10,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "pasta",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "pasta",
+          "nameAr": "مكرونة مع حبش وخضار",
+          "nameEn": "Turkey and vegetable pasta"
         }
       ]
     },
@@ -12822,11 +13785,11 @@
         },
         {
           "fdcId": 174915,
-          "grams": 60.0,
+          "grams": 90,
           "note": "Bread, pita, white, enriched",
           "primary": true,
-          "unit": "Loaf",
-          "count": 1.0
+          "unit": "loaf",
+          "count": 1
         },
         {
           "fdcId": 169247,
@@ -12902,10 +13865,10 @@
         },
         {
           "fdcId": 170026,
-          "grams": 106.5,
+          "grams": 75,
           "note": "Potatoes, flesh and skin, raw",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 0.5
         },
         {
@@ -12951,9 +13914,9 @@
         },
         {
           "fdcId": 170026,
-          "grams": 53.2,
+          "grams": 37.5,
           "note": "Potatoes, flesh and skin, raw",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 0.25
         },
         {
@@ -13027,10 +13990,10 @@
       "ingredients": [
         {
           "fdcId": 170187,
-          "grams": 20.0,
+          "grams": 20,
           "note": "Nuts, walnuts, english",
           "primary": true,
-          "unit": "Piece",
+          "unit": "piece",
           "count": 5
         }
       ]
@@ -13053,31 +14016,46 @@
         {
           "fdcId": 169393,
           "grams": 120,
-          "note": "Grape leaves, canned"
+          "note": "Grape leaves, canned",
+          "component": "warak",
+          "primary": true
         },
         {
           "fdcId": 168878,
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6,
-          "primary": true
+          "primary": true,
+          "component": "warak"
         },
         {
           "fdcId": 171792,
           "grams": 65,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "warak"
         },
         {
           "fdcId": 167747,
           "grams": 10,
-          "note": "Lemon juice, raw"
+          "note": "Lemon juice, raw",
+          "component": "warak",
+          "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "warak",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "warak",
+          "nameAr": "ورق عنب",
+          "nameEn": "Stuffed vine leaves"
         }
       ]
     },
@@ -13100,31 +14078,45 @@
           "fdcId": 169393,
           "grams": 150,
           "note": "Grape leaves, canned",
-          "primary": true
+          "primary": true,
+          "component": "warak"
         },
         {
           "fdcId": 168878,
           "grams": 225,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
           "primary": true,
-          "unit": "Tablespoon",
-          "count": 9
+          "unit": "heaped-spoon",
+          "count": 9,
+          "component": "warak"
         },
         {
           "fdcId": 171792,
           "grams": 130,
           "note": "Beef, ground, 95% lean meat / 5% fat, patty, cooked, pan-broiled",
-          "primary": true
+          "primary": true,
+          "component": "warak"
         },
         {
           "fdcId": 171413,
           "grams": 25,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "warak",
+          "primary": true
         },
         {
           "fdcId": 167747,
           "grams": 15,
-          "note": "Lemon juice, raw"
+          "note": "Lemon juice, raw",
+          "component": "warak",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "warak",
+          "nameAr": "ورق عنب باللحمة",
+          "nameEn": "Stuffed vine leaves with meat"
         }
       ]
     },
@@ -13152,7 +14144,7 @@
           "fdcId": 168878,
           "grams": 175,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 7,
           "primary": true
         },
@@ -13197,7 +14189,7 @@
           "fdcId": 167765,
           "grams": 286,
           "note": "Watermelon, raw",
-          "unit": "Slice",
+          "unit": "slice",
           "count": 1,
           "primary": true
         }
@@ -13247,9 +14239,9 @@
         },
         {
           "fdcId": 174916,
-          "grams": 64,
+          "grams": 90,
           "note": "Bread, pita, whole-wheat",
-          "unit": "Loaf",
+          "unit": "loaf",
           "count": 1,
           "primary": true
         }
@@ -13281,17 +14273,17 @@
         },
         {
           "fdcId": 171284,
-          "grams": 245.0,
+          "grams": 245,
           "note": "Yogurt, plain, whole milk",
           "primary": true,
-          "unit": "Cup",
-          "count": 1.0
+          "unit": "cup",
+          "count": 1
         },
         {
           "fdcId": 168878,
           "grams": 150,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 6
         },
         {
@@ -13330,7 +14322,7 @@
           "grams": 183.8,
           "note": "Yogurt, plain, whole milk",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.75
         }
       ]
@@ -13361,17 +14353,17 @@
         },
         {
           "fdcId": 173904,
-          "grams": 20.2,
+          "grams": 20.3,
           "note": "Cereals, oats, regular and quick, not fortified, dry",
           "primary": true,
-          "unit": "Cup",
+          "unit": "cup",
           "count": 0.25
         },
         {
           "fdcId": 170567,
           "grams": 14.4,
           "note": "Nuts, almonds",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 12
         },
         {
@@ -13414,7 +14406,7 @@
           "fdcId": 170187,
           "grams": 16,
           "note": "Nuts, walnuts, english",
-          "unit": "Piece",
+          "unit": "piece",
           "count": 4
         }
       ]
@@ -13439,28 +14431,40 @@
         {
           "fdcId": 169291,
           "grams": 220,
-          "note": "Squash, summer, zucchini, includes skin, raw"
+          "note": "Squash, summer, zucchini, includes skin, raw",
+          "component": "stew",
+          "primary": true
         },
         {
           "fdcId": 171284,
           "grams": 122.5,
           "note": "Yogurt, plain, whole milk",
           "primary": true,
-          "unit": "Cup",
-          "count": 0.5
+          "unit": "cup",
+          "count": 0.5,
+          "component": "stew"
         },
         {
           "fdcId": 168878,
           "grams": 125,
           "note": "Rice, white, long-grain, regular, enriched, cooked",
-          "unit": "Tablespoon",
+          "unit": "heaped-spoon",
           "count": 5,
           "primary": true
         },
         {
           "fdcId": 171413,
           "grams": 8,
-          "note": "Oil, olive, salad or cooking"
+          "note": "Oil, olive, salad or cooking",
+          "component": "stew",
+          "primary": true
+        }
+      ],
+      "components": [
+        {
+          "key": "stew",
+          "nameAr": "كوسا باللبن",
+          "nameEn": "Zucchini in yogurt"
         }
       ]
     }

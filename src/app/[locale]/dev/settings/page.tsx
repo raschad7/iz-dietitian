@@ -3,11 +3,13 @@ import { notFound } from 'next/navigation';
 import { resolveLocale } from '@/i18n/params';
 import { isMember } from '@/lib/enum';
 import { NutritionRulesSettings } from '@/features/weekly-plans/components/nutrition-rules-settings';
+import { PortionGuideSettings } from '@/features/weekly-plans/components/portion-guide-settings';
 import {
   BMR_SOURCES,
   DEFAULT_NUTRITION_RULES,
   PROTEIN_BASES,
 } from '@/features/weekly-plans/nutrition-rules';
+import type { PortionGuideEntry } from '@/features/weekly-plans/portion-guide';
 
 type DevSettingsPageProps = {
   params: Promise<{ locale: string }>;
@@ -23,6 +25,10 @@ type DevSettingsPageProps = {
  * see. This renders the real `NutritionRulesSettings` over rules taken from the
  * query string, so both rows, both dialogs and every basis hint can be driven
  * and screenshotted at any width in either language.
+ *
+ * The measurements guide is here too, over a fixture rather than the catalog:
+ * it is read-only, so what there is to look at is the grouping, the Arabic
+ * column order and how a three-column table behaves at 390px.
  *
  * `?basis=`, `?rate=` and `?bmr=` are the whole point. Each row states its
  * value as a sentence and each basis carries a different hint under it — six
@@ -64,6 +70,115 @@ export default async function DevSettingsPage({ params, searchParams }: DevSetti
             : DEFAULT_NUTRITION_RULES.bmrSource,
         }}
       />
+
+      <PortionGuideSettings locale={locale} entries={GUIDE_FIXTURE} />
     </main>
   );
 }
+
+/**
+ * A slice of the real catalog, chosen to exercise every group the guide draws
+ * and the two things that make it worth looking at: a food carrying both spoons,
+ * and a weight with a recorded spread beside it.
+ */
+const GUIDE_FIXTURE: PortionGuideEntry[] = [
+  {
+    foodId: 'rice',
+    nameAr: 'أرز أبيض مطبوخ',
+    nameEn: 'White rice, cooked',
+    key: 'heaped-spoon',
+    labelAr: 'ملعقة ممتلئة',
+    labelEn: 'Heaped spoon',
+    grams: 25,
+    reviewStatus: 'reviewed',
+    rangeGrams: [21, 26],
+  },
+  {
+    foodId: 'labaneh',
+    nameAr: 'لبنة',
+    nameEn: 'Labaneh',
+    key: 'heaped-spoon',
+    labelAr: 'ملعقة ممتلئة',
+    labelEn: 'Heaped spoon',
+    grams: 30,
+    reviewStatus: 'reviewed',
+    rangeGrams: [27, 33],
+  },
+  {
+    foodId: 'olive-oil',
+    nameAr: 'زيت زيتون',
+    nameEn: 'Olive oil',
+    key: 'level-tablespoon',
+    labelAr: 'ملعقة كبيرة',
+    labelEn: 'Tablespoon',
+    grams: 13.5,
+    reviewStatus: 'reviewed',
+    rangeGrams: [13.5, 14.5],
+  },
+  {
+    foodId: 'pita',
+    nameAr: 'خبز عربي أبيض',
+    nameEn: 'White pita bread',
+    key: 'loaf',
+    labelAr: 'رغيف',
+    labelEn: 'Loaf',
+    grams: 90,
+    reviewStatus: 'reviewed',
+    rangeGrams: [90, 100],
+  },
+  {
+    foodId: 'toast',
+    nameAr: 'خبز توست أسمر',
+    nameEn: 'Wholewheat toast',
+    key: 'slice',
+    labelAr: 'شريحة',
+    labelEn: 'Slice',
+    grams: 28,
+    reviewStatus: 'reviewed',
+    rangeGrams: [26, 30],
+  },
+  {
+    foodId: 'egg',
+    nameAr: 'بيض',
+    nameEn: 'Egg',
+    key: 'piece',
+    labelAr: 'حبة',
+    labelEn: 'Piece',
+    grams: 50,
+    reviewStatus: 'needs_review',
+    rangeGrams: null,
+  },
+  {
+    foodId: 'cucumber',
+    nameAr: 'خيار',
+    nameEn: 'Cucumber',
+    key: 'piece',
+    labelAr: 'حبة',
+    labelEn: 'Piece',
+    grams: 110,
+    reviewStatus: 'reviewed',
+    rangeGrams: [100, 120],
+  },
+  {
+    foodId: 'yogurt',
+    nameAr: 'لبن رائب كامل الدسم',
+    nameEn: 'Whole yogurt',
+    key: 'cup',
+    labelAr: 'كوب',
+    labelEn: 'Cup',
+    grams: 245,
+    reviewStatus: 'reviewed',
+    rangeGrams: [240, 250],
+  },
+  {
+    foodId: 'chickpeas',
+    nameAr: 'حمص معلب',
+    nameEn: 'Canned chickpeas',
+    key: 'container',
+    labelAr: 'علبة',
+    labelEn: 'Container',
+    grams: 240,
+    reviewStatus: 'reviewed',
+    rangeGrams: [220, 250],
+  },
+];

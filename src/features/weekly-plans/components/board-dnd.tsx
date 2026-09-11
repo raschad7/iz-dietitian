@@ -787,25 +787,25 @@ export function BoardEditor({
                 servings,
               });
             },
-            setIngredient: (mealId, amount) => {
+            setIngredient: (mealId, amounts) => {
               runAction(
-                {
-                  kind: 'ingredient',
-                  mealId,
-                  foodId: amount.foodId,
-                  quantityGrams: amount.quantityGrams,
-                  portionQuantity: amount.portionQuantity,
-                },
+                { kind: 'ingredient', mealId, amounts },
                 setMealIngredientAction,
                 {
                   mealId,
-                  foodId: amount.foodId,
-                  quantityGrams: amount.quantityGrams,
-                  // A grams line sends both fields empty. `formFor` writes the
-                  // value it is given, and '' is what the action reads back as
-                  // "no portion" — the pair stays whole in both directions.
-                  portionId: amount.portionId ?? '',
-                  portionQuantity: amount.portionQuantity ?? '',
+                  /*
+                    One JSON field, not repeated entries.
+
+                    A grouped component sends several lines that together
+                    describe one ratio, and a form that could arrive with three
+                    of the four read would let the board write a plate no recipe
+                    specifies. A single field parses whole or fails whole.
+
+                    `null` rather than '' for an absent portion: JSON can say
+                    "there is no portion", so the empty-string encoding the
+                    older single-field form needed is gone.
+                  */
+                  amounts: JSON.stringify(amounts),
                 },
               );
             },
@@ -1015,20 +1015,23 @@ export type EditorActions = {
   place: (mealId: string, dish: DishDetail, servings: number) => void;
   setServings: (mealId: string, servings: number) => void;
   /**
-   * Moves one ingredient inside one meal.
+   * Moves one component inside one meal.
    *
-   * Takes the whole amount rather than a direction, because the arithmetic —
-   * which unit, what step, what that is in grams — belongs to the control that
-   * knows the line, not to a context that would have to look it up again.
+   * Takes the whole amounts rather than a direction, because the arithmetic —
+   * which unit, what step, what that is in grams, how a group's ratio divides —
+   * belongs to the control that knows the lines, not to a context that would
+   * have to look them all up again.
+   *
+   * A list, because a grouped component moves every line it holds at once.
    */
   setIngredient: (
     mealId: string,
-    amount: {
+    amounts: readonly {
       foodId: string;
       quantityGrams: number;
       portionId: string | null;
       portionQuantity: number | null;
-    },
+    }[],
   ) => void;
   /** Puts a meal back on its dish's recipe, discarding hand-set amounts. */
   resetIngredients: (mealId: string) => void;

@@ -42,7 +42,12 @@ export function GenerateForm({
    * itself lives in `new-week.ts`.
    */
   mode: NewWeekMode;
-  blocked: 'not_configured' | 'profile_incomplete' | null;
+  blocked:
+    | 'not_configured'
+    | 'profile_incomplete'
+    | 'unsupported_pattern'
+    | 'unmapped_exclusions'
+    | null;
   /** For the placeholders on the target fields — what the profile would give. */
   context: ClientContext;
   defaultInstruction?: string | null;
@@ -151,7 +156,15 @@ export function GenerateForm({
       <div className="flex shrink-0 flex-col gap-1.5 pt-3">
         {blocked ? (
           <p className="rounded-md bg-muted px-2.5 py-2 text-caption text-muted-foreground">
-            {t(blocked === 'not_configured' ? 'errors.notConfigured' : 'errors.profileIncomplete')}
+            {t(
+              blocked === 'not_configured'
+                ? 'errors.notConfigured'
+                : blocked === 'unsupported_pattern'
+                  ? 'errors.unsupportedPattern'
+                  : blocked === 'unmapped_exclusions'
+                    ? 'errors.unmappedExclusions'
+                  : 'errors.profileIncomplete',
+            )}
           </p>
         ) : (
           <Submit mode={mode} />

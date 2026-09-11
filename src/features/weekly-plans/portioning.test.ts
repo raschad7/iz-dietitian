@@ -38,10 +38,11 @@ function food(category: string, kcal = 100) {
   return { ...NUTRIENTS, category, kcal };
 }
 
-const PIECE = { labelEn: 'Piece', grams: 50 };
-const LOAF = { labelEn: 'Loaf', grams: 60 };
-const CUP = { labelEn: 'Cup', grams: 158 };
-const SPOON = { labelEn: 'Tablespoon', grams: 25 };
+const PIECE = { key: 'piece', grams: 50 } as const;
+const LOAF = { key: 'loaf', grams: 60 } as const;
+const CUP = { key: 'cup', grams: 158 } as const;
+/* The clinic's heaped eating spoon, which is the object 25 g describes. */
+const SPOON = { key: 'heaped-spoon', grams: 25 } as const;
 
 describe('a multiplier of one is the recipe', () => {
   /**
@@ -65,6 +66,17 @@ describe('a multiplier of one is the recipe', () => {
 });
 
 describe('counts move in whole steps of their own unit', () => {
+  test('a watermelon slice can scale down by half, as the manual control does', () => {
+    const watermelon: PortionableLine = {
+      quantityGrams: 286,
+      food: food('fruits', 30),
+      portion: { key: 'slice', grams: 286 } as const,
+      portionQuantity: 1,
+      isPrimary: true,
+    };
+    expect(portionLine(watermelon, 0.5)).toEqual({ quantityGrams: 143, portionQuantity: 0.5 });
+  });
+
   test('dates go to a half, not to 1.88', () => {
     const dates: PortionableLine = {
       quantityGrams: 36,

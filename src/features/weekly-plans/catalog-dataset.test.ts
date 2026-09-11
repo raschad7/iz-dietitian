@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 
 import {
+  applyPortionRules,
   catalogChecksum,
   promoteCountedUnit,
   readUsdaReference,
@@ -10,7 +11,7 @@ import {
 import { readCatalogDataset, validateCuratedFoods } from '../../../scripts/seed-catalog-foods';
 
 import { normalizeArabic } from './arabic-normalize';
-import { derivePortions, GRAMS_ONLY_CATEGORIES } from './portion-derivation';
+import { derivePortions, WEIGHED_CATEGORIES } from './portion-derivation';
 import { NUTRIENT_KEYS } from './nutrition';
 
 /**
@@ -113,6 +114,11 @@ describe('preparation states', () => {
    * Raw, dry and cooked carry different nutrition per 100 g. Keeping them as
    * separate entries is only half the job: their *names* have to say which is
    * which, or a dietitian reading a result list cannot tell them apart.
+   *
+   * The pairs here are grains, vegetables and eggs. **Meat, poultry and fish have
+   * no raw entry at all**: every plan is written in cooked amounts, none of the
+   * raw rows was ever used by a recipe, and their only effect was to put a second
+   * "صدر دجاج" in the search for a dietitian to pick wrong.
    */
   test('raw/dry and cooked counterparts are separate entries with distinct names', () => {
     const pairs = [
@@ -122,7 +128,7 @@ describe('preparation states', () => {
       ['couscous-dry', 'couscous-cooked'],
       ['pasta-dry', 'pasta-cooked'],
       ['potato-raw', 'potato-boiled'],
-      ['chicken-breast-raw', 'chicken-breast-roasted'],
+      ['sweet-potato-raw', 'sweet-potato-baked'],
       ['egg-raw', 'egg-boiled'],
     ] as const;
 
@@ -179,7 +185,7 @@ describe('generic aliases', () => {
 
     for (const [term, expectedSlug] of [
       ['رز', 'rice-white-dry'],
-      ['دجاج', 'chicken-breast-raw'],
+      ['دجاج', 'chicken-breast-roasted'],
       ['طماطم', 'tomato-raw'],
       ['بندورة', 'tomato-raw'],
       ['لبن', 'yogurt-whole'],
@@ -197,18 +203,19 @@ describe('portions', () => {
     const rice = bySlug.get('rice-white-cooked')!;
 
     expect(rice.portions.length).toBeGreaterThan(1);
-    expect(rice.portions.map((portion) => portion.labelEn)).toEqual([
-      'Cup',
-      'Half cup',
-      'Quarter cup',
-      // Curated, not derived: USDA publishes no spoon for cooked rice.
-      'Tablespoon',
+    expect(rice.portions.map((portion) => portion.key)).toEqual([
+      'cup',
+      'half-cup',
+      'quarter-cup',
+      // Curated, not derived: USDA publishes no heaped eating spoon.
+      'heaped-spoon',
     ]);
     expect(rice.portions.map((portion) => portion.labelAr)).toEqual([
       'كوب',
       'نصف كوب',
       'ربع كوب',
-      'ملعقة كبيرة',
+      // Says which spoon it is, which is the whole reason the key exists.
+      'ملعقة ممتلئة',
     ]);
 
     for (const portion of rice.portions) {
@@ -234,7 +241,7 @@ describe('portions', () => {
   test('the clinic spoon for cooked rice is curated, says so, and is what rice starts in', () => {
     const spoon = bySlug
       .get('rice-white-cooked')!
-      .portions.find((portion) => portion.labelEn === 'Tablespoon')!;
+      .portions.find((portion) => portion.key === 'heaped-spoon')!;
 
     expect(spoon.grams).toBe(25);
     expect(spoon.isDefault).toBe(true);
@@ -252,7 +259,7 @@ describe('portions', () => {
     for (const food of foods) {
       if (!food.countedAs) continue;
 
-      const declared = food.portions.filter((portion) => portion.labelEn === food.countedAs);
+      const declared = food.portions.filter((portion) => portion.key === food.countedAs);
       if (declared.length === 0) continue;
 
       expect(food.portions.filter((portion) => portion.isDefault)).toEqual(declared);
@@ -264,7 +271,8 @@ describe('portions', () => {
     // A large egg, not a medium one: eggs are graded, and 50 g is the reference
     // unit — the same weight the boiled egg carries, so one حبة cannot mean two
     // different things depending on whether it was cooked.
-    expect(bySlug.get('egg-raw')!.portions[0]).toEqual({
+    expect(bySlug.get('egg-raw')!.portions[0]).toMatchObject({
+      key: 'piece',
       labelAr: 'حبة',
       labelEn: 'Piece',
       grams: 50,
@@ -273,17 +281,47 @@ describe('portions', () => {
     });
     expect(bySlug.get('egg-boiled')!.portions[0]!.grams).toBe(50);
 
-    // Oil is written in spoons and in nothing else. USDA publishes a 216 g cup;
-    // it is a bottle measure, not a serving.
-    expect(bySlug.get('olive-oil')!.portions).toEqual([
-      { labelAr: 'ملعقة كبيرة', labelEn: 'Tablespoon', grams: 13.5, isDefault: true, sortOrder: 0 },
-      { labelAr: 'ملعقة صغيرة', labelEn: 'Teaspoon', grams: 4.5, isDefault: false, sortOrder: 1 },
+    /*
+      Oil is written in spoons and in nothing else — USDA publishes a 216 g cup,
+      which is a bottle measure rather than a serving.
+
+      **The small spoon leads.** One teaspoon of olive oil is about 45 kcal,
+      which is a number a dietitian can put against a target; a tablespoon is
+      120 and reaches the plate as "نصف ملعقة كبيرة", a fraction nobody measures.
+      The clinic asked for this directly about زيت زيتون، سمنة and زبدة.
+    */
+    expect(bySlug.get('olive-oil')!.portions).toMatchObject([
+      {
+        key: 'teaspoon',
+        labelAr: 'ملعقة صغيرة',
+        labelEn: 'Teaspoon',
+        grams: 4.5,
+        isDefault: true,
+        sortOrder: 0,
+      },
+      {
+        key: 'level-tablespoon',
+        labelAr: 'ملعقة كبيرة',
+        labelEn: 'Tablespoon',
+        grams: 13.5,
+        isDefault: false,
+        sortOrder: 1,
+      },
     ]);
+
+    // A sachet is not a علبة. USDA measures an 11 g "1 container, individual"
+    // creamer pod, and read as one it said a tub of cooking cream weighs 11 g.
+    for (const food of foods) {
+      for (const portion of food.portions) {
+        if (portion.key === 'container') expect(portion.grams).toBeGreaterThanOrEqual(50);
+      }
+    }
 
     // `isDefault: false` on a first row is not a slip: cooked rice declares the
     // spoon (`countedAs`), and the declaration takes the default off whatever
     // the derivation put it on. The cup is still the first unit offered.
-    expect(bySlug.get('rice-white-cooked')!.portions[0]).toEqual({
+    expect(bySlug.get('rice-white-cooked')!.portions[0]).toMatchObject({
+      key: 'cup',
       labelAr: 'كوب',
       labelEn: 'Cup',
       grams: 158,
@@ -325,10 +363,21 @@ describe('portions', () => {
     }
   });
 
-  /** Meat, poultry and fish go by grams — a product choice, not a data gap. */
-  test('are absent from the categories a dietitian weighs', () => {
+  /**
+   * Meat, poultry and fish go by grams — a product choice, not a data gap.
+   *
+   * Countable cuts are the exception the dietitian asked for: a دبوس دجاج is a
+   * thing a client is handed and USDA measures it, and so is the علبة تونا her
+   * plans write. A cup of chicken is still not a serving, so the volume families
+   * stay out.
+   */
+  test('never carry a volume portion in the categories a dietitian weighs', () => {
     for (const food of foods) {
-      if (GRAMS_ONLY_CATEGORIES.has(food.category)) expect(food.portions).toEqual([]);
+      if (!WEIGHED_CATEGORIES.has(food.category)) continue;
+
+      for (const portion of food.portions) {
+        expect(['piece', 'slice', 'container']).toContain(portion.key);
+      }
     }
   });
 
@@ -346,17 +395,22 @@ describe('portions', () => {
       const source = usda.get(Number(food.sourceRef));
       expect(source).toBeDefined();
 
-      // `withExtras` and `promoteCountedUnit` are part of the build, so they are
-      // part of the reproduction: a curated portion and a declared unit are both
-      // data a person wrote, and the check is that the derived rows beside them
-      // are still exactly what the source produces.
-      const rebuilt = promoteCountedUnit(
+      // `withExtras`, `applyPortionRules` and `promoteCountedUnit` are part of the
+      // build, so they are part of the reproduction: a curated portion, a curated
+      // rule and a declared unit are all data a person wrote, and the check is
+      // that the derived rows beside them are still exactly what the source
+      // produces.
+      const ruled = applyPortionRules(
         withExtras(
           derivePortions({ category: food.category, nameEn: food.nameEn, portions: source!.portions ?? [] }),
           food.extraPortions,
         ),
-        food.countedAs,
+        food.portionRules,
       );
+
+      expect(ruled.problems).toEqual([]);
+
+      const rebuilt = promoteCountedUnit(ruled.portions, food.countedAs);
 
       expect(food.portions).toEqual(rebuilt);
     }

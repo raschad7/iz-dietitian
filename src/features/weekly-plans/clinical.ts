@@ -84,6 +84,10 @@ export const CONDITION_RULES = {
 
 /** What a prescribed pattern tells the model. Same contract as the conditions. */
 export const PATTERN_RULES = {
+  vegetarian:
+    'VEGETARIAN week. No meat, poultry, fish or shellfish. Eggs and dairy are allowed unless another restriction excludes them.',
+  vegan:
+    'VEGAN week. No meat, poultry, fish, shellfish, egg, dairy or other animal-derived food.',
   low_carb:
     'LOW CARBOHYDRATE week. Keep starch small at every meal: no large rice, bread, pasta or potato portions. Build meals on protein, vegetables and healthy fat.',
   keto:
@@ -278,23 +282,6 @@ export function clinicalRules(
 }
 
 /**
- * How few dishes a meal type may be left with before the narrowing gives up on
- * it.
- *
- * Three. A slot the filter empties is not a careful plan, it is
- * `EmptySlotCatalogError` — the generation fails outright and the dietitian is
- * told the catalogue is broken, which is both untrue and unactionable. Below
- * three the model has no room to vary the week at all, so the meal type keeps
- * its whole catalogue and the prompt's own words do the work there.
- *
- * This is the difference between a diet pattern and an allergy. An allergen
- * filter that empties a slot *should* stop the plan; a pattern is a preference
- * about macronutrients, strongly held, and a week of the closest the catalogue
- * has is better than no week and a red message.
- */
-const MIN_DISHES_PER_MEAL_TYPE = 3;
-
-/**
  * The catalogue a prescribed pattern leaves, meal type by meal type.
  *
  * Filtered rather than merely instructed, following the allergen rule in
@@ -303,9 +290,9 @@ const MIN_DISHES_PER_MEAL_TYPE = 3;
  * `nutritionCategory`, computed from the recipe — see `PATTERN_EXCLUDES_NUTRITION`
  * for why that is the only macro label a dish has and why coarse is right here.
  *
- * A meal type the filter would leave with almost nothing keeps everything: see
- * `MIN_DISHES_PER_MEAL_TYPE`. Breakfast is the one this actually saves — a
- * Palestinian breakfast is bread, and a ketogenic filter takes nearly all of it.
+ * This function is intentionally strict. If the remaining catalogue cannot fill
+ * a slot, generation stops and names the gap; it must never restore dishes that
+ * violate a prescription merely to keep the model running.
  */
 export function narrowToPattern<
   T extends { mealTypes: readonly string[]; nutritionCategory: string; baseCarbs: number },
@@ -320,32 +307,9 @@ export function narrowToPattern<
   /* The label and the gram count both have to pass — see PATTERN_MAX_CARBS_GRAMS
      for the fattoush that passed the first and should never have passed the
      second. */
-  const kept = catalog.filter(
+  return catalog.filter(
     (dish) =>
       !banned.has(dish.nutritionCategory) &&
       (maxCarbs === undefined || dish.baseCarbs <= maxCarbs),
-  );
-
-  /* Which meal types the filter has cut too far, judged on what survived. */
-  const thin = new Set<string>();
-
-  for (const mealType of new Set(catalog.flatMap((dish) => dish.mealTypes))) {
-    const survivors = kept.filter((dish) => dish.mealTypes.includes(mealType)).length;
-
-    if (survivors < MIN_DISHES_PER_MEAL_TYPE) thin.add(mealType);
-  }
-
-  if (thin.size === 0) return kept;
-
-  /*
-    A dish is kept if it survived the filter *or* if every meal type it belongs
-    to is one the filter emptied. The second half is what puts breakfast back
-    without also putting a plate of rice back into lunch.
-  */
-  return catalog.filter(
-    (dish) =>
-      (!banned.has(dish.nutritionCategory) &&
-        (maxCarbs === undefined || dish.baseCarbs <= maxCarbs)) ||
-      dish.mealTypes.every((mealType) => thin.has(mealType)),
   );
 }

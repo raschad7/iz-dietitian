@@ -29,6 +29,7 @@ import {
 import { PLANNER_THEME } from '@/features/weekly-plans/theme';
 import { recentDishUse } from '@/features/weekly-plans/usage';
 import { currentSunday, formatDateParts, nextSunday, weekDates } from '@/features/weekly-plans/week';
+import { hasUnmappedExclusions, unsupportedPattern } from '@/features/weekly-plans/eligibility';
 
 /**
  * Generation runs as a server action and now makes **two** model calls — the week,
@@ -83,13 +84,18 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
   ]);
 
   const allergens = context.profile?.allergenTags ?? [];
+  const dietPattern = context.profile?.dietPattern ?? null;
 
   // The catalog ships with its recipes so the board can recompute totals for a
   // dropped dish itself, and the previous week's slots so a repeat is visible
   // without leaving the page. The review rides in the same round — it is one row
   // and the panel that shows it is always mounted.
   const [catalog, usage, previous, review] = await Promise.all([
-    listCatalogForBoard(clinicId, allergens),
+    listCatalogForBoard(clinicId, {
+      allergens,
+      dietPattern,
+      unmappedExclusions: context.profile?.customAllergens ?? [],
+    }),
     recentDishUse(clinicId, clientId),
     board ? previousPlanSlots(clinicId, clientId, board.weekStartDate) : Promise.resolve(null),
     board ? latestReview(clinicId, board.id) : Promise.resolve(null),
@@ -104,7 +110,9 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
         // Mains only, and clean of the client's allergens. An alternative to a
         // lunch has to be a lunch: offering صحن سلطة as the replacement for
         // مقلوبة would swap the meal for its own side dish.
-        catalog.filter((dish) => !dish.isSide && dish.blockedBy.length === 0),
+        catalog.filter(
+          (dish) => !dish.isSide && (dish.eligibility?.eligible ?? dish.blockedBy.length === 0),
+        ),
       )
     : {};
 
@@ -112,6 +120,14 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
     ? ('not_configured' as const)
     : context.effectiveKcal === null || !context.profile
       ? ('profile_incomplete' as const)
+      : unsupportedPattern(dietPattern)
+        ? ('unsupported_pattern' as const)
+        : hasUnmappedExclusions({
+              allergens,
+              dietPattern,
+              unmappedExclusions: context.profile?.customAllergens ?? [],
+            })
+          ? ('unmapped_exclusions' as const)
       : null;
 
   /*

@@ -21,6 +21,8 @@ import {
   updateClinicDish,
 } from './catalog-mutations';
 import type { ClinicDishInput } from './catalog-schema';
+import { getClinicDishForEdit } from './queries';
+import { clinicDishInputSchema } from './catalog-schema';
 
 let clinicId: string;
 let foodId: string;
@@ -72,6 +74,34 @@ describe('createClinicDish', () => {
 });
 
 describe('updateClinicDish', () => {
+  test('keeps adjustable and free ingredient settings through create, reopen and save', async () => {
+    const vegetableId = await createTestCatalogFood({ slug: 'cucumber', nameAr: 'خيار' });
+    const input = clinicDishInputSchema.parse({
+      ...dishInput(),
+      ingredients: [
+        { foodId, quantityGrams: 150, isPrimary: true },
+        { foodId: vegetableId, quantityGrams: 80, isFree: true },
+      ],
+    });
+    const dishId = (await createClinicDish(clinicId, input))!;
+    const reopened = (await getClinicDishForEdit(clinicId, dishId))!;
+    expect(reopened.ingredients[0]).toMatchObject({ isPrimary: true, isFree: false });
+    expect(reopened.ingredients[1]).toMatchObject({ isPrimary: false, isFree: true });
+    const updated = clinicDishInputSchema.parse({
+      ...input,
+      nameEn: 'Renamed chicken plate',
+      ingredients: reopened.ingredients.map(line => ({
+        ...line,
+        foodId: line.food.id,
+        portionQuantity: null,
+      })),
+    });
+    expect(await updateClinicDish(clinicId, dishId, updated)).toBe(true);
+    const saved = (await getClinicDishForEdit(clinicId, dishId))!;
+    expect(saved.ingredients[0]).toMatchObject({ isPrimary: true, isFree: false });
+    expect(saved.ingredients[1]).toMatchObject({ isPrimary: false, isFree: true });
+  });
+
   test('replaces the ingredients of an owned dish', async () => {
     const dishId = await createClinicDish(clinicId, dishInput());
     const ok = await updateClinicDish(clinicId, dishId!, {

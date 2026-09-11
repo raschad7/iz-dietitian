@@ -31,6 +31,7 @@ import {
   saveReview,
   saveWeekInstructions,
   swapMealDish,
+  removeMealOption,
   unpublishPlan,
   deletePlan,
 } from './mutations';
@@ -53,6 +54,7 @@ import {
   publishPlanSchema,
   regenerateDaySchema,
   regenerateMealSchema,
+  removeMealOptionSchema,
   swapMealSchema,
   type GenerationScope,
 } from './schema';
@@ -61,6 +63,7 @@ import { saveNutritionRules } from './mutations';
 import { proteinIsRestricted, slotBudgets } from './targets';
 import type { GenerateState, PlanActionState, ReviewState } from './form-state';
 import { runReview, type ReviewOutcome } from './review';
+import { hasUnmappedExclusions, unsupportedPattern } from './eligibility';
 
 /**
  * A server action is a public endpoint. The layout guard protects the page render,
@@ -146,9 +149,38 @@ async function prepare(
     return { ok: false, state: { status: 'error', messageKey: 'errors.profileIncomplete' } };
   }
 
-  const catalog = await loadCatalog(clinicId, context.profile.allergenTags);
+  const unsupported = unsupportedPattern(context.profile.dietPattern);
+  if (unsupported) {
+    return {
+      ok: false,
+      state: { status: 'error', messageKey: 'errors.unsupportedPattern', detail: unsupported },
+    };
+  }
+  if (
+    hasUnmappedExclusions({
+      allergens: context.profile.allergenTags,
+      dietPattern: context.profile.dietPattern,
+      unmappedExclusions: context.profile.customAllergens,
+    })
+  ) {
+    return {
+      ok: false,
+      state: { status: 'error', messageKey: 'errors.unmappedExclusions' },
+    };
+  }
 
-  if (!catalog.length) {
+  // Load the visible shelf once, then make the shared ingredient-level decision.
+  // SQL tag overlap alone cannot understand legacy tag compatibility or obvious
+  // carriers whose dish tag is missing.
+  const catalog = await loadCatalog(clinicId);
+
+  const eligibleMains = toPromptCatalog(
+    catalog,
+    context.profile.dietPattern,
+    context.profile.allergenTags,
+  );
+
+  if (!eligibleMains.length) {
     return { ok: false, state: { status: 'error', messageKey: 'errors.emptyCatalog' } };
   }
 
@@ -214,8 +246,8 @@ function promptInput({
     budgets,
     /* Narrowed by the prescribed pattern before the model ever sees it — the
        same discipline as the allergen filter. See `narrowToPattern`. */
-    catalog: toPromptCatalog(catalog, profile.dietPattern),
-    sides: toPromptSides(catalog, profile.dietPattern),
+    catalog: toPromptCatalog(catalog, profile.dietPattern, ready.allergens),
+    sides: toPromptSides(catalog, profile.dietPattern, ready.allergens),
     instruction,
     previousSlugs: previous,
     days,
@@ -249,6 +281,31 @@ function toErrorState(error: unknown, scope: string): GenerateState {
 /** A success, or a success with gaps. The distinction is what the banner shows. */
 function toDoneState(outcome: GenerationOutcome): GenerateState {
   return outcome.unfilled > 0 ? { status: 'partial', unfilled: outcome.unfilled } : { status: 'done' };
+}
+
+/** Persists one audit row per logical generation/refinement pass. */
+async function recordOutcomePasses(input: {
+  clinicId: string;
+  planId: string;
+  scope: GenerationScope;
+  instruction: string | null;
+  outcome: GenerationOutcome;
+}): Promise<void> {
+  for (const pass of input.outcome.passes) {
+    await recordGeneration({
+      clinicId: input.clinicId,
+      planId: input.planId,
+      scope: input.scope,
+      pass: pass.pass,
+      instruction: input.instruction,
+      model: pass.model,
+      promptTokens: pass.usage.promptTokens,
+      completionTokens: pass.usage.completionTokens,
+      durationMs: pass.durationMs,
+      status: pass.status,
+      error: pass.error,
+    });
+  }
 }
 
 export async function generateWeekAction(
@@ -290,24 +347,30 @@ export async function generateWeekAction(
         scope: 'week',
         budgets: ready.budgets,
       }),
-      catalog: toPromptCatalog(ready.catalog, ready.profile.dietPattern),
+      catalog: toPromptCatalog(ready.catalog, ready.profile.dietPattern, ready.allergens),
       allergens: ready.allergens,
-      sides: toPromptSides(ready.catalog, ready.profile.dietPattern),
+      sides: toPromptSides(ready.catalog, ready.profile.dietPattern, ready.allergens),
       kcalTarget: ready.kcalTarget,
       proteinTargetGrams: ready.proteinTargetGrams,
       /* The clinic's own table decides which conditions are ceilings — see
          `CONDITION_RATE_KINDS`. Passing the rules keeps this in step with the
          figure the target was actually computed from. */
       proteinIsRestriction: proteinIsRestricted(ready.profile.clinicalTags, ready.context.rules),
+      dietPattern: ready.profile.dietPattern,
     });
   } catch (error) {
     // The audit row is written for failures too — those are the interesting ones.
+    const failed = error instanceof GenerationFailedError ? error : null;
     await recordGeneration({
       clinicId,
       planId: null,
       scope: 'week',
+      pass: 'initial',
       instruction,
-      model: process.env.OPENAI_MODEL ?? 'unknown',
+      model: failed?.model ?? process.env.OPENAI_MODEL ?? 'unknown',
+      promptTokens: failed?.usage.promptTokens,
+      completionTokens: failed?.usage.completionTokens,
+      durationMs: failed?.durationMs,
       status: 'failed',
       error: error instanceof Error ? error.message.slice(0, 1000) : String(error),
     }).catch(() => {});
@@ -331,16 +394,12 @@ export async function generateWeekAction(
 
     if (!planId) return { status: 'error', messageKey: 'errors.planNotFound' };
 
-    await recordGeneration({
+    await recordOutcomePasses({
       clinicId,
       planId,
       scope: 'week',
       instruction,
-      model: outcome.model,
-      promptTokens: outcome.usage.promptTokens,
-      completionTokens: outcome.usage.completionTokens,
-      durationMs: outcome.durationMs,
-      status: 'ok',
+      outcome,
     });
   } catch (error) {
     console.error('[weekly-plans] persisting the plan failed', error);
@@ -411,17 +470,30 @@ async function regenerate({
         scope,
         budgets,
       }),
-      toPromptCatalog(ready.catalog, ready.profile.dietPattern),
+      toPromptCatalog(ready.catalog, ready.profile.dietPattern, ready.allergens),
       ready.allergens,
-      toPromptSides(ready.catalog, ready.profile.dietPattern),
+      toPromptSides(ready.catalog, ready.profile.dietPattern, ready.allergens),
+      {
+        dietPattern: ready.profile.dietPattern,
+        proteinTargetGrams: ready.proteinTargetGrams,
+        proteinIsRestriction: proteinIsRestricted(
+          ready.profile.clinicalTags,
+          ready.context.rules,
+        ),
+      },
     );
   } catch (error) {
+    const failed = error instanceof GenerationFailedError ? error : null;
     await recordGeneration({
       clinicId,
       planId,
       scope,
+      pass: 'single',
       instruction,
-      model: process.env.OPENAI_MODEL ?? 'unknown',
+      model: failed?.model ?? process.env.OPENAI_MODEL ?? 'unknown',
+      promptTokens: failed?.usage.promptTokens,
+      completionTokens: failed?.usage.completionTokens,
+      durationMs: failed?.durationMs,
       status: 'failed',
       error: error instanceof Error ? error.message.slice(0, 1000) : String(error),
     }).catch(() => {});
@@ -433,16 +505,12 @@ async function regenerate({
     const replaced = await replaceMeals(clinicId, planId, outcome.meals, outcome.model);
     if (!replaced) return { status: 'error', messageKey: 'errors.planNotFound' };
 
-    await recordGeneration({
+    await recordOutcomePasses({
       clinicId,
       planId,
       scope,
       instruction,
-      model: outcome.model,
-      promptTokens: outcome.usage.promptTokens,
-      completionTokens: outcome.usage.completionTokens,
-      durationMs: outcome.durationMs,
-      status: 'ok',
+      outcome,
     });
   } catch (error) {
     console.error(`[weekly-plans] replacing ${scope} failed`, error);
@@ -540,6 +608,37 @@ export async function swapMealAction(
     if (!swapped) return { status: 'error', messageKey: 'errors.notDraft' };
   } catch (error) {
     console.error('[weekly-plans] swap failed', error);
+    return { status: 'error', messageKey: 'errors.unexpected' };
+  }
+
+  revalidateBoard(locale);
+  return { status: 'done' };
+}
+
+export async function removeMealOptionAction(
+  _previousState: PlanActionState,
+  formData: FormData,
+): Promise<PlanActionState> {
+  const locale = readLocale(formData);
+  const { clinicId } = await requireStaffClinic(locale);
+  const parsed = removeMealOptionSchema.safeParse({
+    planId: formData.get('planId'),
+    mealId: formData.get('mealId'),
+    dishId: formData.get('dishId'),
+  });
+
+  if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
+
+  try {
+    const removed = await removeMealOption(
+      clinicId,
+      parsed.data.planId,
+      parsed.data.mealId,
+      parsed.data.dishId,
+    );
+    if (!removed) return { status: 'error', messageKey: 'errors.notDraft' };
+  } catch (error) {
+    console.error('[weekly-plans] removing alternative failed', error);
     return { status: 'error', messageKey: 'errors.unexpected' };
   }
 
@@ -665,6 +764,8 @@ export async function publishPlanAction(
         messageKey:
           result.reason === 'unfilled'
             ? 'errors.unfilled'
+            : result.reason === 'unsafe' || result.reason === 'snapshot_failed'
+              ? 'errors.unsafePlan'
             : result.reason === 'not_draft'
               ? 'errors.notDraft'
               : 'errors.planNotFound',
