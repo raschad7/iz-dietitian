@@ -396,6 +396,24 @@ This generalises the seasoning rule already in `portioning.ts`, which freezes an
 line under 15 kcal. That rule becomes an explicit flag rather than a threshold
 guess.
 
+## A كوب is a measuring cup
+
+The catalog's كوب is the standard 240 ml measuring cup, and every cup weight in
+it is that cup.
+
+The clinic's written plans say «كوب حليب ١٠٠ مل» and «كوب لبن ٢٠٠ مل» — the word
+with a millilitre figure beside it, and a different figure each time. That is a
+dietitian telling a client *"a drinking glass, about this much"*, which is a
+sentence rather than a unit: the glass in one kitchen is not the glass in the
+next, which is exactly why she writes the number after it.
+
+So the two are not in conflict and neither should be bent to fit the other. The
+catalog keeps one cup that always means the same thing, because a unit that
+changes weight between plans cannot be added up. Where she means a specific
+volume she writes it, and that is a quantity in millilitres — grams, to us.
+
+Decided with the clinic on 11 September 2026.
+
 ## Hand measures are a guide, not a unit
 
 A real plan says `مقدار قبضة اليد` for a kofta ball and `كف اليد بدون أصابع` for
