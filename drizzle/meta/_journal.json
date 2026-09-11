@@ -421,6 +421,13 @@
       "when": 1788962071721,
       "tag": "0059_seed_platform_plans",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1789141260972,
+      "tag": "0060_catalog_portion_identity_and_components",
+      "breakpoints": true
     }
   ]
 }
