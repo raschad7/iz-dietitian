@@ -33,7 +33,16 @@ export type GenerateState =
 
 export const initialGenerateState: GenerateState = { status: 'idle' };
 
-/** Publishing, swapping and the other small mutations. */
+/**
+ * Publishing, swapping and the other small mutations.
+ *
+ * `planNotFound` means what it says and nothing else. Every board edit that was
+ * refused for any other reason used to answer with it — see `runEdit` in
+ * `editor-actions.ts` — so the last two keys exist to take that work off it:
+ * `dishNotAllowed` when a dish cannot stand in the meal it was dropped on, and
+ * `editRefused` for the rest. Both mean the plan is open and editable and the
+ * write still did not happen.
+ */
 export type PlanActionState =
   | { status: 'idle' }
   | { status: 'done' }
@@ -45,7 +54,9 @@ export type PlanActionState =
         | 'errors.unfilled'
         | 'errors.unsafePlan'
         | 'errors.invalid'
-        | 'errors.unexpected';
+        | 'errors.unexpected'
+        | 'errors.dishNotAllowed'
+        | 'errors.editRefused';
     };
 
 export const initialPlanActionState: PlanActionState = { status: 'idle' };

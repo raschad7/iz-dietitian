@@ -19,7 +19,7 @@ import {
 import { MAX_INGREDIENT_GRAMS } from './meal-ingredients';
 import type { DishDetail } from './nutrition';
 import { loadDishesByIds, ownAmountsByMeal, type DbExecutor } from './queries';
-import { isFixedPortion, MAX_MEAL_SIDES, mealTypeForSlot } from './schema';
+import { isFixedPortion, MAX_MEAL_SIDES } from './schema';
 import {
   MAX_SERVINGS,
   MIN_SERVINGS,
@@ -37,7 +37,6 @@ export type PlanValidationIssue = {
     | 'unfilled'
     | 'dish_unavailable'
     | 'wrong_dish_role'
-    | 'wrong_meal_type'
     | 'dish_without_ingredients'
     | 'constraint_violation'
     | 'invalid_servings'
@@ -63,6 +62,14 @@ type ValidationSide = { mealId: string; dishId: string };
 /**
  * Pure final-plan validation. It checks the materialised state a client will
  * receive, not the prompt or the base-serving labels that produced it.
+ *
+ * A dish standing in a slot its meal-type tag does not list is not an issue here
+ * and used to be — `wrong_meal_type`, which gated publishing. It had to go with
+ * the same rule in `validDishPlacement`: once the board lets a dietitian carry a
+ * dish into whichever slot she means it for, refusing to publish the week she
+ * just built is the same refusal arriving later and with less to say. The
+ * generator still may not put a dish in a slot its tag does not list
+ * (`generate.ts`), which is where that tag belongs.
  */
 export function validatePlanData(input: {
   meals: readonly ValidationMeal[];
@@ -295,9 +302,6 @@ function validateDishReference(input: {
   if (dish.isSide !== expectedSide) issues.push({ kind: 'wrong_dish_role', mealId: meal.id, dishId });
   if (dish.ingredients.length === 0) {
     issues.push({ kind: 'dish_without_ingredients', mealId: meal.id, dishId });
-  }
-  if (!dish.mealTypes.includes(mealTypeForSlot(meal.slotKey))) {
-    issues.push({ kind: 'wrong_meal_type', mealId: meal.id, dishId });
   }
   if (constraints && !evaluateDishEligibility(dish, constraints).eligible) {
     issues.push({ kind: 'constraint_violation', mealId: meal.id, dishId });

@@ -2224,6 +2224,8 @@
       "emptyCatalog": "No dishes are available once the allergy filter is applied.",
       "modelUnusable": "We could not use the model's response. Try again.",
       "planNotFound": "Plan not found.",
+      "dishNotAllowed": "This dish cannot go in that meal. Check the client's allergies and prescribed pattern.",
+      "editRefused": "That change was not applied. Reload the plan and try again.",
       "notDraft": "A published plan cannot be edited. Unpublish it first.",
       "unfilled": "Cannot publish while meals are unfilled.",
       "unsafePlan": "This plan has a dish, side, alternative, portion, or client constraint that no longer passes the final safety check. Review the plan and replace the blocked item before publishing.",
