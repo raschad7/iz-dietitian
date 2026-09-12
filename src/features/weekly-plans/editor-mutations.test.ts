@@ -601,13 +601,36 @@ describe('the edit writes', () => {
     expect((await readMeal(sunday.breakfast))?.dishId).toBe(dishId);
   });
 
-  test('moveMealDish refuses a dish that is incompatible with the destination slot', async () => {
+  // The meal-type tag is the generator's, not a rule over the dietitian's hands —
+  // see `validDishPlacement`. Moving a lunch dish onto breakfast is an ordinary
+  // act while building a week by hand and used to come back as "plan not found".
+  test('moveMealDish carries a dish into a slot its meal type does not list', async () => {
     await db.update(dishes).set({ mealTypes: ['lunch'] }).where(eq(dishes.id, dishId));
     await placeDish(clinicId, planId, sunday.lunch, dishId, 1);
 
-    expect(await moveMealDish(clinicId, planId, sunday.lunch, sunday.breakfast, 'move')).toBe(false);
-    expect((await readMeal(sunday.lunch))?.dishId).toBe(dishId);
-    expect((await readMeal(sunday.breakfast))?.dishId).toBeNull();
+    expect(await moveMealDish(clinicId, planId, sunday.lunch, sunday.breakfast, 'move')).toBe(true);
+    expect((await readMeal(sunday.lunch))?.dishId).toBeNull();
+    expect((await readMeal(sunday.breakfast))?.dishId).toBe(dishId);
+  });
+
+  test('placeDish fills a slot whose meal type the dish does not list', async () => {
+    await db.update(dishes).set({ mealTypes: ['lunch'] }).where(eq(dishes.id, dishId));
+
+    expect(await placeDish(clinicId, planId, sunday.breakfast, dishId, 1)).toBe(true);
+    expect((await readMeal(sunday.breakfast))?.dishId).toBe(dishId);
+  });
+
+  test('placeDish still refuses a dish the client is allergic to', async () => {
+    await db.update(dishes).set({ allergenTags: ['egg'] }).where(eq(dishes.id, dishId));
+    await saveIntake(clinicId, {
+      clientId,
+      allergenTags: ['egg'],
+      customAllergens: [],
+      mealSchedule: schedule,
+    });
+
+    expect(await placeDish(clinicId, planId, sunday.lunch, dishId, 1)).toBe(false);
+    expect((await readMeal(sunday.lunch))?.dishId).toBeNull();
   });
 
   test('moveMealDish rechecks current client allergens before copying a dish', async () => {

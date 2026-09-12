@@ -12,6 +12,7 @@ import {
 } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import {
+  closestCenter,
   DndContext,
   DragOverlay,
   KeyboardSensor,
@@ -19,6 +20,9 @@ import {
   TouchSensor,
   useSensor,
   useSensors,
+  type ClientRect,
+  type Collision,
+  type CollisionDetection,
   type DragEndEvent,
   type DragPendingEvent,
   type DragStartEvent,
@@ -139,6 +143,73 @@ const PAN_BAND_PX = 88;
 
 /** The fastest the week pans, in pixels per frame, reached at the very edge. */
 const PAN_SPEED_PX = 22;
+
+/**
+ * How far outside a cell the pointer may be and still drop into it.
+ *
+ * Wide enough to cover the gutters between cards — 12px down the column, a
+ * hairline across it — so a release that lands in the crack between two meals
+ * goes to the nearer one instead of nowhere. Narrow enough that letting go over
+ * the header, the rail or the drawer still cancels, which is the only way to
+ * abandon a drag with a mouse.
+ */
+const DROP_TOLERANCE_PX = 24;
+
+/** Pythagoras from a point to a box, and zero when the point is inside it. */
+function distanceToRect(rect: ClientRect, point: { x: number; y: number }): number {
+  const dx = Math.max(rect.left - point.x, 0, point.x - rect.right);
+  const dy = Math.max(rect.top - point.y, 0, point.y - rect.bottom);
+
+  return Math.hypot(dx, dy);
+}
+
+/**
+ * The cell under the pointer — which is the cell under the card, because the
+ * card is drawn from the pointer too.
+ *
+ * ## What was wrong with measuring it
+ *
+ * dnd-kit's default answer is `rectIntersection` over the *dragged node's* box
+ * carried along by the gesture's travel. For a meal that is nearly right: the
+ * card is the size of the cell it came from and it started under the finger. For
+ * a dish out of the catalog it is not even close. The node is a catalog row — a
+ * four-hundred-pixel strip of drawer — and the thing the dietitian is watching is
+ * a `w-44` card that `pinToPointer` hangs off the pointer. Carrying a 400px strip
+ * across a board of 167px columns lands it on two or three of them at once, and
+ * the one with the largest overlap is a column or two from the card.
+ *
+ * That is why it read as an Arabic bug. The drawer opens on the leading side, so
+ * in Arabic the strip trails to the *right* of the grip and the winning column is
+ * to the right of the card; in English it trails left and often covers the column
+ * under the pointer by luck. Same arithmetic, mirrored, wrong in both.
+ *
+ * So the pointer decides. It is the one thing both halves already agree on — the
+ * lifted card is positioned from it, and the dietitian is aiming with it — and
+ * nothing measured at drag start can go stale underneath it.
+ *
+ * A keyboard drag has no pointer and keeps dnd-kit's own `closestCenter`, which
+ * is the right answer there: arrow keys move a rect, and there is no finger.
+ */
+const dropUnderPointer: CollisionDetection = (args) => {
+  const pointer = args.pointerCoordinates;
+  if (!pointer) return closestCenter(args);
+
+  const collisions: Collision[] = [];
+
+  for (const container of args.droppableContainers) {
+    const rect = args.droppableRects.get(container.id);
+    if (!rect) continue;
+
+    const distance = distanceToRect(rect, pointer);
+    if (distance > DROP_TOLERANCE_PX) continue;
+
+    collisions.push({ id: container.id, data: { droppableContainer: container, value: distance } });
+  }
+
+  // Nearest first, which is what `getFirstCollision` reads. Ties cannot happen
+  // between two cells the pointer is inside, because cells do not overlap.
+  return collisions.sort((a, b) => (a.data?.value ?? 0) - (b.data?.value ?? 0));
+};
 
 /** Where a pointer event is on the screen, for mouse and touch alike. */
 function pointerCoordinates(event: Event): { x: number; y: number } | null {
@@ -264,9 +335,15 @@ export function BoardEditor({
    * a keyboard drag, which has no pointer and keeps dnd-kit's own arithmetic.
    */
   const gesture = useRef<{
-    origin: { left: number; top: number; width: number; height: number };
-    start: { x: number; y: number };
+    /**
+     * Where on the lifted card the pointer holds it, 0 at its leading edge and 1
+     * at its trailing one. Decided at drag start — see `onDragStart` — because
+     * that is the only place the payload says what is being lifted.
+     */
+    grab: { x: number; y: number };
     now: { x: number; y: number };
+    /** The source box, which stands in until the overlay has been measured. */
+    origin: { width: number; height: number };
   } | null>(null);
 
   /*
@@ -295,34 +372,32 @@ export function BoardEditor({
    * correction either — the anchor is a place on the screen, not a place in the
    * week, so a board panning underneath does not drag the card along with it.
    *
-   * ── Held where it was grabbed, even when the two are different sizes ──
+   * ── Held where it was grabbed, when there is a grab worth keeping ──
    *
    * The first version of this returned `origin.left + travel`, which pins the
    * *card's own corner* to the box the gesture started in. That is exactly right
    * for a meal card, whose preview is the size of the card it left — the lifted
-   * copy starts life directly over the original.
+   * copy starts life directly over the original, and the grab point is carried
+   * as a fraction of the box so it survives the two being measured separately.
    *
-   * It is wrong for a dish dragged out of the catalog. A catalog row is a
-   * full-width strip, four hundred pixels of drawer; the card it becomes is
-   * `w-44`. Pin that card's leading corner to the row's leading corner and the
-   * card is drawn wherever the row *starts* while the finger is wherever it
-   * happens to have grabbed — and in Arabic those are opposite ends of the row,
-   * because the row's leading corner is on the right and the card grows to the
-   * left of it. So the card came out roughly its own width away from the
-   * pointer in Arabic, and directly under it in English, which is exactly the
-   * shape of a bug that looks like "it works one way round".
+   * A dish out of the catalog has no such grab to keep. The box it leaves is a
+   * four-hundred-pixel strip of drawer and the thing it becomes is a `w-44`
+   * card; there is no point on the row that means anything on the card. Carrying
+   * the fraction across anyway put the pointer at the same *proportion* of a much
+   * smaller object — and because the grip sits at the row's leading edge, that is
+   * the card's leading edge, so the whole card hung off the far side of the
+   * cursor. Which side is "far" flips with the script, which is why this read as
+   * an Arabic bug: in English the card trailed rightwards across the column it
+   * was about to land on, and in Arabic leftwards across the one before it.
    *
-   * The fix has no notion of direction to get wrong. The grab is recorded as a
-   * *fraction* of the box it happened in — a press four fifths of the way along
-   * a row is `0.8` in both scripts — and the card is then drawn so the pointer
-   * sits four fifths of the way along *it*. When the two boxes are the same
-   * size, which is every meal drag, the arithmetic reduces to what it was
-   * before and the lifted card still starts exactly over the card it left.
+   * So a lifted dish is simply centred on the pointer. It is a new card being
+   * placed, not an existing one being carried, and the cell it will drop into is
+   * the cell it is drawn over — see `dropUnderPointer`, which reads the same
+   * pointer.
    *
    * `draggingNodeRect` is the overlay's own measured box, which is the preview's
    * real size at its real width. Before the first measurement lands it is null
-   * and the origin's size stands in — the same answer the meal case wants, and
-   * one frame of the old behaviour for the dish case.
+   * and the origin's size stands in.
    *
    * This is the overlay's own modifier. It changes what is drawn and nothing
    * about what a drop lands on.
@@ -334,18 +409,10 @@ export function BoardEditor({
     const width = draggingNodeRect?.width ?? current.origin.width;
     const height = draggingNodeRect?.height ?? current.origin.height;
 
-    // Where in the source box the pointer went down, 0 at its leading edge and
-    // 1 at its trailing one. A zero-sized origin cannot answer, so the card is
-    // centred on the finger instead of being flung to its corner.
-    const grabX =
-      current.origin.width > 0 ? (current.start.x - current.origin.left) / current.origin.width : 0.5;
-    const grabY =
-      current.origin.height > 0 ? (current.start.y - current.origin.top) / current.origin.height : 0.5;
-
     return {
       ...transform,
-      x: current.now.x - grabX * width,
-      y: current.now.y - grabY * height,
+      x: current.now.x - current.grab.x * width,
+      y: current.now.y - current.grab.y * height,
     };
   }, []);
 
@@ -657,29 +724,41 @@ export function BoardEditor({
     setDragSize(rect ? { width: rect.width, height: rect.height } : null);
 
     /*
-     * Where the gesture began, and the box it began in.
+     * Where the gesture began, and where on the lifted card that is.
      *
      * `activatorEvent` is the `mousedown` or `touchstart` the sensor activated
      * on, so the coordinates are the pointer's own starting point rather than an
      * approximation of it — which matters, because the lifted card's position is
-     * a distance measured from here. Both are read now, in the same frame, off a
-     * box that is still on screen: a dish drag closes the catalog a few lines
-     * below and the row this was measured from stops existing.
+     * measured from here. It is read now, in the same frame, off a box that is
+     * still on screen: a dish drag closes the catalog a few lines below and the
+     * row this was measured from stops existing.
      *
-     * A keyboard drag has neither, and leaves this null so `pinToPointer` stands
-     * aside and dnd-kit's own arithmetic runs.
+     * A meal keeps its grab point, as the fraction of the card the finger came
+     * down on, so the lifted copy starts exactly over the original. A dish is
+     * centred — the row it left is nothing like the card it becomes, and there is
+     * no point on one that means anything on the other. See `pinToPointer`.
+     *
+     * A keyboard drag has no pointer, and leaves this null so `pinToPointer`
+     * stands aside and dnd-kit's own arithmetic runs.
      */
     const start = pointerCoordinates(event.activatorEvent);
+    const centred = payload?.kind === 'dish';
     gesture.current =
       start && rect
         ? {
-            origin: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
-            start,
+            grab:
+              centred || rect.width === 0 || rect.height === 0
+                ? { x: 0.5, y: 0.5 }
+                : {
+                    x: (start.x - rect.left) / rect.width,
+                    y: (start.y - rect.top) / rect.height,
+                  },
             now: start,
+            origin: { width: rect.width, height: rect.height },
           }
         : null;
 
-    if (payload?.kind === 'dish') onDishDragStart?.();
+    if (centred) onDishDragStart?.();
   }
 
   function endDrag(): void {
@@ -760,6 +839,8 @@ export function BoardEditor({
       <DndContext
         id="weekly-plan-board"
         sensors={sensors}
+        /* The cell the finger is over, not the one a stale box overlaps. */
+        collisionDetection={dropUnderPointer}
         /*
           The board pans itself — see `panWhileDragging` above, and the note
           there for why dnd-kit's own edge scrolling cannot do it in Arabic.

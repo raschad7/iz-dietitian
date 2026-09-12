@@ -24,7 +24,7 @@ import {
   sidesByMealId,
 } from './queries';
 import type { NutritionRulesInput } from './nutrition-rules';
-import { isFixedPortion, mealTypeForSlot, type GenerationScope } from './schema';
+import { isFixedPortion, type GenerationScope } from './schema';
 import { planWeekDays, weekDateForDay } from './week';
 import { validatePlanForPublication } from './plan-validation';
 import { evaluateDishEligibility } from './eligibility';
@@ -377,6 +377,11 @@ export async function replaceMeals(
  * a dietitian who changes their mind should not have to remember what was there.
  * The rationale is cleared: it explained the previous dish, and leaving the
  * model's words under a dish the dietitian chose would misattribute both.
+ *
+ * The incoming dish does not have to carry the slot's meal type, and neither does
+ * the one it displaces. That tag governs what the *generator* may put where; see
+ * `validDishPlacement` in `editor-mutations.ts` for why it has no business
+ * standing in front of a dish the dietitian picked herself.
  */
 export async function swapMealDish(
   clinicId: string,
@@ -414,7 +419,6 @@ export async function swapMealDish(
       .limit(1);
 
     if (!meal) return false;
-    if (!candidate.mealTypes.includes(mealTypeForSlot(meal.slotKey))) return false;
 
     // The incoming dish must not remain in the options, or the panel would offer
     // the meal as an alternative to itself.
@@ -434,7 +438,6 @@ export async function swapMealDish(
       previous &&
       previousServings !== null &&
       previous.id !== dishId &&
-      previous.mealTypes.includes(mealTypeForSlot(meal.slotKey)) &&
       evaluateDishEligibility(previous, constraints).eligible
     ) {
       await tx

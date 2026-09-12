@@ -191,11 +191,24 @@ export async function startWeekFromPlanAction(
  * Runs one edit and turns its outcome into a state the board can render.
  *
  * Every edit below is the same three lines — parse, write, revalidate — so they
- * are written once here. `false` from a mutation means the plan was not editable
- * or the id did not resolve inside this clinic; both are "not found" to the
- * caller, because distinguishing them would tell an attacker which ids exist.
+ * are written once here.
  *
- * `clientId` comes back from the mutation rather than from the form: the board
+ * ## What `false` means, and what it used to be told the dietitian
+ *
+ * A mutation returns `false` for two different kinds of reason: the ids did not
+ * resolve inside this clinic, or they did and the write is not allowed. All of
+ * them arrived here as **"the plan does not exist"**, which is the one thing they
+ * were almost never about — a dietitian dragging a meal from breakfast to a snack
+ * was told her open, visible, half-built week was gone.
+ *
+ * So the two are separated before the write runs. `openPlan` below settles
+ * existence and editability, which are the answers the caller can give precisely;
+ * anything left is a refusal, and each caller names the refusal its own write can
+ * actually produce. What is *not* separated is which id failed to resolve, and
+ * that stays deliberate: telling an attacker whether a plan id exists in some
+ * other clinic is not something the dietitian gains anything from.
+ *
+ * `clientId` comes from that lookup rather than from the form: the board
  * revalidates a client's page, and taking that id from submitted data would let a
  * forged field bust an unrelated client's cache.
  */
@@ -203,9 +216,11 @@ async function runEdit(
   locale: Locale,
   clientId: string,
   write: () => Promise<boolean>,
+  /** What to say when the plan is there, editable, and the write still refused. */
+  refused: RefusalKey = 'errors.editRefused',
 ): Promise<PlanActionState> {
   try {
-    if (!(await write())) return { status: 'error', messageKey: 'errors.planNotFound' };
+    if (!(await write())) return { status: 'error', messageKey: refused };
   } catch (error) {
     console.error('[weekly-plans] edit failed', error);
     return { status: 'error', messageKey: 'errors.unexpected' };
@@ -216,15 +231,35 @@ async function runEdit(
   return { status: 'done' };
 }
 
-/** The client whose board this plan belongs to, scoped to the caller's clinic. */
-async function planClientId(clinicId: string, planId: string): Promise<string | null> {
+/** The refusals an edit may end in, narrowed from what the board can render. */
+type RefusalKey = Extract<
+  Extract<PlanActionState, { status: 'error' }>['messageKey'],
+  'errors.editRefused' | 'errors.dishNotAllowed'
+>;
+
+/**
+ * Resolves a plan the caller is allowed to edit, or says which part failed.
+ *
+ * One query answers both questions, because both have to be answered before any
+ * write for the error to mean anything — see `runEdit`. The mutation layer checks
+ * the same two facts again inside its own transaction (`editablePlan`); this is
+ * not that check moved, it is the same check read early so the refusal can be
+ * named.
+ */
+async function openPlan(
+  clinicId: string,
+  planId: string,
+): Promise<{ clientId: string } | PlanActionState> {
   const [row] = await db
-    .select({ clientId: weeklyPlans.clientId })
+    .select({ clientId: weeklyPlans.clientId, status: weeklyPlans.status })
     .from(weeklyPlans)
     .where(and(eq(weeklyPlans.id, planId), eq(weeklyPlans.clinicId, clinicId)))
     .limit(1);
 
-  return row?.clientId ?? null;
+  if (!row) return { status: 'error', messageKey: 'errors.planNotFound' };
+  if (row.status !== 'draft') return { status: 'error', messageKey: 'errors.notDraft' };
+
+  return { clientId: row.clientId };
 }
 
 export async function placeDishAction(
@@ -243,17 +278,21 @@ export async function placeDishAction(
 
   if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
 
-  const clientId = await planClientId(clinicId, parsed.data.planId);
-  if (!clientId) return { status: 'error', messageKey: 'errors.planNotFound' };
+  const plan = await openPlan(clinicId, parsed.data.planId);
+  if ('status' in plan) return plan;
 
-  return runEdit(locale, clientId, () =>
-    placeDish(
-      clinicId,
-      parsed.data.planId,
-      parsed.data.mealId,
-      parsed.data.dishId,
-      parsed.data.servings,
-    ),
+  return runEdit(
+    locale,
+    plan.clientId,
+    () =>
+      placeDish(
+        clinicId,
+        parsed.data.planId,
+        parsed.data.mealId,
+        parsed.data.dishId,
+        parsed.data.servings,
+      ),
+    'errors.dishNotAllowed',
   );
 }
 
@@ -278,11 +317,14 @@ export async function setMealSidesAction(
 
   if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
 
-  const clientId = await planClientId(clinicId, parsed.data.planId);
-  if (!clientId) return { status: 'error', messageKey: 'errors.planNotFound' };
+  const plan = await openPlan(clinicId, parsed.data.planId);
+  if ('status' in plan) return plan;
 
-  return runEdit(locale, clientId, () =>
-    setMealSides(clinicId, parsed.data.planId, parsed.data.mealId, parsed.data.dishIds),
+  return runEdit(
+    locale,
+    plan.clientId,
+    () => setMealSides(clinicId, parsed.data.planId, parsed.data.mealId, parsed.data.dishIds),
+    'errors.dishNotAllowed',
   );
 }
 
@@ -301,10 +343,10 @@ export async function setServingsAction(
 
   if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
 
-  const clientId = await planClientId(clinicId, parsed.data.planId);
-  if (!clientId) return { status: 'error', messageKey: 'errors.planNotFound' };
+  const plan = await openPlan(clinicId, parsed.data.planId);
+  if ('status' in plan) return plan;
 
-  return runEdit(locale, clientId, () =>
+  return runEdit(locale, plan.clientId, () =>
     setMealServings(
       clinicId,
       parsed.data.planId,
@@ -341,10 +383,10 @@ export async function setMealIngredientAction(
 
   if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
 
-  const clientId = await planClientId(clinicId, parsed.data.planId);
-  if (!clientId) return { status: 'error', messageKey: 'errors.planNotFound' };
+  const plan = await openPlan(clinicId, parsed.data.planId);
+  if ('status' in plan) return plan;
 
-  return runEdit(locale, clientId, () =>
+  return runEdit(locale, plan.clientId, () =>
     setMealIngredient(clinicId, parsed.data.planId, parsed.data.mealId, {
       amounts: parsed.data.amounts.map((amount) => ({
         foodId: amount.foodId,
@@ -371,10 +413,10 @@ export async function resetMealIngredientsAction(
 
   if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
 
-  const clientId = await planClientId(clinicId, parsed.data.planId);
-  if (!clientId) return { status: 'error', messageKey: 'errors.planNotFound' };
+  const plan = await openPlan(clinicId, parsed.data.planId);
+  if ('status' in plan) return plan;
 
-  return runEdit(locale, clientId, () =>
+  return runEdit(locale, plan.clientId, () =>
     resetMealIngredients(clinicId, parsed.data.planId, parsed.data.mealId),
   );
 }
@@ -393,10 +435,10 @@ export async function clearMealAction(
 
   if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
 
-  const clientId = await planClientId(clinicId, parsed.data.planId);
-  if (!clientId) return { status: 'error', messageKey: 'errors.planNotFound' };
+  const plan = await openPlan(clinicId, parsed.data.planId);
+  if ('status' in plan) return plan;
 
-  return runEdit(locale, clientId, () =>
+  return runEdit(locale, plan.clientId, () =>
     clearMeal(clinicId, parsed.data.planId, parsed.data.mealId),
   );
 }
@@ -415,10 +457,10 @@ export async function removeMealAction(
 
   if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
 
-  const clientId = await planClientId(clinicId, parsed.data.planId);
-  if (!clientId) return { status: 'error', messageKey: 'errors.planNotFound' };
+  const plan = await openPlan(clinicId, parsed.data.planId);
+  if ('status' in plan) return plan;
 
-  return runEdit(locale, clientId, () =>
+  return runEdit(locale, plan.clientId, () =>
     removeMeal(clinicId, parsed.data.planId, parsed.data.mealId),
   );
 }
@@ -440,10 +482,10 @@ export async function addMealAction(
 
   if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
 
-  const clientId = await planClientId(clinicId, parsed.data.planId);
-  if (!clientId) return { status: 'error', messageKey: 'errors.planNotFound' };
+  const plan = await openPlan(clinicId, parsed.data.planId);
+  if ('status' in plan) return plan;
 
-  return runEdit(locale, clientId, async () => {
+  return runEdit(locale, plan.clientId, async () => {
     const added = await addMeal(
       clinicId,
       parsed.data.planId,
@@ -482,10 +524,10 @@ export async function addWeekMealAction(
 
   if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
 
-  const clientId = await planClientId(clinicId, parsed.data.planId);
-  if (!clientId) return { status: 'error', messageKey: 'errors.planNotFound' };
+  const plan = await openPlan(clinicId, parsed.data.planId);
+  if ('status' in plan) return plan;
 
-  return runEdit(locale, clientId, async () => {
+  return runEdit(locale, plan.clientId, async () => {
     const added = await addMealToWeek(
       clinicId,
       parsed.data.planId,
@@ -516,17 +558,21 @@ export async function moveMealAction(
 
   if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
 
-  const clientId = await planClientId(clinicId, parsed.data.planId);
-  if (!clientId) return { status: 'error', messageKey: 'errors.planNotFound' };
+  const plan = await openPlan(clinicId, parsed.data.planId);
+  if ('status' in plan) return plan;
 
-  return runEdit(locale, clientId, () =>
-    moveMealDish(
-      clinicId,
-      parsed.data.planId,
-      parsed.data.fromMealId,
-      parsed.data.toMealId,
-      parsed.data.mode,
-    ),
+  return runEdit(
+    locale,
+    plan.clientId,
+    () =>
+      moveMealDish(
+        clinicId,
+        parsed.data.planId,
+        parsed.data.fromMealId,
+        parsed.data.toMealId,
+        parsed.data.mode,
+      ),
+    'errors.dishNotAllowed',
   );
 }
 
@@ -562,10 +608,10 @@ export async function restoreWeekMealAction(
 
   if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
 
-  const clientId = await planClientId(clinicId, parsed.data.planId);
-  if (!clientId) return { status: 'error', messageKey: 'errors.planNotFound' };
+  const plan = await openPlan(clinicId, parsed.data.planId);
+  if ('status' in plan) return plan;
 
-  return runEdit(locale, clientId, async () => {
+  return runEdit(locale, plan.clientId, async () => {
     const restored = await restoreMealToWeek(
       clinicId,
       parsed.data.planId,
@@ -595,10 +641,10 @@ export async function removeWeekMealAction(
 
   if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
 
-  const clientId = await planClientId(clinicId, parsed.data.planId);
-  if (!clientId) return { status: 'error', messageKey: 'errors.planNotFound' };
+  const plan = await openPlan(clinicId, parsed.data.planId);
+  if ('status' in plan) return plan;
 
-  return runEdit(locale, clientId, async () => {
+  return runEdit(locale, plan.clientId, async () => {
     const removed = await removeMealFromWeek(
       clinicId,
       parsed.data.planId,

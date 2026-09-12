@@ -104,7 +104,7 @@ export async function createPlanFromSkeleton(input: {
 
       const dish = dishById.get(meal.dishId);
       const servings = snapServings(meal.servings);
-      const safe = validDishPlacement(dish, constraints, meal.slotKey, servings, false);
+      const safe = validDishPlacement(dish, constraints, servings, false);
 
       return safe ? { ...meal, servings } : { ...meal, dishId: null, servings: 1 };
     });
@@ -167,11 +167,35 @@ export async function createPlanFromSkeleton(input: {
   });
 }
 
-/** The placement invariant shared by copy, restore, drag-and-drop and direct edits. */
+/**
+ * The placement invariant shared by copy, restore, drag-and-drop and direct edits.
+ *
+ * ## Why the meal-type tag is not in here
+ *
+ * It used to be: a dish had to carry the destination slot's meal type or the
+ * write was refused. That tag is an authoring hint — it decides which dishes the
+ * generator is offered for a slot (`prompt.ts`) and which one the model is
+ * allowed to come back with (`generate.ts`) — and using it as a rule over the
+ * dietitian's own hands was wrong in three separate ways:
+ *
+ * - She could not move a meal she had just placed from breakfast into a snack,
+ *   which is an ordinary act while building a week by hand, and the refusal
+ *   reached her as "the plan does not exist".
+ * - The catalog *invites* it. Its meal-type chip is a filter she can switch off
+ *   to see the whole catalog — a panel that offers a dish for a slot it then
+ *   refuses to accept it into.
+ * - The silent cases were worse than the loud one. Copying a week and undoing a
+ *   slot removal both run through here, and a dish whose tag did not match came
+ *   back as an empty cell with nothing anywhere saying why.
+ *
+ * What stays is what is actually a rule: a main where a main belongs, a recipe
+ * behind the dish, the client's allergens and prescribed pattern, and a whole
+ * number of portions for something bought by the piece. Those are facts about
+ * safety and arithmetic. "Loquats are a snack" is an opinion, and it is hers.
+ */
 function validDishPlacement(
   dish: DishDetail | undefined,
   constraints: PlanConstraints,
-  slotKey: string,
   servings: number,
   expectedSide: boolean,
 ): dish is DishDetail {
@@ -179,7 +203,6 @@ function validDishPlacement(
     dish &&
       dish.isSide === expectedSide &&
       dish.ingredients.length > 0 &&
-      dish.mealTypes.includes(mealTypeForSlot(slotKey)) &&
       evaluateDishEligibility(dish, constraints).eligible &&
       (!isFixedPortion(dish.source) || Number.isInteger(servings)),
   );
@@ -300,7 +323,7 @@ export async function placeDish(
       .limit(1);
 
     if (!meal) return false;
-    if (!validDishPlacement(candidate, constraints, meal.slotKey, snappedServings, false)) return false;
+    if (!validDishPlacement(candidate, constraints, snappedServings, false)) return false;
 
     // The incoming dish must not remain among the options, or the panel would
     // offer the meal as an alternative to itself.
@@ -318,11 +341,13 @@ export async function placeDish(
           wholeOnly: isFixedPortion(previous.source),
         })
       : null;
+    // No meal-type test on the way back. The dish being displaced is the one the
+    // dietitian had in this slot a moment ago, so an alternative it cannot be is
+    // an alternative she chose herself — see `validDishPlacement`.
     if (
       previous &&
       previousServings !== null &&
       previous.id !== dishId &&
-      previous.mealTypes.includes(mealTypeForSlot(meal.slotKey)) &&
       evaluateDishEligibility(previous, constraints).eligible
     ) {
       await tx
@@ -762,7 +787,7 @@ export async function restoreMealToWeek(
         const servings = snapServings(day.servings);
         const dish = day.dishId ? dishById.get(day.dishId) : undefined;
         const safe = day.dishId
-          ? validDishPlacement(dish, constraints, slot.slotKey, servings, false)
+          ? validDishPlacement(dish, constraints, servings, false)
           : false;
 
         return {
@@ -847,19 +872,11 @@ export async function moveMealDish(
     const catalog = await loadCatalog(clinicId, [], tx);
     const dishById = new Map(catalog.map((dish) => [dish.id, dish]));
     const sourceDish = dishById.get(source.dishId);
-    if (
-      !validDishPlacement(sourceDish, constraints, target.slotKey, source.servings, false)
-    ) return false;
+    if (!validDishPlacement(sourceDish, constraints, source.servings, false)) return false;
     if (
       mode === 'move' &&
       target.dishId &&
-      !validDishPlacement(
-        dishById.get(target.dishId),
-        constraints,
-        source.slotKey,
-        target.servings,
-        false,
-      )
+      !validDishPlacement(dishById.get(target.dishId), constraints, target.servings, false)
     ) return false;
 
     const updated = await tx
